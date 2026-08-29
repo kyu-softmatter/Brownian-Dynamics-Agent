@@ -1,49 +1,62 @@
-"""구름 저항 + 접선 스프링 접촉 모델 — `md.force.Custom(aniso=True)` 구현 + 넘파이 참조 모델.
+"""Rolling resistance + tangential spring contact model -- an
+`md.force.Custom(aniso=True)` implementation plus a numpy reference model.
 
-`md.pair.friction`(산일성·구름 면제, `scratch/verify_pair_friction.py`)으로는 굽힘강성을
-만들 수 없다는 것이 실측됐다. JKR 접착접촉이 실제로 하는 일은 **접촉점이 표면 위를
-구르는 것에 저항하는 것**이므로, 그걸 직접 구현한다 (Dominik–Tielens 1995 / Wada 2007 계열).
+It was measured that `md.pair.friction` cannot produce a bending stiffness (it is
+dissipative and exempt from rolling -- `scratch/verify_pair_friction.py`). What a JKR
+adhesive contact actually does is **resist the contact point rolling over the
+surface**, so that is implemented directly (in the Dominik-Tielens 1995 / Wada 2007
+family).
 
-━━ 운동학 ━━
-결합 (i,j) 마다 **물체고정 접촉점 마커** `m_i`(입자 i 중심 → 접촉점, 단위벡터)를 결합
-생성 시점에 저장한다. 현재 랩프레임 값은 `a_i = Rot(q_i)·m_i`.
-`d = r_j − r_i`, `ℓ = |d|`, `n̂ = d/ℓ`. 기준(곧은) 상태에서 `a_i = n̂`, `a_j = −n̂`.
+-- Kinematics --
+For each bond (i,j) a **body-fixed contact-point marker** `m_i` (unit vector from the
+centre of particle i to the contact point) is stored at the moment the bond is
+created. Its current lab-frame value is `a_i = Rot(q_i).m_i`.
+`d = r_j - r_i`, `l = |d|`, `n = d/l`. In the reference (straight) state
+`a_i = n` and `a_j = -n`.
 
-  구름   ξ_i = R(a_i − n̂),  ξ_j = R(a_j + n̂)      각 입자의 마커가 현재 중심선에서 벗어난 양
-         U_r = ½k_r(|ξ_i|²+|ξ_j|²) = k_r R² (2 − (a_i − a_j)·n̂)      ★ 닫힌 형태
-  접선   b = a_j − a_i,  ξ_s = P b·R  (P = I − n̂n̂ᵀ)
+  rolling    xi_i = R(a_i - n),  xi_j = R(a_j + n)
+             how far each particle's marker has moved off the current centre line
+             U_r = 0.5*k_r(|xi_i|^2+|xi_j|^2) = k_r R^2 (2 - (a_i - a_j).n)
+             ★ closed form
+  tangential b = a_j - a_i,  xi_s = P b * R  (P = I - n n^T)
          U_s = ½k_s R² (|b|² − (b·n̂)²)
 
-━━ 해석적 힘·토크 (에너지에서 직접 미분) ━━
+-- Analytic force and torque (differentiated directly from the energy) --
   ∂n̂/∂d = P/ℓ,   τ = −a × ∂U/∂a
-  구름:  w = −k_rR²(a_i−a_j);  F_j = −Pw/ℓ = −F_i
+  rolling:    w = -k_r R^2 (a_i - a_j);  F_j = -P w/l = -F_i
          τ_i = +k_rR²(a_i × n̂),   τ_j = −k_rR²(a_j × n̂)
-  접선:  F_j = +k_sR²(b·n̂)(Pb)/ℓ = −F_i
+  tangential: F_j = +k_s R^2 (b.n)(P b)/l = -F_i
          τ_i = +k_sR²(a_i × Pb),  τ_j = −k_sR²(a_j × Pb)
 
-━━ ★ 종이 위 예측 (실행 전 고정 — 원칙 9.2) ━━
-  P1  기준 상태에서 U=0, F=0, τ=0.
-  P2  쌍 전체를 강체회전하면 U=0 (마커와 n̂ 이 함께 돈다).
-  P3  **접선 스프링만으로는 사슬 굽힘강성이 0** 이다. 방향 θ 를 이완시키면
-      U_s ∝ Σ(θ_i+θ_j+2φ)² 를 정확히 0 으로 만들 수 있다 (미지수가 구속보다 많다).
-      ⟹ `pair.friction` 이 구름에 면제되는 것과 **같은 구조**다.
-  P4  구름 저항만이면 굽힘강성이 생긴다. 방향 이완 후
+-- ★ Predictions written down on paper (sealed before running -- principle 9.2) --
+  P1  In the reference state U=0, F=0, torque=0.
+  P2  Rigidly rotating the whole pair gives U=0 (the markers and n turn together).
+  P3  **The tangential spring alone gives ZERO chain bending stiffness.** Relaxing
+      the orientations theta lets U_s ~ sum(theta_i + theta_j + 2*phi)^2 be driven
+      to exactly 0 (there are more unknowns than constraints).
+      => the **same structure** as pair.friction being exempt from rolling.
+  P4  Rolling resistance alone does give a bending stiffness. After relaxing the
+      orientations
       U_r = ¼ k_r R² Σ θ_bend²  ⟹  **κ_θ,eff = ½ k_r R²**
-      (내부 입자가 양쪽 결합에 공유돼 좌절되는 것이 기원. 끝 입자는 완전히 이완된다)
-  P5  방향이 **얼지면** 다른 물리가 된다: U_r = k_rR² Σ φ_k² — 곡률이 아니라 결합의
-      절대 회전을 벌한다(강체 고정). ⟹ 준정적에서만 조화굽힘과 같고 고주파에서 갈린다.
+      (the origin is that an interior particle is shared by two bonds and so is
+       frustrated; an end particle relaxes completely)
+  P5  If the orientations are **frozen** it becomes different physics:
+      U_r = k_r R^2 sum(phi_k^2) -- it penalises the absolute rotation of each bond
+      rather than the curvature (a rigid clamp). => it matches a harmonic bend only
+      quasi-statically, and diverges from it at high frequency.
 """
 from __future__ import annotations
 
 import numpy as np
 
 # ──────────────────────────────────────────────────────────────────────────
-# 넘파이 참조 모델 (HOOMD 없이 — 해석해·정적 최소화용)
+# numpy reference model (no HOOMD -- for the analytic solution and static
+# minimization)
 # ──────────────────────────────────────────────────────────────────────────
 
 
 def q_rotate(q: np.ndarray, v: np.ndarray) -> np.ndarray:
-    """쿼터니언 q=(w,x,y,z) 로 벡터 v 회전. (..,4)·(..,3) → (..,3)"""
+    """Rotate vector v by quaternion q=(w,x,y,z). (..,4) and (..,3) -> (..,3)"""
     w, u = q[..., :1], q[..., 1:]
     return v + 2 * np.cross(u, np.cross(u, v) + w * v)
 
@@ -57,7 +70,10 @@ def q_from_axis_angle(axis: np.ndarray, ang) -> np.ndarray:
 
 
 class RollingContact:
-    """결합 리스트 기반 구름 저항 + 접선 스프링. 마커는 생성 시 기준 배치에서 고정."""
+    """Bond-list based rolling resistance + tangential spring.
+
+    Markers are fixed from the reference configuration at construction time.
+    """
 
     def __init__(self, bonds, pos0, quat0, R, k_roll, k_slide):
         self.bonds = np.asarray(bonds, int)                 # (M,2)
@@ -68,7 +84,7 @@ class RollingContact:
         d = np.asarray(pos0, float)[j] - np.asarray(pos0, float)[i]
         n = d / np.linalg.norm(d, axis=1, keepdims=True)
         qi, qj = np.asarray(quat0, float)[i], np.asarray(quat0, float)[j]
-        # 마커를 **물체 프레임**으로 저장 → q0 의 역회전
+        # Store the markers in the **body frame** -> inverse rotation by q0
         self.m_i = q_rotate(qi * np.array([1, -1, -1, -1.0]), +n)
         self.m_j = q_rotate(qj * np.array([1, -1, -1, -1.0]), -n)
 
@@ -91,7 +107,7 @@ class RollingContact:
         return float(U)
 
     def force_torque(self, pos, quat):
-        """해석적 힘·토크. 반환 (N,3)·(N,3)."""
+        """Analytic force and torque. Returns (N,3) and (N,3)."""
         i, j, n, ell, a_i, a_j = self._kin(pos, quat)
         N = len(pos)
         F = np.zeros((N, 3))
@@ -101,7 +117,7 @@ class RollingContact:
         def perp(v):                                    # P v = v − (v·n̂)n̂
             return v - ((v * n).sum(1, keepdims=True)) * n
 
-        # ── 구름 ──
+        # ── rolling ──
         w = -self.k_r * R2 * (a_i - a_j)
         Fj = -perp(w) / ell
         np.add.at(F, j, Fj)
@@ -109,7 +125,7 @@ class RollingContact:
         np.add.at(T, i, self.k_r * R2 * np.cross(a_i, n))
         np.add.at(T, j, -self.k_r * R2 * np.cross(a_j, n))
 
-        # ── 접선 ──
+        # ── tangential ──
         b = a_j - a_i
         bn = (b * n).sum(1, keepdims=True)
         Pb = perp(b)
@@ -122,7 +138,8 @@ class RollingContact:
 
 
 def kappa_theta_eff(k_roll: float, R: float) -> float:
-    """P4 — 방향 이완 극한에서 구름 저항 ↔ 조화 굽힘 강성의 정확한 대응."""
+    """P4 -- the exact correspondence between rolling resistance and a harmonic
+    bending stiffness, in the orientation-relaxed limit."""
     return 0.5 * k_roll * R ** 2
 
 
@@ -131,24 +148,24 @@ def k_roll_from_kappa_theta(kappa_theta: float, R: float) -> float:
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# HOOMD 힘 (aniso=True — 토크를 쓴다)
+# HOOMD force (aniso=True -- it uses torques)
 # ──────────────────────────────────────────────────────────────────────────
 def make_rolling_force(bonds, pos0, quat0, R, k_roll, k_slide, n_real):
-    """`md.force.Custom(aniso=True)`. 유령입자(tag >= n_real)는 건드리지 않는다."""
+    """`md.force.Custom(aniso=True)`. Ghost particles (tag >= n_real) are untouched."""
     import hoomd.md as md
 
     model = RollingContact(bonds, pos0, quat0, R, k_roll, k_slide)
 
     class RollingCustom(md.force.Custom):
         def __init__(self):
-            super().__init__(aniso=True)          # ★ 토크를 내려면 필수
+            super().__init__(aniso=True)          # ★ required in order to emit torques
             self.model = model
             self.n = int(n_real)
 
         def set_forces(self, timestep):
             with self._state.cpu_local_snapshot as snap, \
                  self.cpu_local_force_arrays as arr:
-                tags = np.array(snap.particles.tag, copy=True)   # ★ tag 인덱싱 (정렬 때문)
+                tags = np.array(snap.particles.tag, copy=True)   # ★ tag indexing (because of reordering)
                 pos = np.array(snap.particles.position, copy=True)
                 quat = np.array(snap.particles.orientation, copy=True)
                 m = tags < self.n
@@ -163,6 +180,6 @@ def make_rolling_force(bonds, pos0, quat0, R, k_roll, k_slide, n_real):
                 arr.potential_energy[:] = 0.0
                 arr.force[m] = F[tags[m]]
                 arr.torque[m] = T[tags[m]]
-                arr.potential_energy[m] = U / self.n     # 총합만 의미 있음
+                arr.potential_energy[m] = U / self.n     # only the total is meaningful
 
     return RollingCustom()
