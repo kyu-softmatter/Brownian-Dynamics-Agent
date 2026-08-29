@@ -1,12 +1,16 @@
-"""GSD 재생으로 max|F| 를 측정할 수 있는가 — **가드 진값이 있는 런에서 교정한다.**
+"""Can max|F| be measured by replaying a GSD? -- **calibrated on a run that has the
+guard's ground truth.**
 
-레거시 런 79개의 스텝 커버리지를 채우려면 원래 벽시계 80시간을 다시 써야 합니다.
-그런데 궤적(GSD)이 저장돼 있으니, 프레임마다 힘만 다시 계산하면 `dt·|F|max` 를
-**재시뮬레이션 없이** 얻을 수 있습니다 (프레임 200~5667개 × 힘 1회).
+Filling in the step coverage of the 79 legacy runs would mean spending the original
+80 hours of wall clock again. But the trajectories (GSD) are stored, so recomputing
+only the forces frame by frame gives `dt*|F|max` **without re-simulating**
+(200-5667 frames x one force evaluation each).
 
-⚠️ 다만 GSD 프레임은 가드 표본보다 드뭅니다 — 최댓값을 **과소평가**할 수 있습니다.
-   그래서 먼저 **둘 다 있는 런**에서 재생값 vs 가드 진값을 대조합니다.
-   교정 없이 쓰면 "측정했다"면서 틀린 값을 넣게 됩니다 (규칙 6).
+⚠️ The catch is that GSD frames are sparser than the guard's samples, so the maximum
+   can be **underestimated**. So the replayed value is first compared against the
+   guard's ground truth on a run that has **both**.
+   Using it without that calibration would mean entering a wrong number while
+   claiming to have measured it (rule 6).
 
     $PY scratch/probe_gsd_replay.py runs/<run_id>
 """
@@ -27,13 +31,13 @@ from bdbot import nondim as ND, run as RUN  # noqa: E402
 
 
 def _import_case_builders() -> None:
-    """`@RUN.builder` 데코레이터가 등록되게 케이스 모듈을 임포트한다."""
+    """Import the case modules so their `@RUN.builder` decorators register."""
     import importlib
     for mod in ("trap_drag_2d", "chain_bend_2d", "trap_2d_5um", "abp_rod_2d", "soft_r3_2d"):
         try:
             importlib.import_module(mod)
         except Exception as e:
-            print(f"  (케이스 {mod} 임포트 실패: {type(e).__name__}: {e})")
+            print(f"  (case {mod} failed to import: {type(e).__name__}: {e})")
 
 
 def replay(run_dir: Path, max_frames: int | None = None, verbose: bool = True) -> dict:
@@ -45,7 +49,7 @@ def replay(run_dir: Path, max_frames: int | None = None, verbose: bool = True) -
 
     gsd_files = sorted(run_dir.glob("*.gsd"))
     if not gsd_files:
-        raise FileNotFoundError(f"{run_dir} 에 GSD 가 없습니다")
+        raise FileNotFoundError(f"no GSD in {run_dir}")
 
     with tempfile.TemporaryDirectory() as td:
         b = build_fn(spec, Path(td))
@@ -64,8 +68,8 @@ def replay(run_dir: Path, max_frames: int | None = None, verbose: bool = True) -
                 pos = np.asarray(fr.particles.position, dtype=float)
                 if pos.shape[0] != n_build:
                     raise ValueError(
-                        f"입자 수 불일치: GSD {pos.shape[0]} vs build {n_build} "
-                        f"— 이 런은 재생할 수 없습니다")
+                        f"particle-count mismatch: GSD {pos.shape[0]} vs "
+                        f"build {n_build} -- this run cannot be replayed")
                 snap = sim.state.get_snapshot()
                 snap.particles.position[:] = pos
                 if getattr(fr.particles, "orientation", None) is not None \
@@ -74,7 +78,7 @@ def replay(run_dir: Path, max_frames: int | None = None, verbose: bool = True) -
                     if o.shape == snap.particles.orientation.shape:
                         snap.particles.orientation[:] = o
                 sim.state.set_snapshot(snap)
-                sim.run(0)                        # 힘 재계산 (상태는 전진하지 않음)
+                sim.run(0)                        # recompute forces (the state does not advance)
                 fm = 0.0
                 for f in b.forces:
                     arr = np.asarray(f.forces, dtype=float)
@@ -100,7 +104,7 @@ def main() -> int:
     _import_case_builders()
 
     print("=" * 78)
-    print(f"GSD 재생 교정 — {run_dir.name}")
+    print(f"GSD replay calibration -- {run_dir.name}")
     print("=" * 78)
 
     r = replay(run_dir)
@@ -109,24 +113,26 @@ def main() -> int:
     truth_drift = num.get("step_drift_max_sigma")
     truth_f = num.get("f_max_kT_per_sigma")
 
-    print(f"  케이스        {r['case']}")
+    print(f"  case          {r['case']}")
     print(f"  dt*           {r['dt_star']:.6e}")
-    print(f"  GSD 프레임    {r['n_frames_used']} / {r['n_frames_total']}")
-    print(f"  재생 |F|max   {r['f_max_gsd']:.6g} kT/σ")
-    print(f"  재생 drift    {r['drift_gsd']:.6e}")
+    print(f"  GSD frames    {r['n_frames_used']} / {r['n_frames_total']}")
+    print(f"  replay |F|max {r['f_max_gsd']:.6g} kT/sigma")
+    print(f"  replay drift  {r['drift_gsd']:.6e}")
     if truth_drift is None:
-        print("  가드 진값     없음 (이 런은 교정에 못 씀 — 진값이 있는 런으로 하세요)")
+        print("  guard truth   none (this run cannot calibrate -- use one that has it)")
         return 0
-    print(f"  가드 |F|max   {truth_f:.6g} kT/σ   ← 진값")
-    print(f"  가드 drift    {truth_drift:.6e}   ← 진값")
+    print(f"  guard |F|max  {truth_f:.6g} kT/sigma   <- ground truth")
+    print(f"  guard drift   {truth_drift:.6e}   <- ground truth")
     ratio = r["drift_gsd"] / truth_drift if truth_drift else float("nan")
     print()
-    print(f"  재생/가드 = {ratio:.4f}×   "
-          + ("(재생이 과소평가)" if ratio < 0.95 else
-             "(일치)" if ratio <= 1.05 else "(재생이 더 큼 — 가드가 놓친 순간을 잡음)"))
+    print(f"  replay/guard = {ratio:.4f}x   "
+          + ("(replay underestimates)" if ratio < 0.95 else
+             "(agrees)" if ratio <= 1.05 else
+             "(replay is larger -- it caught an instant the guard missed)"))
     pf = r["per_frame"]
-    print(f"  프레임별 |F| 분포: 중앙 {np.median(pf):.4g} · 90% {np.percentile(pf, 90):.4g} "
-          f"· 최대 {pf.max():.4g}")
+    print(f"  per-frame |F| distribution: median {np.median(pf):.4g}, "
+          f"90th {np.percentile(pf, 90):.4g} "
+          f", max {pf.max():.4g}")
     print("=" * 78)
     return 0
 

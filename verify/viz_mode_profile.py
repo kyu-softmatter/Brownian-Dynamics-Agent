@@ -17,52 +17,61 @@ TRAP = [0, 4, 8]
 
 fig, ax = plt.subplots(1, 3, figsize=(15.5, 5.0))
 
-# ── ① 진폭 프로파일 ──
+# ── (1) amplitude profile ──
 a = ax[0]
-a.plot(s, Ap, "-", color="gray", lw=6, alpha=0.4, label="선형응답 예측")
-a.errorbar(s, A, yerr=Ae, fmt="o", color="#d62728", ms=8, capsize=4, label="측정 (시드 6)")
+a.plot(s, Ap, "-", color="gray", lw=6, alpha=0.4, label="linear-response prediction")
+a.errorbar(s, A, yerr=Ae, fmt="o", color="#d62728", ms=8, capsize=4,
+           label="measured (6 seeds)")
 for i in TRAP:
     a.plot(s[i], A[i], "s", ms=14, mfc="none", mec="k", mew=1.6,
-           label="트랩된 비드" if i == 0 else None)
-a.set_xlabel("s = i − mid  (구동 비드로부터의 거리 [결합])")
+           label="trapped bead" if i == 0 else None)
+a.set_xlabel("s = i - mid  (distance from the driven bead, in bonds)")
 a.set_ylabel("A [d]")
-a.set_title(f"① 진폭 프로파일 — 예측과 **+0.01~0.04%**\n"
-            f"구동 {A[mid]:.3f} d → 양끝 {A[0]:.3f} d (9.3배 감쇠)", fontsize=10)
+a.set_title(f"(1) amplitude profile -- **+0.01 to 0.04%** against prediction\n"
+            f"driven {A[mid]:.3f} d -> ends {A[0]:.3f} d (9.3x attenuation)",
+            fontsize=10)
 a.legend(fontsize=8); a.grid(alpha=0.3)
 
-# ── ② 위상 프로파일 ──
+# ── (2) phase profile ──
 a = ax[1]
-a.plot(s, phip, "-", color="gray", lw=6, alpha=0.4, label="선형응답 예측")
+a.plot(s, phip, "-", color="gray", lw=6, alpha=0.4,
+       label="linear-response prediction")
 a.errorbar(s, phi, yerr=np.degrees(z["phi_e"]), fmt="o", color="#1f77b4", ms=8,
-           capsize=4, label="측정 (시드 6)")
+           capsize=4, label="measured (6 seeds)")
 for i in TRAP:
     a.plot(s[i], phi[i], "s", ms=14, mfc="none", mec="k", mew=1.6)
 a.axhline(0, color="gray", lw=0.6)
-a.set_xlabel("s = i − mid"); a.set_ylabel("φ − φ_구동  [°]")
-a.set_title("② 위상 지연 — 예측과 **0.06° 이내**\n"
-            "중심에서 멀수록 뒤처진다 (점성 전파). 양끝은 트랩 때문에 급증", fontsize=10)
+a.set_xlabel("s = i - mid"); a.set_ylabel("phi - phi_driven  [deg]")
+a.set_title("(2) phase lag -- within **0.06 deg** of prediction\n"
+            "the further from the centre, the further behind (viscous propagation). "
+            "The ends jump because of the traps", fontsize=10)
 a.legend(fontsize=8); a.grid(alpha=0.3)
 
-# ── ③ 감쇠 형태 (로그) ──
+# ── (3) shape of the attenuation (log) ──
 a = ax[2]
-a.semilogy(np.abs(s), A, "o", color="#d62728", ms=8, label="측정")
-a.semilogy(np.abs(s), Ap, "-", color="gray", lw=5, alpha=0.4, label="선형응답 예측")
-# 자유 구간(|s|=0..3)만 지수 적합 — |s|=4 는 트랩이 지배해 따로 본다
+a.semilogy(np.abs(s), A, "o", color="#d62728", ms=8, label="measured")
+a.semilogy(np.abs(s), Ap, "-", color="gray", lw=5, alpha=0.4,
+           label="linear-response prediction")
+# Exponential fit over the free range (|s|=0..3) only -- |s|=4 is trap-dominated
+# and is looked at separately
 m = np.abs(s) <= 3
 k = np.polyfit(np.abs(s)[m], np.log(A[m]), 1)[0]
 xs = np.linspace(0, 4, 50)
 a.semilogy(xs, A[mid] * np.exp(k * xs), "--", color="#2ca02c", lw=1.6,
-           label=f"지수적합 |s|≤3: 감쇠길이 {-1/k:.2f} 결합")
-a.plot(4, A[0], "s", ms=14, mfc="none", mec="k", mew=1.6, label="트랩된 양끝")
-a.set_xlabel("|s|  (중심으로부터 거리)"); a.set_ylabel("A [d]  (로그)")
-a.set_title("③ 감쇠는 단일 지수가 아니다\n"
-            "|s|≤3 은 완만, |s|=4(트랩)에서 급락 — 경계조건이 지배", fontsize=10)
+           label=f"exp fit |s|<=3: decay length {-1/k:.2f} bonds")
+a.plot(4, A[0], "s", ms=14, mfc="none", mec="k", mew=1.6, label="trapped ends")
+a.set_xlabel("|s|  (distance from the centre)"); a.set_ylabel("A [d]  (log)")
+a.set_title("(3) the attenuation is not a single exponential\n"
+            "gentle for |s|<=3, then a sharp drop at |s|=4 (the traps) -- the "
+            "boundary condition dominates", fontsize=10)
 a.legend(fontsize=8); a.grid(alpha=0.3, which="both")
 
-fig.suptitle("JKR 사슬의 비드별 A·sin(ωt+φ) 피팅 — n=9, ω=3000 rad/s, a=1d, k_t×100, 시드 6개\n"
-             "회색 굵은 선 = 해석적 선형응답 (iωγI + A_bend + T)ŷ = k_t·a·e_mid  — 자유 파라미터 없음",
+fig.suptitle("per-bead A*sin(omega*t+phi) fit for the JKR chain -- n=9, "
+             "omega=3000 rad/s, a=1d, k_t x100, 6 seeds\n"
+             "thick grey line = analytic linear response "
+             "(i*omega*gamma*I + A_bend + T)y_hat = k_t*a*e_mid  -- no free parameters",
              fontsize=11)
 fig.tight_layout()
 out = f"{S}/mode_profile.png"
 fig.savefig(out, dpi=140); print("saved", out)
-print(f"지수 감쇠길이(|s|<=3): {-1/k:.3f} 결합 = {-1/k*1.0076:.3f} d")
+print(f"exponential decay length (|s|<=3): {-1/k:.3f} bonds = {-1/k*1.0076:.3f} d")

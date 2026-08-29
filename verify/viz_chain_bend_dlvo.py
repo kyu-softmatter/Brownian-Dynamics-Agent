@@ -1,7 +1,9 @@
-"""`chain-bend-2d-dlvo` 첫 런 결과 확인 — 그래프 + 애니메이션.
+"""Check the first `chain-bend-2d-dlvo` run -- graphs plus animation.
 
-**결과를 말로만 보고하지 않는다** (작업 관행). G1 가설(직선사슬 + 순수 중심력 DLVO +
-자연장 평형 ⇒ 선형 굽힘강성이 정확히 0)을 이 런이 지지하는지 눈으로 확인한다.
+**Do not report a result in prose alone** (working practice). This is the visual
+check of whether the run supports hypothesis G1: a straight chain with purely
+central-force DLVO, equilibrated at its natural length, has exactly zero linear
+bending stiffness.
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY scratch/viz_chain_bend_dlvo.py [run_id]
@@ -48,47 +50,54 @@ def make_figure(m, npz):
     shape_y = npz["shape_y"]
 
     fig, ax = plt.subplots(1, 3, figsize=(15, 4.4))
-    fig.suptitle(f"chain-bend-2d-dlvo — 첫 런 (n={n}, DLVO 중심력만, 굽힘항 없음)  "
+    fig.suptitle(f"chain-bend-2d-dlvo -- first run (n={n}, DLVO central force only, "
+                 f"no bending term)  "
                  f"run_id={RUN_ID}", fontsize=11, y=1.03)
 
-    # ① 평균 형태 프로파일 — 매끈한 곡률(포물선형) vs 국소 꺾임(삼각형형)
+    # (1) mean shape profile -- smooth curvature (parabola-like) vs a localized
+    #     kink (triangle-like)
     a = ax[0]
     idx = np.arange(n)
-    a.plot(idx, shape_mean * 1e3, "o-", color=C_MEAS, label="측정 <y_i> (시간평균)")
-    # 매끈한 빔형 곡률이라면 이차함수로 잘 맞아야 한다 — 참고선으로 겹친다
+    a.plot(idx, shape_mean * 1e3, "o-", color=C_MEAS,
+           label="measured <y_i> (time-averaged)")
+    # If the curvature were smooth and beam-like a quadratic would fit well --
+    # overlaid as a reference
     coef = np.polyfit(idx, shape_mean, 2)
     a.plot(idx, np.polyval(coef, idx) * 1e3, "--", color=C_GOOD, alpha=0.7,
-           label="2차 다항 최소적합 (매끈하면 이 근처)")
-    a.set_xlabel("비드 인덱스 i")
+           label="least-squares quadratic (a smooth shape would sit near this)")
+    a.set_xlabel("bead index i")
     a.set_ylabel("<y_i>  [d, ×1e-3]")
-    a.set_title(f"형태 프로파일 (shape_localization={m['result']['shape_localization']:.3f}"
-                f"  ·  1=매끈, ≫1=국소꺾임)")
+    a.set_title(f"shape profile (shape_localization={m['result']['shape_localization']:.3f}"
+                f"  .  1=smooth, >>1=localized kink)")
     a.legend(fontsize=8)
     a.grid(alpha=0.3)
 
-    # ② 구동 vs 응답 시계열 (마지막 몇 주기)
+    # (2) drive vs response time series (the last few cycles)
     a = ax[1]
     T_period = 2 * np.pi / m["physical"]["omega_star"] / (t[1] - t[0]) * (t[1] - t[0])
     mask = t > t.max() - 6 * (2 * np.pi / (m["physical"]["omega_star"] / m["numerics"].get("dt_star", 1)))
-    # 안전하게: 그냥 마지막 400 샘플만
+    # Play it safe: just the last 400 samples
     sl = slice(max(0, len(t) - 400), len(t))
-    a.plot(t[sl] * 1e3, yg[sl], color="#888", lw=1, label="구동 (유령, y_ghost)")
-    a.plot(t[sl] * 1e3, yb[sl], color=C_MEAS, lw=1.3, label="중앙 비드 응답 (y_bead)")
+    a.plot(t[sl] * 1e3, yg[sl], color="#888", lw=1, label="drive (ghost, y_ghost)")
+    a.plot(t[sl] * 1e3, yb[sl], color=C_MEAS, lw=1.3,
+           label="centre-bead response (y_bead)")
     a.set_xlabel("t  [ms]")
     a.set_ylabel("y  [d]")
-    a.set_title("구동 vs 중앙 비드 응답 (마지막 400 샘플)")
+    a.set_title("drive vs centre-bead response (last 400 samples)")
     a.legend(fontsize=8)
     a.grid(alpha=0.3)
 
-    # ③ G1 검사: K' 측정 vs 예측 0 (σ 기준)
+    # (3) the G1 check: measured K' vs the prediction of 0, in units of sigma
     a = ax[2]
     meas, sig = kp["measured"], kp["sigma"]
     z = kp["err_sigma"]
     a.errorbar([0], [meas], yerr=[sig], fmt="o", color=C_MEAS, capsize=6, ms=9,
-               label=f"측정 K′ = {meas:.1f} ± {sig:.1f} kT/d²")
-    a.axhline(0, color=C_ZERO, ls="--", label="예측 (G1: 선형 굽힘강성 = 0)")
+               label=f"measured K' = {meas:.1f} ± {sig:.1f} kT/d^2")
+    a.axhline(0, color=C_ZERO, ls="--",
+              label="prediction (G1: linear bending stiffness = 0)")
     ok = abs(z) < (kp.get("tol_sigma") or 3.0)
-    a.set_title(f"G1 판정: {'✓ 일치' if ok else '✗ 불일치'} ({z:+.2f}σ, 기준 ±3σ)",
+    a.set_title(f"G1 verdict: {'✓ consistent' if ok else '✗ inconsistent'} "
+                f"({z:+.2f} sigma, criterion ±3 sigma)",
                color=C_GOOD if ok else C_BAD)
     a.set_xlim(-1, 1)
     a.set_xticks([])
@@ -104,10 +113,11 @@ def make_figure(m, npz):
 
 
 def make_animation(npz):
-    """사슬 형태의 시간 변화 — 삼각형형 좌굴이 실제로 보이는지 눈으로.
+    """How the chain shape evolves in time -- to see whether a triangular buckle
+    actually appears.
 
-    ★ 실제 생산 데이터에서 뽑은 것 (2000 샘플 중 처음 300개, ~3주기) — 별도 저비용
-    런이 아니라 이 런의 진짜 궤적이다.
+    ★ Taken from the real production data (the first 300 of 2000 samples, ~3 cycles)
+    -- this is this run's actual trajectory, not a separate cheap run.
     """
     shape_y = npz["shape_y"][:300]
     t = npz["t"][:300]
@@ -119,14 +129,15 @@ def make_animation(npz):
     line, = ax.plot([], [], "o-", color=C_MEAS, lw=2, ms=6)
     ax.set_xlim(-0.5, n - 0.5)
     ax.set_ylim(-ymax, ymax)
-    ax.set_xlabel("비드 인덱스 i")
+    ax.set_xlabel("bead index i")
     ax.set_ylabel("y  [d]")
     title = ax.set_title("")
     ax.grid(alpha=0.3)
 
     def update(fr):
         line.set_data(idx, shape_y[fr])
-        title.set_text(f"chain-bend-2d-dlvo  t={t[fr]*1e3:.3f} ms  (생산 궤적)")
+        title.set_text(f"chain-bend-2d-dlvo  t={t[fr]*1e3:.3f} ms  "
+                       f"(production trajectory)")
         return line, title
 
     anim = FuncAnimation(fig, update, frames=len(t), interval=60, blit=False)
@@ -140,8 +151,9 @@ def main():
     m, npz = load()
     png = make_figure(m, npz)
     gif = make_animation(npz)
-    print(f"그래프: {png.relative_to(ROOT)}")
-    print(f"애니메이션: {gif.relative_to(ROOT)}  (이 런의 실제 생산 궤적, 처음 ~3주기)")
+    print(f"graph: {png.relative_to(ROOT)}")
+    print(f"animation: {gif.relative_to(ROOT)}  (this run's actual production "
+          f"trajectory, first ~3 cycles)")
     missing = {w for w in ("missing from font",) if False}
     return 0
 
