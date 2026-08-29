@@ -48,6 +48,12 @@ knowledge/source/lab/
 .claude/settings.local.json
 sessions/
 
+# ── Session handoff notes ─────────────────────────────────────
+# Working state for whoever picks up an unfinished task -- Korean, transient,
+# and not part of the authored English surface. `docs/06-roadmap.md` is the
+# published record of what is left to do.
+남은일.md
+
 # ── Python ────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
