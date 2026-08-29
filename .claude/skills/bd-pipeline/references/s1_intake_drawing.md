@@ -1,140 +1,164 @@
-# S1 — 손그림 판독 프로토콜
+# S1 — the hand-drawing reading protocol
 
-> **이 문서가 스킬 층의 유일한 고유 내용이다.** 나머지 단계는 `simbot` 함수 호출이지만,
-> "이 그림이 무슨 계인가"는 코드로 표현할 수 없다.
+> **This document is the only content unique to the skill layer.** Every other
+> stage is a core function call, but "what system is this drawing?" cannot be
+> expressed as code.
 >
-> **여기서 틀리면 뒤의 전부가 틀린다.** 가장 비싼 오류 지점이다 (master_plan §12.1).
+> **If this is wrong, everything downstream is wrong.** It is the most expensive
+> place to make a mistake.
 
-## 0. 먼저 — 이 그림에서 무엇을 신뢰하는가
+## 0. First — what do you trust in this drawing?
 
-> **손그림의 절대 크기를 신뢰하지 않는다.** 사람은 상자를 작게 그리고 입자를 크게
-> 그린다 — 안 그러면 입자가 점이 되어 보이지 않기 때문이다. 그림의 입자:상자 비를
-> `φ` 로 쓰면 거의 항상 과대추정한다.
+> **Do not trust absolute sizes in a hand drawing.** People draw the box small
+> and the particles large — otherwise the particles become invisible dots. Taking
+> the drawn particle-to-box ratio as `φ` almost always overestimates it.
 
-| 신뢰한다 | 신뢰하지 않는다 |
+| Trust | Do not trust |
 |---|---|
-| **토폴로지** — 무엇이 무엇 안에/옆에/위에 | 절대 크기 |
-| **비율** — 입자:상자 ≈ 1:20 | 화살표 굵기·길이의 절대값 |
-| **개수** — 원이 3개면 종류가 3개일 수 있다 | 손그림 입자 개수 = 시뮬레이션 `N` |
-| **대칭성** — 좌우 대칭인가, 축이 있는가 | 각도의 정밀한 값 |
-| **명시된 숫자와 단위** — `R = 5 μm`, `T = 300 K` | 눈대중으로 읽은 길이 |
-| **적힌 식** — `r = √(x²+y²)` 는 차원을 말한다 | |
+| **topology** — what is inside / beside / on top of what | absolute sizes |
+| **ratios** — particle : box ≈ 1:20 | absolute arrow thickness or length |
+| **counts** — three circles may mean three species | drawn particle count = simulation `N` |
+| **symmetry** — is it left-right symmetric, is there an axis | precise angle values |
+| **written numbers and units** — `R = 5 μm`, `T = 300 K` | any length read off by eye |
+| **written equations** — `r = √(x²+y²)` states the dimensionality | |
 
-**손그림 입자 개수를 `N` 으로 착각하는 것이 가장 흔한 실패다.** 그림은 스케치이고,
-`N` 은 **통계적으로 필요한 수**다. 첫 예시에서 그림의 원은 1개였고 `N = 1000` 을 썼다
-(비상호작용이므로 스냅샷 1개가 독립표본 1000개).
+**Mistaking the drawn particle count for `N` is the most common failure.** The
+drawing is a sketch; `N` is **the number statistics requires**. In the first
+example the drawing had one circle and `N = 1000` was used (non-interacting, so
+one snapshot is 1000 independent samples).
 
-## 1. 목록화 — 무엇이 그려져 있는가
+## 1. Inventory — what is actually drawn
 
-순서대로 훑는다. 빠뜨리기 쉬운 것부터:
+Sweep in this order, starting with what is easiest to miss:
 
-1. **텍스트와 숫자** — 먼저 읽는다. 가장 신뢰도가 높고, 나머지 해석을 제약한다.
-   단위를 반드시 붙여서 옮긴다. `10 pN/μm` 을 `10` 으로 적으면 그 순간 정보가 사라진다.
-2. **적힌 식** — `r = √(x²+y²)` 에 `z` 가 없으면 2D 신호다. **식이 차원을 말한다.**
-3. **입자** — 개수, 크기 차이, 종류 구분(색·해칭·라벨), 특별 표시된 개체(프로브)
-4. **경계** — 실선(벽) vs 점선(주기경계) vs 없음. 슬릿/원통/구 형상. **차원**
-5. **화살표** — 위치·방향·길이. **힘/속도/흐름/시간진행 중 무엇인지 후보를 나열한다.**
-   하나로 단정하지 않는다
-6. **축과 라벨** — 축이 2개면 2D 신호. 3개면 3D
-7. **손으로 그린 그래프** — 예상 곡선이 있으면 S2 예측과 대조할 근거다. 축 라벨을 읽는다
-8. **캡션·질문** — 사용자가 묻고 싶은 것이 적혀 있으면 그것이 `question` 이다
+1. **Text and numbers** — read these first. They are the most reliable and they
+   constrain every other interpretation. **Always transcribe the unit.** Writing
+   `10 pN/μm` down as `10` destroys the information at that instant.
+2. **Written equations** — no `z` in `r = √(x²+y²)` is a 2D signal. **The
+   equation states the dimensionality.**
+3. **Particles** — count, size differences, species markers (colour, hatching,
+   labels), any specially marked individual (a probe)
+4. **Boundaries** — solid line (wall) vs dashed (periodic) vs absent. Slit,
+   cylinder, sphere geometry. **The dimensionality**
+5. **Arrows** — position, direction, length. **List the candidates for what it
+   is: force / velocity / flow / time progression.** Do not settle on one
+6. **Axes and labels** — two axes is a 2D signal, three is 3D
+7. **Hand-drawn graphs** — an expected curve is a basis to compare against the S2
+   prediction. Read the axis labels
+8. **Captions and questions** — if the user wrote down what they want to know,
+   that *is* the `question`
 
-## 2. 3단 분리 — S1 의 핵심 산출물
+## 2. The three-way split — S1's central deliverable
 
-| 등급 | 정의 | 예 |
+| Grade | Definition | Example |
 |---|---|---|
-| `observation` | 그림에서 **직접 읽음** | "원이 1개", "`R = 5 μm` 지시선이 원을 가리킴" |
-| `inference` | 그림 + 물리지식으로 **유도** | "식에 `z` 가 없고 축이 x,y 둘 → 2D" |
-| `assumption` | 그림에 **없어서 내가 채움** | "매질은 물, `η = 0.856 mPa·s` @ 300 K" |
+| `observation` | **read directly** off the drawing | "one circle", "an `R = 5 μm` leader line points at the circle" |
+| `inference` | **derived** from the drawing plus physics knowledge | "no `z` in the equation and only x, y axes → 2D" |
+| `assumption` | **absent from the drawing, so I supplied it** | "the medium is water, `η = 0.856 mPa·s` @ 300 K" |
 
-각 항목에 **`confidence: high/medium/low` + 한 줄 근거**를 붙인다.
+Attach **`confidence: high/medium/low` plus a one-line basis** to every item.
 
-> ★ **`inference` 와 `assumption` 은 Opus 만 채울 수 있다** (master_plan §12.2).
-> 값싼 모델은 `observation` 과 `derived` 만.
+> ★ **Only Opus may fill `inference` and `assumption`**
+> (see [`.claude/README.md`](../../../README.md#authority-boundary)). Cheaper
+> models produce `observation` and `derived` only.
 
-이 분리가 왜 중요한가: **S7b 감도 분석의 대상 목록이 `assumption` 에서 나온다.**
-관찰을 가정으로 적으면 없는 불확실성을 검사하고, 가정을 관찰로 적으면 있는
-불확실성을 놓친다.
+Why the split matters: **the sensitivity analysis takes its target list from the
+`assumption` entries.** Record an observation as an assumption and you test an
+uncertainty that does not exist; record an assumption as an observation and you
+miss one that does.
 
-## 3. 모호성 — 후보를 명시하고 판별자를 만든다
+## 3. Ambiguity — state the candidates and build a discriminator
 
-> 임의로 하나를 고르지 않는다. **후보 2~3개를 적고, 각 후보가 만드는 결과 차이를 예측한다.**
-> 그러면 사용자가 즉시 판별할 수 있고, 판별 못 해도 **둘 다 돌려서** 판별 기준을 준다.
+> Do not arbitrarily pick one. **Write down 2–3 candidates and predict how the
+> result differs between them.** Then the user can decide immediately, and if they
+> cannot, **run both** and hand back the criterion that decides it.
 
-형식:
+Format:
 
 ```markdown
-### A1 — 차원이 2D 인가 3D 인가
-- **A1-a (2D, 채택)** 근거: 식 `r = √(x²+y²)` 에 `z` 없음, 축 2개. 신뢰도 medium
-- **A1-b (3D 단면)** 근거: 실제 광집게는 3D 구속. 그림이 단면일 수 있다
-- **판별자:** `⟨r²⟩(3D)/⟨r²⟩(2D) = 3/2`. 성분별 `⟨x²⟩` 로는 **구별 불가**
-- **비용:** 두 분기를 다 돌리면 런 2배. 트랩 계에서는 2.3 s → 4.6 s (무해)
+### A1 — is this 2D or 3D?
+- **A1-a (2D, adopted)** basis: `r = √(x²+y²)` has no `z`, two axes. confidence medium
+- **A1-b (3D cross-section)** basis: a real optical trap confines in 3D. The drawing may be a section
+- **Discriminator:** `⟨r²⟩(3D)/⟨r²⟩(2D) = 3/2`. Per-component `⟨x²⟩` **cannot** tell them apart
+- **Cost:** running both branches doubles the runs. In this trap system, 2.3 s → 4.6 s (harmless)
 ```
 
-첫 예시에서 실제로 이렇게 했고, 두 차원을 다 돌린 결과 `1.4955` 를 얻어 **`3/2` 를
-0.3 % 로 확인**했다 — 차원 하나만 돌렸다면 얻을 수 없던 독립 검증이다.
+The first example did exactly this, and running both dimensions gave `1.4955`,
+**confirming `3/2` to 0.3 %** — an independent verification that running one
+dimension could not have produced.
 
-**판별자가 없는 모호성은 사용자에게 묻는다** (질문 예산 안에서).
+**An ambiguity with no discriminator goes to the user** (within the question
+budget).
 
-## 4. gaps — 없는데 필수인 정보
+## 4. Gaps — required information that is absent
 
-시뮬레이션에 필요한데 그림에 없는 것을 나열하고, 각각 처리방침을 정한다:
+List what the simulation needs but the drawing lacks, and set a policy for each:
 
-| 방침 | 언제 | 결과 |
+| Policy | When | Result |
 |---|---|---|
-| `ask_user` | 결론이 뒤집히거나 자릿수조차 모름 | 질문 예산 소모 (라운드당 3개) |
-| `fill_from_knowledge` | `knowledge/wiki/concepts/` 에 근거가 있다 | `provenance: from_knowledge` |
-| `assume_and_flag` | 자릿수는 알고, S7b 가 검증할 수 있다 | `provenance: assumed` + `confidence` |
-| `sweep` | 값이 레짐을 바꾸고 후보가 좁다 | 여러 값으로 얇은 런 |
+| `ask_user` | it flips the conclusion, or not even the order of magnitude is known | spends question budget (three per round) |
+| `fill_from_knowledge` | there is a basis in `knowledge/wiki/concepts/` | `provenance: from_knowledge` |
+| `assume_and_flag` | the order of magnitude is known and sensitivity can check it | `provenance: assumed` + `confidence` |
+| `sweep` | the value changes the regime and the candidates are few | thin runs at several values |
 
-**빈칸을 "모르겠습니다"로 남기지 않는다.** 제안하고 진행한 뒤 감도로 검증한다.
-가정이 무관하다고 밝혀지면 **"이 값은 결론을 바꾸지 않는다"를 명시적으로 보고한다** —
-그것도 결과다.
+**Do not leave a blank as "I don't know."** Propose, proceed, and let sensitivity
+check it. If an assumption turns out to be irrelevant, **report explicitly that
+"this value does not change the conclusion"** — that is also a result.
 
-## 5. `question` — 반증 가능한가
+⚠️ But `assume_and_flag` has a failure mode this project actually hit: an
+`assumed` value written into the spec with a confident-looking `tier` becomes
+indistinguishable from a measured one downstream. `T = 300 K` is recorded as
+tier 1 across every case and is in fact a **choice** inherited from a sketch with
+no temperature — worth −4 % to −14 % on every timescale. Mark the tier honestly.
+
+## 5. The `question` — is it falsifiable?
 
 | ✅ | ❌ |
 |---|---|
-| "확산이 얼마나 느려지는가" | "어떻게 되는가" |
-| "이 트랩의 열요동을 정량화하고 해석해와 대조하라" | "잘 되는지 봐줘" |
-| "`Pe = 45` 에서 MIPS 가 일어나는가" | "활성물질 시뮬레이션" |
+| "How much slower does diffusion get?" | "What happens?" |
+| "Quantify this trap's thermal fluctuation and compare against the analytic solution" | "Check whether it works" |
+| "Does MIPS occur at `Pe = 45`?" | "Active matter simulation" |
 
-**답이 숫자나 참/거짓으로 나오지 않으면 다시 쓴다.**
+**If the answer does not come out as a number or a true/false, rewrite it.**
 
-## 6. 실패 사례 — 이 순서로 의심한다
+## 6. Failure cases — suspect in this order
 
-`knowledge/wiki/findings/` 에 기록된 것 + 문헌상 흔한 것:
+Recorded in `knowledge/wiki/findings/`, plus the common ones from the literature:
 
-| 증상 | 원인 |
+| Symptom | Cause |
 |---|---|
-| 결과가 문헌과 자릿수로 다르다 | 화살표를 힘으로 읽었는데 실제론 속도장이었다 |
-| 2D 결과가 3D 문헌과 안 맞는다 | 2D 그림을 2D 계로 읽었는데 실제론 3D 단면이었다 |
-| 통계가 너무 나쁘다 | 그림의 입자 개수를 `N` 으로 썼다 |
-| 시간척도가 2배 틀리다 | `R` 을 지름으로 읽었는데 반지름이었다 (또는 반대) |
-| `γ` 가 2배 틀리다 | `6πηa` 에 직경을 넣었다 — **가장 흔한 실수** |
+| the result differs from the literature by orders of magnitude | an arrow was read as a force but was a velocity field |
+| a 2D result disagrees with 3D literature | a 2D drawing was read as a 2D system but was a 3D section |
+| the statistics are far too poor | the drawn particle count was used as `N` |
+| the timescale is wrong by exactly 2× | `R` was read as a diameter when it was a radius (or the reverse) |
+| `γ` is wrong by 2× | a diameter went into `6πηa` — **the most common mistake** |
 
-★ 마지막 둘은 **`τ_trap` 측정으로만 드러난다.** `⟨x²⟩ = kT/k` 는 `a`·`η` 에
-해석적으로 무관하므로 정적 측정으로는 판별할 수 없다. 첫 예시의 A2 가 이 구조였고,
-실험 `f_c` 가 없어서 **측정으로 닫지 못하고 간결성으로 닫았다** — 그 사실을 기록했다.
+★ The last two are **only revealed by measuring `τ_trap`.** `⟨x²⟩ = kT/k` is
+analytically independent of `a` and `η`, so a static measurement cannot
+discriminate. The first example had exactly this structure, and with no
+experimental `f_c` available it **could not be closed by measurement and was
+closed by parsimony** — and that fact was recorded.
 
-## 7. 산출물
+## 7. Deliverable
 
-`runs/<run_id>/01_intake.md` — 위 §2~§5 를 그대로 담는다. 형식 예시:
-[`runs/2026-07-28_trap-2d-5um_2dfb9d/01_intake.md`](../../../../runs_s1s8/2026-07-28_trap-2d-5um_2dfb9d/01_intake.md)
+The intake document — sections 2 through 5 above, verbatim. Format example:
+[`01_intake.md`](../../../../runs_s1s8/2026-07-28_trap-2d-5um_2dfb9d/01_intake.md)
 
-원자료는 `inputs/<topic>/` 에 두고 **sha256 을 기록한다** (`.sha256` 만 git 추적).
-provenance 사슬은 해시로 검증된다.
+Put the source material in `intake/<case>/` and **record its sha256**. The
+provenance chain is verified by hash.
 
-## 8. 다음 — 사용자에게 무엇을 보여주는가
+## 8. Next — what you show the user
 
-판독이 끝나면 **제안표**를 보여준다. 물어보는 것이 아니라 **확인받는** 형식이다:
+When the reading is done, show a **proposal table**. The form is not *asking* but
+*being confirmed*:
 
 ```markdown
-| 값 | 근거 | 신뢰도 | 바꿀 위치 |
+| Value | Basis | Confidence | Where to change it |
 |---|---|---|---|
-| `η = 0.856 mPa·s` | IAPWS 300 K 보간, concepts/water-298k.md | medium | `spec.yaml` `medium.eta_si` |
-| `d = 2` | 식에 z 없음 (모호성 A1) | **medium** | `spec.yaml` `geometry.dim` |
-| `N = 1000` | 비상호작용 → 스냅샷 1개 = 독립표본 1000개 | high | `spec.yaml` `species[0].n_simulated` |
+| `η = 0.856 mPa·s` | IAPWS interpolation at 300 K, concepts/water-298k.md | medium | `spec.yaml` `medium.eta_si` |
+| `d = 2` | no z in the equation (ambiguity A1) | **medium** | `spec.yaml` `geometry.dim` |
+| `N = 1000` | non-interacting → one snapshot = 1000 independent samples | high | `spec.yaml` `species[0].n_simulated` |
 ```
 
-**바꿀 위치를 함께 알려준다.** 사람이 어디를 고쳐야 하는지 찾게 만들지 않는다.
+**Tell them where to change it.** Do not make a person hunt for the place to
+edit.

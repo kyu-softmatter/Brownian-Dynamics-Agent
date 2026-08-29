@@ -1,173 +1,205 @@
-# S6 · S7 — 그림 · 검증
+# S6 · S7 — figures · validation
 
-> **엔진은 판정하지 않는다. 너는 제안하고, 사람이 확정한다.**
+> **The engine does not decide. You propose; a human confirms.**
 
-## S6 — 그림
+## S6 — figures
 
-`cli.py run` 이 자동으로 만든다. 너가 할 일은 **읽고, 이상하면 파고드는 것.**
+`cli.py run` produces them automatically. Your job is to **read them, and dig in
+when something looks wrong.**
 
-### 캡션 규약 — 코드가 강제한다
+### The caption convention — enforced by code
 
-`simbot.viz.FigureSet.save()` 가 두 필드를 **필수**로 요구한다:
+`simbot.viz.FigureSet.save()` **requires** two fields:
 
-| 필드 | 무엇 |
+| Field | What |
 |---|---|
-| `caption` | 그림 아래 설명. **수치와 판정을 포함해야 한다** |
-| `shows` | **"무엇을 보이려는 그림인가"** — 캡션과 다르다 |
+| `caption` | the text under the figure. **Must contain the numbers and the verdict** |
+| `shows` | **"what is this figure trying to show"** — different from the caption |
 
-`caption` 이 "MSD 곡선"이면 `shows` 는 "MSD 가 단일지수를 따르는가"다.
-빈 문자열이면 예외를 던진다 — 사후 검사가 아니라 **생성 시점 차단**이다.
+If `caption` is "MSD curve", then `shows` is "whether the MSD follows a single
+exponential". An empty string raises — this is **blocked at creation**, not
+checked afterwards.
 
-### 안 그린 그림에는 이유가 남는다
+### A figure that was not drawn leaves a reason
 
-`FigureSet.skip(name, reason)`. 이유 없이 건너뛸 수 없다.
-`06_figures.md` 의 마지막 표에 나온다.
+`FigureSet.skip(name, reason)`. You cannot skip without one. It appears in the
+final table of the figures document.
 
-★ 이유의 종류를 구별한다:
-- **정의되지 않는다** — 쌍 상호작용이 없으면 `g(r)` 이 구조 정보를 갖지 않는다
-- **미구현** — 쌍 상호작용은 있는데 `analysis/structure.py` 가 아직 없다
-- **환경 부재** — 3D 스냅샷은 `fresnel` 이 필요하고 설치하지 않았다
+★ Distinguish the *kinds* of reason:
+- **not defined** — with no pair interaction, `g(r)` carries no structural
+  information
+- **not implemented** — there is a pair interaction, but the structure analysis
+  does not exist yet
+- **environment missing** — a 3D snapshot needs `fresnel` and it is not installed
 
-세 이유가 같은 "그림 없음"으로 보이면 무엇을 고쳐야 하는지 알 수 없다.
+If all three render as the same "no figure", you cannot tell what to fix.
 
-### 이중 축
+### Dual axes
 
-모든 시간·길이 축에 **무차원 + SI 를 함께** 적는다 (`viz.add_si_axis`).
-`t/τ_trap` 만 적으면 "몇 ms 인가"에 답할 수 없고, `t [ms]` 만 적으면 다른 논문과
-비교할 수 없다.
+Every time and length axis carries **both the dimensionless and the SI value**
+(`viz.add_si_axis`). With only `t/τ_trap` you cannot answer "how many ms"; with
+only `t [ms]` you cannot compare against another paper.
 
-### 그림 안 텍스트는 영문
+### Text inside a figure is English
 
-matplotlib 기본 폰트에 한글 글리프가 없다 → 두부(□)로 렌더된다.
-**캡션(마크다운)은 한국어, 그림 안은 영문.** `test_s6_viz.py` 가 소스를 검사한다.
+matplotlib's default font has no Hangul glyphs, so they render as tofu (□). And
+the fonts that *do* have Hangul are missing `−` (U+2212) and `ŷ` (U+0177) —
+measured. **Do not fix it by switching fonts.** Write axes, legends, titles and
+annotations in English from the start, and confirm zero `missing from font`
+warnings. `test_s6_viz.py` checks the source.
 
-### 상관 표본 함정 — 그림에도 적용된다
+### The correlated-sample trap — it applies to figures too
 
-위치 분포 그림은 **독립 프레임만** 쓴다 (`decorrelation_tau=2.0`).
-전체 프레임을 쓰면 표본 수가 부풀어 첨도의 오차막대가 거짓으로 작아지고,
-`metrics.json` 의 검증된 값과 다른 숫자가 캡션에 박힌다.
+A position-distribution figure uses **independent frames only**
+(`decorrelation_tau=2.0`). Using every frame inflates the sample count, which
+falsely shrinks the error bar on the kurtosis and puts a number in the caption
+that differs from the verified value in `metrics.json`.
 
-같은 함정을 KS 검정에서 겪었다:
+The same trap was hit in a KS test:
 [`ks-test-needs-independent-samples`](../../../../knowledge/wiki/findings/ks-test-needs-independent-samples.md)
+
+### Animations
+
+Put `kT=0` (the mode shape) and `kT>0` (how far thermal noise buries it)
+**side by side**. That shows an SNR problem faster than any number. A cheap
+large-`dt` animation is fine, but **it must be labelled as not being the
+production measurement.**
 
 ---
 
-## S7 — 검증
+## S7 — validation
 
-### 0. 봉인이 먼저다
+### 0. The seal comes first
 
-`validate_run` 이 봉인을 검증하고, **깨졌으면 대조표를 만들지 않는다.**
+`validate_run` verifies the seal, and **if it is broken it does not build the
+comparison table.**
 
 ```
-★ 봉인 위반 — 변경됨 ['02_prediction.md']. 예측이 실행 후 수정됐을 수 있으므로
-  대조표를 만들지 않는다 (master_plan §S7-1).
+★ seal violation — modified ['02_prediction.md']. The prediction may have been
+  edited after the run, so no comparison table is produced.
 ```
 
-이때 할 일: **예측을 되돌리거나 새 run 을 시작한다.** 우회하지 않는다.
+What to do then: **revert the prediction, or start a new run.** Do not route
+around it.
 
-### 1. 판정 세 가지
+### 1. Three verdicts
 
-| verdict | 언제 |
+| verdict | When |
 |---|---|
-| `PASS` | 편차가 tolerance 대역 안 **이고** 판정이 가능했다 |
-| `FAIL` | 편차가 대역 밖 |
-| **`INCONCLUSIVE`** | ① `SE > tolerance 반폭` → 이 측정은 이 대역을 판정할 수 없다<br>② 설계 검정력 `< 1σ` → 경쟁 가설과 구별되지 않는다<br>③ 통계오차가 없다 → 오차막대 없는 수는 결론에 못 쓴다 |
+| `PASS` | the deviation is inside the tolerance band **and** a verdict was possible |
+| `FAIL` | the deviation is outside the band |
+| **`INCONCLUSIVE`** | ① `SE > tolerance half-width` → this measurement cannot decide this band<br>② design power `< 1σ` → indistinguishable from the competing hypothesis<br>③ there is no statistical error → a number without an error bar cannot enter a conclusion |
 
-### 2. `INCONCLUSIVE` 는 실패가 아니다
+### 2. `INCONCLUSIVE` is not a failure
 
-**사실이다.** "이 측정으로는 판정할 수 없다"는 결과이고, 필요한 표본 배수까지 나온다.
+**It is a fact.** "This measurement cannot decide" is a result, and it comes with
+the sample multiple that would be required.
 
-첫 완주에서 9개 중 2개가 `INCONCLUSIVE` 였고 **둘 다 예측 문서에 예견되어 있었다.**
-그것을 `PASS` 로 쓰면 검증이 아니라 요행이다.
+On the first end-to-end run, 2 of 9 were `INCONCLUSIVE` and **both were foreseen
+in the prediction document.** Writing them up as `PASS` would be luck, not
+verification.
 
-너가 판단할 것: **예견된 것인가, 설계 실수인가.**
+What you judge: **was it foreseen, or is it a design mistake?**
 
-| | 대응 |
+| | Response |
 |---|---|
-| 예측 문서에 "INCONCLUSIVE 예상"이 적혀 있다 | 사실로 고정하고 넘어간다. 결론이 그에 의존하지 않음을 명시 |
-| 예견하지 못했다 | tolerance 가 비현실적으로 좁았는지, 시드가 부족했는지 판단 |
-| 결론이 이 항목에 의존한다 | 시드를 늘리거나(`escalate_to: 8`) 검정력이 생기는 조건으로 재설계 |
+| the prediction document says "INCONCLUSIVE expected" | fix it as a fact and move on. State that the conclusion does not depend on it |
+| it was not foreseen | decide whether the tolerance was unrealistically tight or the seeds were too few |
+| the conclusion depends on this item | raise the seeds (`escalate_to: 8`) or redesign into conditions where power exists |
 
-> ★ **검정력이 `3σ` 를 못 만드는 곳에서 `3σ` 기각을 요구하지 않는다** —
-> 달성 불가능한 assert 가 된다. 그 구간은 `INCONCLUSIVE` 를 사실로 고정한다.
+> ★ **Do not demand a `3σ` rejection where the power cannot produce `3σ`** — that
+> is an unachievable assertion. In that regime, fix `INCONCLUSIVE` as a fact.
 
-### 3. `PASS ⚑` — 넓은 tolerance 가 가린 것
+### 3. `PASS ⚑` — what a wide tolerance hid
 
-`PASS` 인데 편차가 `3σ` 를 넘으면 판정기가 플래그를 붙인다.
+A `PASS` whose deviation exceeds `3σ` gets flagged by the judge.
 
-**두 원인이 같은 증상을 만들고, 둘 다 알아야 한다:**
+**Two causes produce the same symptom, and you need to know which:**
 
-| 원인 | 처방 |
+| Cause | Prescription |
 |---|---|
-| tolerance 가 통계정밀도보다 훨씬 넓다 | tolerance 를 좁힌다 (또는 왜 넓은지 적는다) |
-| **예측에 알려진 편향을 넣지 않았다** | 예측을 고친다 |
+| the tolerance is far wider than the statistical precision | narrow it (or write down why it is wide) |
+| **a known bias was left out of the prediction** | fix the prediction |
 
-실제 사례: MSD plateau 를 `2d` 정확히로 예측 → `3.54σ`.
-`plateau = 2d⟨x*²⟩` 이므로 EM 편향이 곱해진다. 전문:
+Real case: predicting the MSD plateau as exactly `2d` gave `3.54σ`. Since
+`plateau = 2d⟨x*²⟩`, the EM bias multiplies in. Full account:
 [`wide-tolerance-hides-significant-deviation`](../../../../knowledge/wiki/findings/wide-tolerance-hides-significant-deviation.md)
 
-### 4. `FAIL` 에는 원인 분류가 필수다
+### 4. A `FAIL` requires a cause category
 
 ```python
 validate_run(pred, meas, rundir=rd, causes={"var_x": "numerical"})
 ```
 
-| 분류 | 뜻 |
+| Category | Meaning |
 |---|---|
-| `numerical` | `dt` 과대, 적분기, 수렴 부족 |
-| `modeling` | 포텐셜·근사·HI 무시가 부적절 |
-| `interpretation` | S1 판독이 틀렸다 (화살표, 차원, 단위) |
-| `analysis` | 측정 코드가 틀렸다 ← **가장 위험하다** |
-| `environment` | 패키지·파서·플랫폼 |
+| `numerical` | `dt` too large, integrator, insufficient convergence |
+| `modeling` | the potential, the approximation, or neglecting HI is inappropriate |
+| `interpretation` | the S1 reading was wrong (arrows, dimension, units) |
+| `analysis` | the measurement code is wrong ← **the most dangerous** |
+| `environment` | package, parser, platform |
 
-★ **`analysis` 를 먼저 의심한다.** 첫 완주에서 `P7 FAIL` 이 나왔는데 물리 문제가 아니라
-상관 표본에 KS 를 걸었기 때문이었다. **틀린 FAIL 은 틀린 PASS 만큼 나쁘다** —
-있지도 않은 물리 문제를 좇게 만든다.
+★ **Suspect `analysis` first.** On the first end-to-end run a `FAIL` came out
+that was not physics at all — a KS test had been applied to correlated samples.
+**A wrong FAIL is as bad as a wrong PASS** — it sends you chasing physics that is
+not there.
 
-배제 순서:
-1. 자기일관성 검사가 통과하는가 (독립 경로 둘이 일치하는가)
-2. 통계량이 요동하는가 (`guards.assert_statistic_fluctuates`)
-3. 표본이 독립인가 (상관 프레임을 iid 로 취급하지 않았는가)
-4. 단위·차원이 맞는가
-5. 그 다음에 물리를 의심한다
+⚠️ **But check the `role` before starting.** A `hypothesis`-role mismatch is not
+a defect to be eliminated — it is the result, and running the elimination on it
+will manufacture a spurious "cause." Only `implementation_check` mismatches are
+bugs. → [docs/02](../../../../docs/02-verification.md#4--the-role-of-a-prediction-decides-what-a-mismatch-means)
 
-### 5. 예측에 없던 강한 확인 — 자기일관성
+Elimination order:
+1. Does the self-consistency check pass (do two independent routes agree)?
+2. Does the statistic fluctuate (`guards.assert_statistic_fluctuates`)?
+3. Are the samples independent (were correlated frames treated as iid)?
+4. Are the units and dimensions right?
+5. And only then suspect the physics
 
-`plateau_over_2d_var` 같은 항목은 **독립 경로 둘의 비**다 (시계열 vs 스냅샷).
-`1.0` 에서 벗어나면 물리가 아니라 **분석 코드**의 문제다.
+### 5. The strongest check that was not in the prediction — self-consistency
 
-첫 완주에서 `0.99961` — 0.04 % 일치. **분석 오류를 배제하는 가장 강한 증거다.**
-새 계를 만들 때 이런 항목을 하나 넣는다.
+An item like `plateau_over_2d_var` is **the ratio of two independent routes**
+(time series vs snapshot). A departure from `1.0` is **the analysis code**, not
+the physics.
 
-### 6. 부기를 지우지 않는다
+On the first end-to-end run it was `0.99961` — agreement to 0.04 %. **That is the
+strongest evidence available for ruling out an analysis error.** Put one such item
+into every new system.
 
-`ValidationReport.notes()` 가 `PASS` 항목의 부기도 리포트에 남긴다.
-여기 "이건 독립 검사가 아니다" 류가 들어 있고, 빠지면 결론이 과대해진다.
+### 6. Do not delete the footnotes
 
-예: `kT_conf_star` 는 순수 조화 트랩에서 `⟨x²⟩` 와 **대수적으로 동일**하다.
-`04_stationarity.png` 가 잔차 `4.4e-16` 으로 그것을 **보여준다** — 주장이 아니라 측정이다.
+`ValidationReport.notes()` keeps the footnotes on `PASS` items in the report too.
+This is where remarks like "this is not an independent check" live, and dropping
+them inflates the conclusion.
 
-### 7. 판정은 제안이다
+Example: in a pure harmonic trap `kT_conf_star` is **algebraically identical** to
+`⟨x²⟩`. A stationarity figure **shows** that with a residual of `4.4e-16` — a
+measurement, not a claim.
+
+### 7. The verdict is a proposal
 
 ```yaml
 verdict_overall: PASS_WITH_INCONCLUSIVE
 proposed_by: agent
-confirmed_by: null            # ← 사람 확정 대기
+confirmed_by: null            # <- awaiting human confirmation
 ```
 
-**`confirmed_by` 를 채우는 코드 경로는 존재하지 않는다** (테스트로 고정).
-너도 채우지 않는다. `confirmed_by: null` 인 판정은 벤치마크 원장 집계에 들어가지 않는다.
+**No code path exists that fills `confirmed_by`** (pinned by a test). You do not
+fill it either. A verdict with `confirmed_by: null` does not enter the benchmark
+ledger's aggregate.
 
-### 8. 말할 수 있는 것과 없는 것
+### 8. What you may and may not say
 
 | ✅ | ❌ |
 |---|---|
-| "`⟨x²⟩ = 416.58 ± 1.85 nm²` 로 예측 `414.19` 와 `1.29σ` 일치한다" | "잘 맞는다" |
-| "PASS 로 보입니다 — 근거는 …, 다만 …이 걸립니다" | "검증됐습니다" |
-| "추세 없이 요동한다 (`04_stationarity.png`)" | "평형에 도달했다" |
-| "시뮬레이션은 자기 자신에 대해 정확하다" | "실제 물과 일치한다" |
+| "`⟨x²⟩ = 416.58 ± 1.85 nm²`, agreeing with the prediction `414.19` at `1.29σ`" | "it matches well" |
+| "It looks like a PASS — on the basis of …, though … concerns me" | "it is verified" |
+| "It fluctuates without a trend (see the stationarity figure)" | "it reached equilibrium" |
+| "The simulation is accurate about itself" | "it agrees with real water" |
 
-마지막 줄이 중요하다: 첫 완주에서 `τ_fit/τ = 0.9998 ± 0.0008` (0.08 %) 였지만
-**모델과 실제 물의 대응 오차가 `~5 %`** 다 (Basset·Faxén·중력).
-⇒ **실험 대조 시 0.6 % 정밀도를 주장할 수 없다.**
-전문: [`stokes-drag-corrections`](../../../../knowledge/wiki/concepts/stokes-drag-corrections.md)
+The last row matters most. On the first end-to-end run
+`τ_fit/τ = 0.9998 ± 0.0008` (0.08 %), but **the correspondence error between the
+model and real water is `~5 %`** (Basset, Faxén, gravity).
+⇒ **You cannot claim 0.6 % precision against an experiment.**
+Full account:
+[`stokes-drag-corrections`](../../../../knowledge/wiki/concepts/stokes-drag-corrections.md)

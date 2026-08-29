@@ -1,81 +1,91 @@
-# S3 · S4 · S5 — 명세 · 무차원화 · 실행
+# S3 · S4 · S5 — specify · non-dimensionalize · run
 
-> 이 세 단계는 **거의 전부 코드**다. 너의 일은 `spec.yaml` 을 쓰는 것과
-> 게이트 결과를 읽는 것이다. `cli.py run` 이 S3→S8 을 한 번에 돌린다.
+> These three stages are **almost entirely code**. Your job is to write
+> `spec.yaml` and to read the gate results. `cli.py run` drives S3→S8 in one go.
 
 ## S3 — `spec.yaml`
 
-### 가장 빠른 길: 예시를 복사한다
+### The fastest route: copy the example
 
 ```bash
-cp examples/trap-2d-5um/spec.yaml runs/<topic>/spec.yaml
+cp examples/trap-2d-5um/spec.yaml <working dir>/spec.yaml
 ```
 
-[`examples/trap-2d-5um/spec.yaml`](../../../../examples/trap-2d-5um/spec.yaml) 은
-provenance 18필드가 채워진 검증된 명세다.
+[`examples/trap-2d-5um/spec.yaml`](../../../../examples/trap-2d-5um/spec.yaml) is
+a verified specification with 18 provenance fields filled in.
 
-### 모든 값에 `provenance` + `basis`
+### Every value gets a `provenance` and a `basis`
 
 ```yaml
 eta_si:
   value: 8.5566e-4
   unit: Pa*s
-  provenance: assumed        # 값은 정확하나 "물이다"라는 선택이 가정
-  basis: IAPWS 표 보간 (외삽 아님). knowledge/wiki/concepts/water-298k.md
+  provenance: assumed        # the number is accurate; "it is water" is the assumption
+  basis: IAPWS table interpolation (not extrapolation). knowledge/wiki/concepts/water-298k.md
   confidence: medium
-  affects: [tau_trap, D0]    # <x^2> 에는 영향 없음
+  affects: [tau_trap, D0]    # no effect on <x^2>
 ```
 
-| `provenance` | 언제 | 누가 쓸 수 있나 |
+| `provenance` | When | Who may write it |
 |---|---|---|
-| `observation` / `from_drawing` | 자료에서 직접 읽음 | 누구나 (Haiku 포함) |
-| `derived` | 다른 필드에서 계산 | 누구나 |
-| `rule` | 정책에서 유도 (`run_policy.yaml`) | 누구나 |
-| `from_knowledge` / `from_paper` | wiki·문헌 증류 | 누구나 |
-| **`inference`** | 자료 + 물리지식으로 유도 | **Opus 만** |
-| **`assumed`** | 자료에 없어 채움 | **Opus 만** |
-| `user` | 사람이 이 런에서 지정 (`session set`) | 코드가 자동 표시 |
-| `measured` | 실험값 | — |
+| `observation` / `from_drawing` | read directly off the source | anyone (including Haiku) |
+| `derived` | computed from other fields | anyone |
+| `rule` | derived from policy | anyone |
+| `from_knowledge` / `from_paper` | from the wiki or a distillation | anyone |
+| **`inference`** | derived from the source plus physics knowledge | **Opus only** |
+| **`assumed`** | absent from the source, so supplied | **Opus only** |
+| `user` | a human specified it for this run | marked automatically by code |
+| `measured` | an experimental value | — |
 
-`inference`·`assumed` 는 `confidence` 가 **필수**다. 없으면 `validate` 가 잡는다.
+`inference` and `assumed` **require** a `confidence`. Without one, `validate`
+catches it. The authority boundary is stated in
+[`.claude/README.md`](../../../README.md#authority-boundary).
 
-### ⚠ YAML 1.1 함정 — 지수 표기
+⚠️ **`assumed` values inherit a false authority downstream.** `T = 300 K` is
+recorded as tier 1 across every case here and is actually a *choice* inherited
+from a sketch with no temperature — worth −4 % to −14 % on every timescale,
+because water's viscosity is 2.06 %/K sensitive. Mark the tier honestly; the
+tier field is the only thing that makes such a value findable later.
+
+### ⚠ The YAML 1.1 trap — exponent notation
 
 ```yaml
-value: 5e-3      # ❌ 문자열이다! 만티사에 소수점이 없다
+value: 5e-3      # ❌ this is a STRING! No decimal point in the mantissa
 value: 5.0e-3    # ✅ float
-value: 6.3e6     # ❌ 문자열. 지수부 부호가 없다
+value: 6.3e6     # ❌ string. No sign on the exponent
 value: 6.3e+6    # ✅ float
 ```
 
-**두 번 겪었다** (처리량 상수, `session set`). 전문:
+**This happened twice** (a throughput constant, and `session set`). Full account:
 [`yaml-scientific-notation-parsed-as-string`](../../../../knowledge/wiki/findings/yaml-scientific-notation-parsed-as-string.md)
 
-`simbot.spec.dump_yaml` 로 쓰면 안전하다 (파이썬 `float` 이 항상 소수점을 붙인다).
-**손으로 쓴 YAML 이 위험하다.**
+Writing via `simbot.spec.dump_yaml` is safe (a Python `float` always emits a
+decimal point). **Hand-written YAML is the dangerous case.**
 
-### 게이트 선언 — 카드가 켜고 끈다
+### Gate declarations — the card turns them on and off
 
 ```yaml
 gates:
-  equipartition: {status: required, reason: 이 카드의 1급 게이트}
+  equipartition: {status: required, reason: the first-class gate of this card}
   step_displacement_vs_sigma:
     status: off
-    reason: 쌍 상호작용이 없어 겹침이 발생할 수 없다      # ★ off 에는 이유 필수
+    reason: no pair interaction, so overlap cannot occur    # ★ `off` requires a reason
 ```
 
-- 게이트 이름은 **등록된 것만** (`simbot.spec.KNOWN_GATES`). 오타는
-  **한 번도 실행되지 않는 검사**가 된다 → `validate` 가 거부한다
-- 어느 게이트가 켜지는지는 카드 §7 이 정한다
-- `required` 는 **결과가 아니라 선언**이다. S3 리포트에 `⏳ S7 판정` 으로 나온다
+- Only **registered** gate names (`simbot.spec.KNOWN_GATES`). A typo becomes
+  **a check that never runs once** → `validate` rejects it
+- Which gates turn on is decided by the card
+- `required` is **a declaration, not a result**. It shows in the S3 report as
+  "awaiting S7"
 
-### 파생값은 저장하지 않는다
+### Do not store derived values
 
-`kT_si`, `tau_trap_si` 같은 파생값을 `spec.yaml` 에 적지 않는다 —
-`simbot.spec.derive()` 가 계산한다. 적혀 있으면 `validate(stored_derived=...)` 가
-재계산과 대조해서 불일치를 잡는다 (손으로 고친 파생값을 잡는 유일한 방법).
+Do not write derived values like `kT_si` or `tau_trap_si` into `spec.yaml` —
+`simbot.spec.derive()` computes them. If they are written, `validate` recomputes
+and compares to catch a mismatch, which is the only way a hand-edited derived
+value gets caught.
 
-### 검사
+### Check
 
 ```bash
 <PY> -c "
@@ -83,15 +93,15 @@ from simbot.spec import SystemSpec, validate
 r = validate(SystemSpec.load('<spec.yaml>'))
 print(r.table())
 print()
-print('규약 위반:', r.problems or '없음')
-print('S7 판정 대기:', [c.name for c in r.deferred()])"
+print('convention violations:', r.problems or 'none')
+print('awaiting S7:', [c.name for c in r.deferred()])"
 ```
 
 ---
 
-## S4 — 무차원화
+## S4 — non-dimensionalization
 
-**전부 자동이다.** 너가 할 일은 결과를 읽는 것.
+**All automatic.** Your job is to read the result.
 
 ```bash
 <PY> -c "
@@ -100,81 +110,127 @@ from simbot.nondim import reduce_spec, roundtrip_errors, nondim_table
 sp = SystemSpec.load('<spec.yaml>')
 r = reduce_spec(sp)
 print(nondim_table(sp, r))
-print('왕복오차:', max(roundtrip_errors(sp, r).values()))
-print('dt* =', r.dt_star, '지배 제약:', r.dt_dominant)"
+print('roundtrip error:', max(roundtrip_errors(sp, r).values()))
+print('dt* =', r.dt_star, 'dominant constraint:', r.dt_dominant)"
 ```
 
-### 확인할 것 셋
+On the `bdbot` side the same stage produces the L3 contract, and the spec checks
+itself:
 
-1. **척도 출처** — `scales_harmonic_trap: (l_trap, kT, tau_trap)` 처럼 카드가 나와야 한다
-2. **왕복오차 `< 1e-12`** — 크면 계산 실수가 아니라 **규약 위반**이다
-   (예: `τ_D` 로 나누고 `τ_trap` 으로 되돌리기)
-3. **지배 제약** — 어느 `dt` 제약이 이겼는지. `spec(명시값)` 이면 사람이 정한 것
+```bash
+<PY> -m bdbot.cli nondim spec <case>       # -> specs/<run_id>.json
+<PY> -m bdbot.cli nondim show <run_id>     # reproduce the report from the spec alone
+```
 
-### `dt` 제약은 계마다 다르게 켜진다
+★ **Self-sufficiency is decided by `nondim show`.** If the whole report draws
+from the spec alone, the spec is self-sufficient — and the health layer never
+imports case code, so this matters.
 
-| 제약 | 켜지는 조건 |
+### Three things to check
+
+1. **Where the scales came from** — the card must appear, e.g.
+   `scales_harmonic_trap: (l_trap, kT, tau_trap)`
+2. **Round-trip error `< 1e-12`** — larger is not an arithmetic slip but a
+   **convention violation** (e.g. dividing by `τ_D` and inverting with `τ_trap`)
+3. **The dominant constraint** — which `dt` constraint won. If it reads as an
+   explicit value, a human set it
+
+### `dt` constraints turn on differently per system
+
+| Constraint | Turns on when |
 |---|---|
-| 열 변위 `√(2D₀Δt) ≤ 0.03σ` | **쌍 상호작용 있을 때만** |
-| 힘 변위 | 쌍 상호작용 + `max|F|` **실측** (추정 금지) |
-| 완화시간 `Δt ≤ 0.01 τ` | 구속·활성 있을 때 |
-| 활성 변위 | 능동 구동 있을 때 |
-| 정확도 목표 | 조화 트랩 + 목표 편향 명시 |
+| thermal displacement `√(2D₀Δt) ≤ 0.03σ` | **only with a pair interaction** |
+| force displacement | pair interaction plus a **measured** `max|F|` (never estimated) |
+| relaxation time `Δt ≤ 0.01 τ` | confinement or activity present |
+| active displacement | active driving present |
+| accuracy target | harmonic trap with a stated target bias |
 
-★ **변위 게이트는 만능이 아니다.** 트랩 계에서 변위 상한이 완화시간 상한의 **1086배**다 —
-게이트가 아무것도 막지 못한다. 전문:
+★ **The displacement gate is not universal.** In a trap system the displacement
+bound is **1086×** looser than the relaxation-time bound — the gate stops
+nothing. Full account:
 [`displacement-gate-is-1000x-loose-for-traps`](../../../../knowledge/wiki/findings/displacement-gate-is-1000x-loose-for-traps.md)
 
-`dt/τ_D` 는 **기록만** 한다. 게이트로 쓰면 논문까지 나온 런을 기각한다.
+`dt/τ_D` is **recorded only**. Used as a gate it rejects runs that reached
+publication.
 
-### 카드가 없으면 예외가 난다
+⚠️ **And the candidate list is not static.** `choose_dt`'s displacement gate keys
+off `bool(spec.pair)`, and the spec has no bond/angle field — so **a bond-only
+system silently turns the gate off**, and the measurement that needed it
+(`max|F*| = 1037.7`, `dt` cut 100×) came from exactly such a system. Whenever a
+knob can reorder the timescales, re-derive `dt`.
+
+### No card means an exception
 
 ```
-KeyError: 카드 'colloid--new-thing' 의 척도 규칙이 등록되지 않았다.
-즉흥 무차원화는 금지다 — _TEMPLATE.md 로 draft 카드를 먼저 만들고
-CARD_SCALE_RULES 에 등록할 것
+KeyError: no scale rule registered for card 'colloid--new-thing'.
+Improvised non-dimensionalization is forbidden — make a draft card from
+_TEMPLATE.md first and register it in CARD_SCALE_RULES
 ```
 
-**우회하지 말고 카드를 만든다.** 카드 없이 돌린 결과는 나중에 재현할 수 없다.
+**Do not route around it; make the card.** A result produced without a card
+cannot be reproduced later.
 
 ---
 
-## S5 — 실행
+## S5 — run
 
 ```bash
-<PY> cli.py run <spec.yaml> --prediction <prediction.yaml>
+<PY> cli.py run <spec.yaml> --prediction <prediction.yaml>       # S1->S8 engine
+<PY> -m bdbot.cli run <case>                                     # the 8-case engine
 ```
 
-### CLI 가 실행 **전에** 멈추는 조건
+⚠️ **Read `bd-hoomd` before writing any new HOOMD.** 20 traps, several of which
+produce wrong results with no error at all — including one where the force is up
+to 96 % wrong while the energy stays exact, so no energy check finds it.
 
-| 조건 | 메시지 |
+### Conditions under which the CLI stops **before** running
+
+| Condition | Message |
 |---|---|
-| S3 게이트 실패 | `S3 게이트 미통과` |
-| 왕복오차 `≥ 1e-12` | `S4 왕복 게이트 위반 — 척도 규약이 어긋났다` |
-| 시드 `< 4` | `오차 막대 없는 프로덕션 런은 금지다` |
-| 예산 초과 예상 | `예산 초과 예상 — 실행하지 않고 보고한다` |
+| an S3 gate failed | `S3 gates not passed` |
+| round-trip error `≥ 1e-12` | `S4 roundtrip gate violated — the scale convention is inconsistent` |
+| seeds `< 4` | `a production run without error bars is forbidden` |
+| budget overrun expected | `budget overrun expected — reporting instead of running` |
 
-**`--force` 는 사용자가 명시적으로 요구할 때만.** 게이트를 우회한 결과에는
-그 사실을 리포트에 적는다.
+**Use `--force` only when the user explicitly asks.** If a gate was bypassed,
+record that fact in the report.
 
-### 티어 사다리
+On the `bdbot` side the pre-run gate blocks on three things only — hash mismatch,
+a hard `FAIL`, and an L3 integrity error — and **shows warnings and thin margins
+without blocking**. That is deliberate: it once rejected 80 of 83 specs with zero
+real failures among them, and nobody noticed because the runner never called it.
+An unwired checker cannot be wrong out loud.
 
-처음 보는 카드면 CLI 가 경고한다:
+### The tier ladder
 
-> ⚠️ 이 카드의 첫 런이다. 정책상 사다리 `[smoke, pilot, explore]` 를 건너뛸 수 없다 —
-> 이 런이 사다리의 첫 칸이 된다. **결과를 프로덕션으로 인용하지 말 것**
+For a card being run for the first time, the CLI warns:
 
-### 오차 막대는 공짜다
+> ⚠️ this is this card's first run. Policy does not allow skipping the ladder
+> `[smoke, pilot, explore]` — this run becomes its first rung. **Do not cite the
+> result as production**
 
-`k ≤ 4` 효율이 93 % 이므로 **시드 4개 비용 ≈ 1개**. `run_policy.yaml` 이 최소 4개를
-강제한다. **긴 런 1개보다 짧은 런 4개.**
+### Error bars are free
 
-### 실패한 런은 버리지 않는다
+At `k ≤ 4` the efficiency is 93 %, so **four seeds cost about the same as one**.
+Policy enforces a minimum of four. **Four short runs beat one long run.**
 
-배치에서 일부가 죽으면 `05_run_manifest.json` 의 `batch.failed` 에 남고 CLI 가 보고한다.
-조용히 빠지면 "시드 4개"라고 적힌 오차막대가 실제로는 3개짜리가 된다.
+⚠️ And four is a floor, not a target. In a system that generates stochastic
+defects, a single run's block SEM underestimated the true spread by **1.09–2.28×**
+depending on the observable and the velocity — and two published conclusions were
+reversed by re-running with 9 seeds. If the system can produce discrete events,
+size the ensemble to the events, not to the policy minimum.
 
-### 파라미터를 흔들어 보기 — 실행 없이
+### Failed runs are not discarded
+
+If part of a batch dies it is recorded in the run manifest's `batch.failed` and
+the CLI reports it. If it drops out silently, an error bar labelled "four seeds"
+is actually three.
+
+⚠️ Related: **editing code during a batch** killed 11 runs with `NameError`, and
+`xargs` prints `done` even for a crashed child — `48/48 done` looked fine while
+only 37 `metrics.json` existed. **Count the artifacts, not the exit lines.**
+
+### Shaking a parameter — without running
 
 ```bash
 <PY> -m simbot.session new <spec.yaml>
@@ -182,14 +238,16 @@ CARD_SCALE_RULES 에 등록할 것
 <PY> -m simbot.session show
 ```
 
-`set` 은 **비용 추정만** 한다. 실행은 `cli.py run` 이 한다.
-바뀐 값은 `provenance: user` 로 표시되고 **이전 값과 원래 근거가 basis 에 남는다.**
+`set` **only estimates cost**. Running is `cli.py run`. A changed value is marked
+`provenance: user`, and **the previous value and its original basis stay in the
+basis field.**
 
-### 수렴 확인
+### Convergence check
 
 ```bash
 <PY> cli.py converge <spec.yaml>
 ```
 
-`dt/2`, `dt×2`, `N×2`, 시드 이동을 돌려 **통계오차 대비**로 판정한다.
-`3σ` 이내면 "구별 안 됨" — **같다는 증명이 아니라 이 오차로는 차이를 볼 수 없다는 뜻이다.**
+Runs `dt/2`, `dt×2`, `N×2` and a seed shift, and judges **against the statistical
+error**. Within `3σ` means "not distinguishable" — **not a proof of equality, but
+a statement that this error bar cannot see the difference.**

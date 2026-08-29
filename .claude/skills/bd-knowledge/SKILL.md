@@ -1,63 +1,81 @@
 ---
 name: bd-knowledge
-description: knowledge/ 지식 베이스를 검색·추가·정리한다. "이 파라미터 근거가 뭐야", "논문에서 이 값 찾아줘", "이걸 기록해둬", "카드 만들어줘" 라고 할 때, 또는 새 (계×동역학) 카드·finding·benchmark 를 만들 때 쓴다. 시뮬레이션 실행은 bd-pipeline, 실패 진단은 bd-diagnose.
+description: Searches, extends and tidies the knowledge/ knowledge base. Use when asked "what is the basis for this parameter", "find me this value in the literature", "record this", "make a card", or when creating a new (system x dynamics) card, finding or benchmark. To run a simulation use bd-pipeline; to diagnose a failure use bd-diagnose.
 ---
 
-# bd-knowledge — 지식 검색·추가·정리
+# bd-knowledge — searching, extending and tidying knowledge
 
-계약: [`knowledge/wiki/CLAUDE.md`](../../../knowledge/wiki/CLAUDE.md) ← **먼저 읽는다**
+Contract: [`knowledge/wiki/CLAUDE.md`](../../../knowledge/wiki/CLAUDE.md)
+← **read this first**
 
-> **이 위키는 일반 문헌 저장소가 아니다.** 두 가지 일만 한다:
-> ① `pytest` 회귀의 **검증 오라클** 공급 ② 출처 붙은 **파라미터 사전** 공급.
-> 읽기용 컨텍스트로만 쓰이는 페이지는 여기 있을 이유가 약하다.
+> **This wiki is not a general literature store.** It does two jobs only:
+> ① supply the **verification oracle** for `pytest` regressions, and ② supply a
+> **parameter dictionary with provenance**. A page that serves only as reading
+> context has a weak claim to be here.
 
-## 구조
+## Structure
 
 ```
 knowledge/
-├── source/papers/   논문별 증류 42편 + INDEX.md      (원본 PDF 는 raw/, gitignored)
+├── source/papers/   42 per-paper distillations + INDEX.md   (original PDFs are gitignored; see NOTICE.md)
+├── source/books/    2 book distillations
+├── entries/         126 tool-written JSON entries (tools/kb.py)
 └── wiki/
-    ├── systems/     ★ (계 × 목적동역학) 카드 — 무차원화·게이트를 소유한다
-    ├── findings/    Q→A + dead-end-<slug>.md
-    ├── concepts/    WHAT-IS (무차원수, 상거동, 퍼텐셜)
-    ├── techniques/  HOW-TO (평형화 판정, 오차막대, env 이력)
-    ├── benchmarks/  검증 오라클
-    └── questions/   아직 답 없는 것. 삭제하지 않고 status 로 닫는다
+    ├── systems/     ★ (system × target dynamics) cards — these OWN the non-dimensionalization and the gates
+    ├── findings/    Q→A plus dead-end-<slug>.md
+    ├── concepts/    WHAT-IS (dimensionless groups, phase behaviour, potentials)
+    ├── techniques/  HOW-TO (equilibration criteria, error bars, environment history)
+    ├── benchmarks/  the verification oracle
+    └── questions/   not answered yet. Never deleted — closed via `status`
 ```
 
-## 검색
+⚠️ **`wiki/` and `entries/` are two unmerged schemas.** `wiki/` is human-written
+Markdown with frontmatter contracts; `entries/` is tool-written JSON keyed by
+`origin` × `kind`. They are read by different tools, so a lesson filed in one is
+invisible to a reader of the other. Until they are unified, **query both.**
+→ [docs/03](../../../docs/03-knowledge-base.md#1--two-schemas-not-yet-one)
+
+## Searching
 
 ```bash
-ls knowledge/wiki/systems/                      # 이 계의 카드가 있는가
-grep -rl "<키워드>" knowledge/wiki/
-grep -rl "<키워드>" knowledge/source/papers/
+ls knowledge/wiki/systems/                      # is there a card for this system
+grep -rl "<keyword>" knowledge/wiki/
+grep -rl "<keyword>" knowledge/source/papers/
 sed -n '1,20p' knowledge/source/papers/INDEX.md
+
+<PY> tools/kb.py query --tags <tag> --origin tooling --kind pitfall
+<PY> tools/kb.py lessons
 ```
 
-**frontmatter 를 먼저 읽는다** — `status`, `reproduced`, `confirmed_by` 가 그 페이지를
-근거로 쓸 수 있는지 결정한다.
+**Read the frontmatter first** — `status`, `reproduced` and `confirmed_by` decide
+whether that page can be used as a basis at all.
 
-## 인용 규율 — 어기면 위키가 소문 저장소가 된다
+## Citation discipline — break it and the wiki becomes a rumour store
 
-| 표기 | 의미 | 언제 |
+| Marking | Meaning | When |
 |---|---|---|
-| `[출처]` | **검증된 근거** | 문헌 벤치마크 또는 `reproduced: yes` |
-| `[출처, 미재현]` | **사실 기록** | `reproduced: no` — 참고는 하되 검증 주장에 쓰지 않음 |
+| `[source]` | **verified basis** | a literature benchmark, or `reproduced: yes` |
+| `[source, not reproduced]` | **a record of fact** | `reproduced: no` — consult it, but never use it in a verification claim |
 
-- **문헌값을 기억으로 인용하지 않는다.** `source/papers/` 의 증류를 인용한다.
-  "학습 데이터에서 봤다"는 근거가 아니다
-- **`reproduced: no` 를 근거처럼 쓰지 않는다.** 논문에 실렸다는 것이 우리 코드에서
-  그 값이 동작한다는 뜻은 아니다
-- 예: `N=1000` 을 앙상블로 쓰는 관행은 Barakat 2022 인데 `reproduced: no` 다 →
-  `[출처, 미재현]`
+- **Do not cite a literature value from memory.** Cite the distillation in
+  `source/papers/`. "I saw it in training data" is not a basis
+- **Do not use `reproduced: no` as a basis.** That a paper printed a number does
+  not mean the number works in our code
+- ⚠️ 38 of the 42 distillations are the group's own published work, so the
+  literature layer is narrower than it looks. Weight it accordingly
+- ⚠️ Bibliographic data here is largely unchecked — one distillation carries an
+  explicit `verified: false` and 41 carry no `verified` field at all. The physics
+  was checked; the volume-and-page line mostly was not. Confirm before a citation
+  reaches a manuscript
 
-## 새 (계 × 목적동역학) 카드 만들기
+## Creating a new (system × target dynamics) card
 
-**카드 없는 쌍을 만나면 즉흥 무차원화 금지.** `simbot.nondim` 이 예외를 던진다.
+**If you meet a pair with no card, improvised non-dimensionalization is
+forbidden.** `simbot.nondim` raises.
 
 ```bash
 cp knowledge/wiki/systems/_TEMPLATE.md \
-   knowledge/wiki/systems/<계>--<동역학>.md
+   knowledge/wiki/systems/<system>--<dynamics>.md
 ```
 
 frontmatter:
@@ -66,86 +84,99 @@ frontmatter:
 type: system
 system: passive-sphere | abp | attractive-colloid | brush-colloid | interfacial-colloid
 dynamics: equilibrium-structure | transport | harmonic-trap | dense-collective | coarsening
-status: draft            # draft → usable → validated. 승격은 실측 근거가 있을 때만
+status: draft            # draft -> usable -> validated. Promote only on measured evidence
 ```
 
-**카드가 소유하는 것** (다른 곳에 적지 않는다):
+**What the card owns** (and is therefore written nowhere else):
 
-| § | 내용 | 왜 카드가 소유하나 |
+| § | Content | Why the card owns it |
 |---|---|---|
-| 3 | **기준 단위** (길이·에너지·시간) | 같은 계라도 목적동역학에 따라 다르다 |
-| 4 | 무차원수 원장 | 이 쌍에서 의미 있는 것만 |
-| 6 | 관측량 | |
-| 7 | **적용 게이트 — 켜고 끄기** | 능동계에 평형화 판정을 걸면 통과 불가 |
-| 8 | 벤치마크 | `pytest` 승격 후보 |
-| 10 | 남은 빈칸 | 닫힌 항목은 지우지 않고 표시만 바꾼다 |
+| 3 | **reference units** (length, energy, time) | the same system needs different ones depending on the target dynamics |
+| 4 | the dimensionless-group ledger | only the ones meaningful for this pair |
+| 6 | observables | |
+| 7 | **which gates apply — on and off** | apply an equilibration criterion to an active system and it can never pass |
+| 8 | benchmarks | candidates for promotion into `pytest` |
+| 10 | remaining blanks | a closed item is never deleted, only re-marked |
 
-카드를 만들면 **코드에도 등록한다**:
+Making a card also means **registering it in code**:
 
 ```python
 # simbot/nondim.py
 CARD_SCALE_RULES = {
-    "<계>--<동역학>": "harmonic_trap" | "brownian" | "active_run_length",
+    "<system>--<dynamics>": "harmonic_trap" | "brownian" | "active_run_length",
 }
 ```
 
-등록하지 않으면 `scales_for` 가 예외를 던진다 — **의도된 동작이다.**
+Without the registration `scales_for` raises — **that is the intended
+behaviour.** (The same shape of gap bit the merge: `cases/network_3d.py` existed
+and had produced runs, but was missing from `bdbot/cli.py`'s `CASE_SCRIPTS`, so
+the CLI reported "no end-to-end script" for a case that had one.)
 
-## 새 finding
+## A new finding
 
-`findings/_TEMPLATE.md` 를 쓴다. **진단 경로가 이 문서의 핵심 가치다** —
-다음에 같은 증상을 만나면 그 순서를 그대로 따라간다.
+Use `findings/_TEMPLATE.md`. **The diagnostic path is this document's central
+value** — next time the same symptom appears, someone follows that order exactly.
 
-`재발 방지`에 **"없음"을 적는 것이 반복되는 유형은 가드를 만들 신호다.**
+**A recurring "prevention: none" is the signal to build a guard.**
 
-## 새 benchmark → pytest 승격
+## A new benchmark → promotion into pytest
 
 ```markdown
-| # | 벤치마크 | 예상값 | 상태 |
+| # | Benchmark | Expected | Status |
 |---|---|---|---|
-| B1 | 무차원 등분배 · EM 편향 | `⟨x*²⟩ = 1/(1−dt*/2)` | `[O]` 측정 `1.01041±0.00264` (`0.1σ`) |
+| B1 | dimensionless equipartition, EM bias | `⟨x*²⟩ = 1/(1−dt*/2)` | `[O]` measured `1.01041±0.00264` (`0.1σ`) |
 ```
 
-`tests/` 로 올릴 때:
+When promoting into `tests/`:
 
 ```python
 @pytest.mark.benchmark
 def test_B1(...):
-    """허용오차는 **이론 통계오차**에서 뽑는다.
-    관측값에 맞춰 재단하면 검증이 아니라 사후합리화다."""
+    """Take the tolerance from the **theoretical statistical error**.
+    Tailoring it to the observed value is post-hoc rationalization, not
+    verification."""
 ```
 
-★ **문서 값과 대조할 때는 문서에 적힌 유효숫자에서 허용오차를 뽑는다.**
-전역 상수 하나면 느슨한 쪽이 엄격한 값을 봐준다
-(`tests/test_s3_spec.py::rounding_halfwidth`).
+★ **When comparing against a documented value, take the tolerance from the
+significant figures printed in the document.** A single global constant lets the
+loose case excuse the strict one.
 
-★ **경쟁 가설도 기각한다.** "예측과 맞다"만으로는 약하다. 단,
-설계 검정력이 `3σ` 를 못 만드는 곳에서 `3σ` 기각을 요구하지 않는다 —
-그 구간은 `INCONCLUSIVE` 를 사실로 고정한다.
+★ **Reject the competing hypothesis too.** "It agrees with the prediction" is
+weak on its own. But do not demand a `3σ` rejection where the design power cannot
+produce `3σ` — in that regime, fix `INCONCLUSIVE` as a fact.
 
-## 저작 대칭성과 승격
+★ **Give the benchmark a `role`.** A benchmark whose prediction comes from the
+model we implemented is an `implementation_check`, and a mismatch is a bug. One
+that comes from an assumption the simulation does not impose is a `hypothesis`,
+and a mismatch is **a result to report**. Filing the second kind as a failure is
+how a project files its discoveries as failures.
+
+## Authorship symmetry and promotion
 
 ```yaml
 author: agent | human | hybrid
-confirmed_by:              # 비워둔다. 사람이 검토한 뒤 채운다
+confirmed_by:              # leave empty. A human fills it after review
 ```
 
-- **`author: agent` 비율 자체가 자기개선 지표다**
-- **`finding` → `concept` 승격은 항상 사람 승인.** 에이전트가 스스로 개념을
-  인플레이션시키는 것을 막는다
-- 저자와 무관하게 품질 기준은 같다: 근거가 `source/` 나 확립된 문헌으로 추적되고,
-  인용이 구체적 파일·URL 이며, 주장이 확인 가능할 것
+- **The `author: agent` fraction is itself a self-improvement metric**
+- **Promotion from `finding` to `concept` always needs human approval.** This
+  stops an agent inflating its own observations into concepts
+- The quality bar is the same regardless of author: the basis traces to
+  `source/` or to established literature, the citation names a concrete file or
+  URL, and the claim is checkable
 
-## 모순이 생겼을 때
+## When a contradiction appears
 
-**기존 항목을 조용히 덮어쓰지 않는다.** 새 항목을 만들고 `supersedes: [<이전 id>]` 로
-연결한다. 적용 범위만 좁히는 것이면 `supersedes` 가 아니라 상호 링크다 —
+**Never silently overwrite an existing entry.** Create a new one and link it with
+`supersedes: [<previous id>]`. If it only narrows the scope, that is a
+cross-link rather than a `supersedes` —
 [`displacement-gate-is-1000x-loose-for-traps`](../../../knowledge/wiki/findings/displacement-gate-is-1000x-loose-for-traps.md)
-가 [`dt-gate-should-be-displacement-based`](../../../knowledge/wiki/findings/dt-gate-should-be-displacement-based.md)
-를 **기각하지 않고 범위를 좁힌** 예다.
+**narrowed the scope of**
+[`dt-gate-should-be-displacement-based`](../../../knowledge/wiki/findings/dt-gate-should-be-displacement-based.md)
+rather than rejecting it.
 
-## 환경이 바뀌면
+## When the environment changes
 
-패키지를 추가하면 **왜 필요했는가**를
-[`techniques/env-log.md`](../../../knowledge/wiki/techniques/env-log.md) 에 적고
-`environment.yml` 도 갱신한다.
+If you add a package, record **why it was needed** in
+[`techniques/env-log.md`](../../../knowledge/wiki/techniques/env-log.md) and
+update `environment.yml` too.

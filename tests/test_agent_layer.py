@@ -182,28 +182,39 @@ def test_extract_agent_cannot_write_files():
 # 스킬이 물리를 다시 적지 않는다
 # =============================================================================
 def test_skills_delegate_to_the_core_rather_than_restating_physics():
-    """스킬은 `simbot` 함수와 `cli.py` 를 인용한다 — 숫자를 만들지 않는다."""
+    """The skill cites core functions and the CLI -- it does not produce numbers.
+
+    The last assertion is the load-bearing one: without the prohibition stated
+    in the skill, an agent that can do arithmetic will do arithmetic, and then
+    a wrong result cannot be attributed to the physics or to the model.
+    """
     text = (CLAUDE / "skills/bd-pipeline/SKILL.md").read_text(encoding="utf-8")
     assert "cli.py run" in text
     assert "simbot" in text
-    assert "숫자를 머리로" in text            # 금지 규약이 명시돼야 한다
+    assert "in your head" in text, "the prohibition on mental arithmetic is missing"
 
 
 def test_pipeline_skill_forbids_confirming_verdicts():
+    """Only a human fills `confirmed_by`, and the skill has to say so.
+
+    Otherwise a pass gets stamped that nobody looked at, and the whole verdict
+    chain becomes decoration.
+    """
     text = (CLAUDE / "skills/bd-pipeline/SKILL.md").read_text(encoding="utf-8")
     assert "confirmed_by" in text
-    assert "사람만" in text or "사람이 확정" in text
+    assert "humans only" in text, "does not say that only a human may confirm"
 
 
 def test_pipeline_skill_names_the_interpreter_absolutely():
-    """`conda activate` 는 non-interactive shell 에서 불안정하다."""
+    """`conda activate` is unreliable in a non-interactive shell."""
     text = (CLAUDE / "skills/bd-pipeline/SKILL.md").read_text(encoding="utf-8")
     assert "/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python" in text
 
 
 def test_pipeline_skill_states_the_question_budget():
+    """If the conversation becomes twenty questions, the tool has failed."""
     text = (CLAUDE / "skills/bd-pipeline/SKILL.md").read_text(encoding="utf-8")
-    assert "질문 예산" in text and "3개" in text
+    assert "Question budget" in text and "three per round" in text
 
 
 def test_s1_reference_is_the_substantive_one():
@@ -214,24 +225,36 @@ def test_s1_reference_is_the_substantive_one():
 
 
 def test_s1_reference_warns_against_trusting_absolute_size():
+    """The two rules that stop a sketch reading from inventing physics.
+
+    People draw the box small and the particles large, so the drawn ratio
+    overestimates phi almost every time; and an ambiguity resolved by picking one
+    candidate silently is an assumption nobody can audit later.
+    """
     text = (CLAUDE / "skills/bd-pipeline/references/s1_intake_drawing.md").read_text(
         encoding="utf-8")
-    assert "절대 크기를 신뢰하지 않는다" in text
-    assert "후보" in text                     # 모호성 후보 나열 규약
+    assert "Do not trust absolute sizes" in text
+    assert "candidates" in text            # the ambiguity-enumeration convention
 
 
 def test_diagnose_skill_suspects_analysis_first():
-    """★ 첫 완주 4건 중 물리 문제는 0건이었다."""
+    """Of the 4 failures on the first end-to-end run, zero were physics.
+
+    The ordering assertion is the real content: if `modeling` ever comes before
+    `analysis` in this document, the elimination order has been inverted and the
+    skill will send its reader chasing physics that is not there.
+    """
     text = (CLAUDE / "skills/bd-diagnose/SKILL.md").read_text(encoding="utf-8")
     assert "analysis" in text
-    assert "먼저 의심" in text
+    assert "suspect the analysis code first" in text.lower()
     assert text.index("analysis") < text.index("modeling")
 
 
 def test_knowledge_skill_states_the_citation_discipline():
+    """Both halves of the discipline, or the wiki becomes a rumour store."""
     text = (CLAUDE / "skills/bd-knowledge/SKILL.md").read_text(encoding="utf-8")
-    assert "미재현" in text
-    assert "기억으로 인용" in text
+    assert "not reproduced" in text, "the [source, not reproduced] marking is missing"
+    assert "from memory" in text, "the ban on citing from memory is missing"
 
 
 # =============================================================================
