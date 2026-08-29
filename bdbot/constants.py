@@ -177,6 +177,28 @@ INTERP_CONVENTION = "linear"
 LIN_VS_LOG_AT_300K = 1.400e-3    # relative, measured on WATER_ETA_SI
 
 
+# ── sphere geometry: ONE expression ─────────────────────────────────────────
+#  ★ Merged 2026-08-29. Two algebraically identical expressions existed:
+#      bdbot.materials.sphere_mass   rho * (pi/6) * d**3
+#      simbot.spec.Species.mass_si   rho * (4/3)*pi * (d/2)**3
+#    Equal on paper -- `(4/3)pi/8 == pi/6` to the last bit -- but **not equal in
+#    floating point**, because the operation order differs. Measured: exactly
+#    **1 ULP** apart (1.9626037930826046e-15 vs 1.962603793082605e-15).
+#    That is the whole disagreement, and it is the kind that never shows up as a
+#    wrong answer -- only as two numbers that will not compare equal, forever.
+#  ⚠ Safe to unify because mass reaches **no hash**: it lands at
+#    `.system.derived_scales.tau_p` in a spec, `derived_scales` is in
+#    `bdbot.runid.DOC_KEYS`, and `physics_only()` strips it before the run_id is
+#    taken. Verified on all 278 specs (0 mismatches) before and after.
+def sphere_mass_si(rho_si: float, d_si: float) -> float:
+    """Mass of a sphere from **density and DIAMETER** [kg].
+
+    ⚠ `d` is a diameter. `simbot` stores a radius, so its caller passes `2*a` --
+      the same factor-2 surface as `sphere_drag` vs `stokes_drag_si`.
+    """
+    return rho_si * (math.pi / 6.0) * d_si**3
+
+
 def interp_table(table: dict[float, float], T_si: float) -> tuple[float, bool]:
     """Linear interpolation in a `{T: value}` table.
 
@@ -299,4 +321,4 @@ __all__ = ["K_B", "KELVIN_0C", "celsius", "T_20C", "T_25C",
            "INTERP_CONVENTION", "LIN_VS_LOG_AT_300K",
            "interp_table", "interp_table_log", "water_viscosity_si",
            "water_density_si", "water_viscosity_sensitivity_per_K",
-           "water_viscosity_provenance_gap"]
+           "water_viscosity_provenance_gap", "sphere_mass_si"]

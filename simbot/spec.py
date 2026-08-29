@@ -26,6 +26,7 @@ import yaml
 
 from .io import sha256_payload
 from .units import kT_si, stokes_drag_si, stokes_einstein_D_si
+from bdbot.constants import sphere_mass_si   # one definition, shared with bdbot.materials
 
 # =============================================================================
 # provenance
@@ -157,11 +158,18 @@ class Species:
         return 2.0 * self.radius_si.si
 
     def mass_si(self) -> float | None:
-        """구형 가정 질량. 밀도가 없으면 `None` (과감쇠 검사를 못 한다)."""
+        """Sphere-assumed mass. `None` without a density (no overdamped check then).
+
+        ★ The expression is `bdbot.constants.sphere_mass_si`, shared with
+          `bdbot.materials.sphere_mass`. It used to be written here as
+          `rho*(4/3)*pi*a**3`, which is the same number on paper and **1 ULP
+          different in floating point** from bdbot's `rho*(pi/6)*d**3` -- so the
+          two halves could never compare equal. Merged 2026-08-29.
+          ⚠ The kernel takes a **diameter**; this class stores a radius.
+        """
         if self.density_si is None:
             return None
-        a = self.radius_si.si
-        return self.density_si.si * (4.0 / 3.0) * math.pi * a**3
+        return sphere_mass_si(self.density_si.si, 2.0 * self.radius_si.si)
 
 
 @dataclass
