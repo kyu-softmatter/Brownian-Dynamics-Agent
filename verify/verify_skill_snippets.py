@@ -1,6 +1,7 @@
-"""스킬 문서의 코드가 실제로 동작하는지 검증한다.
+"""Verify that the code in the skill documents actually runs.
 
-깨진 스니펫이 든 스킬은 없느니만 못하다. 문서를 고칠 때마다 이걸 돌린다.
+A skill containing a broken snippet is worse than no skill at all. Run this every
+time the documents are edited.
 
   PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
   $PY scratch/verify_skill_snippets.py
@@ -21,33 +22,36 @@ SKILL = ROOT / ".claude/skills/bd-hoomd/SKILL.md"
 
 failures = []
 
-# ── 1. 모든 python 블록 문법 검사 ────────────────────────────────────────
+# ── 1. syntax-check every python block ──────────────────────────────────
 blocks = re.findall(r"```python\n(.*?)```", SKILL.read_text(), re.S)
-print(f"python 블록 {len(blocks)}개")
+print(f"{len(blocks)} python blocks")
 for i, b in enumerate(blocks, 1):
     try:
         ast.parse(b)
     except SyntaxError as e:
-        failures.append(f"블록 {i} 문법 오류: {e}")
-        print(f"  ✗ 블록 {i}: {e}")
-print(f"  문법: {len(blocks) - len([f for f in failures if '문법' in f])}/{len(blocks)} OK")
+        failures.append(f"block {i} syntax error: {e}")
+        print(f"  ✗ block {i}: {e}")
+print(f"  syntax: "
+      f"{len(blocks) - len([f for f in failures if 'syntax error' in f])}"
+      f"/{len(blocks)} OK")
 
 
-# ── 2. 조화 트랩 스니펫 실동작 + 물리 정확도 ─────────────────────────────
-# 문서에 적힌 클래스를 그대로 exec 해서 쓴다. 여기 코드를 복붙하지 않는 것이 요점 —
-# 문서가 틀리면 이 테스트가 깨져야 한다.
-print("\n조화 트랩 스니펫 (문서 코드 그대로 실행)")
+# ── 2. does the harmonic-trap snippet run, and is the physics right? ────
+# The class written in the document is exec'd as-is. Not copy-pasting the code here
+# is the whole point -- if the document is wrong, this test must break.
+print("\nharmonic-trap snippet (running the document's code verbatim)")
 try:
     trap_src = next(b for b in blocks if "class HarmonicTrap" in b)
 except StopIteration:
-    print("  ✗ HarmonicTrap 블록을 찾지 못함 — 문서가 바뀌었나?")
+    print("  ✗ could not find the HarmonicTrap block -- has the document changed?")
     sys.exit(1)
 
 ns = {"md": md, "np": np, "hoomd": hoomd}
 exec(trap_src, ns)
 HarmonicTrap = ns["HarmonicTrap"]
 
-# k=2 는 함정 1(최소 이미지)에 가장 취약한 조건. 일부러 약한 트랩으로 검증한다.
+# k=2 is the condition most vulnerable to trap 1 (minimum image). A deliberately
+# weak trap is used for the check.
 N, L, kT, gamma, k = 256, 40.0, 1.0, 1.0, 2.0
 n = int(math.ceil(math.sqrt(N)))
 a = L / n
@@ -83,21 +87,22 @@ err = 100 * (mean - pred) / pred
 n_nan = int(np.isnan(np.array(trap.forces)).sum())
 max_fz = float(np.abs(np.array(trap.forces)[:, 2]).max())
 
-print(f"  <x²> = {mean:.5f}   예측 kT/k = {pred:.5f}   오차 {err:+.2f}%")
-print(f"  force NaN = {n_nan} (함정 7)   z성분 최대 = {max_fz:.1e} (2D라 0)")
+print(f"  <x^2> = {mean:.5f}   predicted kT/k = {pred:.5f}   error {err:+.2f}%")
+print(f"  force NaN = {n_nan} (trap 7)   max z component = {max_fz:.1e} "
+      f"(0, being 2D)")
 
 if abs(err) >= 5:
-    failures.append(f"트랩 물리 오차 {err:+.2f}% (한계 5%)")
+    failures.append(f"trap physics error {err:+.2f}% (limit 5%)")
 if n_nan:
-    failures.append(f"force 배열에 NaN {n_nan}개 — 함정 7 재발")
+    failures.append(f"{n_nan} NaN in the force array -- trap 7 has recurred")
 if max_fz > 1e-12:
-    failures.append(f"2D인데 z 힘이 0이 아님: {max_fz:.1e}")
+    failures.append(f"2D but the z force is not 0: {max_fz:.1e}")
 
-# ── 결과 ────────────────────────────────────────────────────────────────
+# ── result ──────────────────────────────────────────────────────────────
 print()
 if failures:
     print("✗ FAIL")
     for f_ in failures:
         print(f"   - {f_}")
     sys.exit(1)
-print("✓ PASS — 스킬 문서의 코드가 그대로 동작하고 물리적으로 정확함")
+print("✓ PASS -- the skill documents' code runs verbatim and is physically correct")
