@@ -1,19 +1,26 @@
-"""콜로이드 상호작용 카탈로그 + 추천기 — 스케치에 `U_ij` 가 없을 때.
+"""A catalogue of colloidal interactions plus a recommender -- for when the sketch
+has no `U_ij`.
 
-**왜 필요한가**: 스케치 5장 중 2장이 페어 퍼텐셜을 비워뒀습니다 (`chain-bend` 의 물결선,
-`trap-drag` 는 아예 없음). CLAUDE.md 규칙 3 때문에 지어낼 수 없고, 그렇다고 "없습니다"로
-멈추면 사람이 뭘 골라야 하는지 알 수 없습니다.
+**Why it is needed**: 2 of the 5 sketches left the pair potential blank
+(`chain-bend` had a squiggle, `trap-drag` had nothing at all). Rule 3 in CLAUDE.md
+forbids inventing one, but stopping at "it is absent" leaves the person with no
+idea what to choose.
 
-→ **추천하고 묻습니다.** 표준 후보를 근거·필요 파라미터·무차원 결합세기와 함께 제시하고,
-   `resolution` 에 붙여넣을 YAML까지 만들어 줍니다. 다른 걸 쓰겠다면 사람이 직접 적습니다.
-   결정은 여전히 사람이 하고, 도구는 **선택지와 그 결과를 보여주는 역할**만 합니다.
+-> **Recommend, and ask.** Present the standard candidates with their basis, the
+   parameters they need and the dimensionless coupling they produce, plus the YAML
+   to paste into `resolution`. Anything else, the person writes directly. The
+   decision stays with the human; the tool only **shows the options and their
+   consequences.**
 
-단일 매질(뉴턴 유체) 안의 콜로이드에 대한 표준 골격은 **DLVO** 입니다:
-    U = U_전기이중층(스크린된 Coulomb) + U_van der Waals   (+ 배제부피)
-여기에 계에 따라 고갈 인력·장 유도 쌍극자·접촉 접선력이 붙습니다.
+The standard skeleton for colloids in a single Newtonian medium is **DLVO**:
+    U = U_electrostatic (screened Coulomb) + U_van der Waals   (+ excluded volume)
+Depletion attraction, field-induced dipoles and contact tangential forces attach to
+that, depending on the system.
 
-⚠️ 함수 형태는 표준이지만 **구체적 수치(Hamaker 상수·유효전하·λ_D)는 핸드북/문헌을 봐야
-   합니다.** 카탈로그는 값을 주지 않고 "무엇을 알아야 하는지"를 줍니다 (원칙 2).
+WARNING: the functional forms are standard, but **the actual numbers (Hamaker
+   constant, effective charge, lambda_D) must come from a handbook or the
+   literature.** The catalogue supplies not values but "what you have to know"
+   (rule 3).
 """
 from __future__ import annotations
 
@@ -27,144 +34,170 @@ class Interaction:
     key: str
     name: str
     form: str
-    needs: tuple                 # 지정해야 하는 차원 있는 파라미터
-    coupling: str                # 이 상호작용이 만드는 무차원 결합세기
+    needs: tuple                 # the dimensional parameters that must be specified
+    coupling: str                # the dimensionless coupling this interaction produces
     use_when: str
     avoid_when: str
     hoomd: str
-    verified: str = ""           # 이 프로젝트에서 실행 검증했는가 (근거)
-    not_verified: str = ""       # ⛔ 확인되지 않은 것 · 실측으로 드러난 하드 제약
+    verified: str = ""           # verified by execution in this project (with the basis)
+    not_verified: str = ""       # what is NOT confirmed, and hard constraints found by measurement
     tags: frozenset = frozenset()
     note: str = ""
 
 
 # ══════════════════════════════════════════════════════════════════════
-# 카탈로그 — 단일 매질 콜로이드의 표준 상호작용
+# the catalogue -- standard interactions for colloids in a single medium
 # ══════════════════════════════════════════════════════════════════════
 CATALOG: dict[str, Interaction] = {
     "pair.none": Interaction(
-        key="pair.none", name="상호작용 없음 (독립 입자)",
+        key="pair.none", name="no interaction (independent particles)",
         form="U_ij = 0",
         needs=(),
         coupling="—",
-        use_when="관측량이 단일입자 성질(MSD·MSAD·트랩 안 분포)이고 밀도가 낮을 때. "
-                 "독립 입자 앙상블로 통계만 얻는 용도.",
-        avoid_when="구조(g(r)·voronoi)나 집단 거동이 목표일 때.",
-        hoomd="forces 목록에서 페어 퍼텐셜을 빼면 된다.",
-        verified="1-A trap-2d-5um — 관측량 4종 해석해 일치",
+        use_when="the observable is a single-particle property (MSD, MSAD, the distribution "
+                 "inside a trap) and the density is low. Purely to gain statistics "
+                 "from an ensemble of independent particles.",
+        avoid_when="the goal is structure (g(r), Voronoi) or collective behaviour.",
+        hoomd="just leave the pair potential out of the forces list.",
+        verified="trap-2d-5um -- 4 observables matched their analytic solutions",
         tags=frozenset({"single_particle", "dilute"})),
 
     "pair.wca": Interaction(
-        key="pair.wca", name="WCA (순수 배제부피)",
+        key="pair.wca", name="WCA (pure excluded volume)",
         form="U = 4ε[(σ/r)¹² − (σ/r)⁶] + ε,  r < 2^(1/6)σ",
-        needs=("σ (= 입자 지름)", "ε (관례상 kT)"),
-        coupling="없음 — 사실상 하드코어. 구조는 φ 하나가 정한다.",
-        use_when="전하가 잘 스크리닝되어 반발이 짧고, 겹침만 막으면 될 때. "
-                 "다른 상호작용의 코어로도 거의 항상 함께 쓴다.",
-        avoid_when="장거리 반발/인력이 구조를 지배할 때 (그것만으로는 부족).",
-        hoomd="md.pair.LJ(r_cut=2^(1/6)σ, mode='shift')  ← 전용 클래스 없음 (함정 4)",
-        verified="1-B soft-r3 — 코어로 사용, 2입자 힘 대조 0.000%",
+        needs=("sigma (= particle diameter)", "epsilon (kT by convention)"),
+        coupling="none -- effectively hard-core. Structure is set by phi alone.",
+        use_when="the charge is well screened so the repulsion is short and all you need is "
+                 "to prevent overlap. Almost always used as the core of another "
+                 "interaction too.",
+        avoid_when="a long-range repulsion or attraction dominates the structure (this alone "
+                   "is insufficient).",
+        hoomd="md.pair.LJ(r_cut=2^(1/6)sigma, mode='shift')  <- no dedicated class (trap 4)",
+        verified="soft-r3 -- used as the core, two-particle force comparison 0.000%",
         tags=frozenset({"excluded_volume", "screened", "structure"})),
 
     "pair.yukawa": Interaction(
-        key="pair.yukawa", name="Yukawa / 스크린된 Coulomb (DLVO 반발 분기)",
+        key="pair.yukawa", name="Yukawa / screened Coulomb (the DLVO repulsive branch)",
         form="U(r)/kT = ε_Y · exp(−κ(r−σ)) / (r/σ),    κ = 1/λ_D",
-        needs=("유효 표면전하 또는 ζ 전위", "이온세기 → Debye 길이 λ_D",
-               "매질 유전율 ε_r"),
-        coupling="ε_Y = U(σ)/kT  (접촉 결합)  ·  κσ = σ/λ_D  (스크리닝 vs 입자)",
-        use_when="하전 콜로이드 + 전해질. **단일 매질 수용액계의 가장 표준적 선택**이고, "
-                 "λ_D 로 반발 거리를 실험적으로 조절할 수 있다.",
-        avoid_when="염 농도가 매우 높아 λ_D ≪ σ 이면 WCA와 구별되지 않는다. "
-                   "반대로 매우 낮으면 λ_D 가 박스를 넘어 최소이미지가 깨진다.",
+        needs=("effective surface charge or zeta potential",
+               "ionic strength -> Debye length lambda_D",
+               "medium permittivity epsilon_r"),
+        coupling="eps_Y = U(sigma)/kT (contact coupling) . kappa*sigma = sigma/lambda_D (screening vs particle)",
+        use_when="charged colloids plus an electrolyte. **The most standard choice for an "
+                 "aqueous single-medium system**, and lambda_D lets the repulsion "
+                 "range be tuned experimentally.",
+        avoid_when="at very high salt, lambda_D << sigma and it is indistinguishable from "
+                   "WCA. At very low salt, lambda_D exceeds the box and minimum image "
+                   "breaks.",
         hoomd="md.pair.Yukawa(nlist, default_r_cut=...)  — params: kappa, epsilon",
-        verified="",   # 이 프로젝트에서 아직 안 씀
+        verified="",   # not used in this project yet
         tags=frozenset({"charged", "screened", "repulsive", "structure", "dlvo"}),
-        note="λ_D 가 새 길이척도로 원장에 들어오고, 분리 검사 `λ_D ≤ L/4` 가 추가된다."),
+        note="lambda_D enters the ledger as a new length scale, and a separation check "
+             "`lambda_D <= L/4` is added."),
 
     "pair.soft_power": Interaction(
-        key="pair.soft_power", name="소프트 멱함수 반발 r⁻ⁿ",
-        form="U(r)/kT = A (σ/r)^n     (n=3 이면 2D 쌍극자계의 표준 모델)",
-        needs=("진폭 A (무차원 또는 length^n)", "지수 n", "컷오프 r_c"),
-        coupling="Γ = U(a_mean)/kT = A (σ/a_mean)^n   ★ A 단독이 아니라 밀도와의 조합",
-        use_when="외부장으로 유도된 쌍극자(상자성/유전 콜로이드), 또는 소프트 코로나. "
-                 "n=3·2D 는 계면 상자성 콜로이드의 고전 모델.",
-        avoid_when="n ≤ dim 이면 에너지 적분이 발산해 컷오프로 처리할 수 없다. "
-                   "n 이 작으면 꼬리가 길어 최소이미지가 먼저 걸린다.",
-        hoomd="md.pair.Table (endpoint=False! 함정 10) + WCA 코어 (함정 11)",
-        verified="1-B soft-r3 전체 — 2입자 0.000%, 에너지 일관성 +0.00~0.67%, "
-                 "Γ 3~30 사이에서 육방 결정 전이 확인",
+        key="pair.soft_power", name="soft power-law repulsion r^-n",
+        form="U(r)/kT = A (sigma/r)^n     (n=3 is the standard model for a 2D dipolar system)",
+        needs=("amplitude A (dimensionless, or length^n)", "exponent n", "cutoff r_c"),
+        coupling="Gamma = U(a_mean)/kT = A (sigma/a_mean)^n   * not A alone but A combined with density",
+        use_when="field-induced dipoles (paramagnetic or dielectric colloids), or a soft "
+                 "corona. n=3 in 2D is the classic model for interfacial "
+                 "paramagnetic colloids.",
+        avoid_when="for n <= dim the energy integral diverges and a cutoff cannot fix it. "
+                   "Small n gives a long tail, and minimum image binds first.",
+        hoomd="md.pair.Table (endpoint=False! trap 10) + a WCA core (trap 11)",
+        verified="all of soft-r3 -- two-particle 0.000%, energy consistency +0.00 to 0.67%, "
+                 "hexagonal crystallization confirmed between Gamma 3 and 30",
         tags=frozenset({"repulsive", "soft", "field_induced", "structure", "dipolar"}),
-        note="2D r⁻³ 는 꼬리 에너지가 1/r_c 로만 줄어 **절대 kT 컷오프 기준이 성립하지 "
-             "않는다.** 컷오프를 a_mean 배수로 잡고 수렴을 확인해야 한다 (1-B 교훈)."),
+        note="in 2D, r^-3 tail energy falls off only as 1/r_c, so **an absolute kT cutoff "
+             "criterion does not work.** Set the cutoff as a multiple of a_mean and "
+             "check convergence."),
 
     "pair.dlvo": Interaction(
-        key="pair.dlvo", name="DLVO 전체 (스크린된 반발 + van der Waals 인력)",
-        form="U = U_Yukawa(r) − (A_H/12)·(σ/(r−σ)) 류 + 배제부피",
-        needs=("λ_D·유효전하 (위 Yukawa와 동일)", "Hamaker 상수 A_H",
-               "접촉 차단 거리 (vdW 발산 방지)"),
-        coupling="ε_Y, κσ, 그리고 A_H/kT  (1차 최소 깊이)",
-        use_when="응집·젤화의 시작을 보려 할 때. 2차 최소·에너지 장벽이 물리의 핵심일 때.",
-        avoid_when="vdW가 접촉에서 발산하므로 반드시 코어/차단이 필요하고, "
-                   "1차 최소가 깊으면 사실상 비가역 접착이 되어 페어 퍼텐셜 그림이 무너진다 "
-                   "(→ contact.adhesive_bending 을 보라).",
-        hoomd="md.pair.Table 로 합성 (Yukawa+vdW+코어를 하나의 표로)",
+        key="pair.dlvo", name="full DLVO (screened repulsion + van der Waals attraction)",
+        form="U = U_Yukawa(r) - (A_H/12)*(sigma/(r-sigma)) type + excluded volume",
+        needs=("lambda_D and effective charge (as for Yukawa above)", "Hamaker constant A_H",
+               "a contact cut-off distance (to prevent the vdW divergence)"),
+        coupling="eps_Y, kappa*sigma, and A_H/kT  (the primary minimum depth)",
+        use_when="looking at the onset of aggregation or gelation. When the secondary minimum "
+                 "and the energy barrier are the core of the physics.",
+        avoid_when="vdW diverges at contact so a core or cut-off is mandatory, and if the "
+                   "primary minimum is deep it becomes effectively irreversible "
+                   "adhesion and the pair-potential picture collapses "
+                   "(-> see contact.adhesive_bending).",
+        hoomd="composed with md.pair.Table (Yukawa + vdW + core in one table)",
         verified="",
         tags=frozenset({"charged", "attractive", "aggregation", "dlvo"}),
-        note="A_H 는 재질·매질 조합마다 다르다 (~1e-21 ~ 1e-19 J 범위). "
-             "핸드북/문헌에서 가져오고 tier 를 붙여야 한다 — 지어내지 말 것."),
+        note="A_H differs per material and medium combination (roughly 1e-21 to 1e-19 J). "
+             "Take it from a handbook or the literature and attach a tier -- do not "
+             "invent it."),
 
     "pair.ao_depletion": Interaction(
-        key="pair.ao_depletion", name="Asakura–Oosawa 고갈 인력",
-        form="U_dep(r) < 0, 유효 거리 ≈ 2R_g (폴리머 크기). 깊이 ∝ 폴리머 삼투압",
-        needs=("폴리머 회전반경 R_g", "폴리머 농도(삼투압)"),
-        coupling="깊이/kT  ·  거리비 2R_g/σ  (단거리성)",
-        use_when="비흡착 폴리머를 넣어 인력을 **거리와 깊이를 따로** 조절하고 싶을 때. "
-                 "콜로이드-폴리머 상분리·젤의 표준 도구.",
-        avoid_when="폴리머가 흡착하면(입체 안정화) 부호가 뒤집힌다. 모델이 안 맞는다.",
-        hoomd="md.pair.Table 로 구현",
+        key="pair.ao_depletion", name="Asakura-Oosawa depletion attraction",
+        form="U_dep(r) < 0, effective range ~ 2R_g (the polymer size). Depth is "
+             "proportional to the polymer osmotic pressure",
+        needs=("polymer radius of gyration R_g", "polymer concentration (osmotic pressure)"),
+        coupling="depth/kT  .  range ratio 2R_g/sigma  (how short-ranged it is)",
+        use_when="adding non-adsorbing polymer to tune the attraction's **range and depth "
+                 "independently.** The standard tool for colloid-polymer phase "
+                 "separation and gels.",
+        avoid_when="if the polymer adsorbs (steric stabilization) the sign flips and the model "
+                   "does not apply.",
+        hoomd="implemented with md.pair.Table",
         verified="",
         tags=frozenset({"attractive", "short_range", "aggregation", "tunable"})),
 
     "contact.adhesive_bending": Interaction(
         key="contact.adhesive_bending",
-        name="접착 접촉 + 접선(굽힘) 강성  ★ 페어 퍼텐셜이 아니다",
-        form="반경 방향: 접착 접촉(JKR) — 사실상 비신축 결합\n"
-             "        접선 방향: 결합각 강성 κ_θ = EI/ℓ,  EI = πE a_c⁴/4\n"
-             "        임계 모멘트 M_c 위에서는 미끄러짐/구름 (소성)",
-        needs=("입자 탄성률 E, 포아송비 ν", "접착 에너지 W_SL (또는 접촉반경 a_c)",
-               "임계 굽힘 모멘트 M_c"),
-        coupling="κ_θ/kT (열적으로 뻣뻣한가) · M/M_c (선형 탄성 범위 안인가)",
-        use_when="입자가 **접촉해 응집체/사슬/젤**을 이룰 때. 중심 페어 퍼텐셜만으로는 "
-                 "단일 결합이 토크를 지탱하는 현상을 재현할 수 없다.",
-        avoid_when="입자가 분산되어 접촉하지 않는 계. 그땐 보통의 페어 퍼텐셜을 쓴다.",
-        hoomd="md.bond.Harmonic(뻣뻣, r0=σ) + md.angle.Harmonic(k=κ_θ, t0=π) "
-              "(+ WCA). M_c 초과 소성은 내장에 없음 → 커스텀 또는 M<M_c 로 제한. "
-              "⛔ **angle.Harmonic 은 거의 곧은 사슬에서 힘이 틀린다** — 아래 not_verified",
-        verified="κ_θ = EI/ℓ 매핑을 이산 사슬 굽힘으로 검증 "
-                 "(scratch/chain_bend_from_papers.py: n=51에서 빔 공식과 −0.08%; "
-                 "n=25 는 −0.35%). 이산 행렬 ↔ HOOMD angle.Harmonic 도 정적으로 0.55% "
-                 "일치 (scratch/verify_angle_matrix.py) — 단 **에너지 기준**이다",
+        name="adhesive contact + tangential (bending) stiffness  * NOT a pair potential",
+        form="radial:     adhesive contact (JKR) -- effectively an inextensible bond\n"
+             "        tangential: bond-angle stiffness kappa_theta = EI/l,  EI = pi*E*a_c^4/4\n"
+             "        above a critical moment M_c: slipping / rolling (plastic)",
+        needs=("particle modulus E, Poisson ratio nu",
+               "adhesion energy W_SL (or contact radius a_c)",
+               "critical bending moment M_c"),
+        coupling="kappa_theta/kT (is it thermally stiff) . M/M_c (is it inside linear elasticity)",
+        use_when="particles **touch and form aggregates, chains or gels.** A central pair "
+                 "potential alone cannot reproduce a single bond sustaining a torque.",
+        avoid_when="a dispersed system where particles do not touch. Use an ordinary pair "
+                   "potential there.",
+        hoomd="md.bond.Harmonic(stiff, r0=sigma) + md.angle.Harmonic(k=kappa_theta, t0=pi) "
+              "(+ WCA). Plasticity above M_c is not built in -> custom, or restrict "
+              "to M<M_c. STOP: **angle.Harmonic gets the force wrong on a nearly "
+              "straight chain** -- see not_verified below",
+        verified="the kappa_theta = EI/l mapping was verified against discrete chain bending "
+                 "(verify/chain_bend_from_papers.py: -0.08% against the beam formula "
+                 "at n=51, -0.35% at n=25). The discrete matrix also agrees statically "
+                 "with HOOMD angle.Harmonic to 0.55% (verify/verify_angle_matrix.py) "
+                 "-- but that comparison is **on energy**",
         not_verified=(
-            "⛔ **HOOMD 하드 제약**: md.angle.Harmonic 은 sin θ 를 SMALL = √2×10⁻³ "
-            "(실측 1.414217e-3) 로 클램프한다. sin θ < SMALL 이면 힘이 sinθ/SMALL 배로 "
-            "축소되어 ∝ κ(θ−π)² — **선형이 아니라 2차**가 되고, 사슬이 실제보다 무르고 "
-            "비선형이 된다. **에너지는 전 구간 정확**하므로 에너지로 검증하면 통과한다. "
-            "t0=π 는 평형 자체가 sin θ=0 이라 **κ_θ/kT 가 클수록(뻣뻣할수록) 심하다** — "
-            "이 상호작용이 바로 그 영역이다. 설계 시 응답 진폭에서 **모든** 결합각의 "
-            "min|θ−π| > SMALL 인지 확인할 것 (최대만 보면 안 된다 — 사슬 끝 각도가 중앙보다 "
-            "한 자릿수 작다). chain-bend-2d-oscill 은 23개 각도 전부가 깨진 영역이라 "
-            "실행이 거부됐다. 우회: force.Custom 직접 구현(26배 느림) · κ_θ 를 낮춤 · "
-            "선형 영역이면 해석적으로 풀기. angle.Table 과 CosineSquared 는 둘 다 대체 불가. "
-            "재현: scratch/verify_angle_force_small_theta.py (skill bd-hoomd 함정 15)"),
+            "STOP: **a HOOMD hard constraint.** md.angle.Harmonic clamps sin theta at "
+            "SMALL = sqrt(2)*10^-3 (measured 1.414217e-3). Below that the force is "
+            "scaled by sinTheta/SMALL, becoming proportional to kappa*(theta-pi)^2 -- "
+            "**quadratic, not linear** -- so the chain is softer and more nonlinear "
+            "than it should be. **The energy is exact throughout**, so an energy check "
+            "passes. With t0=pi the equilibrium itself is at sin theta=0, so **the "
+            "stiffer the chain (larger kappa_theta/kT) the worse it gets** -- and this "
+            "interaction lives in exactly that regime. When designing, confirm at the "
+            "response amplitude that **every** bond angle has min|theta-pi| > SMALL "
+            "(not just the maximum -- a chain's end angles are an order of magnitude "
+            "smaller than the middle). chain-bend-2d-oscill had all 23 angles inside "
+            "the broken region and execution was refused. Workarounds: implement "
+            "force.Custom directly (26x slower), lower kappa_theta, or solve "
+            "analytically if the regime is linear. Neither angle.Table nor "
+            "CosineSquared is a substitute. Reproduce: "
+            "verify/verify_angle_force_small_theta.py (skill bd-hoomd trap 15)"),
         tags=frozenset({"bonded", "aggregate", "contact", "gel", "tangential"}),
-        note="Pantina & Furst (PRL 94 138301; Langmuir 24 1141) 의 핵심 결과. "
-             "단일 결합이 토크를 지탱한다는 것이 실측이고, DLVO 같은 중심력 모델은 "
-             "이걸 못 낸다 — 논문이 명시적으로 그 점을 지적한다."),
+        note="the central result of Pantina & Furst (PRL 94 138301; Langmuir 24 1141). A "
+             "single bond sustaining a torque is the measurement, and a central-force "
+             "model like DLVO cannot produce it -- the paper says so explicitly. This "
+             "project then executed the prediction side: see chain-bend-2d-dlvo in "
+             "docs/04-cases.md."),
 }
 
 
 # ══════════════════════════════════════════════════════════════════════
-# 추천기
+# the recommender
 # ══════════════════════════════════════════════════════════════════════
 INTERACTION_SYMBOLS = frozenset({
     "U_ij", "pair_potential", "interaction", "interactions", "pair", "U", "potential",
@@ -177,7 +210,13 @@ def looks_like_interaction(symbol: str) -> bool:
 
 
 def infer_tags(obs) -> set:
-    """observation.yaml 에서 문맥 태그를 뽑는다. 추측이 아니라 적혀 있는 것만 본다."""
+    """Extract context tags from observation.yaml. Only what is written, never a guess.
+
+    WARNING: the keyword lists below deliberately contain **both English and Korean**
+    terms. The `intake/*/observation.yaml` files were written in Korean and are input
+    records that are not rewritten, so removing the Korean keywords would silently
+    stop matching every existing case. Add English terms; do not remove Korean ones.
+    """
     raw = obs.raw if hasattr(obs, "raw") else dict(obs)
     text = " ".join([
         str(raw.get("system_guess", "")),
@@ -200,10 +239,12 @@ def infer_tags(obs) -> set:
         tags.add("charged")
     if any(w in text for w in ("magnetic", "자성", "dipole", "쌍극자", "field", "외부장")):
         tags.add("field_induced")
-    # ★ '레올로지'라는 단어만으로 접촉/젤 모델을 추천하면 안 된다.
-    #   trap-drag 는 "능동 마이크로레올로지"라 적혀 있지만 끌린 탐침이고 접촉계가 아니다
-    #   (추천기를 실제 케이스에 돌려보고 잡은 오탐).
-    #   탄성률 측정 + **접촉/응집 증거**가 함께 있을 때만 접선 상호작용을 후보로 올린다.
+    # * The word 'rheology' alone must not recommend a contact or gel model.
+    #   trap-drag is written up as "active microrheology" but it is a dragged probe,
+    #   not a contact system (a false positive caught by running the recommender over
+    #   the real cases).
+    #   Only raise a tangential interaction as a candidate when a modulus measurement
+    #   appears **together with evidence of contact or aggregation.**
     rheo = any(w in text for w in ("g'", "g''", "modulus", "탄성률", "rheolog", "레올로지"))
     if rheo and ({"bonded", "aggregate", "contact"} & tags):
         tags |= {"gel", "tangential"}
@@ -217,7 +258,9 @@ def infer_tags(obs) -> set:
 
 
 def recommend(obs, top: int = 3) -> list:
-    """(Interaction, 점수, 근거) 목록. 점수는 태그 일치 수 + 프로젝트 검증 보너스."""
+    """A list of (Interaction, score, basis). The score is the tag-match count plus a
+    bonus for having been verified in this project.
+    """
     tags = infer_tags(obs)
     scored = []
     for it in CATALOG.values():
@@ -225,29 +268,30 @@ def recommend(obs, top: int = 3) -> list:
         if not hit:
             continue
         score = len(hit) + (0.5 if it.verified else 0.0)
-        why = f"문맥 태그 일치: {', '.join(sorted(hit))}"
+        why = f"context tags matched: {', '.join(sorted(hit))}"
         if it.verified:
-            why += f" · 이 프로젝트에서 검증됨"
+            why += " . verified in this project"
         scored.append((it, score, why))
     scored.sort(key=lambda x: -x[1])
     return scored[:top], tags
 
 
 def yaml_snippet(it: Interaction, symbol: str = "U_ij") -> str:
-    """`observation.yaml` 의 resolution 에 붙여넣을 초안."""
-    needs = "\n".join(f"    #   {n}" for n in it.needs) or "    #   (추가 파라미터 없음)"
+    """A draft to paste into `observation.yaml`'s resolution."""
+    needs = "\n".join(f"    #   {n}" for n in it.needs) or "    #   (no extra parameters)"
     return (f'  - symbol: {symbol}\n'
             f'    resolution: |\n'
             f'      {it.key} — {it.name}\n'
             f'      {it.form.splitlines()[0]}\n'
-            f'      결합세기: {it.coupling}\n'
-            f'      ★ 아래 값을 채워야 물리계가 확정된다 (각각 출처+tier 필요):\n'
+            f'      coupling: {it.coupling}\n'
+            f'      * the physical system is not settled until these are filled in '
+            f'(each needs a source and a tier):\n'
             f'{needs}\n'
-            f'    confirmed_by: user        # ← 확인하면 채우세요\n')
+            f'    confirmed_by: user        # <- fill this in once confirmed\n')
 
 
 def render_suggestion(obs, case_name: str = "") -> str:
-    """추천 + 질문. 결정은 사람이 한다."""
+    """Recommend, and ask. The decision is the human's."""
     recs, tags = recommend(obs)
     open_int = [m for m in obs.open_missing
                 if looks_like_interaction(str(m.get("symbol", "")))]
@@ -257,85 +301,89 @@ def render_suggestion(obs, case_name: str = "") -> str:
     w("=" * 80)
     w(f"intake suggest — {case_name or obs.path.parent.name}")
     w("=" * 80)
-    w("단일 매질 콜로이드의 표준 골격은 DLVO 입니다:")
-    w("  U = U_전기이중층(스크린된 Coulomb) + U_van der Waals  (+ 배제부피)")
-    w("계에 따라 고갈 인력 · 장 유도 쌍극자 · 접촉 접선력이 붙습니다.")
+    w("the standard skeleton for colloids in a single medium is DLVO:")
+    w("  U = U_electrostatic (screened Coulomb) + U_van der Waals  (+ excluded volume)")
+    w("depletion attraction, field-induced dipoles and contact tangential forces "
+      "attach to that, depending on the system.")
     w("")
-    w(f"이 케이스에서 읽어낸 문맥 태그: {', '.join(sorted(tags)) or '(없음)'}")
+    w(f"context tags read from this case: {', '.join(sorted(tags)) or '(none)'}")
 
     if not open_int:
         w("")
-        w("상호작용이 미해소 결측으로 잡혀 있지 않습니다.")
+        w("no interaction is recorded as an unresolved gap.")
         if obs.raw.get("missing_required"):
-            w("(이미 해소되었거나, 애초에 상호작용이 없는 계입니다)")
+            w("(either it is already resolved, or this system has no interaction at all)")
     else:
         w("")
-        w(f"미지정 상호작용 {len(open_int)}건: "
+        w(f"{len(open_int)} unspecified interaction(s): "
           + ", ".join(str(m.get("symbol")) for m in open_int))
 
     w("")
     w("─" * 80)
-    w("추천 (근거 순)")
+    w("RECOMMENDATIONS (by basis)")
     w("─" * 80)
     for i, (it, score, why) in enumerate(recs, 1):
-        mark = "★ 1순위" if i == 1 else f"  {i}순위"
+        mark = "* top" if i == 1 else f"  #{i}"
         w("")
         w(f"{mark}  {it.key}  —  {it.name}")
-        w(f"    형태     {it.form.splitlines()[0]}")
+        w(f"    form     {it.form.splitlines()[0]}")
         for extra in it.form.splitlines()[1:]:
             w(f"             {extra.strip()}")
-        w(f"    결합세기 {it.coupling}")
-        w(f"    쓸 때     {it.use_when}")
-        w(f"    피할 때   {it.avoid_when}")
+        w(f"    coupling {it.coupling}")
+        w(f"    use when   {it.use_when}")
+        w(f"    avoid when {it.avoid_when}")
         w(f"    HOOMD    {it.hoomd}")
-        w(f"    검증     {it.verified or '이 프로젝트에서 아직 안 씀 (미검증)'}")
+        w(f"    verified {it.verified or 'not used in this project yet (unverified)'}")
         if it.needs:
-            w(f"    ★ 채워야 하는 값: {', '.join(it.needs)}")
+            w(f"    * values to fill in: {', '.join(it.needs)}")
         if it.note:
             for ln in _wrap(it.note, 72):
-                w(f"    비고     {ln}" if ln == _wrap(it.note, 72)[0] else f"             {ln}")
-        w(f"    근거     {why}")
+                w(f"    note     {ln}" if ln == _wrap(it.note, 72)[0] else f"             {ln}")
+        w(f"    basis    {why}")
 
     w("")
     w("=" * 80)
-    w("질문 — 어떻게 하시겠습니까?")
+    w("QUESTION -- how would you like to proceed?")
     w("=" * 80)
     if recs:
         top = recs[0][0]
-        w(f"  (a) 1순위 `{top.key}` 를 쓴다")
-        w(f"      → 위의 '채워야 하는 값'을 주시면 system.yaml 을 씁니다.")
-        w(f"  (b) 다른 후보를 쓴다 — 위 목록에서 고르거나 카탈로그에 없는 것을 직접 지정")
-        w(f"  (c) 상호작용 없음 (`pair.none`) — 단일입자 관측량만 볼 때")
+        w(f"  (a) use the top candidate `{top.key}`")
+        w("      -> give me the 'values to fill in' above and I will write system.yaml.")
+        w("  (b) use a different candidate -- pick from the list above, or name one not in "
+          "the catalogue")
+        w("  (c) no interaction (`pair.none`) -- when only single-particle observables are wanted")
         w("")
-        w("  붙여넣기용 초안 (observation.yaml 의 missing_required 항목):")
+        w("  a draft to paste in (the missing_required entry in observation.yaml):")
         w("")
         for ln in yaml_snippet(top, str(open_int[0].get("symbol")) if open_int else "U_ij").splitlines():
             w(f"  {ln}")
     else:
-        w("  문맥 태그로 후보를 좁히지 못했습니다. 카탈로그 전체를 보세요:")
+        w("  the context tags did not narrow the candidates. See the full catalogue:")
         w("    $PY -m bdbot.cli interactions list")
     w("")
-    w("  ⚠️ 어느 쪽이든 **구체적 수치는 지어내지 않습니다.** 핸드북/문헌 값을 주시거나,")
-    w("     제가 제안하면 tier 3(임의 가정)으로 표시해 system.yaml 에 남깁니다.")
+    w("  WARNING: either way, **the actual numbers are not invented.** Supply handbook "
+      "or literature")
+    w("     values, or if I propose one it is recorded in system.yaml marked tier 3 "
+      "(arbitrary assumption).")
     w("=" * 80)
     return "\n".join(L)
 
 
 def render_catalog() -> str:
-    L = ["=" * 80, "콜로이드 상호작용 카탈로그 (단일 매질)", "=" * 80,
-         "DLVO = 스크린된 Coulomb + van der Waals 가 표준 골격.", ""]
+    L = ["=" * 80, "COLLOIDAL INTERACTION CATALOGUE (single medium)", "=" * 80,
+         "DLVO = screened Coulomb + van der Waals is the standard skeleton.", ""]
     for it in CATALOG.values():
-        v = "검증됨" if it.verified else "미검증"
+        v = "verified" if it.verified else "unverified"
         if it.not_verified:
-            v += " · ⛔제약있음"
+            v += " . HAS CONSTRAINTS"
         L.append(f"  {it.key:<28} {it.name}")
         L.append(f"  {'':<28} {it.form.splitlines()[0]}")
-        L.append(f"  {'':<28} 결합세기: {it.coupling}   [{v}]")
-        if it.not_verified:                    # 하드 제약은 접지 않고 그대로 보여준다
+        L.append(f"  {'':<28} coupling: {it.coupling}   [{v}]")
+        if it.not_verified:                    # a hard constraint is never folded away
             for ln in _wrap(it.not_verified, 74):
                 L.append(f"  {'':<28} {ln}")
         L.append("")
-    L.append("상세: $PY -m bdbot.cli intake suggest <case>")
+    L.append("details: $PY -m bdbot.cli intake suggest <case>")
     L.append("=" * 80)
     return "\n".join(L)
 
