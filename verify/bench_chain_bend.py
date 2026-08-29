@@ -1,18 +1,27 @@
-"""`chain-bend-2d-oscill` 의 실제 스텝률을 잰다 — L4 비용 판단의 근거.
+"""Measure the actual step rate of `chain-bend-2d-oscill` -- the basis for judging
+the L4 cost.
 
-L3 스펙은 최저 ω 에서 2.65e9 스텝을 요구한다. "비싸다"는 말만으로는 결정할 수 없어서
-초당 스텝을 실측한다. 세 구성을 비교한다:
+The L3 spec demands 2.65e9 steps at the lowest omega. "It is expensive" is not
+something you can decide on, so the steps per second are measured. Three
+configurations are compared:
 
-  A  bond + angle 만                          — 컴파일된 힘만. 하한(가능한 최고 속도)
-  B  + md.force.Custom 트랩 (매 스텝 파이썬)   — 현재 설계 (trap-2d/trap-drag 방식)
-  C  + 유령입자에 bond.Harmonic(r0=0) 트랩     — 컴파일 경로. 구동 앵커만 updater 로 이동
+  A  bond + angle only                        -- compiled forces only. The lower
+                                                 bound (the best possible speed)
+  B  + an md.force.Custom trap (Python every step)
+                                              -- the current design (the
+                                                 trap-2d / trap-drag approach)
+  C  + a bond.Harmonic(r0=0) trap to a ghost particle
+                                              -- the compiled path. Only the driven
+                                                 anchor is moved, by an updater
 
-C의 착안: bond.Harmonic(r0=0) 은 U = ½k r² 로 조화 트랩과 정확히 같다. 유령입자를
-적분기 filter 에서 빼면 움직이지 않으므로 고정 트랩이 된다. 구동 트랩은 유령을
-CustomUpdater 로 옮기는데, ω dt = 2.4e-7 이라 100스텝마다 옮겨도 위상 오차가
-2.4e-5 주기다 — 매 스텝 파이썬을 호출할 이유가 없다.
+The idea behind C: bond.Harmonic(r0=0) is U = 0.5*k*r^2, exactly a harmonic trap.
+Leave the ghost particle out of the integrator's filter and it does not move, giving
+a fixed trap. The driven trap moves its ghost with a CustomUpdater -- and since
+omega*dt = 2.4e-7, moving it every 100 steps costs a phase error of only 2.4e-5 of a
+cycle. There is no reason to call into Python every step.
 
-파라미터는 specs/chain-bend-2d-oscill__w85__*.json (최저 ω, 가장 비싼 점) 에서 읽는다.
+The parameters are read from specs/chain-bend-2d-oscill__w85__*.json (the lowest
+omega, the most expensive point).
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY scratch/bench_chain_bend.py
@@ -31,21 +40,24 @@ import hoomd.md as md
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
-BENCH_STEPS = 200_000          # 실측 구간. 워밍업 후
+BENCH_STEPS = 200_000          # the measured interval, after warm-up
 WARMUP = 5_000
-UPDATE_EVERY = 100             # C 구성에서 구동 앵커를 옮기는 주기
+UPDATE_EVERY = 100             # how often configuration C moves the driven anchor
 
 
 def load_spec() -> dict:
-    """최저 ω 스펙 = 가장 비싼 점."""
+    """The lowest-omega spec = the most expensive point."""
     cands = sorted(glob.glob(str(ROOT / "specs" / "chain-bend-2d-oscill__w85__*.json")))
     if not cands:
-        raise SystemExit("specs/chain-bend-2d-oscill__w85__*.json 이 없습니다")
+        raise SystemExit("specs/chain-bend-2d-oscill__w85__*.json not found")
     return json.loads(Path(cands[0]).read_text())
 
 
 def build_frame(n: int, L_chain: float, *, ghosts: list[int] | None = None):
-    """직선 사슬 (x축). ghosts 가 주어지면 그 비드마다 유령입자를 하나 더 붙인다."""
+    """A straight chain along x.
+
+    If `ghosts` is given, one extra ghost particle is attached per listed bead.
+    """
     ell = L_chain / (n - 1)
     pos = [[(i - (n - 1) / 2) * ell, 0.0, 0.0] for i in range(n)]
     types = ["A"]
@@ -54,16 +66,16 @@ def build_frame(n: int, L_chain: float, *, ghosts: list[int] | None = None):
     if ghosts:
         types.append("G")
         for g in ghosts:
-            pos.append(list(pos[g]))        # 유령은 초기 위치에 겹쳐 둔다 (Δr=0)
+            pos.append(list(pos[g]))        # the ghost is placed on top of the initial position (dr=0)
             typeid.append(1)
 
-    box_L = 4.0 * L_chain                   # 사슬보다 훨씬 크게 → 래핑이 물리에 안 닿는다
+    box_L = 4.0 * L_chain                   # much larger than the chain -> wrapping never reaches the physics
     f = gsd.hoomd.Frame()
     f.particles.N = len(pos)
     f.particles.position = np.array(pos)
     f.particles.typeid = typeid
     f.particles.types = types
-    f.configuration.box = [box_L, box_L, 0, 0, 0, 0]     # Lz=0 → 2D (함정 9)
+    f.configuration.box = [box_L, box_L, 0, 0, 0, 0]     # Lz=0 -> 2D (trap 9)
     f.configuration.dimensions = 2
 
     f.bonds.N = n - 1
@@ -86,7 +98,8 @@ def build_frame(n: int, L_chain: float, *, ghosts: list[int] | None = None):
 
 
 class CustomTrap(md.force.Custom):
-    """구성 B — 매 스텝 파이썬. trap-2d-5um / trap-drag 와 같은 방식."""
+    """Configuration B -- Python every step. The same approach as
+    trap-2d-5um / trap-drag."""
 
     def __init__(self, k, trapped, anchors, amp, omega, dt, drive_row):
         super().__init__(aniso=False)
@@ -105,7 +118,7 @@ class CustomTrap(md.force.Custom):
             pos = np.array(snap.particles.position, copy=True)
             arr.force[:] = 0.0
             arr.potential_energy[:] = 0.0
-            for row, tg in enumerate(self.trapped):     # tag 인덱싱 필수
+            for row, tg in enumerate(self.trapped):     # tag indexing is mandatory
                 loc = np.flatnonzero(tags == tg)
                 d = pos[loc] - anc[row]
                 arr.force[loc] = -self.k * d
@@ -113,7 +126,7 @@ class CustomTrap(md.force.Custom):
 
 
 class MoveGhost(hoomd.custom.Action):
-    """구성 C — 구동 유령입자만 옮긴다. UPDATE_EVERY 스텝마다."""
+    """Configuration C -- move only the driven ghost, every UPDATE_EVERY steps."""
 
     def __init__(self, ghost_tag, y0, amp, omega, dt):
         self.ghost_tag = int(ghost_tag)
@@ -149,9 +162,10 @@ def make_sim(variant: str, p: dict, nu: dict):
     forces = [bond, angle]
 
     if variant == "C":
-        # bond.Harmonic(r0=0) = ½k r²  → 조화 트랩과 동일. 컴파일 경로.
+        # bond.Harmonic(r0=0) = 0.5*k*r^2 -> identical to a harmonic trap, on the
+        # compiled path.
         bond.params["trap"] = dict(k=k_t, r0=0.0)
-        integrated = hoomd.filter.Type(["A"])        # 유령("G")은 적분 안 함 → 고정
+        integrated = hoomd.filter.Type(["A"])        # the ghosts ("G") are not integrated -> fixed
     else:
         integrated = hoomd.filter.All()
         if variant == "B":
@@ -161,7 +175,7 @@ def make_sim(variant: str, p: dict, nu: dict):
 
     bd = md.methods.Brownian(filter=integrated, kT=1.0, default_gamma=1.0)
     integrator = md.Integrator(dt=dt, methods=[bd], forces=forces)
-    integrator.integrate_rotational_dof = False      # BD 는 과감쇠 (함정 5)
+    integrator.integrate_rotational_dof = False      # BD is overdamped (trap 5)
     sim.operations.integrator = integrator
 
     if variant == "C":
@@ -178,18 +192,19 @@ def main() -> int:
     p, nu = spec["params"], spec["numerics"]
     total = int(nu["n_prod"]) + int(nu["n_eq"])
     print("=" * 78)
-    print("chain-bend-2d-oscill — 스텝률 실측 (최저 ω, 가장 비싼 점)")
+    print("chain-bend-2d-oscill -- measured step rate (lowest omega, the most "
+          "expensive point)")
     print("=" * 78)
     print(f"n_beads={p['n_beads']}  dt*={nu['dt_star']:.3e}  "
-          f"요구 스텝(이 ω) = {total:,}")
-    print(f"실측 구간 {BENCH_STEPS:,} 스텝 (워밍업 {WARMUP:,})\n")
-    print(f"{'구성':<44}{'steps/s':>12}{'이 ω 소요':>14}")
+          f"steps required at this omega = {total:,}")
+    print(f"measured over {BENCH_STEPS:,} steps (warm-up {WARMUP:,})\n")
+    print(f"{'configuration':<44}{'steps/s':>12}{'time at this w':>14}")
     print("-" * 78)
 
     labels = {
-        "A": "A  bond + angle 만 (컴파일 힘만)",
-        "B": "B  + force.Custom 트랩 (매 스텝 파이썬)",
-        "C": f"C  + 유령 bond 트랩 (updater {UPDATE_EVERY}스텝)",
+        "A": "A  bond + angle only (compiled forces only)",
+        "B": "B  + force.Custom trap (Python every step)",
+        "C": f"C  + ghost bond trap (updater every {UPDATE_EVERY} steps)",
     }
     rates = {}
     for v in ("A", "B", "C"):
@@ -201,24 +216,26 @@ def main() -> int:
         rate = BENCH_STEPS / el
         rates[v] = rate
         days = total / rate / 86400
-        span = f"{days:.1f} 일" if days >= 1 else f"{total / rate / 3600:.1f} 시간"
+        span = f"{days:.1f} d" if days >= 1 else f"{total / rate / 3600:.1f} h"
         print(f"{labels[v]:<44}{rate:>12,.0f}{span:>14}")
 
     print("-" * 78)
-    print(f"파이썬 트랩의 대가  B/A = {rates['B'] / rates['A']:.3f}  "
-          f"(느려짐 {rates['A'] / rates['B']:.1f}×)")
-    print(f"유령 트랩의 회수    C/B = {rates['C'] / rates['B']:.2f}× 빠름")
+    print(f"cost of the Python trap  B/A = {rates['B'] / rates['A']:.3f}  "
+          f"({rates['A'] / rates['B']:.1f}x slower)")
+    print(f"recovered by the ghost trap  C/B = {rates['C'] / rates['B']:.2f}x faster")
 
-    # 스윕 전체 비용. ★ 파일명 알파벳 정렬은 ω 순서가 아니다 (w1737 < w85) — 값으로 정렬한다
+    # Cost of the whole sweep. ★ Alphabetical filename order is NOT omega order
+    # (w1737 sorts before w85) -- sort by the value.
     allspecs = [json.loads(Path(s).read_text())
                 for s in glob.glob(str(ROOT / "specs" / "chain-bend-2d-oscill__*.json"))]
     steps = sorted(s["numerics"]["n_prod"] + s["numerics"]["n_eq"] for s in allspecs)
-    tot, worst = sum(steps), steps[-1]      # 최저 ω = 최다 스텝 = 병렬 시 벽시계
-    print(f"\n스윕 {len(allspecs)}점 합계 = {tot:,} 스텝 "
-          f"(최다 = {worst:,})")
+    tot, worst = sum(steps), steps[-1]      # lowest omega = most steps = the wall clock when run in parallel
+    print(f"\nsweep of {len(allspecs)} points totals {tot:,} steps "
+          f"(largest = {worst:,})")
     for v in ("B", "C"):
         ser, par = tot / rates[v] / 86400, worst / rates[v] / 3600
-        print(f"  구성 {v}: 직렬 {ser:6.1f} 일   7런 병렬 → 벽시계 {par:6.1f} 시간")
+        print(f"  config {v}: serial {ser:6.1f} d   7 runs in parallel -> "
+              f"wall clock {par:6.1f} h")
     print("=" * 78)
     return 0
 

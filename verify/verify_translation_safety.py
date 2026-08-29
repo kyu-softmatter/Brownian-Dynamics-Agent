@@ -23,6 +23,20 @@ English line grows past the column limit. Strings separated by an operator (two
 arguments, say) keep that operator between them and are still compared
 positionally, so this does not weaken the check.
 
+**Two rules for writing the replacement text**, both learned by having the checker
+reject the same mistake repeatedly across ~45 files:
+
+  1. **Never remove a `;` statement separator.** Splitting
+     `ax.set_xlabel(...); ax.set_ylabel(...)` onto two lines is a code change.
+     Rejected four times before it became a habit; keep the original line shape.
+  2. **Never introduce a line break between two adjacent `{...}` fields** in an
+     f-string. Adjacent string literals concatenate implicitly, so re-wrapping is
+     normally fine -- but splitting *between two replacement fields* inserts an
+     f-string boundary where there was none. Keep the original split points.
+
+Also: reordering two f-string fields is rejected, and correctly so -- it silently
+swaps which value prints where.
+
 **Why the self-test matters.** The first version of this checker "passed" its own
 adversarial test, and the reason was that the `sed` used to inject the bug never
 matched -- so PASS meant "nothing was tested". That is the same defect family this
@@ -37,6 +51,11 @@ project keeps finding in its own checkers:
   - a syntax tally that counted failures by substring-matching its own message,
     which would silently read 0 if the message were translated and the filter
     were not (verify_skill_snippets.py)
+  - and the one that had already gone wrong in the tree: verify_bdbot.py asserted
+    `v == 'PASS (경고 1건)'` against a verdict that bdbot/checks.py had rendered in
+    English since c0074a2, so it FAILed for a day unnoticed -- it is not in the
+    pytest suite, so the suite stayed green. Fixed by asserting the proposition
+    (no hard failure, exactly one soft failure) instead of the wording.
 
 In every case the check could not distinguish "I looked and it was fine" from "I
 never looked". So `--selftest` asserts each mutation *exists* before asking the
