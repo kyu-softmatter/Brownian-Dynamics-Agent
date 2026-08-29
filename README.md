@@ -23,6 +23,36 @@ exists because a plausible-but-wrong result got through once.
 > which seams are still open, is in
 > [`docs/00-merge-decisions.md`](docs/00-merge-decisions.md).
 
+## How it is being built
+
+**This system is structured by writing the examples alongside it, not before it.**
+The framework is not designed up front and then populated with cases — a case is
+driven end to end first, and only what has appeared **twice** is pulled out into
+shared code. There are 8 worked cases in [`cases/`](cases/) and 22 modules in
+[`bdbot/`](bdbot/); the promotion rule into that shared layer is only ever
+*"has it appeared twice?"*.
+
+This is a deliberate choice, not a stage the project has yet to grow out of. An
+abstraction invented before the second example encodes a guess about what varies,
+and in this domain that guess is usually wrong in a way no test catches — the
+first case runs fine and the second one quietly needs a different governing
+timescale, a different equilibrium criterion, a different notion of what
+"converged" means. Waiting for the second occurrence costs one duplication and
+buys a shared interface that is known to fit at least two real systems.
+
+So some things are still duplicated **on purpose**: equilibrium criteria,
+observables, verification strategy, the choice of governing timescale, initial
+placement, and the sampling loop. Each is written per case until two cases agree
+on what it should be. Where that abstraction has already happened, the seam is
+visible — `nondim.py` is the single L2→L4 contract, `health.py` is the one
+numerical verdict, and `run.py` is the `@RUN.builder` registry all 8 cases
+register with.
+
+The practical consequence for a reader: **read a case before reading the
+framework.** [`cases/trap_2d_5um.py`](cases/trap_2d_5um.py) is the smallest
+complete one, and [`docs/04-cases.md`](docs/04-cases.md) records what each case
+was for and what it actually returned.
+
 ---
 
 ## Architecture
