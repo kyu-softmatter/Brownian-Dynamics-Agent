@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/#scratch-rename",
+  "lessons": [
+    {
+      "claim": "A directory rename that does not follow its path references leaves checks reading or writing a path that cannot exist. The merge moved scratch/ to verify/ including the artefact subdirs, but 12 references across 11 verify/ scripts still said ROOT/'scratch'. Two crashed outright (FileNotFoundError on scratch/_tmp_sys.yaml and scratch/_tmp_spec.json); verify_1c_equivalence.py read its reference snapshots from scratch/ref_1b so its comparison had nothing to compare; verify_chain_bend_gates.py wrote to scratch/_gates while viz_chain_bend.py read the same dead path. Third instance of this exact shape in the repo, after tools/kb.py ENTRY_DIR (which read 126 entries as 0) and the L3 spec marker. Sweep after any rename: grep for live path operations, not docstring mentions.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
