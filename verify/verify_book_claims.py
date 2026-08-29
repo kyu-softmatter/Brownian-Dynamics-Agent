@@ -147,6 +147,25 @@ def s1_water_viscosity():
     chk_doc("welty_transport.md", r"log-선형[^|]*\|[^|]*\|\s*\*\*\+([\d.]+)%\*\*",
             d_log * 100, rtol=6e-3, note="log-선형 상대차 %")
 
+    # ★ §1.2 가 공표하는 T-민감도 오차를 IAPWS 표에서 재계산해 대조한다.
+    #   2026-08-29: 이 검사가 없어서 내가 -4% 를 -5% 로 "정정" 했다가 되돌렸다.
+    #   원인 두 개가 같은 방향이었다 — ⓐ 298.15 K 직접행이 있는 IAPWS 대신 [W] 의
+    #   20 K 표를 log-보간했고 ⓑ 25 °C 를 298.00 K 로 적었다(참값 298.15 K).
+    #   ⟹ "어느 표·어느 기준·어느 온도규약" 셋이 다 숫자를 바꾼다. 셋을 다 고정한다.
+    IAPWS = {293.15: 1.0016e-3, 298.15: 0.8900e-3}   # knowledge/wiki/concepts/water-298k.md
+    for T_real, want_pct in ((298.15, -4.4), (293.15, -15.0)):
+        got = (OURS_ETA - IAPWS[T_real]) / IAPWS[T_real] * 100
+        chk("OURS", f"eta 오차 @T={T_real} K (IAPWS 직접행 기준, 우리 0.851)",
+            got, want_pct, rtol=2e-2,
+            note="25C=298.15K / 20C=293.15K — 정수 켈빈으로 적으면 0.31% 움직인다")
+    # 증류본 §1.2 표에 인쇄된 두 값이 위 계산과 일치하는가
+    chk_doc("welty_transport.md", r"\*\*298\.15 K\*\*[^|]*\|[^|]*\|\s*\*\*−([\d.]+)%\*\*",
+            abs((OURS_ETA - IAPWS[298.15]) / IAPWS[298.15] * 100), rtol=2e-2,
+            note="§1.2 의 298.15 K 행")
+    chk_doc("welty_transport.md", r"\*\*293\.15 K\*\*[^|]*\|[^|]*\|\s*\*\*−([\d.]+)%\*\*",
+            abs((OURS_ETA - IAPWS[293.15]) / IAPWS[293.15] * 100), rtol=2e-2,
+            note="§1.2 의 293.15 K 행")
+
     # 온도 민감도: %/K. 값 하나만 인용하고 T 를 안 적으면 이만큼 틀릴 수 있다.
     sens = abs(math.log(mu[2] / mu[1])) / (T[2] - T[1]) * 100  # %/K, 293-313 구간
     print(f"    d(ln eta)/dT ~ {sens:.2f} %/K  (293-313 K)")

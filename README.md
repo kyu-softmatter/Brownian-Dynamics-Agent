@@ -358,7 +358,7 @@ will refuse, because a dimensionless number without an anchor cannot be inverted
 back to an experiment. This is not pedantry: `T = 300 K` in this repository is
 labelled tier 1 but is actually a *choice* inherited from a sketch with no
 temperature, and because water's viscosity is 2.06 %/K sensitive, that mislabel
-carries a −5 % to −14 % error into every timescale downstream. **The tier field
+carries a −4.4 % to −15.0 % error into every timescale downstream. **The tier field
 is the only reason that was findable at all.**
 
 **2 · A mismatch with theory is a result, not a bug — but only if you said so
@@ -394,6 +394,6 @@ make them wrong.**
 | 2 book distillations (Leal 2026; Welty 5th ed.) | in-repo, 56/56 claims re-derived numerically |
 | Copyrighted PDFs | **not published** — see [NOTICE](NOTICE.md) |
 | Trajectories (542 MB of `.gsd`/`.npz`) | **not published** — regenerate from `spec + seed` |
-| The experiment's actual temperature | **not obtained.** The one-number fix that would remove a −14 % worst case from every timescale |
+| The experiment's actual temperature | **not obtained.** The one-number fix that would remove a −15 % worst case from every timescale |
 
 **No licence is granted.** Published for reading; all rights reserved.

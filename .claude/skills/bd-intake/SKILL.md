@@ -182,7 +182,7 @@ arbitrary assumption
 ⚠️ **Tier 1 by inheritance is the dangerous case, and it bit this project.**
 `T = 300 K` is recorded as tier 1 in every case and is in fact a *choice*
 inherited from a sketch with no temperature. Water's viscosity is 2.06 %/K
-sensitive, so at 298 K `η` is off by −5 % and at 293 K by −14 %, and every
+sensitive, so at 298.15 K `η` is off by −4.4 % and at 293.15 K by −15.0 %, and every
 timescale follows. Inheriting is legitimate; recording it as if it were measured
 is not.
 

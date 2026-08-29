@@ -59,7 +59,7 @@ caused completed runs to be deleted. `bdbot.run.execute()` should write it.
 ### `T = 300 K` is labelled tier 1 but is a choice
 
 Inherited from a sketch that had no temperature. Water viscosity is 2.06 %/K
-sensitive, so this propagates −5 % (at 298 K) to −14 % (at 293 K) into every
+sensitive, so this propagates −4.4 % (at 298.15 K) to −15.0 % (at 293.15 K) into every
 `τ_B`. Qualitative conclusions hold; **any quantitative comparison to literature
 must expose it.** This one cannot be fixed by code — it needs the experiment's
 actual temperature.
@@ -281,6 +281,6 @@ needs.
 3. **Ensemble `chain-relax-2d-dlvo`.** One seed, 1.8 s per run — this is the
    cheapest unresolved question in the repository.
 4. **Get the experiment's real temperature.** A one-number fix that removes a
-   −14 % worst case from every timescale.
+   −15 % worst case from every timescale.
 5. **Unify the two knowledge schemas**, before the count of misfiled lessons
    grows further.
