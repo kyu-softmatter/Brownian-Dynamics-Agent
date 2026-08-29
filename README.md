@@ -230,34 +230,48 @@ defensible on their numbers and *not* defensible against the charge of having
 been interpreted after the fact. Closing that is item 1 on the
 [roadmap](docs/06-roadmap.md#6--what-would-most-improve-the-science-in-order).
 
+**Where this is going.** The longer-term goal is to join this agent to
+[**agentic-microscope**](https://github.com/kyu-softmatter/agentic-microscope) —
+the same architecture pointed at the instrument instead of the integrator. One
+decides what the system does, the other decides what the microscope can actually
+record, and today they are consulted separately and can silently contradict.
+Joined, a simulation would state the precision an experiment needs to see an
+effect, a measurement would close the assumptions this repository currently
+carries as tier-1 *choices* (`T = 300 K` foremost), and experiment would become
+the fifth layer of evidence that
+[02](docs/02-verification.md#3--result-verification--four-layers-of-evidence)
+deliberately left unadopted. **Neither is finished, and coupling two moving
+targets would be a mistake** — so it is future work, with a stated order of
+preconditions. → [06 §6](docs/06-roadmap.md#6--future-work--joining-this-agent-to-the-microscope-agent)
+
 Read [the pitfalls](docs/05-pitfalls.md) before implementing anything.
 
 ---
 
 ## What a gate looks like
 
-Two properties matter more than the verdict. Unedited output — the CLI speaks
-Korean, so each line is glossed:
+Two properties matter more than the verdict. Unedited output:
 
 ```console
 $ python -m bdbot.cli health --gate specs/chain-bend-2d-oscill__w85__d7c5a778ddba.json
 
-게이트 — chain-bend-2d-oscill__w85__d7c5a778ddba   (L3 verdict: PASS (경고 3건))
-  ⚠ 소프트 경고 [모델] 참고: τ_p/τ_fast = 0.597 (기준 0.01) — 막지 않지만 …
-  ⚠ 소프트 경고 [모델] ★angle 힘 유효  min|θ−π| = 7.26e-05 (기준 0.00141421) — …
-  ⚠ 소프트 경고 [통계] 준정적 도달   De(ω_min) = 0.993 (기준 0.1) — …
-  ⚠ 여유 부족 [모델] 선형 탄성     a/δ_max — 한계까지 2.1배뿐
-  ⚠ 여유 부족 [적분] 최속 모드 해상 dt/τ_fast — 한계까지 1.0배뿐
-  ✓ 통과 — 실행해도 됩니다
+gate — chain-bend-2d-oscill__w85__d7c5a778ddba   (L3 verdict: PASS (3 warnings))
+  ⚠ soft warning [model] note: tau_p/tau_fast = 0.597 (limit 0.01)
+        — does not block, but it is a statistics / finite-size limitation
+  ⚠ soft warning [model] *angle force valid   min|theta-pi| = 7.26e-05
+        (limit 0.00141421) — does not block, but it is a …
+  ⚠ soft warning [statistics] quasi-static reached De(w_min) = 0.993
+        (limit 0.1) — does not block, but it is a …
+  ⚠ thin margin [model] linear elasticity    a/delta_max — only 2.1x to the limit
+  ⚠ thin margin [integration] fastest mode resolved dt/tau_fast — only 1.0x to the limit
+  OK — cleared to run
 ```
 
-> gate — … (L3 verdict: PASS, 3 warnings) · soft warning [model]: fastest mode is
-> **not overdamped**, `τ_p/τ_fast = 0.597` against a 0.01 criterion · soft warning
-> [model]: `angle.Harmonic`'s force is invalid here, `min|θ−π| = 7.26e-05` below
-> the `1.41e-03` clamp · soft warning [statistics]: the sweep never reaches the
-> quasi-static plateau, `De(ω_min) = 0.993` against 0.1 · thin margin [model]:
-> linear elasticity, only 2.1× to the limit · thin margin [integration]: fastest
-> mode resolution, only **1.0×** to the limit · **✓ pass — you may run**
+Read that as: the fastest mode is **not overdamped** (`τ_p/τ_fast = 0.597`
+against a 0.01 criterion) · `angle.Harmonic`'s force is invalid here
+(`min|θ−π| = 7.26e-05`, below its `1.41e-03` clamp) · the frequency sweep never
+reaches the quasi-static plateau (`De(ω_min) = 0.993` against 0.1) · and two
+margins are thin, one of them **exactly on** its threshold.
 
 **It passes, and it says what is wrong anyway.** All five lines are real
 problems: the fastest mode is outside the integrator's assumption, HOOMD's

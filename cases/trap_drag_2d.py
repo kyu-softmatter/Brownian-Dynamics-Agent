@@ -281,26 +281,26 @@ def analyze_scales(sys_, lg):
                  ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "관성 vs 확산"),
     ]
     checks = [
-        C.Check("모델", "관성 무시     τ_p/τ_k", lg.ratio("times", "tau_p", "tau_k"),
+        C.Check("model", "관성 무시     τ_p/τ_k", lg.ratio("times", "tau_p", "tau_k"),
                 C.GATE, "<=",
                 "τ_dyn = 이 계의 최속 관심척도 = τ_k (트랩). dt와 무관 (bd-physics §4)"),
-        C.Check("적분", "트랩 해상     dt/τ_k", lg.ratio("times", "dt", "tau_k"),
+        C.Check("integration", "트랩 해상     dt/τ_k", lg.ratio("times", "dt", "tau_k"),
                 C.GATE, "<=",
                 f"편향 ≈ {C.bias_from_dt(g('times', 'dt'), g('times', 'tau_k')):.3f}% "
                 "(선형계 닫힌 형태 — 트랩은 선형이라 그대로 성립)"),
-        C.Check("적분", "페어 해상     dt/τ_int", lg.ratio("times", "dt", "tau_int"),
+        C.Check("integration", "페어 해상     dt/τ_int", lg.ratio("times", "dt", "tau_int"),
                 C.GATE, "<=",
                 f"τ_int = γ/U''(r_min={D['r_min_star']:.3f}d), {D['crit']} 기준. "
                 "트랩이 정한 dt라 여유가 크다"),
-        C.Check("적분", "이류 해상     dt/τ_v", lg.ratio("times", "dt", "tau_v"),
+        C.Check("integration", "이류 해상     dt/τ_v", lg.ratio("times", "dt", "tau_v"),
                 C.GATE, "<=",
                 "한 스텝에 트랩 중심이 지름의 1% 이상 움직이면 안 된다 (움직이는 경계조건)"),
-        C.Check("기하", "컷오프       r_c/(L_min/2)", r_c_star / (L_min / 2), 1.0, "<=",
+        C.Check("geometry", "컷오프       r_c/(L_min/2)", r_c_star / (L_min / 2), 1.0, "<=",
                 f"최소 이미지 (bd-hoomd 함정 6). 직사각이므로 **짧은 변** "
                 f"L_{'y' if Ly_star <= Lx_star else 'x'} 기준. 위반 시 과거 +1856% 사례"),
         # ★ 두 축을 함께 본다. x는 a_NN 의 정수배, y는 행 간격 (√3/2)a_NN 의 **짝수**배.
         #   홀수 행이면 엇갈림이 주기경계에서 어긋난다 (build_ledger 가 먼저 raise 한다).
-        C.Check("기하", "정합 육방    max|정수 이탈|",
+        C.Check("geometry", "정합 육방    max|정수 이탈|",
                 max(abs(Lx_star / D["a_nn_star"] - D["n_x"]),
                     abs(Ly_star / (math.sqrt(3) / 2 * D["a_nn_star"]) - D["n_y"]),
                     float(D["n_y"] % 2)),
@@ -308,24 +308,24 @@ def analyze_scales(sys_, lg):
                 f"★ 격자가 주기박스와 정합인가. L_x = {D['n_x']}·a_NN, "
                 f"L_y = {D['n_y']}·(√3/2)a_NN, n_y 짝수. 비정합이면 이음매에 결함이 "
                 f"주입되고 관측량(격자 변형장·ψ₆)이 바로 거기에 민감하다"),
-        C.Check("기하", "코어 여유    r_table_min/r_min", R_TABLE_MIN / D["r_min_star"],
+        C.Check("geometry", "코어 여유    r_table_min/r_min", R_TABLE_MIN / D["r_min_star"],
                 1.0, "<=",
                 f"pair.Table 함정 11: r<{R_TABLE_MIN}d 면 힘이 0"),
-        C.Check("기하", "항적 치유    v τ_int/L_x", lg.ratio("times", "tau_int", "tau_cross"),
+        C.Check("geometry", "항적 치유    v τ_int/L_x", lg.ratio("times", "tau_int", "tau_cross"),
                 1.0, "<=",
                 "★ 주기박스라 탐침이 자기 항적으로 되돌아온다. 격자가 치유되는 거리 "
                 "v·τ_int 가 끌기 방향 박스변보다 짧아야 한다"),
-        C.Check("통계", "관측창       T_obs/τ_k", lg.ratio("times", "T_obs", "tau_k"),
+        C.Check("statistics", "관측창       T_obs/τ_k", lg.ratio("times", "T_obs", "tau_k"),
                 100.0, ">=", "트랩 상관시간 기준", hard=False),
-        C.Check("통계", "측정가능성   SNR", snr, 1.0, ">=",
+        C.Check("statistics", "측정가능성   SNR", snr, 1.0, ">=",
                 "★ SNR<1 — 끌림 신호가 열요동에 묻힌다. 1회 표본으로는 안 보이고 "
                 "평균화로만 볼 수 있다 (아래 정밀도 검사)", hard=False),
-        C.Check("통계", "끌림힘 정밀도 SEM/Δr_ss [%]", prec_pct, STAT_TARGET_PCT, "<=",
+        C.Check("statistics", "끌림힘 정밀도 SEM/Δr_ss [%]", prec_pct, STAT_TARGET_PCT, "<=",
                 f"★ 한 번 횡단으로 {prec_pct:.2f}% (목표 {STAT_TARGET_PCT:g}%). "
                 f"독립표본 T_obs/2τ_k = {n_indep:,.0f}개. "
                 f"{math.ceil((prec_pct/STAT_TARGET_PCT)**2):.0f}회 횡단이면 목표에 닿는다 — "
                 f"또는 격자 {sys_['N']}개의 변형장을 관측량으로 쓴다", hard=False),
-        C.Check("통계", "격자 주기 수  L_x/a_NN", n_cell, N_CYCLE_TARGET, ">=",
+        C.Check("statistics", "격자 주기 수  L_x/a_NN", n_cell, N_CYCLE_TARGET, ">=",
                 "★ 끌림힘이 격자 주기로 변조되면(stick-slip) 주기 평균이 필요하다. "
                 "한 번 횡단은 √N 방향으로만 늘어난다", hard=False),
     ]

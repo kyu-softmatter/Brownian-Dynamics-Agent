@@ -126,13 +126,13 @@ def main() -> int:
         spec = ND.load(a.gate)
         probs = H.gate(spec)
         notes = H.gate_notes(spec)
-        print(f"게이트 — {spec.run_id}   (L3 verdict: {spec.verdict})")
+        print(f"gate — {spec.run_id}   (L3 verdict: {spec.verdict})")
         for p in probs:
             print(f"  ✗ {p}")
         # 막지 않는 것도 반드시 보여줍니다 — 조용히 통과시키면 게이트가 무의미합니다.
         for n in notes:
             print(f"  ⚠ {n}")
-        print("  ✓ 통과 — 실행해도 됩니다" if not probs else "  → 실행 거부")
+        print("  OK — cleared to run" if not probs else "  -> RUN REFUSED")
         return 1 if probs else 0
 
     runs = sorted(p.parent for p in (ROOT / "runs").glob("*/metrics.json")) if a.all \

@@ -233,12 +233,12 @@ def analyze_scales(sys_, lg, n):
                  "(L0/L1−1)/n_stages", "★ 압축 단계당 최대 선형변형"),
     ]
     checks = [
-        C.Check("적분", "dt / tau_fast", lg.ratio("times", "dt", "tau_bond"), C.GATE,
+        C.Check("integration", "dt / tau_fast", lg.ratio("times", "dt", "tau_bond"), C.GATE,
                 note="Brownian 은 O(δt) — 최속 모드는 결합 신축"),
         # ★ 소프트 처리는 `chain-bend-2d-dlvo` 의 확립된 관례를 그대로 따른다 —
         #   같은 입자·같은 DLVO 결합이라 이 비는 **글자 그대로 같은 값(0.0282)** 이고,
         #   그 케이스가 이미 같은 판단을 문서화했다. 검사를 없애지 않고 남겨 보고한다.
-        C.Check("모델", "참고: τ_p/τ_bond", lg.ratio("times", "tau_p", "tau_bond"),
+        C.Check("model", "참고: τ_p/τ_bond", lg.ratio("times", "tau_p", "tau_bond"),
                 C.GATE, "<=",
                 "★ 결합 우물이 깊고 좁아 τ_bond 가 τ_p 에 근접한다 (관성 무시 기준을 "
                 "2.82배 넘김 — N·φ·압축과 무관한 **결합 물리 자체의 성질**). "
@@ -248,31 +248,31 @@ def analyze_scales(sys_, lg, n):
                 "0.159% 임을 실측했다 — 여기는 그보다 21배 유리하다. "
                 "⚠️ 이 계에서 그 대조를 직접 한 것은 아니다 (not_verified 에 기록)",
                 hard=False),
-        C.Check("모델", "결합 안정  σ_bond/h_min",
+        C.Check("model", "결합 안정  σ_bond/h_min",
                 lg.ratio("lengths", "sigma_bond", "h_min"), 0.5, "<=",
                 "★ 결합 열요동 폭이 우물 위치의 절반을 넘으면 열적으로 자꾸 깨진다 — "
                 "그 자체가 결과일 수 있으나 사전에 표시 (chain-bend 와 같은 검사)",
                 hard=False),
-        C.Check("기하", "r_cut / (L/2)",
+        C.Check("geometry", "r_cut / (L/2)",
                 lg.ratio("lengths", "r_cut", "L") * 2.0, 1.0,
                 note="★ 압축 **후** 박스로 판정 (bd-hoomd 함정 6)"),
-        C.Check("기하", "lambda_D / (L/4)",
+        C.Check("geometry", "lambda_D / (L/4)",
                 lg.ratio("lengths", "lambda_D", "L") * 4.0, 1.0,
                 note="이중층이 박스에 들어가는가"),
-        C.Check("기하", "ell / (L/2)", lg.ratio("lengths", "ell", "L") * 2.0, 1.0,
+        C.Check("geometry", "ell / (L/2)", lg.ratio("lengths", "ell", "L") * 2.0, 1.0,
                 note="결합길이가 최소이미지 안"),
         # ★★ 이 케이스의 핵심 검사 — 실측 문턱을 설계에 강제한다
-        C.Check("적분", "eps_max / eps_crit", D["eps_max"] / D["eps_crit"], 1.0,
+        C.Check("integration", "eps_max / eps_crit", D["eps_max"] / D["eps_crit"], 1.0,
                 note="★ 압축이 결합을 부수지 않는 조건. 실측 0.40% 유지/0.80% 붕괴"
                      + ("  (sprout — 압축이 없어 아핀 변형 0)" if D["sprout"] else "")),
-        C.Check("통계", "N", float(n), 512.0, op=">=", hard=False,
+        C.Check("statistics", "N", float(n), 512.0, op=">=", hard=False,
                 note="구조 통계 — 파일럿 512, 생산 1528"),
-        C.Check("통계", "T_stage / tau_bond",
+        C.Check("statistics", "T_stage / tau_bond",
                 lg.ratio("times", "T_stage", "tau_bond") if not D["sprout"] else 1e9,
                 10.0, op=">=", hard=False,
                 note="단계당 결합이 이완할 시간. 이게 1 미만이면 붕괴 판정이 무의미"
                      + ("  (sprout — 해당 없음)" if D["sprout"] else "")),
-        C.Check("유한크기", "L / ell", lg.ratio("lengths", "L", "ell"), 8.0, op=">=",
+        C.Check("finite-size", "L / ell", lg.ratio("lengths", "L", "ell"), 8.0, op=">=",
                 hard=False, note="박스가 결합길이의 몇 배 — 메시가 들어가는가"),
     ]
     return groups, checks

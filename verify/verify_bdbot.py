@@ -57,16 +57,16 @@ check("두 케이스가 같은 공식인가: γ/k ≡ γ/U''",
       float((b["gamma"] / Q(1, "N/m")).to("s").m), 1e-12, "s")
 
 print("\n③ 검사 — 하드/소프트 분류와 판정 (1-B에서 필요해진 구분)")
-ck = [C.Check("모델", "관성", 8.1e-4, C.GATE),
-      C.Check("적분", "해상", C.GATE, C.GATE),
-      C.Check("기하", "컷오프", 0.5, 1.0),
-      C.Check("통계", "관측창", 50.0, 100.0, ">=", hard=False)]
+ck = [C.Check("model", "관성", 8.1e-4, C.GATE),
+      C.Check("integration", "해상", C.GATE, C.GATE),
+      C.Check("geometry", "컷오프", 0.5, 1.0),
+      C.Check("statistics", "관측창", 50.0, 100.0, ">=", hard=False)]
 v, hf, sf, tight = C.verdict(ck)
 print(f"  {'✓' if v == 'PASS (경고 1건)' else '✗'} 판정 = {v!r}  "
       f"(하드실패 {len(hf)} / 소프트실패 {len(sf)} / 여유부족 {len(tight)})")
 if v != "PASS (경고 1건)":
     fails.append("verdict")
-ck2 = [C.Check("기하", "컷오프", 1.5, 1.0)]
+ck2 = [C.Check("geometry", "컷오프", 1.5, 1.0)]
 v2, _, _, _ = C.verdict(ck2)
 print(f"  {'✓' if v2 == 'FAIL' else '✗'} 하드 위반이 있으면 {v2!r}")
 if v2 != "FAIL":

@@ -90,17 +90,17 @@ def abp_rod():
         "St     = tau_p/tau_B   관성 vs 확산": f(tau_p / tau_B),
     }
     ck = [
-        C.Check("모델", "관성 무시     τ_p/τ_v", f(tau_p / tau_v), C.GATE, "<=",
+        C.Check("model", "관성 무시     τ_p/τ_v", f(tau_p / tau_v), C.GATE, "<=",
                 "τ_dyn = 관심 최속 척도 = τ_v (이류). BD 타당성, dt와 무관"),
-        C.Check("적분", "이류 해상     dt/τ_v", f(dt / tau_v), C.GATE, "<=",
+        C.Check("integration", "이류 해상     dt/τ_v", f(dt / tau_v), C.GATE, "<=",
                 f"한 스텝에 d_eq의 {100*f(dt/tau_v):.1f}% 이동"),
-        C.Check("적분", "회전 해상     dt·D_r", f(dt * D_r), C.GATE, "<=",
+        C.Check("integration", "회전 해상     dt·D_r", f(dt * D_r), C.GATE, "<=",
                 "방향 동역학 해상"),
-        C.Check("적분", "텀블 해상     dt/τ_tumble", f(dt / tau_tumble), C.GATE, "<=",
+        C.Check("integration", "텀블 해상     dt/τ_tumble", f(dt / tau_tumble), C.GATE, "<=",
                 "포아송 텀블 근사가 성립하려면 (bd-hoomd run-and-flip 스니펫)"),
-        C.Check("기하", "유한크기     ℓ_p/(L/4)", f(l_p / (L / 4)), 1.0, "<=",
+        C.Check("geometry", "유한크기     ℓ_p/(L/4)", f(l_p / (L / 4)), 1.0, "<=",
                 "지속길이가 박스의 1/4 이내여야 액티브 인공효과가 없다", hard=False),
-        C.Check("통계", "관측창       T_obs/τ_eff", f(T_obs / tau_eff), 100.0, ">=",
+        C.Check("statistics", "관측창       T_obs/τ_eff", f(T_obs / tau_eff), 100.0, ">=",
                 f"방향 상관시간 기준. 독립 입자 {N}개로 통계 배수 확보", hard=False),
     ]
     inp = [
@@ -189,17 +189,17 @@ def trap_drag():
         "St     = tau_p/tau_B": f(tau_p / tau_B),
     }
     ck = [
-        C.Check("모델", "관성 무시     τ_p/τ_k", f(tau_p / tau_k), C.GATE, "<=",
+        C.Check("model", "관성 무시     τ_p/τ_k", f(tau_p / tau_k), C.GATE, "<=",
                 "τ_dyn = 최속 관심척도 = τ_k (트랩)"),
-        C.Check("적분", "트랩 해상     dt/τ_k", f(dt / tau_k), C.GATE, "<=",
+        C.Check("integration", "트랩 해상     dt/τ_k", f(dt / tau_k), C.GATE, "<=",
                 f"편향 ≈ {C.bias_from_dt(dt, tau_k):.3f}% (선형계 기준)"),
-        C.Check("적분", "페어 해상     dt/τ_int", f(dt / tau_int), C.GATE, "<=",
+        C.Check("integration", "페어 해상     dt/τ_int", f(dt / tau_int), C.GATE, "<=",
                 "페어는 트랩보다 218배 느려 여유가 크다"),
-        C.Check("기하", "컷오프       r_c/(L/2)", f(r_c / (L / 2)), 1.0, "<=",
+        C.Check("geometry", "컷오프       r_c/(L/2)", f(r_c / (L / 2)), 1.0, "<=",
                 "최소 이미지 (bd-hoomd 함정 6). 1-B에서 이게 진짜 게이트였다"),
-        C.Check("통계", "관측창       T_obs/τ_k", f(T_obs / tau_k), 100.0, ">=",
+        C.Check("statistics", "관측창       T_obs/τ_k", f(T_obs / tau_k), 100.0, ">=",
                 "트랩 상관시간 기준", hard=False),
-        C.Check("통계", "측정가능성   SNR", f(dr_ss / l_k), 1.0, ">=",
+        C.Check("statistics", "측정가능성   SNR", f(dr_ss / l_k), 1.0, ">=",
                 "★ 끌림 신호가 열요동보다 커야 1회 표본으로 보인다. "
                 "SNR<1 이면 평균화로만 볼 수 있다", hard=False),
     ]
@@ -286,23 +286,23 @@ def chain_bend():
         "St     = tau_p/tau_B": f(tau_p / tau_B),
     }
     ck = [
-        C.Check("모델", "관성 무시     τ_p/τ_chain", f(tau_p / tau_chain), C.GATE, "<=",
+        C.Check("model", "관성 무시     τ_p/τ_chain", f(tau_p / tau_chain), C.GATE, "<=",
                 "τ_dyn = **관심** 최속 척도 = τ_chain (집단 굽힘). "
                 "G'(ω)를 재는 대역이 여기다"),
-        C.Check("모델", "참고: τ_p/τ_fast", f(tau_p / tau_fast), C.GATE, "<=",
+        C.Check("model", "참고: τ_p/τ_fast", f(tau_p / tau_fast), C.GATE, "<=",
                 "★ 최속 굽힘 모드는 실제로 **과감쇠가 아니다**(비 0.6). BD는 그 모드를 "
                 "과감쇠로 다룬다 — 관측 대역(τ_chain)에서 4570배 떨어져 있어 G'(ω)에 "
                 "영향은 없을 것으로 보이나 **확인하지 않았다**", hard=False),
-        C.Check("적분", "최속 모드 해상 dt/τ_fast", f(dt / tau_fast), C.GATE, "<=",
+        C.Check("integration", "최속 모드 해상 dt/τ_fast", f(dt / tau_fast), C.GATE, "<=",
                 "강성 행렬 최대 고유값 기준. 이걸 놓치면 발산한다"),
-        C.Check("적분", "구동 해상     dt/τ_w", f(dt / tau_w_lo), C.GATE, "<=",
+        C.Check("integration", "구동 해상     dt/τ_w", f(dt / tau_w_lo), C.GATE, "<=",
                 "최저 구동 주기 해상"),
-        C.Check("기하", "선형 탄성     a/δ_max", f(amp / dmax), 1.0, "<=",
+        C.Check("geometry", "선형 탄성     a/δ_max", f(amp / dmax), 1.0, "<=",
                 "★ M < M_c. 넘으면 결합이 미끄러져 조화 angle 퍼텐셜이 무효 "
                 "(논문 [P2] 결론)"),
-        C.Check("통계", "SNR          a/ℓ_k", f(amp / l_k), 3.0, ">=",
+        C.Check("statistics", "SNR          a/ℓ_k", f(amp / l_k), 3.0, ">=",
                 "진폭이 트랩 안 열요동보다 충분히 커야 위상 추출이 된다", hard=False),
-        C.Check("통계", "관측창       T_obs·ω_min/2π", f(T_obs / (2 * math.pi * tau_w_lo)),
+        C.Check("statistics", "관측창       T_obs·ω_min/2π", f(T_obs / (2 * math.pi * tau_w_lo)),
                 100.0, ">=", "최저 주파수에서 주기 수", hard=False),
     ]
     inp = [

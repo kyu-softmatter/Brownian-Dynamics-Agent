@@ -148,17 +148,17 @@ def analyze_scales(s, lg, N):
                  "tau_p/tau_B", "관성 vs 확산"),
     ]
     ck = [
-        C.Check("모델", "관성 무시     τ_p/τ_v", f_(D["tau_p"] / D["tau_v"]), C.GATE, "<=",
+        C.Check("model", "관성 무시     τ_p/τ_v", f_(D["tau_p"] / D["tau_v"]), C.GATE, "<=",
                 "τ_dyn = 관심 최속 척도 = τ_v (이류). BD 타당성, dt와 무관"),
-        C.Check("적분", "이류 해상     dt/τ_v", f_(dt / D["tau_v"]), C.GATE, "<=",
+        C.Check("integration", "이류 해상     dt/τ_v", f_(dt / D["tau_v"]), C.GATE, "<=",
                 f"한 스텝에 d_eq의 {100*f_(dt/D['tau_v']):.1f}% 이동"),
-        C.Check("적분", "회전 해상     dt·D_r", f_(dt * D["D_r"]), C.GATE, "<=",
+        C.Check("integration", "회전 해상     dt·D_r", f_(dt * D["D_r"]), C.GATE, "<=",
                 "열적 회전확산 해상"),
-        C.Check("적분", "텀블 해상     dt/τ_tumble", f_(dt / D["tau_tumble"]), C.GATE, "<=",
+        C.Check("integration", "텀블 해상     dt/τ_tumble", f_(dt / D["tau_tumble"]), C.GATE, "<=",
                 "포아송 근사 (p = dt/τ_tumble ≪ 1)"),
-        C.Check("기하", "유한크기     ℓ_p/(L/4)", f_(D["l_p"] / (D["L"] / 4)), 1.0, "<=",
+        C.Check("geometry", "유한크기     ℓ_p/(L/4)", f_(D["l_p"] / (D["L"] / 4)), 1.0, "<=",
                 "지속길이가 박스의 1/4 이내 (액티브 인공효과)", hard=False),
-        C.Check("통계", "관측창       T_obs/τ_eff", f_(T_obs / D["tau_eff"]), 100.0, ">=",
+        C.Check("statistics", "관측창       T_obs/τ_eff", f_(T_obs / D["tau_eff"]), 100.0, ">=",
                 f"방향 상관시간 기준. 독립 입자 {N}개가 통계 배수", hard=False),
     ]
     return groups, ck

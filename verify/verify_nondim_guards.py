@@ -69,7 +69,7 @@ def good_spec() -> ND.NondimSpec:
                  ("lengths", "L"), ("lengths", "d"), "", "박스 크기"),
         ND.Group("phi", 0.35, None, None, "", "밀집도 (비가 아닌 입력)"),
     ]
-    checks = [Check("적분", "트랩 해상 dt/τ_k", float((dt / tau_k).to("")), 1e-2, "<=")]
+    checks = [Check("integration", "트랩 해상 dt/τ_k", float((dt / tau_k).to("")), 1e-2, "<=")]
     system = {"label": "guard-test", "dimensions": 2,
               "particle": {"diameter": {"value": 5.0, "unit": "um", "source": "test", "tier": 0}},
               "medium": {"temperature": {"value": 300, "unit": "K", "source": "t", "tier": 0}}}

@@ -160,18 +160,18 @@ def analyze_scales(sys_, lg, A, phi, r_c_star):
                  "tau_p/tau_B", "관성 vs 확산"),
     ]
     checks = [
-        C.Check("모델", "관성 무시    τ_p/τ_int",
+        C.Check("model", "관성 무시    τ_p/τ_int",
               f(tau_p / D["tau_int"]), C.GATE, "<=",
               "BD(과감쇠)가 타당한가. dt와 무관 (bd-physics §4)"),
-        C.Check("적분", "상호작용 해상 dt/τ_int", f(dt / D["tau_int"]), C.GATE, "<=",
+        C.Check("integration", "상호작용 해상 dt/τ_int", f(dt / D["tau_int"]), C.GATE, "<=",
               f"τ_int = γ/U''(r_min={D['r_min_star']:.3f}d), {D['crit']} 기준. "
               f"선형계 기준 편향 ≈ {C.bias_from_dt(dt, D['tau_int']):.3f}% — 비선형이라 수렴확인 별도"),
-        C.Check("기하", "컷오프       r_c/(L/2)", r_c_star / (L_star / 2), 1.0, "<=",
+        C.Check("geometry", "컷오프       r_c/(L/2)", r_c_star / (L_star / 2), 1.0, "<=",
               "최소 이미지 (bd-hoomd 함정 6). 위반 시 과거 +1856% 사례"),
-        C.Check("기하", "코어 여유    r_table_min/r_min",
+        C.Check("geometry", "코어 여유    r_table_min/r_min",
               R_TABLE_MIN / D["r_min_star"], 1.0, "<=",
               "pair.Table 함정 11: r<r_min이면 힘이 0. 접근거리가 표 하한 위인가"),
-        C.Check("통계", "관측창       T_obs/τ_B", f(T_obs / D["tau_B"]), 100.0, ">=",
+        C.Check("statistics", "관측창       T_obs/τ_B", f(T_obs / D["tau_B"]), 100.0, ">=",
               "구조 완화 통계. τ_B 기준 — 강결합 결함 어닐링은 더 느릴 수 있음",
               hard=False),
     ]
@@ -327,9 +327,9 @@ def build(spec, outdir=None) -> RUN.Build:
 
         # ── 사후 가드 — 런이 설계 가정 안에 머물렀는가 ──────────────────
         post_checks = [
-            C.Check("기하", "표 하한 여유  r_tab_min/min_sep", R_TABLE_MIN / min_sep, 1.0, "<=",
+            C.Check("geometry", "표 하한 여유  r_tab_min/min_sep", R_TABLE_MIN / min_sep, 1.0, "<=",
                   f"pair.Table 함정 11: r<{R_TABLE_MIN}d 면 힘이 0. 측정 최소 {min_sep:.3f}d"),
-            C.Check("적분", "설계 r_min 준수 r_min/min_sep",
+            C.Check("integration", "설계 r_min 준수 r_min/min_sep",
                   r_min_star / min_sep, 1.15, "<=",
                   f"dt는 r_min={r_min_star:.3f}d 의 국소 강성에서 정했다. "
                   f"측정 최소 {min_sep:.3f}d — 크게 안쪽이면 dt 재검토"),

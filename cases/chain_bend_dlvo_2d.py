@@ -356,7 +356,7 @@ def analyze_scales(sys_, lg, n):
                  ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "관성 vs 확산"),
     ]
     checks = [
-        C.Check("모델", "참고: τ_p/τ_bond", r("times", "tau_p", "tau_bond"),
+        C.Check("model", "참고: τ_p/τ_bond", r("times", "tau_p", "tau_bond"),
                 C.GATE, "<=",
                 "★ 결합이 깊고 좁은 우물이라 τ_bond 가 τ_p 에 근접한다 (관성 무시 기준을 "
                 "~2.8배 넘김, n·ω·amp 와 무관 — 결합 물리 자체의 성질). "
@@ -364,22 +364,22 @@ def analyze_scales(sys_, lg, n):
                 "있었고 OverdampedViscous vs Langevin(kT=0) 대조로 무해함(0.16%)이 검증됐다 "
                 "— 이 계는 **아직 그 대조를 하지 않았다**. 미검증 상태로 소프트 처리하고 "
                 "구조 스모크테스트 이후 필요하면 검증한다", hard=False),
-        C.Check("모델", "결합 안정     σ_bond/h_min", r("lengths", "sigma_bond", "h_min"),
+        C.Check("model", "결합 안정     σ_bond/h_min", r("lengths", "sigma_bond", "h_min"),
                 0.5, "<=",
                 "★★ 결합 열요동 폭이 우물 위치의 절반을 넘으면 열적으로 자꾸 깨질 "
                 "정도로 불안정하다는 뜻 — 그 자체가 결과일 수 있으나 사전에 표시",
                 hard=False),
-        C.Check("적분", "결합 신축 해상 dt/τ_bond", r("times", "dt", "tau_bond"),
+        C.Check("integration", "결합 신축 해상 dt/τ_bond", r("times", "dt", "tau_bond"),
                 C.GATE, "<=", "DLVO 결합 신축 모드. 못 맞추면 발산"),
-        C.Check("적분", "최속 모드 해상 dt/τ_fast", r("times", "dt", "tau_fast"),
+        C.Check("integration", "fastest mode resolved dt/tau_fast", r("times", "dt", "tau_fast"),
                 C.GATE, "<=",
                 "★ 대조군(--jkr)에서는 굽힘 강성행렬의 최대고유값이 더 빠를 수 있다 — "
                 "그쪽으로 dt 를 잡는다 (chain-bend-2d-oscill 에서 실제로 그랬다)"),
-        C.Check("적분", "구동 해상     dt/τ_w", r("times", "dt", "tau_w"), C.GATE, "<=",
+        C.Check("integration", "drive resolved       dt/tau_w", r("times", "dt", "tau_w"), C.GATE, "<=",
                 f"구동 ω = {lg.derived['omega']:.0f} rad/s 를 해상"),
-        C.Check("통계", "SNR(결합)     a/σ_bond", r("lengths", "a", "sigma_bond"), 3.0, ">=",
+        C.Check("statistics", "SNR(결합)     a/σ_bond", r("lengths", "a", "sigma_bond"), 3.0, ">=",
                 "구동 진폭이 결합 열요동보다 커야 신호가 잡음 위로 나온다", hard=False),
-        C.Check("통계", "관측 주기 수  T_obs/(2π/ω)", r("times", "T_obs", "tau_period"),
+        C.Check("statistics", "cycles observed      T_obs/(2pi/w)", r("times", "T_obs", "tau_period"),
                 N_CYCLES, ">=", "위상 평균에 쓸 주기 수", hard=False),
     ]
     return groups, checks

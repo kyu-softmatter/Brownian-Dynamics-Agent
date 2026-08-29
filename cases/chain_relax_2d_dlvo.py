@@ -279,19 +279,19 @@ def analyze_scales(lg, n, init, kink_angle):
                  ("times", "tau_bond"), "tau_p/tau_bond", "관성 vs 결합신장"),
     ]
     checks = [
-        C.Check("모델", "참고: τ_p/τ_bond", r("times", "tau_p", "tau_bond"), C.GATE, "<=",
+        C.Check("model", "참고: τ_p/τ_bond", r("times", "tau_p", "tau_bond"), C.GATE, "<=",
               "chain-bend-2d-dlvo 와 동일한 미검증 상태(같은 입자·같은 결합) — 여기서 "
               "재검증하지 않는다. 그 케이스가 OverdampedViscous 대조로 검증하면 이 "
               "케이스도 같이 검증된다", hard=False),
-        C.Check("적분", "결합 신장 해상 dt/τ_bond", r("times", "dt", "tau_bond"), C.GATE, "<=",
+        C.Check("integration", "결합 신장 해상 dt/τ_bond", r("times", "dt", "tau_bond"), C.GATE, "<=",
               "이 계의 유일한 강성 모드. 못 맞추면 발산"),
-        C.Check("통계", "관측창 충분     T_obs/τ_bond", r("times", "T_obs", "tau_bond"),
+        C.Check("statistics", "관측창 충분     T_obs/τ_bond", r("times", "T_obs", "tau_bond"),
               1000.0, ">=", "국소(결합) 등분배 통계에 필요한 최소 배수 — 사슬 전체 "
               "형태이완(τ_chain_diff)까지는 불필요", hard=False),
     ]
     if kink_angle:
         checks.append(C.Check(
-            "기하", "킹크 NNN 간극(초기) vs 컷오프", D["nnn_gap0_star"], CUTOFF_H_STAR, ">=",
+            "geometry", "킹크 NNN 간극(초기) vs 컷오프", D["nnn_gap0_star"], CUTOFF_H_STAR, ">=",
             f"2결합 건너 비드가 방출 순간부터 이미 DLVO 컷오프 안(조기 비인접 결합)에 "
             f"들어가 있으면 '순수 굽힘만 교란'했다는 설계 의도가 깨진다", hard=False))
     return groups, checks
@@ -547,10 +547,10 @@ def build(spec, outdir=None) -> RUN.Build:
         min_sep = float(np.min(cols["min_sep"]))
         nnn_min = float(np.min(cols["nnn_gap"]))
         post_checks = [
-            C.Check("기하", "표 하한 여유 r_table_min/min_sep",
+            C.Check("geometry", "표 하한 여유 r_table_min/min_sep",
                   (1.0 + 1e-6) / min_sep, 1.0, "<=",
                   f"pair.Table 함정 11: r<r_min 이면 힘이 0. 측정 최소 결합길이 {min_sep:.4f}"),
-            C.Check("기하", "NNN 간극 최소(런 전체) vs 컷오프", nnn_min, CUTOFF_H_STAR, ">=",
+            C.Check("geometry", "NNN 간극 최소(런 전체) vs 컷오프", nnn_min, CUTOFF_H_STAR, ">=",
                   "런 도중 2결합 건너 비드가 DLVO 컷오프 안으로 들어온 적이 있는지 "
                   "(들어오면 '삼각형형' 국소 접힘 후보 — 실패 아니라 관찰 대상)",
                   hard=False),

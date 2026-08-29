@@ -133,7 +133,87 @@ double-counted with the instantaneous random force; check against a `kT=0` run.
 
 ---
 
-## 6 · What would most improve the science, in order
+## 6 · Future work — joining this agent to the microscope agent
+
+The longer-term goal is not a better simulator. It is to close the loop between
+**what to compute** and **what to measure**, which today are two separate agents
+built by the same person for the same systems:
+
+| | [**Brownian-Dynamics Agent**](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent) (this repo) | [**agentic-microscope**](https://github.com/kyu-softmatter/agentic-microscope) |
+|---|---|---|
+| Input | a sketch of a physical system | a research goal |
+| Decides | what the system does, in silico | what the instrument can actually record |
+| Refuses when | a parameter has no provenance | a measurement has no calibrated input |
+| Produces | a dimensionless spec + a defended result | executable microscope settings + evidence tier |
+| Its knowledge base | system cards, findings, benchmarks | instrument config, calibrations, tacit expertise |
+
+They already share their architecture — a deterministic core under an agent
+layer, hard gates that return `BLOCKED` naming the one missing input, and a
+knowledge base that is read before every decision and written after every
+verdict. That is not a coincidence; the second was built from the first's
+lessons. **Neither is finished, and joining them before each stands alone would
+couple two moving targets.** So this is future work, not a current task.
+
+### Why joining them is worth doing
+
+**1 · A simulation can tell the microscope what resolution the question needs.**
+Right now the microscope agent's sample and detection lenses ask *"is this
+measurable?"* against thresholds a human supplies. But whether 40 nm of
+localization precision is enough is a property of **the physics being measured**,
+not of the microscope. This repository computes exactly that: `chain-bend-2d-dlvo`
+established that bow discriminates DLVO from JKR at 22.3σ under a soft trap and
+at 1.4× under a stiff one — which is a *statement about what an experiment must
+do to see the difference*. Fed forward, it becomes a required precision, a
+required frame rate and a required trap stiffness, derived rather than guessed.
+
+**2 · A measurement can close this repository's open assumptions.**
+The single most damaging soft spot here is `T = 300 K`, labelled tier 1 but
+actually inherited from a sketch with no temperature — worth −4 % to −14 % on
+every timescale (§2). A thermometer reading closes it. The same is true of the
+particle-size distribution, the salt concentration and the surface potential:
+each is currently a tier-1 *choice*, and each is something the microscope side
+either measures or has already measured. **Provenance is the shared currency** —
+both repositories already carry `tier` and a falsifier on every stored value, so
+a measured number can replace an assumed one without either side losing track of
+which is which.
+
+**3 · The two refusals compose into one honest answer.**
+Today, asking "can I see this effect?" needs two separate consultations, and the
+answers can silently contradict: the simulation says the effect is 0.1 d in
+amplitude, the microscope says it can resolve 0.05 d, and nobody checks that the
+two `d` mean the same thing in the same units. Joined, a single `BLOCKED` would
+name the single missing input — *"the effect is below your localization
+precision; either raise the DLVO well depth or change objective"* — with the
+physics and the optics reconciled in one place.
+
+**4 · Real trajectories become a fifth evidence layer.**
+[02 §3](02-verification.md#3--result-verification--four-layers-of-evidence) lists
+four kinds of evidence, and `BD_agent` reserved a fifth — comparison against
+experiment — but deliberately did not adopt it, because a mismatch has too many
+candidate causes (no HI, polydispersity, tracking error, or simply a different
+system). **A microscope agent that reports its own calibration and evidence tier
+removes most of those candidates**, which is precisely what makes the fifth layer
+usable. In a domain with no grader, an independent measured oracle is the most
+valuable evidence there is.
+
+### What has to be true first
+
+| Precondition | Where it stands |
+|---|---|
+| This repo's predictions are **sealed before running** | not yet — §2, and it is item 1 below |
+| The microscope agent is **connected to the instrument** | not yet — it produces offline recommendations; the working PC and the microscope PC are separate |
+| Illumination power at the sample is **measured** | not yet — its top blocker, and it needs a power meter, not code |
+| The two `knowledge/` schemas here are **unified** | not yet — §2. Adding a third consumer to two divergent schemas would be a mistake |
+| A shared **quantity vocabulary** exists | does not exist. Both sides speak SI with provenance and tiers, which is the hard half; a common serialization for "particle diameter, measured, tier 1, ±3 %" is the missing half |
+
+**The order matters.** Sealing first, because an unsealed prediction fed to an
+instrument produces an experiment designed around a post-hoc rationalization.
+Then the shared vocabulary, because that is the actual interface. The connection
+itself is small once those two exist.
+
+---
+
+## 7 · What would most improve the science, in order
 
 1. **Wire sealing into `bdbot`.** Everything else on this list is cheaper to fix
    and matters less. Until this lands, the project's central discipline is

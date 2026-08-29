@@ -415,10 +415,10 @@ def analyze_scales(sys_, lg):
                  ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "관성 vs 확산"),
     ]
     checks = [
-        C.Check("모델", "관성 무시     τ_p/τ_max", r("times", "tau_p", "tau_max"),
+        C.Check("model", "inertia negligible   tau_p/tau_max", r("times", "tau_p", "tau_max"),
                 C.GATE, "<=",
                 "τ_dyn = 관측 대역의 지배 척도 = τ_max (최장 이완). G'(ω)를 재는 대역이 여기다"),
-        C.Check("모델", "참고: τ_p/τ_fast", r("times", "tau_p", "tau_fast"), C.GATE, "<=",
+        C.Check("model", "note: tau_p/tau_fast", r("times", "tau_p", "tau_fast"), C.GATE, "<=",
                 "★ 최속 굽힘 모드는 과감쇠가 아니다 (ζ = γ/2√(mλ_max) = 0.65 < 1). BD 는 그 "
                 "모드를 과감쇠로 다루므로 그 대역의 동역학은 틀리고 **어떤 dt로도 고쳐지지 "
                 "않는다**. ✔ **측정 완료** — 같은 파라미터로 OverdampedViscous vs "
@@ -426,17 +426,17 @@ def analyze_scales(sys_, lg):
                 "(De_old=10). 관측 대역에 영향 없음이 확인됐다 "
                 "(`scratch/verify_chain_bend_gates.py --gate det --collect`). "
                 "열적 링잉 × 비선형 결합은 이 검정이 덮지 않는다", hard=False),
-        C.Check("모델", "선형 탄성     a/δ_max", r("lengths", "a", "delta_max"), 1.0, "<=",
+        C.Check("model", "linear elasticity    a/delta_max", r("lengths", "a", "delta_max"), 1.0, "<=",
                 f"★ M < M_c. 넘으면 결합이 미끄러지거나 굴러 ([P2] 결론) 조화 angle "
                 f"퍼텐셜이 무효가 된다. δ_max = M_c L²/(12EI) = "
                 f"{D['delta_max'].to('nm'):~.0fP}"),
-        C.Check("모델", "소각 선형화   max|θ| [rad]", D["theta_max"], THETA_GATE, "<=",
+        C.Check("model", "small-angle linear   max|theta| [rad]", D["theta_max"], THETA_GATE, "<=",
                 f"조화 angle 은 소각 근사다. 이산 3점 굽힘을 a={D['amp'].to('nm'):~.0fP} 로 "
                 f"직접 풀어 얻은 최대 결합각. 상한 {THETA_GATE:g} rad 는 ★제안", hard=False),
-        C.Check("모델", "점 접촉       a_c/d", r("lengths", "a_c", "d"), AC_GATE, "<=",
+        C.Check("model", "point contact        a_c/d", r("lengths", "a_c", "d"), AC_GATE, "<=",
                 f"κ₀ = 3πa_c⁴E/(4a³) 는 a_c ≪ a 를 전제한다. 상한 {AC_GATE:g} 는 ★제안",
                 hard=False),
-        C.Check("모델", "★angle 힘 유효  min|θ−π|", D["th_lo"], ANGLE_SIN_SMALL, ">=",
+        C.Check("model", "*angle force valid   min|theta-pi|", D["th_lo"], ANGLE_SIN_SMALL, ">=",
                 f"★★ **HOOMD 하드 제약.** md.angle.Harmonic 은 sin θ 를 "
                 f"{ANGLE_SIN_SMALL:.3e} 로 클램프해서, 그 아래에서는 힘이 sinθ/SMALL 배로 "
                 f"축소된다 (힘 ∝ κ(θ−π)²  — 선형이 아니라 2차). **에너지는 정확하다**(0.000%) "
@@ -453,32 +453,32 @@ def analyze_scales(sys_, lg):
                 # ★ 이건 **구현의 제약**이지 계의 제약이 아니다. 그래서 지우지 않고
                 #   구현에 조건부로 건다. 커스텀 힘의 타당성은 아래 '소각 선형화' 가 본다.
                 hard=(BENDING_IMPL == "angle_harmonic")),
-        C.Check("적분", "최속 모드 해상 dt/τ_fast", r("times", "dt", "tau_fast"),
+        C.Check("integration", "fastest mode resolved dt/tau_fast", r("times", "dt", "tau_fast"),
                 C.GATE, "<=",
                 f"강성 행렬 최대 고유값 λ_max = {D['lam_max']:.4e} N/m (굽힘 "
                 f"{D['lam_bend']:.3e} vs 신축 {D['lam_bond']:.3e} — 큰 쪽). "
                 "이걸 놓치면 발산한다"),
-        C.Check("적분", "신축 해상     dt/τ_bond", r("times", "dt", "tau_bond"),
+        C.Check("integration", "stretch resolved     dt/tau_bond", r("times", "dt", "tau_bond"),
                 C.GATE, "<=", "결합 신축 모드 (굽힘보다 느려 여유가 크다)"),
-        C.Check("적분", "구동 해상     dt/τ_w", r("times", "dt", "tau_w"), C.GATE, "<=",
+        C.Check("integration", "drive resolved       dt/tau_w", r("times", "dt", "tau_w"), C.GATE, "<=",
                 f"구동 ω = {D['omega']:.0f} rad/s 를 해상"),
-        C.Check("통계", "SNR   |ŷ(ω)|/ℓ_k", r("lengths", "y_resp", "l_k"), 3.0, ">=",
+        C.Check("statistics", "SNR   |y_hat(w)|/l_k", r("lengths", "y_resp", "l_k"), 3.0, ">=",
                 "★★ **응답** 진폭이 열요동보다 커야 위상 추출이 된다. 예전 검사는 분자에 "
                 "구동 진폭 a 를 써서 ω 무관한 9.83 을 돌려주고 통과했지만, 실제 SNR 은 "
                 "ω 와 함께 떨어져 고주파에서 1 아래다 (실측 De_old=10 에서 0.165). "
                 "trap-drag 의 '하드 검사는 통과하는데 통계가 안 나온다' 와 같은 구멍이었다. "
                 "⚠ |ŷ| 은 선형응답 추정이고 HOOMD 와 고주파에서 28% 어긋난다 (미해명)",
                 hard=False),
-        C.Check("통계", "구동 진폭     a/ℓ_k", r("lengths", "a", "l_k"), 3.0, ">=",
+        C.Check("statistics", "drive amplitude      a/l_k", r("lengths", "a", "l_k"), 3.0, ">=",
                 "구동이 열요동보다 큰가 — 필요조건이지만 **충분조건이 아니다** "
                 "(위 |ŷ|/ℓ_k 가 실제 판정)", hard=False),
-        C.Check("통계", "준정적 도달   De(ω_min)", D["de_lo"], 0.1, "<=",
+        C.Check("statistics", "quasi-static reached De(w_min)", D["de_lo"], 0.1, "<=",
                 "★★ De = ω τ_max. 스윕이 준정적 극한(De ≪ 1)을 포함해야 K′ 의 탄성 고원이 "
                 "보인다. 예전 정의(τ_chain)로는 0.1~10 을 덮는다고 나왔지만 실제로는 "
                 "De ≈ 1~92 라서 고원 영역에 **아예 들어가지 않는다** — 스케치가 요구한 "
                 "포화 곡선을 이 스윕으로는 못 낸다. ω 범위는 system.yaml tier 3 "
                 "(사용자 승인)이라 여기서 바꾸지 않고 검사로 드러낸다", hard=False),
-        C.Check("통계", "관측 주기 수  T_obs/(2π/ω)", r("times", "T_obs", "tau_period"),
+        C.Check("statistics", "cycles observed      T_obs/(2pi/w)", r("times", "T_obs", "tau_period"),
                 N_CYCLES, ">=", "위상 평균에 쓸 주기 수", hard=False),
     ]
     return groups, checks

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 GATE = 1e-2                      # 모든 분리 검사 임계 (bd-physics §4). dt/τ=1e-2 ⟺ 편향 0.5%
 MARGIN_WARN = 5.0                # 여유가 이보다 작으면 "파라미터 상향 여지 없음" 경고
-SOFT_KINDS = frozenset({"통계", "유한크기"})
+SOFT_KINDS = frozenset({"statistics", "finite-size"})
 # ★ 부동소수 경계 허용. **구성상 한계와 같게 잡은** 검사가 우연히 실패하는 것을 막습니다.
 #   실제로 물렸습니다: chain-bend 는 T_obs ≡ 100·(2π/ω) 로 정의하는데
 #   `(100x)/x = 99.99999999999999` 가 나와 "관측 주기 수 ≥ 100" 이 거짓 경고를 냈습니다.
@@ -61,24 +61,28 @@ def soft(kind: str) -> bool:
 
 
 def verdict(checks) -> tuple[str, list, list, list]:
-    """(판정, 하드 실패, 소프트 실패, 여유 부족) — 하드가 하나라도 깨지면 실행 거부."""
+    """(verdict, hard failures, soft failures, thin margins).
+
+    A single broken hard check refuses the run.
+    """
     hard_fail = [c for c in checks if c.hard and not c.ok]
     soft_fail = [c for c in checks if not c.hard and not c.ok]
     tight = [c for c in checks if c.ok and c.margin < MARGIN_WARN]
     if hard_fail:
         v = "FAIL"
     elif soft_fail:
-        v = f"PASS (경고 {len(soft_fail)}건)"
+        v = f"PASS ({len(soft_fail)} warnings)"
     else:
         v = "PASS"
     return v, hard_fail, soft_fail, tight
 
 
-# ── dt 결정 — 두 케이스가 똑같이 "γ/(국소 강성)의 1%" 였습니다 ─────────
+# -- dt selection: two cases independently arrived at "1% of gamma/(local stiffness)" --
 def relaxation_time(gamma, stiffness):
-    """τ = γ/k. 트랩이면 k=트랩 강성, 소프트 페어면 k=U''(r_min).
+    """tau = gamma/k. For a trap k is the trap stiffness; for a soft pair k = U''(r_min).
 
-    같은 공식이 두 케이스에서 다른 이름으로 나왔습니다 (τ_k, τ_int) — 구조는 하나입니다.
+    The same formula appeared in two cases under different names (tau_k, tau_int) —
+    it is one structure.
     """
     return (gamma / stiffness).to("s")
 

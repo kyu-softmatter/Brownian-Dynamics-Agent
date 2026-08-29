@@ -194,11 +194,11 @@ for A in A_LIST:
     dd = design[A]
     print(f"\n  A = {A}   (Γ = {dd['G']:.3f},  dt* = {dd['dt_star']:.2e})")
     rows = [
-        ("모델", "관성 무시  τ_p/τ_int",
+        ("model", "관성 무시  τ_p/τ_int",
          float(tau_p / tau_B) / (dd["dt_star"] / 1e-2), 1e-2),
-        ("적분", "상호작용 해상  dt/τ_int", 1e-2, 1e-2),
-        ("기하", "컷오프  r_c/(L/2)", rc_star / (math.sqrt(N) * a_star / 2), 1.0),
-        ("통계", "관측창  τ_B/T_obs", 1.0 / T_OBS_STAR, 1e-2),
+        ("integration", "상호작용 해상  dt/τ_int", 1e-2, 1e-2),
+        ("geometry", "컷오프  r_c/(L/2)", rc_star / (math.sqrt(N) * a_star / 2), 1.0),
+        ("statistics", "관측창  τ_B/T_obs", 1.0 / T_OBS_STAR, 1e-2),
     ]
     for kind, name, val, lim in rows:
         ok = val <= lim

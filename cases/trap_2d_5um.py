@@ -119,13 +119,13 @@ def analyze_scales(sys_, lg):
                  "", "관측창"),
     ]
     checks = [
-        C.Check("모델", "관성 무시   τ_p/τ_k", f(tau_p / tau_k), C.GATE, "<=",
+        C.Check("model", "관성 무시   τ_p/τ_k", f(tau_p / tau_k), C.GATE, "<=",
                 "BD(과감쇠)가 타당한가. dt와 무관 (bd-physics §4)"),
-        C.Check("적분", "트랩 해상   dt/τ_k", f(dt / tau_k), C.GATE, "<=",
+        C.Check("integration", "트랩 해상   dt/τ_k", f(dt / tau_k), C.GATE, "<=",
                 f"편향 ≈ (dt/τ)/2 = {C.bias_from_dt(dt, tau_k):.3f}% (bd-physics §1.2)"),
-        C.Check("기하", "요동 vs 박스 2ℓ_k/L", f(2 * l_k / L), 0.5, "<=",
+        C.Check("geometry", "요동 vs 박스 2ℓ_k/L", f(2 * l_k / L), 0.5, "<=",
                 "최소 이미지 안전 여유 (bd-hoomd 함정 1·6)"),
-        C.Check("통계", "관측창     T_obs/τ_k", f(T_obs / tau_k), 100.0, ">=",
+        C.Check("statistics", "관측창     T_obs/τ_k", f(T_obs / tau_k), 100.0, ">=",
                 "정상상태 통계 충분성", hard=False),
     ]
     return groups, checks

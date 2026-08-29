@@ -844,8 +844,8 @@
   ],
   "checks": [
     {
-      "kind": "모델",
-      "name": "관성 무시     τ_p/τ_max",
+      "kind": "model",
+      "name": "inertia negligible   tau_p/tau_max",
       "value": 1.424481794907725e-05,
       "limit": 0.01,
       "op": "<=",
@@ -855,8 +855,8 @@
       "phase": "design"
     },
     {
-      "kind": "모델",
-      "name": "참고: τ_p/τ_fast",
+      "kind": "model",
+      "name": "note: tau_p/tau_fast",
       "value": 0.5973924710973724,
       "limit": 0.01,
       "op": "<=",
@@ -866,8 +866,8 @@
       "phase": "design"
     },
     {
-      "kind": "모델",
-      "name": "선형 탄성     a/δ_max",
+      "kind": "model",
+      "name": "linear elasticity    a/delta_max",
       "value": 0.4666666666666666,
       "limit": 1.0,
       "op": "<=",
@@ -877,8 +877,8 @@
       "phase": "design"
     },
     {
-      "kind": "모델",
-      "name": "소각 선형화   max|θ| [rad]",
+      "kind": "model",
+      "name": "small-angle linear   max|theta| [rad]",
       "value": 0.002824659275476013,
       "limit": 0.1,
       "op": "<=",
@@ -888,8 +888,8 @@
       "phase": "design"
     },
     {
-      "kind": "모델",
-      "name": "점 접촉       a_c/d",
+      "kind": "model",
+      "name": "point contact        a_c/d",
       "value": 0.029387755102040822,
       "limit": 0.1,
       "op": "<=",
@@ -899,8 +899,8 @@
       "phase": "design"
     },
     {
-      "kind": "모델",
-      "name": "★angle 힘 유효  min|θ−π|",
+      "kind": "model",
+      "name": "*angle force valid   min|theta-pi|",
       "value": 7.255338427027427e-05,
       "limit": 0.001414214,
       "op": ">=",
@@ -910,8 +910,8 @@
       "phase": "design"
     },
     {
-      "kind": "적분",
-      "name": "최속 모드 해상 dt/τ_fast",
+      "kind": "integration",
+      "name": "fastest mode resolved dt/tau_fast",
       "value": 0.01,
       "limit": 0.01,
       "op": "<=",
@@ -921,8 +921,8 @@
       "phase": "design"
     },
     {
-      "kind": "적분",
-      "name": "신축 해상     dt/τ_bond",
+      "kind": "integration",
+      "name": "stretch resolved     dt/tau_bond",
       "value": 0.0018053002241989536,
       "limit": 0.01,
       "op": "<=",
@@ -932,8 +932,8 @@
       "phase": "design"
     },
     {
-      "kind": "적분",
-      "name": "구동 해상     dt/τ_w",
+      "kind": "integration",
+      "name": "drive resolved       dt/tau_w",
       "value": 2.3685021997423467e-07,
       "limit": 0.01,
       "op": "<=",
@@ -943,8 +943,8 @@
       "phase": "design"
     },
     {
-      "kind": "통계",
-      "name": "SNR   |ŷ(ω)|/ℓ_k",
+      "kind": "statistics",
+      "name": "SNR   |y_hat(w)|/l_k",
       "value": 4.354459827901523,
       "limit": 3.0,
       "op": ">=",
@@ -954,8 +954,8 @@
       "phase": "design"
     },
     {
-      "kind": "통계",
-      "name": "구동 진폭     a/ℓ_k",
+      "kind": "statistics",
+      "name": "drive amplitude      a/l_k",
       "value": 9.82715321005354,
       "limit": 3.0,
       "op": ">=",
@@ -965,8 +965,8 @@
       "phase": "design"
     },
     {
-      "kind": "통계",
-      "name": "준정적 도달   De(ω_min)",
+      "kind": "statistics",
+      "name": "quasi-static reached De(w_min)",
       "value": 0.9932913056254948,
       "limit": 0.1,
       "op": "<=",
@@ -976,8 +976,8 @@
       "phase": "design"
     },
     {
-      "kind": "통계",
-      "name": "관측 주기 수  T_obs/(2π/ω)",
+      "kind": "statistics",
+      "name": "cycles observed      T_obs/(2pi/w)",
       "value": 100.0,
       "limit": 100.0,
       "op": ">=",
@@ -987,7 +987,7 @@
       "phase": "design"
     }
   ],
-  "verdict": "PASS (경고 3건)",
+  "verdict": "PASS (3 warnings)",
   "params": {
     "n_beads": 25,
     "trapped": [

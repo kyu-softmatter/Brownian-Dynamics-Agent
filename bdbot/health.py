@@ -292,53 +292,60 @@ def measure_step_displacement(positions_t0, positions_t1, L: float, dim: int) ->
 def predicted_dt_over_tau(spec) -> float | None:
     """`LoadedSpec` 의 적분 해상 검사에서 L3가 예측한 `dt/τ_fast` 를 꺼낸다.
 
-    검사 이름은 케이스마다 다르므로 `kind == '적분'` 중 **가장 큰 값**을 씁니다
+    검사 이름은 케이스마다 다르므로 `kind == 'integration'` 중 **가장 큰 값**을 씁니다
     (가장 빠른 시간척도가 가장 큰 비를 만든다).
     """
     vals = [c.value for c in getattr(spec, "checks", [])
-            if getattr(c, "kind", "") == "적분" and isinstance(c.value, (int, float))]
+            if getattr(c, "kind", "") == "integration" and isinstance(c.value, (int, float))]
     return max(vals) if vals else None
 
 
 def gate(spec) -> list[str]:
-    """실행 **전** 게이트. **막아야 할** 이유들을 돌려준다 (빈 리스트 = 통과).
+    """The **pre-run** gate. Returns the reasons to **block** (empty list = pass).
 
-    L4 는 스펙만 읽습니다 — 케이스 코드를 임포트하지 않습니다 (마스터플랜 L2↔L4 계약).
+    L4 reads only the spec — it never imports case code (the L2<->L4 contract).
 
-    ⚠️ **소프트 경고는 막지 않습니다.** 예전에는 `verdict != "PASS"` 로 판정해서
-       `"PASS (경고 3건)"` 을 거부했습니다 — 실측 83개 스펙 중 **80개가 거짓 거부**였고
-       그중 진짜 하드 실패는 **0개**였습니다. bd-physics §4 는 통계·유한크기를 ⚠ 경고로
-       규정합니다(❌ 아님). `run.execute` 는 `startswith("FAIL")` 로 옳게 보고 있었고,
-       둘이 어긋난 채로 아무도 눈치채지 못한 이유는 **`execute` 가 `gate()` 를 부르지
-       않아서** 입니다 — 배선되지 않은 검사기는 틀려도 드러나지 않습니다.
-       막는 것은 ① 해시 불일치 ② 하드 검사 실패(FAIL) ③ L3 무결성 **오류**뿐입니다.
+    WARNING: **soft warnings do not block.** This used to test `verdict != "PASS"`,
+       which rejected `"PASS (3 warnings)"` — measured over 83 specs, **80 were
+       false rejections** and **zero** of them were real hard failures. Skill
+       bd-physics section 4 defines statistics and finite-size issues as warnings,
+       not failures. `run.execute` was reading `startswith("FAIL")` correctly, and
+       the reason the two disagreed unnoticed is that **`execute` never called
+       `gate()`** — an unwired checker cannot be wrong out loud.
+       Only three things block: (1) hash mismatch, (2) a hard check failing
+       (FAIL), (3) an L3 integrity **error**.
     """
     problems = []
     ok, want = spec.verify_hash()
     if not ok:
-        problems.append(f"run_id 불일치: 저장 {spec.run_id} vs 계산 {want} "
-                        f"— 스펙을 손으로 고쳤습니까? (규칙 2)")
+        problems.append(f"run_id mismatch: stored {spec.run_id} vs computed {want} "
+                        f"— was the spec hand-edited? (rule 2)")
     if spec.verdict.startswith("FAIL"):
         bad = [c.name for c in spec.checks if getattr(c, "hard", True) and not _ok(c)]
         problems.append(f"L3 verdict={spec.verdict}"
-                        + (f" — 하드 검사 실패: {bad}" if bad else ""))
+                        + (f" — hard checks failed: {bad}" if bad else ""))
     errs = [i for i in spec.raw.get("l3_issues", []) if i.get("level") == "error"]
     if errs:
-        problems.append(f"L3 무결성 오류 {len(errs)}건: {errs[:2]}")
+        problems.append(f"L3 integrity errors ({len(errs)}): {errs[:2]}")
     return problems
 
 
 def gate_notes(spec) -> list[str]:
-    """게이트를 **막지는 않지만** 사람이 봐야 하는 것들. 조용히 넘기지 않기 위해서."""
+    """Things that do **not** block the gate but a human must see.
+
+    A gate that passes silently is not a gate.
+    """
     notes = []
     soft = [c for c in spec.checks if not getattr(c, "hard", True) and not _ok(c)]
     for c in soft:
-        notes.append(f"소프트 경고 [{c.kind}] {c.name.strip()} = {c.value:.3g} "
-                     f"(기준 {c.limit:g}) — 막지 않지만 통계·유한크기 한계입니다")
+        notes.append(f"soft warning [{c.kind}] {c.name.strip()} = {c.value:.3g} "
+                     f"(limit {c.limit:g}) — does not block, but it is a "
+                     f"statistics / finite-size limitation")
     tight = [c for c in spec.checks
              if _ok(c) and getattr(c, "hard", True) and _margin(c) < 5.0]
     for c in tight:
-        notes.append(f"여유 부족 [{c.kind}] {c.name.strip()} — 한계까지 {_margin(c):.1f}배뿐")
+        notes.append(f"thin margin [{c.kind}] {c.name.strip()} — only "
+                     f"{_margin(c):.1f}x to the limit")
     warn = [i for i in spec.raw.get("l3_issues", []) if i.get("level") != "error"]
     for i in warn:
         notes.append(f"L3 {i.get('level')} [{i.get('where')}] {i.get('msg')}")
