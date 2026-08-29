@@ -1,11 +1,13 @@
-"""`trap-drag` 궤적 → 애니메이션 GIF. 결함을 색으로 구분해 전위 생성·소멸을 보게.
+"""`trap-drag` trajectory -> animated GIF, with defects colour-coded so
+dislocation creation and annihilation are visible.
 
-에너지 그래프(평탄역 + 급락)와 결함 곡선이 **같은 모양**이라는 것이 이 케이스의 결론인데,
-숫자로만 보면 "왜 그런지"가 안 보입니다. 탐침이 격자를 밀고 지나가며 5–7 쌍을 만들고,
-멈춘 뒤 그것들이 서로 만나 사라지는 과정을 눈으로 보는 것이 목적입니다.
+This case's conclusion is that the energy curve (plateau + sharp drop) and the
+defect curve have **the same shape** -- but from the numbers alone you cannot see
+*why*. The point of the animation is to watch the probe push through the lattice
+creating 5-7 pairs, and then, once it stops, watch those pairs meet and vanish.
 
-색: 회색 = 6배위(정상) · 주황 = 5배위 · 보라 = 7배위 · 빨강 = 그 외
-    파랑 테두리 = 끌리는 탐침 · × = 트랩 중심
+Colours: grey = 6-fold (normal), orange = 5-fold, purple = 7-fold, red = other
+         blue outline = the dragged probe, x = the trap centre
 
     $PY scratch/trap_drag_movie.py runs/<run_id> [--stride 2] [--fps 20]
 """
@@ -25,18 +27,19 @@ sys.path.insert(0, str(ROOT / "cases"))
 from bdbot import nondim as ND  # noqa: E402
 
 COLOR = {5: "tab:orange", 6: "0.72", 7: "tab:purple"}
-PH = ("예열", "평형", "끌기", "이완")
+PH = ("warm-up", "equilibrium", "drag", "relaxation")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("rundir")
-    ap.add_argument("--stride", type=int, default=2, help="프레임 건너뛰기")
+    ap.add_argument("--stride", type=int, default=2, help="frame stride")
     ap.add_argument("--fps", type=int, default=18)
     ap.add_argument("--out", default="trajectory.gif")
-    # ★ 빠른 v 는 끌기가 전체의 4% 뿐이라(v=32: 5667프레임 중 209개) 전체를 균등
-    #   추출하면 정작 볼 구간이 스쳐 지나갑니다. 프레임 범위를 잘라 씁니다.
-    ap.add_argument("--frames", default=None, help="시작:끝 (프레임 인덱스)")
+    # ★ At high v the drag phase is only 4% of the total (v=32: 209 of 5667
+    #   frames), so sampling the whole run uniformly races past the very part
+    #   worth watching. A frame range is cut out instead.
+    ap.add_argument("--frames", default=None, help="start:end (frame indices)")
     args = ap.parse_args()
 
     import freud
@@ -75,7 +78,7 @@ def main() -> int:
     box = freud.box.Box(Lx=Lx, Ly=Ly, is2D=True)
     voro = freud.locality.Voronoi()
 
-    # 에너지 시계열 (아래 띠)
+    # Energy time series (the strip underneath)
     z = np.load(d / "observables.npz")
     res = json.loads((d / "metrics.json").read_text())["result"]
     t_u = z["_t_step"] * dt / tau_int
@@ -98,7 +101,7 @@ def main() -> int:
     ttl = ax.set_title("")
 
     axu.plot(t_u, u, "-", lw=.7, color="0.6")
-    axu.axhline(u_eq, color="green", ls="--", lw=1.1, label="평형")
+    axu.axhline(u_eq, color="green", ls="--", lw=1.1, label="equilibrium")
     mark, = axu.plot([], [], "o", color="crimson", ms=7, zorder=5)
     vline = axu.axvline(t_u[0], color="crimson", lw=1)
     axu.set(xlabel=r"$t/\tau_{int}$", ylabel=r"$\langle U\rangle/N$ [kT]",
@@ -107,14 +110,14 @@ def main() -> int:
 
     from matplotlib.lines import Line2D
     ax.legend(handles=[Line2D([], [], marker="o", ls="", mfc=COLOR[6], mec="0.35",
-                              label="6배위 (정상)"),
+                              label="6-fold (normal)"),
                        Line2D([], [], marker="o", ls="", mfc=COLOR[5], mec="0.35",
-                              label="5배위"),
+                              label="5-fold"),
                        Line2D([], [], marker="o", ls="", mfc=COLOR[7], mec="0.35",
-                              label="7배위"),
+                              label="7-fold"),
                        Line2D([], [], marker="o", ls="", mfc="none", mec="tab:blue",
-                              mew=2, label="탐침"),
-                       Line2D([], [], marker="x", ls="", color="k", label="트랩 중심")],
+                              mew=2, label="probe"),
+                       Line2D([], [], marker="x", ls="", color="k", label="trap centre")],
               fontsize=8, loc="upper right", ncol=2, framealpha=.92)
 
     def draw(fi):
@@ -126,15 +129,15 @@ def main() -> int:
         ec.set_offsets(p[:, :2])
         ec.set_facecolors([COLOR.get(int(c), "tab:red") for c in zc])
         ring.set_offsets(p[probe:probe + 1, :2])
-        # 트랩 중심 (조각별 선형) — 박스 밖으로 나가면 되감아 그린다
+        # Trap centre (piecewise linear) -- wrapped back when it leaves the box
         cx = pos0[probe, 0] + v_star * (min(max(step * dt, T1), T2) - T1)
         cx = (cx + Lx / 2) % Lx - Lx / 2
         cross.set_data([cx], [pos0[probe, 1]])
         tt = step * dt / tau_int
         nd = int((zc != 6).sum())
         ttl.set_text(f"[{phase_of(step)}]   t = {tt:6.1f} $\\tau_{{int}}$   "
-                     f"결함 {nd:2d}개   (5배위 {int((zc==5).sum())} · "
-                     f"7배위 {int((zc==7).sum())})")
+                     f"{nd:2d} defects   (5-fold {int((zc==5).sum())}, "
+                     f"7-fold {int((zc==7).sum())})")
         j = int(np.searchsorted(t_u, tt))
         if 0 < j < len(t_u):
             mark.set_data([t_u[j]], [u[j]])
@@ -142,12 +145,13 @@ def main() -> int:
         return ec, ring, cross, ttl, mark, vline
 
     fig.suptitle(f"{spec.label}   Γ={P['Gamma']:.1f}  φ={P['phi']}  "
-                 f"{n_x}×{n_y}={N}   끌기 {n_d*dt*v_star/a_nn:.1f}격자", fontsize=11)
+                 f"{n_x}x{n_y}={N}   drag {n_d*dt*v_star/a_nn:.1f} lattice periods",
+                 fontsize=11)
     anim = FuncAnimation(fig, draw, frames=frames, blit=False)
     out = d / args.out
     anim.save(str(out), writer=PillowWriter(fps=args.fps))
     plt.close(fig)
-    print(f"{out}  ({out.stat().st_size/1e6:.1f} MB, {len(frames)}프레임)")
+    print(f"{out}  ({out.stat().st_size/1e6:.1f} MB, {len(frames)} frames)")
     return 0
 
 

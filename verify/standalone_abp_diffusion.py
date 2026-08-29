@@ -1,19 +1,22 @@
-"""`active.abp` 모듈 **단독 검증** — 상호작용·트랩·형상을 전부 끈 최소 구성.
+"""**Standalone verification** of the `active.abp` module -- the minimal
+configuration, with interactions, traps and shape all switched off.
 
-마스터플랜 원칙 9(독립 요소는 하나씩 떼어 검증)의 실례.
-자유 ABP에는 해석해가 있다 (조합하면 없다):
+A worked instance of masterplan principle 9 (verify independent elements one at a
+time). A free ABP has an analytic solution; the combination does not:
 
     ⟨n(0)·n(t)⟩ = e^(−Λt)
     MSD(t) = 2d·D_t·t + (2v₀²/Λ²)[Λt − 1 + e^(−Λt)]
-    장시간 → 2d·D_eff·t    ⟹    D_eff = D_t + v₀²/(d·Λ)
+    long time -> 2d*D_eff*t    =>    D_eff = D_t + v0^2/(d*Lambda)
 
-이 검증에서 함정 2건이 나왔다 (skill bd-hoomd 함정 10·11):
-  ① active_force = 0 이면 ActiveRotationalDiffusion 이 **아예 동작하지 않는다** (Λ=0)
-  ② HOOMD 의 rotational_diffusion 은 **director 감쇠율 Λ 그 자체**다.
-     표준 이론의 (d−1)·D_r 이 아니다 — 2D·3D 모두 Λ/D_r = 1.00.
+Two traps came out of this check (skill bd-hoomd traps 10 and 11):
+  (1) with active_force = 0, ActiveRotationalDiffusion **does not run at all**
+      (Lambda = 0)
+  (2) HOOMD's rotational_diffusion **IS the director decay rate Lambda itself**.
+      It is NOT the standard theory's (d-1)*D_r -- Lambda/D_r = 1.00 in both 2D
+      and 3D.
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
-    $PY scratch/standalone_abp_diffusion.py        # ~4분
+    $PY scratch/standalone_abp_diffusion.py        # ~4 min
 """
 import math
 import sys
@@ -25,7 +28,7 @@ import hoomd.md as md
 
 KT = GAMMA = SIGMA = 1.0
 D_T = KT / GAMMA
-TOL = 3.0            # 허용 오차 %
+TOL = 3.0            # tolerance, %
 
 
 def _frame(N, L, dim, rng):
@@ -33,11 +36,11 @@ def _frame(N, L, dim, rng):
     f.particles.N = N
     f.particles.position = (rng.random((N, 3)) - .5) * L * np.array(
         [1, 1, 1 if dim == 3 else 0])
-    if dim == 2:                                   # z축 회전만
+    if dim == 2:                                   # rotation about z only
         q = np.zeros((N, 4))
         th = rng.random(N) * 2 * math.pi
         q[:, 0], q[:, 3] = np.cos(th / 2), np.sin(th / 2)
-    else:                                          # 무작위 방향
+    else:                                          # random direction
         q = rng.normal(size=(N, 4))
         q /= np.linalg.norm(q, axis=1, keepdims=True)
     f.particles.orientation = q
@@ -57,7 +60,7 @@ def run(dim, v0, D_r, N=4000, t_max=20.0, n_samp=240, seed=11, dt=5e-4, L=600.0)
     act.active_force["A"] = (v0 * GAMMA, 0., 0.)          # f_a = γ v₀
     bd = md.methods.Brownian(filter=hoomd.filter.All(), kT=KT, default_gamma=GAMMA)
     integ = md.Integrator(dt=dt, methods=[bd], forces=[act])
-    integ.integrate_rotational_dof = False                 # bd-hoomd 함정 3
+    integ.integrate_rotational_dof = False                 # bd-hoomd trap 3
     sim.operations.integrator = integ
     sim.operations.updaters.append(act.create_diffusion_updater(
         trigger=hoomd.trigger.Periodic(1), rotational_diffusion=D_r))
@@ -80,7 +83,7 @@ def run(dim, v0, D_r, N=4000, t_max=20.0, n_samp=240, seed=11, dt=5e-4, L=600.0)
     P, Nn = np.array(P), np.array(Nn)
     ds = every * dt
 
-    nl = n_samp // 2                                       # 다중 시간원점
+    nl = n_samp // 2                                       # multiple time origins
     msd, cor = np.zeros(nl), np.zeros(nl)
     cor[0] = 1.0
     for k in range(1, nl):
@@ -97,10 +100,11 @@ def run(dim, v0, D_r, N=4000, t_max=20.0, n_samp=240, seed=11, dt=5e-4, L=600.0)
 
 def main():
     print("=" * 92)
-    print("`active.abp` 단독 검증  (pair·trap·shape 전부 OFF, kT=γ=σ=1 ⟹ D_t=1)")
+    print("`active.abp` standalone check  (pair/trap/shape all OFF, "
+          "kT=gamma=sigma=1 => D_t=1)")
     print("=" * 92)
-    print(f"{'dim':>4}{'v₀':>5}{'D_r':>6}{'Λ 측정':>9}{'Λ/D_r':>7}{'Λ/[(d−1)D_r]':>14}"
-          f"{'D_eff':>9}{'D_t+v₀²/(dΛ)':>14}{'오차':>8}")
+    print(f"{'dim':>4}{'v0':>5}{'D_r':>6}{'Lam':>9}{'Lam/D_r':>7}{'Lam/[(d-1)Dr]':>14}"
+          f"{'D_eff':>9}{'D_t+v0^2/(dLam)':>14}{'error':>8}")
     print("-" * 92)
 
     fails = []
@@ -108,7 +112,7 @@ def main():
         r = run(dim, v0, D_r)
         pred = D_T + v0 ** 2 / (dim * r["lam"])
         err = 100 * (r["D_eff"] - pred) / pred
-        std = r["lam"] / ((dim - 1) * D_r)          # 표준 이론이면 1.0 이어야 함
+        std = r["lam"] / ((dim - 1) * D_r)          # would be 1.0 if the standard theory held
         ok = abs(err) < TOL
         if not ok:
             fails.append((dim, v0, err))
@@ -116,12 +120,14 @@ def main():
               f"{std:>14.3f}{r['D_eff']:>9.4f}{pred:>14.4f}{err:>+7.2f}%  {'✓' if ok else '✗'}")
 
     print("-" * 92)
-    print("판정")
-    print(f"  · D_eff = D_t + v₀²/(d·Λ)          → 전부 |오차| < {TOL}%  "
+    print("verdict")
+    print(f"  . D_eff = D_t + v0^2/(d*Lambda)    -> all |error| < {TOL}%  "
           f"{'✓' if not fails else '✗ ' + str(fails)}")
-    print("  · Λ/D_r = 1.00 (2D·3D 모두)        → HOOMD 의 rotational_diffusion 은")
-    print("                                        director 감쇠율 Λ 그 자체 (함정 11)")
-    print("  · Λ/[(d−1)D_r] 는 3D 에서 0.50     → 표준 이론 관례와 다름")
+    print("  . Lambda/D_r = 1.00 (both 2D and 3D) -> HOOMD's rotational_diffusion is")
+    print("                                        the director decay rate Lambda "
+          "itself (trap 11)")
+    print("  . Lambda/[(d-1)D_r] is 0.50 in 3D  -> differs from the standard "
+          "theory convention")
     print("=" * 92)
     return 1 if fails else 0
 

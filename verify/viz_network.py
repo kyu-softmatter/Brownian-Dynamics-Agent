@@ -1,16 +1,21 @@
 #!/usr/bin/env python
-"""`network` 1단계(압축 겔화) 결과를 그림으로 — 만들어진 망을 **보여준다**.
+"""Turn the stage-1 (compression gelation) `network` results into figures --
+**show** the network that was built.
 
-CLAUDE.md: "결과는 그래프와 애니메이션으로 보여준다. 말과 표만으로 보고하지 않는다."
-⚠️ 라벨은 전부 **영어** (matplotlib 기본 폰트에 한글이 없고, 한글 폰트에는 −·ŷ 가 없다).
+CLAUDE.md: "show results as graphs and animations. Do not report in prose and
+tables alone."
+⚠️ All labels are in **English** (matplotlib's default font has no Hangul, and the
+   Hangul fonts have no minus sign or y-hat).
 
-만드는 것:
-  network_structure.png  6패널 — 3D 망 · 축별 투영 · 시계열 · g(r) · 붕괴/최소거리 · 위상
-  network_compare.png    압축 속도 대조 (A8: 속도 무관성) — 두 런이 다 있을 때만
-  network_compress.mp4   압축 과정 애니메이션 (traj_A.gsd)
+What it makes:
+  network_structure.png  6 panels -- 3D network, per-axis projections, time series,
+                         g(r), collapse/minimum distance, topology
+  network_compare.png    compression-rate comparison (A8: rate independence) --
+                         only when both runs exist
+  network_compress.mp4   animation of the compression (traj_A.gsd)
 
-실행:
-  $PY scratch/viz_network.py                       # runs/network__* 자동 탐색
+Run:
+  $PY scratch/viz_network.py                       # auto-discovers runs/network__*
   $PY scratch/viz_network.py --run <run_id>
   $PY scratch/viz_network.py --no-anim
 """
@@ -30,7 +35,7 @@ from mpl_toolkits.mplot3d.art3d import Line3DCollection           # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "runs" / "network__FIGS"
-ELL_STAR = 1.0075925903599383        # DLVO 2차극소 결합거리 (원장)
+ELL_STAR = 1.0075925903599383        # DLVO secondary-minimum bond distance (from the ledger)
 H_MIN_STAR = 0.0075925903599383
 
 
@@ -46,7 +51,10 @@ def load(run_dir: Path) -> dict:
 
 
 def phase_edges(d: dict):
-    """응집 / 압축 / 후이완 경계를 φ(t) 로 찾는다 (φ 는 압축 중에만 변한다)."""
+    """Find the aggregation / compression / post-relaxation boundaries from phi(t).
+
+    phi only changes during compression.
+    """
     phi = d["series_phi"]
     t = d["series_t"]
     moving = np.abs(np.diff(phi)) > 1e-12
@@ -66,7 +74,7 @@ def panel_network_3d(ax, pos, pairs, L, title):
     segs = []
     for i, j in pairs:
         a, b = pos[i], pos[j]
-        if np.abs(b - a).max() > L / 2:          # PBC 를 넘는 결합은 그리지 않는다
+        if np.abs(b - a).max() > L / 2:          # bonds crossing the PBC are not drawn
             continue
         segs.append([a, b])
     if segs:
@@ -85,7 +93,7 @@ def panel_network_3d(ax, pos, pairs, L, title):
 
 
 def panel_slab(ax, pos, pairs, L, thick=3.0):
-    """z 슬랩 투영 — 3D 산점도보다 연결 구조가 잘 보인다."""
+    """z-slab projection -- shows the connectivity better than a 3D scatter."""
     sel = np.abs(pos[:, 2]) < thick / 2
     idx = np.where(sel)[0]
     keep = set(idx.tolist())
@@ -206,7 +214,10 @@ def figure_structure(d: dict, out: Path):
 
 
 def figure_compare(runs: list, out: Path):
-    """A8 — 압축 속도 무관성. 같은 시드·같은 응집, 압축 속도만 다르다."""
+    """A8 -- compression-rate independence.
+
+    Same seed, same aggregation; only the compression rate differs.
+    """
     fig, axes = plt.subplots(1, 4, figsize=(19, 4.2))
     keys = [("z", "coordination z"), ("loops", "independent loops"),
             ("largest_cluster", "largest cluster / N"), ("crushed", "crushed fraction")]
@@ -219,7 +230,7 @@ def figure_compare(runs: list, out: Path):
         ax.set_ylabel(lab)
         ax.grid(alpha=0.25)
         ax.legend(fontsize=8)
-    # 최종값 표로 정리 — 속도 무관이면 두 값이 같아야 한다
+    # Tabulate the final values -- if it is rate-independent the two must agree
     txt = []
     for d in runs:
         o = {x["name"]: x.get("measured") for x in d["_metrics"]["observables"]}
@@ -237,16 +248,16 @@ def figure_compare(runs: list, out: Path):
 
 
 def animate(run_dir: Path, out: Path, stride: int = 1):
-    """압축 과정 애니메이션 — z 슬랩 투영. 박스가 줄어드는 것이 보인다."""
+    """Animation of the compression -- z-slab projection. The box visibly shrinks."""
     try:
         import gsd.hoomd
         from matplotlib.animation import FFMpegWriter, PillowWriter
     except Exception as e:                                        # noqa: BLE001
-        print(f"  애니메이션 건너뜀: {e}")
+        print(f"  skipping the animation: {e}")
         return
     p = run_dir / "traj_A.gsd"
     if not p.exists():
-        print("  애니메이션 건너뜀: traj_A.gsd 없음")
+        print("  skipping the animation: no traj_A.gsd")
         return
     with gsd.hoomd.open(str(p), mode="r") as tr:
         frames = [(np.array(f.particles.position), float(f.configuration.box[0]))
@@ -281,7 +292,7 @@ def animate(run_dir: Path, out: Path, stride: int = 1):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", default=None, help="run_id (기본: 완료된 network 런 전부)")
+    ap.add_argument("--run", default=None, help="run_id (default: every completed network run)")
     ap.add_argument("--no-anim", action="store_true")
     ap.add_argument("--stride", type=int, default=2)
     args = ap.parse_args()
@@ -294,17 +305,17 @@ def main() -> int:
         try:
             d = load(p)
             if "final_positions" not in d:
-                print(f"  건너뜀 (finalize 미완료): {p.name}")
+                print(f"  skipped (finalize incomplete): {p.name}")
                 continue
             done.append(d)
         except Exception as e:                                    # noqa: BLE001
-            print(f"  건너뜀 {p.name}: {e}")
+            print(f"  skipped {p.name}: {e}")
     if not done:
-        print("완료된 network 런이 없습니다.")
+        print("no completed network runs.")
         return 1
 
     OUT.mkdir(parents=True, exist_ok=True)
-    print(f"런 {len(done)}개")
+    print(f"{len(done)} runs")
     for d in done:
         st = d["_metrics"]["numerics"].get("stage_tau", "?")
         figure_structure(d, OUT / f"structure_st{st}.png")
