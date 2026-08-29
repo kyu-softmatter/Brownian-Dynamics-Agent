@@ -16,10 +16,12 @@ exists because a plausible-but-wrong result got through once.
 > **Scope.** This and
 > [**agentic-microscope**](https://github.com/kyu-softmatter/agentic-microscope)
 > are independent side projects, developed outside my primary research and mostly
-> on evenings and weekends. Work began in late July 2026 — under two months as of
-> this writing; the earliest dated design document in
-> [`docs/history/`](docs/history/) is 2026-07-27 — as an exploration of how
-> agentic systems could make scientific reasoning, simulation and instrumentation
+> on evenings and weekends. Work began in **early July 2026**; the dated record
+> starts later than the work did, because writing it down came second — the
+> earliest design document in [`docs/history/`](docs/history/) is 2026-07-27, and
+> this repository's own git history only begins on 2026-08-28, when the three
+> predecessors were merged and published. The question being explored is whether
+> agentic systems can make scientific reasoning, simulation and instrumentation
 > more reliable and auditable. That question, rather than any single result, is
 > what they are built to test.
 >
