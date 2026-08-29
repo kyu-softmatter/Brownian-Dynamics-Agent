@@ -125,6 +125,7 @@ A copy is legitimate only if all three hold:
 That third clause is the whole point: you cannot prove a move changed nothing by
 importing the thing you moved. If a physical value legitimately changes, the
 comparison *should* fail and the change should be argued, not absorbed.
+→ KB `tooling__a-de-duplication-pass-spawns-duplicates-while-it`
 
 ### Search-delimited edits need an asserted end marker
 
@@ -138,6 +139,38 @@ dangerous version is the one that does.
 **Rule: assert `count == 1` on the exact text being replaced, and assert the end
 marker as well as the start.** A start-only match will happily eat the rest of
 the file.
+
+### A checker scoped by a bare `git diff` goes blind exactly when it matters
+
+`git diff --name-only` lists **unstaged** changes only. A verifier scoped that way
+audits nothing the moment its subject is staged — which is to say, at the instant
+someone is ready to commit it. Measured on 2026-08-29: the refactor audit in
+[`verify/verify_merge_equivalence.py`](../verify/verify_merge_equivalence.py)
+covered **zero files and printed `PASS`**, and it was noticed only because a human
+happened to see the empty output. That is not a mechanism.
+
+Fixed by scoping to `HEAD` *and* making the empty set a failure. One consequence
+is worth knowing before it alarms someone: **that script now fails on a clean
+checkout**, because a clean checkout genuinely is the nothing-to-audit case. To
+audit after committing, point it at the parent — `git diff --name-only HEAD~1` —
+rather than reading the failure as a broken landing.
+
+### The index is shared state with no audit trail
+
+When more than one agent works in one worktree, `.git/index` is the piece of state
+they all share and none can reconstruct the history of. On 2026-08-29 25 paths
+turned up staged and **no session that could be asked had run `git add`**.
+
+The tempting evidence is `.git/index`'s mtime. It does not work: the mtime records
+the most recent index *write*, and every commit rewrites the index, so by the time
+anyone looks it has usually been overwritten by unrelated activity. Reading a
+staging time off it produced a confident and wrong answer here — including a
+provenance claim in a commit message that the mtime could not actually support.
+
+**Rule: never infer authorship or timing from the index.** Scope checkers to
+`HEAD`, commit with explicit pathspecs so a stray staged entry cannot ride along,
+and if it matters who changed something, ask the other sessions rather than
+measuring the filesystem.
 
 ### `result.txt` is written by the case script, not by the engine
 
@@ -245,5 +278,5 @@ a real crash bug precisely because it was written to break things.
    without an error?*
 3. File a KB entry with `origin: tooling` and a **cause, not a symptom**.
 
-There are 44 `tooling` entries. That number is the honest measure of how much of
+There are 48 `tooling` entries. That number is the honest measure of how much of
 this work is fighting the instruments rather than the physics.
