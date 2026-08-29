@@ -27,6 +27,51 @@ GATE = _dt.GATE      # threshold for every separation check. dt/tau=1e-2 <=> 0.5
                      # ★ defined in bdbot.dt -- this is a re-export, not a copy
 MARGIN_WARN = 5.0    # below this margin, warn "no room to raise a parameter"
 SOFT_KINDS = frozenset({"statistics", "finite-size"})
+
+# ⛔ The `kind` vocabulary was translated in the code, but `specs/` is a frozen,
+#    content-addressed archive written by the older code, so 2,333 of its 2,350
+#    archived checks still carry the Korean spelling. Measured 2026-08-29:
+#
+#      735 '통계'   728 '적분'   511 '모델'   356 '기하'   3 '유한크기'
+#        5 'statistics'  4 'integration'  7 'model'  1 'geometry'
+#
+#    `soft()` keying on the English spelling alone therefore classified **738
+#    archived soft checks as HARD, 390 of which are currently failing** -- so
+#    re-reading those specs flipped the verdict from "PASS (N warnings)" to FAIL
+#    and `health.gate()` blocked the run. That is precisely the false-rejection
+#    bug `health.gate()`'s own docstring records (80 of 83 specs falsely rejected),
+#    reintroduced through a vocabulary change rather than a predicate change.
+#
+#    Note that `run_id` was never affected -- `kind` is not hash-covered, and the
+#    read-only recomputation still gives 278 specs / 0 mismatches. "Not
+#    hash-covered" and "not load-bearing" are different properties, and only the
+#    first was checked when this vocabulary was translated.
+#
+#    Same remedy as the dual `("result —", "결과 —")` markers in runid.py: read
+#    both, write one. Do NOT delete the legacy column while runs/ and specs/ are
+#    frozen.
+LEGACY_KINDS = {
+    "통계": "statistics",
+    "적분": "integration",
+    "모델": "model",
+    "기하": "geometry",
+    "유한크기": "finite-size",
+}
+
+
+def canon_kind(kind: str) -> str:
+    """Map a legacy Korean `kind` onto the current vocabulary; pass others through.
+
+    Every consumer that compares `Check.kind` against a literal must go through
+    this, or it silently stops matching the archive. There are two such consumers:
+    `soft()` below, and `bdbot.health.predicted_dt_over_tau`, which filters
+    `kind == "integration"` and currently returns None for 276 of 278 archived
+    specs -- which makes `health` record LEDGER_INCOMPLETE as a PASS with the note
+    "comparison skipped".
+    """
+    return LEGACY_KINDS.get(kind, kind)
+
+
 # * Floating-point boundary tolerance. Prevents a check whose limit is set
 #   **equal to the construction** from failing by accident.
 #   This actually bit: chain-bend defines T_obs == 100*(2*pi/omega), and
@@ -69,8 +114,12 @@ class Check:
 
 
 def soft(kind: str) -> bool:
-    """Is this kind a warning? (the hard/soft definition in bd-physics section 4)"""
-    return kind in SOFT_KINDS
+    """Is this kind a warning? (the hard/soft definition in bd-physics section 4)
+
+    Goes through `canon_kind` so a re-read archived spec, whose `kind` is still
+    Korean, classifies the same way it did when it was written.
+    """
+    return canon_kind(kind) in SOFT_KINDS
 
 
 def verdict(checks) -> tuple[str, list, list, list]:
@@ -143,5 +192,6 @@ def bias_from_dt(dt, tau) -> float:
         float((dt / tau).to("dimensionless").magnitude))
 
 
-__all__ = ["Check", "GATE", "MARGIN_WARN", "SOFT_KINDS", "soft", "verdict",
+__all__ = ["Check", "GATE", "MARGIN_WARN", "SOFT_KINDS", "LEGACY_KINDS",
+           "canon_kind", "soft", "verdict",
            "relaxation_time", "dt_from_gate", "dt_from_bias", "bias_from_dt"]
