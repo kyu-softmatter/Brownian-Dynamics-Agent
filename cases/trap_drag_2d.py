@@ -1,27 +1,37 @@
-"""`trap-drag-2d-hex300` — L3 무차원화 (실행은 아직 없음).
+"""`trap-drag-2d-hex300` — L3 non-dimensionalization + L4 builder.
 
-육방 콜로이드 격자(소프트 반발 A/r³ + WCA)를 광집게 트랩 하나로 등속 관통시키는 계.
-능동 마이크로레올로지 / 끌린 탐침.
+(The Korean original said "no run yet". That was stale as of 2026-08-29: measured
+84 specs carry this label and 80 of their run directories hold a completed
+`metrics.json`. Corrected rather than translated forward. Note those runs predate
+`observables.npz` being written, so `make_plots` cannot replot them.)
 
-**1-A + 1-B의 합집합입니다** — 트랩(1-A)과 소프트 페어 격자(1-B)가 한 계에 같이 있고,
-그래서 **강성이 두 개**입니다. 이 케이스가 새로 가져오는 것은 세 가지입니다:
+A hexagonal colloidal lattice (soft repulsion A/r³ + WCA) driven through at constant
+speed by a single optical trap. Active microrheology / dragged probe.
 
-  ① `dt` 를 **두 강성 중 빠른 쪽**이 정한다 — τ_k = γ/k_t 가 τ_int = γ/U''(r_min) 보다
-     218배 빠릅니다. 1-A는 트랩만, 1-B는 페어만 있어서 경쟁이 없었습니다.
-  ② **이류 시간척도** τ_v = d/v_x 가 처음 등장합니다 (움직이는 경계조건).
-  ③ ★ **측정 가능성이 하드 게이트가 아니라 통계 문제로 나타납니다** — 끌림 지연
-     Δr_ss = γv/k_t = 2.0 nm 가 트랩 안 열요동 ℓ_k = 20.4 nm 의 1/10 입니다 (SNR = 0.0985).
-     분리 검사는 전부 통과하는데 **한 번 횡단으로는 원하는 정밀도가 안 나옵니다.**
-     L3가 잡아야 하는 종류의 결함이고, 실행 전에 보입니다.
+**This is the union of 1-A and 1-B** — the trap (1-A) and the soft pair lattice (1-B)
+coexist in one system, so there are **two stiffnesses**. Three things are new here:
 
-L4(실행)는 `bdbot.run` 이 돌리고 **수치 건전성만** 판정합니다 (발산·NaN·frozen·표류).
-물리 대조는 `metrics.observables` 의 role 체계입니다 — L4가 하지 않습니다.
+  ① `dt` is set by **whichever of the two stiffnesses is faster** — τ_k = γ/k_t is
+     218× faster than τ_int = γ/U''(r_min). 1-A had only the trap and 1-B only the
+     pair, so there was no competition.
+  ② An **advective timescale** τ_v = d/v_x appears for the first time (a moving
+     boundary condition).
+  ③ ★ **Measurability shows up as a statistics problem, not as a hard gate** — the
+     drag lag Δr_ss = γv/k_t = 2.0 nm is 1/10 of the in-trap thermal fluctuation
+     ℓ_k = 20.4 nm (SNR = 0.0985).
+     Every separation check passes, yet **one traverse does not reach the precision
+     we want.**
+     That is exactly the kind of flaw L3 has to catch, and it is visible before running.
+
+L4 (the run) is driven by `bdbot.run` and judges **numerical health only**
+(blow-up, NaN, frozen, drift).
+The physics comparison is the role system in `metrics.observables` — not L4's job.
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
-    $PY cases/trap_drag_2d.py --report        # L3 리포트만
-    $PY cases/trap_drag_2d.py --spec          # L3 스펙
-    $PY cases/trap_drag_2d.py --smoke         # L4 배선 확인 (짧게)
-    $PY cases/trap_drag_2d.py                 # L4 본 실행 (~6.8e6 스텝)
+    $PY cases/trap_drag_2d.py --report        # the L3 report only
+    $PY cases/trap_drag_2d.py --spec          # the L3 spec
+    $PY cases/trap_drag_2d.py --smoke         # L4 wiring check (short)
+    $PY cases/trap_drag_2d.py                 # the real L4 run (~6.8e6 steps)
 """
 from __future__ import annotations
 
@@ -42,31 +52,38 @@ from bdbot.pairpot import HEX_NN, U2_star, U_star, a_mean_star, approach_distanc
 from bdbot.provenance import load_node  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-R_TABLE_MIN = 0.5          # pair.Table 하한 (1-B와 동일). 함정 11 방어의 기준
-N_CYCLE_TARGET = 100.0     # 통계 검사 기준 — 격자 주기를 몇 번 지나야 하는가
-STAT_TARGET_PCT = 2.0      # ⟨F_drag⟩ 목표 정밀도 (system.yaml numerics.stat_target_pct)
-# ★ GSD 저장 주기 [스텝]. None 이면 전체의 1/300. **스펙에 넣지 않습니다** — 출력 설정이지
-#   물리가 아니라서 해시에 들어가면 같은 계가 다른 run_id 를 갖게 됩니다.
-#   빠른 v 는 끌기 구간이 짧아(v=32 에서 12,544 스텝) 기본 주기로는 프레임이 2개뿐입니다.
+R_TABLE_MIN = 0.5          # pair.Table lower bound (same as 1-B). The basis of the trap-11 guard
+N_CYCLE_TARGET = 100.0     # statistics-check basis -- how many lattice periods to cross
+STAT_TARGET_PCT = 2.0      # ⟨F_drag⟩ target precision (system.yaml numerics.stat_target_pct)
+# ★ GSD write period [steps]. None means 1/300 of the total. **Not put in the spec** —
+#   it is an output setting, not physics, so putting it in the hash would give the same
+#   system a different run_id.
+#   A fast v has a short drag phase (12,544 steps at v=32), so the default period would
+#   give only 2 frames.
 GSD_EVERY: int | None = None
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ① 물리계 (SI)
+# ① The physical system (SI)
 # ════════════════════════════════════════════════════════════════════════
 def load_system(path: Path, v_sel: float | None = None) -> dict:
-    """`v_sel` 은 `external.drag_velocity` 리스트에서 고를 값 [µm/s]. None 이면 스케치 값."""
+    """`v_sel` is the value to pick from the `external.drag_velocity` list [µm/s].
+
+    None means the sketch value.
+    """
     raw = yaml.safe_load(path.read_text())
     P = load_node
-    # ★ 속도 스윕 — 리스트에서 한 점을 고른다. 지어내지 않고 **L2에 있는 값만** 쓴다.
+    # ★ Velocity sweep — pick one point from the list. Invent nothing; use **only values
+    #   that are in L2**.
     vnode = dict(raw["external"]["drag_velocity"])
     vlist = vnode["value"] if isinstance(vnode["value"], list) else [vnode["value"]]
     vlist = [float(x) for x in vlist]
     vsel = float(v_sel) if v_sel is not None else (0.5 if 0.5 in vlist else vlist[0])
     if not any(abs(vsel - x) < 1e-12 for x in vlist):
-        raise ValueError(f"v={vsel} 는 L2 의 drag_velocity 목록에 없습니다: {vlist}. "
-                         "스펙은 물리계에서 유도된 것만 씁니다 (규칙 2) — "
-                         "새 속도를 쓰려면 system.yaml 에 먼저 추가하세요.")
+        raise ValueError(f"v={vsel}  is not in the L2 drag_velocity list: {vlist}. "
+                         "A spec only ever uses what was derived from the physical "
+                         "system (rule 2) — "
+                         "to use a new velocity, add it to system.yaml first.")
     vnode["value"] = vsel
     r3, wca = raw["interactions"][0], raw["interactions"][1]
     return {
@@ -78,11 +95,13 @@ def load_system(path: Path, v_sel: float | None = None) -> dict:
         "T": P(raw["medium"]["temperature"]),
         "eta": P(raw["medium"]["viscosity"]),
         "phi": float(raw["geometry"]["area_fraction"]["value"]),
-        # ★ 정합 육방의 셀 수. N = n_x·n_y 이므로 N을 따로 읽고 대조한다 (아래 build_ledger).
+        # ★ Cell counts of the commensurate hexagon. N = n_x·n_y, so N is read
+        #   separately and cross-checked (build_ledger below).
         "n_x": int(raw["geometry"]["n_x"]["value"]),
         "n_y": int(raw["geometry"]["n_y"]["value"]),
-        # L2가 **적어둔** 박스. 아래에서 격자로부터 유도한 값과 대조합니다 — 유도값을
-        # 그냥 믿으면 YAML 이 조용히 어긋나도 아무도 모릅니다 (physical.verify 와 같은 태도).
+        # The box as **written down** by L2. It is compared below against the value
+        # derived from the lattice — just trusting the derived value means nobody
+        # notices when the YAML silently drifts (same attitude as physical.verify).
         "box_x": load_node(raw["geometry"]["box_length_x"]),
         "box_y": load_node(raw["geometry"]["box_length_y"]),
         "A": float(r3["amplitude_A"]["value"]),
@@ -98,8 +117,9 @@ def load_system(path: Path, v_sel: float | None = None) -> dict:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ② 스케일 원장 (bd-physics §0 ①②)
-#    1-A(길이 3·시간 5)와 1-B(길이 5·시간 5)를 합쳐 길이 7 · 시간 7 이 됩니다.
+# ② The scale ledger (bd-physics §0 ①②)
+#    1-A (3 lengths, 5 times) and 1-B (5 lengths, 5 times) combine into 7 lengths,
+#    7 times.
 # ════════════════════════════════════════════════════════════════════════
 def build_ledger(sys_, *, dt_scale=1.0, n_traverse=1.0,
                  warm=10.0, equil=20.0, relax=40.0) -> SC.ScaleLedger:
@@ -110,90 +130,99 @@ def build_ledger(sys_, *, dt_scale=1.0, n_traverse=1.0,
     v_x = sys_["v_x"].value.to("m/s")
     A, eps, phi, N = sys_["A"], sys_["wca_eps_kT"], sys_["phi"], sys_["N"]
 
-    # ── ★ 정합 육방 격자 (정사각 박스가 아니다) ────────────────────────
-    #   L_x = n_x·a_NN , L_y = n_y·(√3/2)·a_NN , N = n_x·n_y , n_y 짝수.
-    #   예전에는 L = a_mean√N (정사각)이었는데 그러면 초기 격자가 이음매에서 안 맞고,
-    #   이 계의 관측량(격자 변형장·ψ₆)이 바로 그 결함에 민감하다.
+    # ── ★ Commensurate hexagonal lattice (the box is NOT square) ──────────
+    #   L_x = n_x·a_NN , L_y = n_y·(√3/2)·a_NN , N = n_x·n_y , n_y even.
+    #   It used to be L = a_mean√N (square), but then the initial lattice does not match
+    #   at the seam — and this system's observables (lattice deformation field, ψ₆) are
+    #   sensitive to exactly that defect.
     n_x, n_y = sys_["n_x"], sys_["n_y"]
     if n_x * n_y != N:
-        raise ValueError(f"정합 육방이 깨졌습니다: n_x·n_y = {n_x}·{n_y} = {n_x*n_y} ≠ N = {N}")
+        raise ValueError(f"commensurate hexagon broken: n_x·n_y = {n_x}·{n_y} = {n_x*n_y} ≠ N = {N}")
     if n_y % 2:
-        raise ValueError(f"n_y = {n_y} 가 홀수입니다 — 엇갈린 행의 주기가 2행이라 "
-                         "주기경계에서 이어지지 않습니다")
+        raise ValueError(f"n_y = {n_y} is odd — the staggered rows have a period of 2 rows, so "
+                         "they do not join across the periodic boundary")
     a_star = a_mean_star(phi)                       # a_mean/d
-    a_nn_star = HEX_NN * a_star                     # a_NN/d — 격자 상수는 이쪽이다
+    a_nn_star = HEX_NN * a_star                     # a_NN/d — this is the lattice constant
     Lx_star = n_x * a_nn_star
     Ly_star = n_y * (math.sqrt(3) / 2) * a_nn_star
-    # φ 는 이 구성에서 **항등적으로** 보존된다 (φ = πd²/(4a_mean²) 이고 L_x·L_y = N a_mean²).
-    #   그래서 φ 를 여기서 재계산해 대조해봐야 항상 통과한다 — 돌지 않는 검사다.
-    #   실제로 의미 있는 대조는 **L2가 적어둔 박스**와의 대조다: L_x·L_y 를 φ·n_x·n_y 에서
-    #   유도하므로, YAML 의 box_length_* 가 조용히 어긋나면 여기서만 잡을 수 있다.
+    # φ is conserved **identically** in this construction (φ = πd²/(4a_mean²) and
+    #   L_x·L_y = N a_mean²). So recomputing φ here and comparing always passes — it is
+    #   a check that never fires.
+    #   The comparison that actually means something is against **the box L2 wrote
+    #   down**: L_x·L_y is derived from φ·n_x·n_y, so a silent drift in the YAML's
+    #   box_length_* can only be caught here.
     for sym, got_star, node in (("L_x", Lx_star, sys_["box_x"]), ("L_y", Ly_star, sys_["box_y"])):
         want = float((node.value.to("m") / d).to("dimensionless").magnitude)
         if abs(got_star - want) > 1e-3 * want:
             raise ValueError(
-                f"{sym} 가 L2 선언과 어긋납니다: 격자 유도 {got_star*float(d.to('um').magnitude):.4f} µm "
+                f"{sym} disagrees with the L2 declaration: lattice-derived {got_star*float(d.to('um').magnitude):.4f} µm "
                 f"vs system.yaml {node.value.to('um'):~.4gP} "
-                f"({100*(got_star-want)/want:+.3f}%). φ·n_x·n_y 와 박스를 함께 고치세요.")
+                f"({100*(got_star-want)/want:+.3f}%). Fix φ·n_x·n_y and the box together.")
     r_c_star = float((sys_["r_c"].value.to("m") / d).to("dimensionless").magnitude)
     r_min_star, crit, u_rms_rel, state = approach_distance(A, a_star, eps)
 
-    # ★ 두 개의 강성 → 두 개의 이완시간. 둘 다 γ/(국소 강성) 이다 (bdbot.checks).
-    tau_k = C.relaxation_time(gamma, k_t)                                  # 트랩
-    tau_int = (tau_B / float(U2_star(r_min_star, A, eps))).to("s")          # 페어 (kT/d² 단위)
-    tau_v = (d / v_x).to("s")                                              # 이류 (새로 등장)
+    # ★ Two stiffnesses → two relaxation times. Both are γ/(local stiffness)
+    #   (bdbot.checks).
+    tau_k = C.relaxation_time(gamma, k_t)                                  # trap
+    tau_int = (tau_B / float(U2_star(r_min_star, A, eps))).to("s")          # pair (in kT/d² units)
+    tau_v = (d / v_x).to("s")                                              # advection (new here)
 
-    # dt 는 **가장 빠른** 척도가 정한다 — 여기서는 트랩이다 (페어보다 218배 빠름).
+    # dt is set by the **fastest** scale — here that is the trap (218× faster than the
+    # pair).
     tau_dt = min((tau_k, tau_int), key=lambda q: q.to("s").magnitude)
     dt = dt_scale * C.dt_from_gate(tau_dt)
-    # ★ 횡단은 **끌기 방향**인 L_x 다 (짧은 변 L_y 가 아니다).
-    #   `tau_cross` 는 프로토콜과 **무관한** 계의 성질입니다 — 예전에는 이걸 따로 두지 않고
-    #   기하 검사(항적 치유)가 `T_obs` 를 분모로 썼는데, `--traverse` 를 바꾸면 검사의
-    #   의미가 조용히 달라졌습니다 (traverse=0.001 로 평형화 연구를 돌리려다 하드 FAIL).
-    #   계의 성질을 재는 검사는 계의 척도만 봐야 합니다.
+    # ★ The traverse is along L_x, the **drag direction** (not the short side L_y).
+    #   `tau_cross` is a property of the system, **independent of the protocol**. It
+    #   used not to be separated out, and the geometry check (wake healing) used `T_obs`
+    #   as the denominator — so changing `--traverse` silently changed what the check
+    #   meant (a hard FAIL while trying to run an equilibration study at traverse=0.001).
+    #   A check that measures a property of the system must look only at the system's
+    #   own scales.
     tau_cross = (Lx_star * d / v_x).to("s")
 
-    # 네 구간 (단위: τ_int, 끌기만 횡단시간). T_obs 는 **전체 프로토콜**이다.
+    # Four phases (unit: τ_int; the drag phase alone uses the traverse time).
+    # T_obs is the **whole protocol**.
     n_of = lambda x: int(round(x * float((tau_int / dt).to(""))))
     n_warm, n_equil, n_relax = n_of(warm), n_of(equil), n_of(relax)
     n_drag = int(round(float((n_traverse * tau_cross / dt).to(""))))
     T_obs = ((n_warm + n_equil + n_drag + n_relax) * dt).to("s")
 
-    l_k = (kT / k_t) ** 0.5                            # 트랩 안 열요동 폭
-    dr_ss = (gamma * v_x / k_t).to("m")                # 끌림의 정상상태 지연
+    l_k = (kT / k_t) ** 0.5                            # in-trap thermal fluctuation width
+    dr_ss = (gamma * v_x / k_t).to("m")                # steady-state drag lag
 
     lg = SC.ScaleLedger()
-    lg.add_length("dr_ss", dr_ss, "γv/k_t 끌림 지연 (신호)", star=True)
-    lg.add_length("l_k", l_k.to("m"), "√(kT/k_t) 트랩 요동 (잡음)", star=True)
+    lg.add_length("dr_ss", dr_ss, "gamma*v/k_t drag lag (signal)", star=True)
+    lg.add_length("l_k", l_k.to("m"), "sqrt(kT/k_t) trap fluctuation (noise)", star=True)
     lg.add_length("d", d, "particle diameter (reference)")
     lg.add_length("r_min", r_min_star * d, "closest approach distance")
     lg.add_length("a_mean", a_star * d, "mean spacing")
-    lg.add_length("a_NN", a_nn_star * d, "육방 최근접 = 격자 상수 (a_mean 이 아님)")
+    lg.add_length("a_NN", a_nn_star * d, "hex nearest-neighbour = lattice constant (NOT a_mean)")
     lg.add_length("r_c", r_c_star * d, "cutoff")
-    # ★ 직사각 박스라 변이 둘이다. 최소이미지를 정하는 것은 **짧은 변**이므로 거기에
-    #   `box` 역할을 준다 (역할은 기호가 아니라 기능이다 — bdbot.scales).
-    #   긴 변은 끌기 방향이고 T_obs·격자 주기 수를 정한다.
+    # ★ The box is rectangular, so there are two sides. Minimum image is set by the
+    #   **short side**, so the `box` role goes there (a role is a function, not a
+    #   symbol — bdbot.scales).
+    #   The long side is the drag direction and sets T_obs and the lattice-period count.
     short, long_ = (("L_y", Ly_star), ("L_x", Lx_star)) if Ly_star <= Lx_star \
         else (("L_x", Lx_star), ("L_y", Ly_star))
-    lg.add_length(short[0], short[1] * d, f"박스 짧은 변 — 최소이미지의 분모 ({n_y}행)"
-                  if short[0] == "L_y" else f"박스 짧은 변 — 최소이미지의 분모 ({n_x}열)",
+    lg.add_length(short[0], short[1] * d, f"box short side — denominator of minimum image ({n_y} rows)"
+                  if short[0] == "L_y" else f"box short side — denominator of minimum image ({n_x} cols)",
                   role="box")
     lg.add_length(long_[0], long_[1] * d,
-                  f"박스 긴 변 = 끌기 방향 ({n_x}열 × a_NN)"
-                  if long_[0] == "L_x" else f"박스 긴 변 ({n_y}행)")
+                  f"box long side = drag direction ({n_x} cols x a_NN)"
+                  if long_[0] == "L_x" else f"box long side ({n_y} rows)")
     lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
     lg.add_time("dt", dt, "integration step", role="dt")
-    lg.add_time("tau_k", tau_k, "γ/k_t 트랩 — 최속, dt를 정한다", star=True)
-    lg.add_time("tau_int", tau_int, f"γ/U''(r_min={r_min_star:.3f}d) 페어")
-    lg.add_time("tau_v", tau_v, "d/v_x 이류 (움직이는 트랩)")
-    lg.add_time("tau_cell", (HEX_NN * a_star * d / v_x).to("s"), "a_NN/v_x 격자 주기")
-    lg.add_time("tau_cross", tau_cross, "L_x/v_x 박스 횡단 (계의 성질 — 프로토콜 무관)")
+    lg.add_time("tau_k", tau_k, "gamma/k_t trap — fastest, sets dt", star=True)
+    lg.add_time("tau_int", tau_int, f"γ/U''(r_min={r_min_star:.3f}d) pair")
+    lg.add_time("tau_v", tau_v, "d/v_x advection (moving trap)")
+    lg.add_time("tau_cell", (HEX_NN * a_star * d / v_x).to("s"), "a_NN/v_x lattice period")
+    lg.add_time("tau_cross", tau_cross, "L_x/v_x box traverse (a system property — protocol-independent)")
     lg.add_time("tau_B", tau_B, "d^2/D_t diffusion (reference)")
-    lg.add_time("T_obs", T_obs, "관측창 = 네 구간 전체", role="observation")
+    lg.add_time("T_obs", T_obs, "observation window = all four phases", role="observation")
     lg.add_energy("kT", kT, "thermal energy (reference)")
     lg.add_energy("U_a", (float(U_star(a_star, A, eps)) * kT).to("J"),
                   "U(a_mean) mean-spacing coupling = Gamma*kT")
-    # ★ U(d) = (A+ε) kT — A kT 가 아니다 (1-B에서 L3 검사가 잡은 라벨 오류)
+    # ★ U(d) = (A+ε) kT — NOT A kT (a label error the L3 check caught in 1-B)
     lg.add_energy("U_d", (float(U_star(1.0, A, eps)) * kT).to("J"),
                   "U(d) contact coupling = (A+eps_WCA)*kT")
     lg.add_energy("k_t_d2", (k_t * d**2).to("J"), "k_t*d^2 trap stiffness")
@@ -210,14 +239,16 @@ def build_ledger(sys_, *, dt_scale=1.0, n_traverse=1.0,
                       tau_dt_name=("tau_k" if tau_dt is tau_k else "tau_int"))
     lg.ref = SC.thermal_reference(
         d, kT, tau_B,
-        SC.THERMAL_RATIONALE + " ★ 이 계에는 강성이 **두 개**(트랩 k_t, 페어 U'')이고 "
-        "트랩이 218배 빠르다 → dt는 트랩이 정한다. 1-A는 트랩만, 1-B는 페어만 있었다.")
+        SC.THERMAL_RATIONALE + " ★ This system has **two** stiffnesses (trap k_t, "
+        "pair U'') and "
+        "the trap is 218x faster -> the trap sets dt. 1-A had only the trap, "
+        "1-B only the pair.")
     lg.rationale = lg.ref["rationale"]
     return lg
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ③ 무차원수 + ④ 분리 검사 (bd-physics §3, §4)
+# ③ Dimensionless groups + ④ separation checks (bd-physics §3, §4)
 # ════════════════════════════════════════════════════════════════════════
 def analyze_scales(sys_, lg):
     D = lg.derived
@@ -230,104 +261,116 @@ def analyze_scales(sys_, lg):
     Gamma = float(U_star(a_star, A, eps))
     snr = lg.ratio("lengths", "dr_ss", "l_k")
 
-    # 한 번 횡단에서 얻는 ⟨Δr_ss⟩ 의 상대 정밀도.
-    #   독립표본 n ≈ T_obs/(2τ_k) (변위 상관시간 τ_k), 표본당 잡음 ℓ_k
+    # Relative precision of ⟨Δr_ss⟩ obtained from one traverse.
+    #   independent samples n ≈ T_obs/(2τ_k) (displacement correlation time τ_k),
+    #   per-sample noise ℓ_k
     #   ⟹ SEM/Δr_ss = 1/(SNR·√n)
-    n_indep = 0.5 * lg.ratio("times", "tau_cross", "tau_k")   # 끌기 한 번 횡단 기준
+    n_indep = 0.5 * lg.ratio("times", "tau_cross", "tau_k")   # per one drag traverse
     prec_pct = 100.0 / (snr * math.sqrt(n_indep))
-    n_cell = lg.ratio("times", "tau_cross", "tau_cell")   # 한 번 횡단의 격자 주기 = n_x
+    n_cell = lg.ratio("times", "tau_cross", "tau_cell")   # lattice periods in one traverse = n_x
 
     groups = [
         ND.Group("Gamma", Gamma, ("energies", "U_a"), ("energies", "kT"),
-                 "A(d/a_mean)³", "페어 결합 → 육방 결정 ★"),
-        ND.Group("A", A, None, None, "", "r⁻³ 진폭 (입력, ★제안)"),
+                 "A(d/a_mean)³", "pair coupling -> hexagonal crystal ★"),
+        ND.Group("A", A, None, None, "", "r^-3 amplitude (input, ★proposed)"),
         ND.Group("U(d)/kT", float(U_star(1.0, A, eps)),
                  ("energies", "U_d"), ("energies", "kT"), "(A+ε_WCA)", "contact coupling"),
         ND.Group("k*", lg.ratio("energies", "k_t_d2", "kT"),
                  ("energies", "k_t_d2"), ("energies", "kT"), "k_t d²/kT",
-                 "트랩 vs 열요동 (매우 뻣뻣)"),
+                 "trap vs thermal fluctuation (very stiff)"),
         ND.Group("phi", phi, None, None, "", "packing"),
         ND.Group("Pe_drag", lg.ratio("times", "tau_B", "tau_v"),
                  ("times", "tau_B"), ("times", "tau_v"), "v_x d/D_t", "advection vs diffusion"),
         ND.Group("SNR", snr, ("lengths", "dr_ss"), ("lengths", "l_k"), "Δr_ss/ℓ_k",
-                 "★ 끌림 신호가 열요동의 1/10"),
+                 "★ the drag signal is 1/10 of the thermal fluctuation"),
         ND.Group("a_mean/d", a_star, ("lengths", "a_mean"), ("lengths", "d"), "", "mean spacing"),
         ND.Group("a_NN/a_mean", HEX_NN, ("lengths", "a_NN"), ("lengths", "a_mean"),
-                 "√(2/√3)", "육방 최근접 (파라미터 없는 예측)"),
+                 "√(2/√3)", "hex nearest-neighbour (a parameter-free prediction)"),
         ND.Group("L_x/d", Lx_star, ("lengths", "L_x"), ("lengths", "d"), "n_x·a_NN/d",
-                 "박스 긴 변 = 끌기 방향"),
+                 "box long side = drag direction"),
         ND.Group("L_y/d", Ly_star, ("lengths", "L_y"), ("lengths", "d"),
-                 "n_y·(√3/2)a_NN/d", "박스 짧은 변"),
+                 "n_y·(√3/2)a_NN/d", "box short side"),
         ND.Group("L_x/L_y", Lx_star / Ly_star, ("lengths", "L_x"), ("lengths", "L_y"),
-                 "", "★ 종횡비 — 정합이 정한다 (정사각이 아니다)"),
+                 "", "★ aspect ratio — set by commensurability (NOT square)"),
         ND.Group("L_x/a_NN", Lx_star / D["a_nn_star"], ("lengths", "L_x"), ("lengths", "a_NN"),
-                 "n_x", "★ 정합 — 정수여야 한다"),
+                 "n_x", "★ commensurate — must be an integer"),
         ND.Group("L_y/a_NN", Ly_star / D["a_nn_star"], ("lengths", "L_y"), ("lengths", "a_NN"),
-                 "n_y·√3/2", f"★ 정합 — 행 간격의 정수배 (n_y = {D['n_y']}, 짝수)"),
+                 "n_y·√3/2", f"★ commensurate — integer multiple of the row spacing (n_y = {D['n_y']}, even)"),
         ND.Group("r_c/a_mean", r_c_star / a_star, ("lengths", "r_c"), ("lengths", "a_mean"),
-                 "", "컷오프 (이웃 껍질 수)"),
+                 "", "cutoff (number of neighbour shells)"),
         ND.Group("tau_k/tau_int", lg.ratio("times", "tau_k", "tau_int"),
                  ("times", "tau_k"), ("times", "tau_int"), "",
-                 "★ 두 강성의 비 — 트랩이 218배 빠르다"),
+                 "★ ratio of the two stiffnesses — the trap is 218x faster"),
         ND.Group("dt/tau_k", lg.ratio("times", "dt", "tau_k"),
                  ("times", "dt"), ("times", "tau_k"), "", "integration resolution (governing scale)"),
         ND.Group("T_obs/tau_B", lg.ratio("times", "T_obs", "tau_B"),
-                 ("times", "T_obs"), ("times", "tau_B"), "", "관측창 (네 구간 전체)"),
+                 ("times", "T_obs"), ("times", "tau_B"), "", "observation window (all four phases)"),
         ND.Group("tau_cross/tau_B", lg.ratio("times", "tau_cross", "tau_B"),
-                 ("times", "tau_cross"), ("times", "tau_B"), "", "박스 횡단"),
+                 ("times", "tau_cross"), ("times", "tau_B"), "", "box traverse"),
         ND.Group("n_cell", n_cell, ("times", "tau_cross"), ("times", "tau_cell"),
-                 "L_x/a_NN", "한 번 횡단의 격자 주기 수 = n_x"),
+                 "L_x/a_NN", "lattice periods per traverse = n_x"),
         ND.Group("St", lg.ratio("times", "tau_p", "tau_B"),
                  ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "inertia vs diffusion"),
     ]
     checks = [
-        C.Check("model", "관성 무시     τ_p/τ_k", lg.ratio("times", "tau_p", "tau_k"),
+        C.Check("model", "inertia negligible  tau_p/tau_k", lg.ratio("times", "tau_p", "tau_k"),
                 C.GATE, "<=",
-                "τ_dyn = 이 계의 최속 관심척도 = τ_k (트랩). dt와 무관 (bd-physics §4)"),
-        C.Check("integration", "트랩 해상     dt/τ_k", lg.ratio("times", "dt", "tau_k"),
+                "tau_dyn = the fastest scale of interest in this system = tau_k (trap). "
+                "Independent of dt (bd-physics §4)"),
+        C.Check("integration", "trap resolved       dt/tau_k", lg.ratio("times", "dt", "tau_k"),
                 C.GATE, "<=",
-                f"편향 ≈ {C.bias_from_dt(g('times', 'dt'), g('times', 'tau_k')):.3f}% "
-                "(선형계 닫힌 형태 — 트랩은 선형이라 그대로 성립)"),
-        C.Check("integration", "페어 해상     dt/τ_int", lg.ratio("times", "dt", "tau_int"),
+                f"bias ≈ {C.bias_from_dt(g('times', 'dt'), g('times', 'tau_k')):.3f}% "
+                "(closed form for a linear system — the trap is linear, so it holds "
+                "exactly)"),
+        C.Check("integration", "pair resolved       dt/tau_int", lg.ratio("times", "dt", "tau_int"),
                 C.GATE, "<=",
-                f"τ_int = γ/U''(r_min={D['r_min_star']:.3f}d), {D['crit']} 기준. "
-                "트랩이 정한 dt라 여유가 크다"),
+                f"τ_int = γ/U''(r_min={D['r_min_star']:.3f}d), criterion {D['crit']}. "
+                "dt was set by the trap, so there is a lot of margin"),
         C.Check("integration", "advection resolved   dt/tau_v", lg.ratio("times", "dt", "tau_v"),
                 C.GATE, "<=",
-                "한 스텝에 트랩 중심이 지름의 1% 이상 움직이면 안 된다 (움직이는 경계조건)"),
-        C.Check("geometry", "컷오프       r_c/(L_min/2)", r_c_star / (L_min / 2), 1.0, "<=",
-                f"최소 이미지 (bd-hoomd 함정 6). 직사각이므로 **짧은 변** "
-                f"L_{'y' if Ly_star <= Lx_star else 'x'} 기준. 위반 시 과거 +1856% 사례"),
-        # ★ 두 축을 함께 본다. x는 a_NN 의 정수배, y는 행 간격 (√3/2)a_NN 의 **짝수**배.
-        #   홀수 행이면 엇갈림이 주기경계에서 어긋난다 (build_ledger 가 먼저 raise 한다).
-        C.Check("geometry", "정합 육방    max|정수 이탈|",
+                "the trap centre must not move more than 1% of a diameter in one step "
+                "(a moving boundary condition)"),
+        C.Check("geometry", "cutoff              r_c/(L_min/2)", r_c_star / (L_min / 2), 1.0, "<=",
+                f"minimum image (bd-hoomd trap 6). Rectangular, so the **short side** "
+                f"L_{'y' if Ly_star <= Lx_star else 'x'} is the basis. Violating it gave the historical +1856% case"),
+        # ★ Both axes together. x must be an integer multiple of a_NN; y an **even**
+        #   multiple of the row spacing (√3/2)a_NN. With an odd row count the stagger
+        #   fails to join across the periodic boundary (build_ledger raises first).
+        C.Check("geometry", "commensurate hex    max|integer deviation|",
                 max(abs(Lx_star / D["a_nn_star"] - D["n_x"]),
                     abs(Ly_star / (math.sqrt(3) / 2 * D["a_nn_star"]) - D["n_y"]),
                     float(D["n_y"] % 2)),
                 1e-9, "<=",
-                f"★ 격자가 주기박스와 정합인가. L_x = {D['n_x']}·a_NN, "
-                f"L_y = {D['n_y']}·(√3/2)a_NN, n_y 짝수. 비정합이면 이음매에 결함이 "
-                f"주입되고 관측량(격자 변형장·ψ₆)이 바로 거기에 민감하다"),
+                f"★ Is the lattice commensurate with the periodic box? "
+                f"L_x = {D['n_x']}·a_NN, "
+                f"L_y = {D['n_y']}·(√3/2)a_NN, n_y even. If incommensurate, defects are "
+                f"injected at the seam — and the observables (lattice deformation "
+                f"field, ψ₆) are sensitive to exactly that"),
         C.Check("geometry", "core margin        r_table_min/r_min", R_TABLE_MIN / D["r_min_star"],
                 1.0, "<=",
-                f"pair.Table 함정 11: r<{R_TABLE_MIN}d 면 힘이 0"),
-        C.Check("geometry", "항적 치유    v τ_int/L_x", lg.ratio("times", "tau_int", "tau_cross"),
+                f"pair.Table trap 11: the force is 0 for r<{R_TABLE_MIN}d"),
+        C.Check("geometry", "wake healing        v tau_int/L_x", lg.ratio("times", "tau_int", "tau_cross"),
                 1.0, "<=",
-                "★ 주기박스라 탐침이 자기 항적으로 되돌아온다. 격자가 치유되는 거리 "
-                "v·τ_int 가 끌기 방향 박스변보다 짧아야 한다"),
-        C.Check("statistics", "관측창       T_obs/τ_k", lg.ratio("times", "T_obs", "tau_k"),
-                100.0, ">=", "트랩 상관시간 기준", hard=False),
-        C.Check("statistics", "측정가능성   SNR", snr, 1.0, ">=",
-                "★ SNR<1 — 끌림 신호가 열요동에 묻힌다. 1회 표본으로는 안 보이고 "
-                "평균화로만 볼 수 있다 (아래 정밀도 검사)", hard=False),
-        C.Check("statistics", "끌림힘 정밀도 SEM/Δr_ss [%]", prec_pct, STAT_TARGET_PCT, "<=",
-                f"★ 한 번 횡단으로 {prec_pct:.2f}% (목표 {STAT_TARGET_PCT:g}%). "
-                f"독립표본 T_obs/2τ_k = {n_indep:,.0f}개. "
-                f"{math.ceil((prec_pct/STAT_TARGET_PCT)**2):.0f}회 횡단이면 목표에 닿는다 — "
-                f"또는 격자 {sys_['N']}개의 변형장을 관측량으로 쓴다", hard=False),
-        C.Check("statistics", "격자 주기 수  L_x/a_NN", n_cell, N_CYCLE_TARGET, ">=",
-                "★ 끌림힘이 격자 주기로 변조되면(stick-slip) 주기 평균이 필요하다. "
-                "한 번 횡단은 √N 방향으로만 늘어난다", hard=False),
+                "★ The box is periodic, so the probe returns into its own wake. The "
+                "healing distance v·tau_int must be shorter than the box side along "
+                "the drag direction"),
+        C.Check("statistics", "observation window  T_obs/tau_k", lg.ratio("times", "T_obs", "tau_k"),
+                100.0, ">=", "in units of the trap correlation time", hard=False),
+        C.Check("statistics", "measurability       SNR", snr, 1.0, ">=",
+                "★ SNR<1 — the drag signal is buried in the thermal fluctuation. It is "
+                "invisible in a single sample and only recoverable by averaging (see "
+                "the precision check below)", hard=False),
+        C.Check("statistics", "drag-force precision SEM/dr_ss [%]", prec_pct, STAT_TARGET_PCT, "<=",
+                f"★ One traverse gives {prec_pct:.2f}% (target {STAT_TARGET_PCT:g}%). "
+                f"Independent samples T_obs/2tau_k = {n_indep:,.0f}. "
+                f"{math.ceil((prec_pct/STAT_TARGET_PCT)**2):.0f} traverses would reach "
+                f"the target — "
+                f"or use the deformation field of all {sys_['N']} lattice particles as "
+                f"the observable", hard=False),
+        C.Check("statistics", "lattice periods     L_x/a_NN", n_cell, N_CYCLE_TARGET, ">=",
+                "★ If the drag force is modulated at the lattice period (stick-slip), a "
+                "period average is needed. "
+                "One traverse only grows as sqrt(N)", hard=False),
     ]
     return groups, checks, Gamma, dict(prec_pct=prec_pct, n_indep=n_indep, n_cell=n_cell,
                                        snr=snr)
@@ -340,53 +383,63 @@ def report_blocks(sys_, lg, extra, n_warm, n_equil, n_prod, n_relax,
            for k in ("d", "T", "eta", "rho_p", "k_t", "v_x")]
     inp += [
         R.kv("N", f"{sys_['N']}", 0,
-             f"sketch 'N ~ 300' → 정합 육방 {D['n_x']}×{D['n_y']} (Δ{100*(sys_['N']-300)/300:+.1f}%)"),
-        R.kv("A", f"{sys_['A']:g}", 3, "★제안 — 1-B에서 육방 결정 확인된 값"),
-        R.kv("phi", f"{sys_['phi']:g}", 3, "★제안 — 1-B와 동일 (스케치 미기재)"),
+             f"sketch 'N ~ 300' -> commensurate hex {D['n_x']}×{D['n_y']} (Δ{100*(sys_['N']-300)/300:+.1f}%)"),
+        R.kv("A", f"{sys_['A']:g}", 3, "★proposed — the value for which 1-B confirmed a hexagonal crystal"),
+        R.kv("phi", f"{sys_['phi']:g}", 3, "★proposed — same as 1-B (not written on the sketch)"),
     ]
     der = [f"  {k:<8} = {D[k].to_compact():~.4gP}" for k in ("gamma", "D_t", "m")]
     der += [
-        f"  상태 추정 = {D['state']}  (Lindemann σ_bond/a_NN = {D['u_rms_rel']:.4f}, 기준 0.15)",
+        f"  state estimate = {D['state']}  (Lindemann sigma_bond/a_NN = "
+        f"{D['u_rms_rel']:.4f}, criterion 0.15)",
         f"  Δr_ss = γv/k_t = {D['dr_ss'].to('nm'):~.3fP}   vs   ℓ_k = {D['l_k'].to('nm'):~.2fP}"
         f"   → SNR = {extra['snr']:.4f}",
-        f"  ★ Δr_ss 는 탐침의 **맨 Stokes 지연**이다. 격자가 더하는 힘이 이 위에 얹히는데,",
-        f"    그 크기는 예측이 없다 (measurement) — 이 계를 계산하는 이유가 그것이다.",
-        f"  ★ 트랩이 페어보다 압도적으로 뻣뻣하다 (k* = {lg.ratio('energies','k_t_d2','kT'):.3g}"
+        f"  ★ Δr_ss is the probe's **bare Stokes lag**. What the lattice adds sits on",
+        f"    top of it, and its size has no prediction (measurement) — which is the",
+        f"    reason to compute this system at all.",
+        f"  ★ The trap is overwhelmingly stiffer than the pair "
+        f"(k* = {lg.ratio('energies','k_t_d2','kT'):.3g}"
         f"  vs  Γ = {float(U_star(D['a_star'], sys_['A'], sys_['wca_eps_kT'])):.2f})",
-        f"    → 탐침은 트랩에 거의 고정된 '단단한' 구동 탐침이다 (일정 속도 경계조건).",
+        f"    -> the probe is a 'hard' driven probe, nearly pinned to the trap "
+        f"(constant-velocity boundary condition).",
     ]
     plan = [
         f"  dt      = {D['dt'].to_compact():~.4gP}"
         f"  = {lg.ratio('times', 'dt', 'tau_B'):.3e} τ_B"
         f"  = 10⁻²·{D['tau_dt_name']}",
         f"  T_obs   = {D['T_obs'].to_compact():~.4gP}"
-        f"  = {lg.ratio('times', 'T_obs', 'tau_B'):.2f} τ_B  (박스 횡단 L_x/v_x)",
-        f"  구간    = 예열 {n_warm:,} + 평형 {n_equil:,} + 끌기 {n_prod:,}"
-        f" + 이완 {n_relax:,}  =  {n_warm+n_equil+n_prod+n_relax:,} 스텝  × N={sys_['N']}",
-        f"            (예열·평형·이완은 τ_int = {tau_int_steps:,.0f} 스텝의"
-        f" {args.warm:g}·{args.equil:g}·{args.relax:g}배)",
-        f"  격자    = 정합 육방 {D['n_x']}×{D['n_y']} = {sys_['N']}"
+        f"  = {lg.ratio('times', 'T_obs', 'tau_B'):.2f} τ_B  (box traverse L_x/v_x)",
+        f"  phases  = warm {n_warm:,} + equil {n_equil:,} + drag {n_prod:,}"
+        f" + relax {n_relax:,}  =  {n_warm+n_equil+n_prod+n_relax:,} steps  x N={sys_['N']}",
+        f"            (warm/equil/relax are"
+        f" {args.warm:g}/{args.equil:g}/{args.relax:g} x tau_int ="
+        f" {tau_int_steps:,.0f} steps)",
+        f"  lattice = commensurate hex {D['n_x']}x{D['n_y']} = {sys_['N']}"
         f"   L_x×L_y = {D['Lx_star']*float(D['d'].to('um').magnitude):.2f}"
         f" × {D['Ly_star']*float(D['d'].to('um').magnitude):.2f} µm"
-        f"  (종횡비 {D['Lx_star']/D['Ly_star']:.4f})",
-        f"  ⚠ 한 번 횡단의 ⟨F_drag⟩ 정밀도는 {extra['prec_pct']:.2f}% 이고 격자 주기는"
-        f" {extra['n_cell']:.0f}회뿐이다.",
-        f"    격자 변형장(입자 {sys_['N']}개)을 1차 관측량으로 쓰는 것이 설계 의도다"
+        f"  (aspect ratio {D['Lx_star']/D['Ly_star']:.4f})",
+        f"  ⚠ One traverse gives ⟨F_drag⟩ to {extra['prec_pct']:.2f}% and only"
+        f" {extra['n_cell']:.0f} lattice periods.",
+        f"    Using the lattice deformation field ({sys_['N']} particles) as the primary"
+        f" observable is the design intent"
         f" (observation.yaml B2).",
-        "  ⚠ 정합이 종횡비를 정한다 — 정사각이 아니다. 유한크기 인공효과가 x·y로 비대칭일 수"
-        " 있고, 그게 격자 변형장에 보이는지는 미확인이다.",
+        "  ⚠ Commensurability sets the aspect ratio — it is not square. Finite-size"
+        " artefacts may therefore be asymmetric in x and y, and whether that shows up"
+        " in the deformation field is unverified.",
     ]
     return inp, der, plan
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ⑤ L4 — 스펙만 읽고 계를 세운다 (bdbot.run 이 돌리고 판정한다)
+# ⑤ L4 — build the system from the spec alone (bdbot.run runs it and judges)
 # ════════════════════════════════════════════════════════════════════════
 def hex_lattice(n_x: int, n_y: int, a_nn: float) -> np.ndarray:
-    """정합 육방 격자 (n_x·n_y 개). 행은 x 방향, 홀수 행이 a_NN/2 만큼 엇갈린다.
+    """Commensurate hexagonal lattice (n_x·n_y particles).
 
-    박스는 `[-L_x/2, L_x/2) × [-L_y/2, L_y/2)`, `L_x = n_x a_NN`,
-    `L_y = n_y (√3/2) a_NN`. n_y 가 짝수라야 주기경계에서 엇갈림이 이어진다.
+    Rows run along x; odd rows are staggered by a_NN/2.
+
+    The box is `[-L_x/2, L_x/2) x [-L_y/2, L_y/2)`, `L_x = n_x a_NN`,
+    `L_y = n_y (√3/2) a_NN`. n_y must be even for the stagger to join across the
+    periodic boundary.
     """
     row = math.sqrt(3) / 2 * a_nn
     Lx, Ly = n_x * a_nn, n_y * row
@@ -396,23 +449,28 @@ def hex_lattice(n_x: int, n_y: int, a_nn: float) -> np.ndarray:
     return np.c_[x, y]
 
 
-PH_WARM, PH_EQ, PH_DRAG, PH_RELAX = "warm-up", "평형", "끌기", "relaxation"
-TAIL_FRAC = 0.2            # 이완 '끝값'으로 볼 뒷부분 비율
+PH_WARM, PH_EQ, PH_DRAG, PH_RELAX = "warm-up", "equilibrium", "drag", "relaxation"
+TAIL_FRAC = 0.2            # tail fraction taken as the relaxation 'end value'
 
 
 def fit_relaxation(t, y, y_eq):
-    """이완 `A·exp(−t/τ)+C` 피팅 + **피팅에 의존하지 않는** 회복률.
+    """Relaxation fit `A·exp(-t/tau)+C` plus a recovery fraction that does **not**
+    depend on the fit.
 
-    ⚠️ 처음에 `curve_fit` 를 경계 없이 돌렸다가 **직선으로 달아났습니다**:
-       τ = 6.9e4 τ_int, C = −404 kT (물리적으로 불가능), τ 오차가 값의 400배.
-       τ ≫ 관측창이면 `A e^{−t/τ} ≈ A(1 − t/τ)` 라 노이즈 있는 감쇠에 직선이 거의 똑같이
-       잘 맞습니다. 그래서 경계를 겁니다:
-         C  는 데이터 범위 안        (에너지가 음수로 갈 수 없다)
-         τ  는 관측창의 3배 이내      (그보다 길면 애초에 이 창으로 못 잰다)
-       그리고 τ 가 상한에 붙으면 "창 안에서 이완이 안 끝났다"로 **보고**합니다.
+    ⚠️ Running `curve_fit` unbounded the first time **ran away to a straight line**:
+       tau = 6.9e4 tau_int, C = -404 kT (physically impossible), and the error on tau
+       was 400x the value itself.
+       When tau >> the observation window, `A e^{-t/tau} ≈ A(1 - t/tau)`, so a straight
+       line fits a noisy decay almost equally well. Hence the bounds:
+         C   within the data range        (the energy cannot go negative)
+         tau within 3x the window        (longer than that and this window cannot
+                                          measure it in the first place)
+       And if tau pins to the upper bound, that is **reported** as "the relaxation did
+       not finish inside the window".
 
-    회복률은 피팅과 독립입니다 — 끝 20% 평균이 평형선에 얼마나 돌아왔는가.
-    피팅이 실패해도 이 숫자는 답을 줍니다.
+    The recovery fraction is independent of the fit — how far the mean of the last 20%
+    has returned to the equilibrium line.
+    Even when the fit fails, that number still answers the question.
     """
     t = np.asarray(t, float); y = np.asarray(y, float)
     out = {"n": int(t.size)}
@@ -421,8 +479,8 @@ def fit_relaxation(t, y, y_eq):
     tr = t - t[0]
     win = float(tr[-1])
     n_tail = max(3, int(TAIL_FRAC * t.size))
-    y0 = float(y[:n_tail].mean())            # 이완 시작 직후
-    y_end = float(y[-n_tail:].mean())        # 이완 끝
+    y0 = float(y[:n_tail].mean())            # just after relaxation starts
+    y_end = float(y[-n_tail:].mean())        # end of relaxation
     denom = y0 - y_eq
     out.update(y_start=y0, y_end=y_end, window=win,
                recovered_frac=float((y0 - y_end) / denom) if denom else float("nan"),
@@ -436,9 +494,11 @@ def fit_relaxation(t, y, y_eq):
         p0 = tuple(min(max(v, l), h) for v, l, h in zip(p0, lo, hi))
         pf, pc = curve_fit(f, tr, y, p0=p0, bounds=(lo, hi), maxfev=40000)
         tau = float(pf[1])
-        # ★ 판정 기준은 "창 안에 들어왔나"가 아니라 **몇 e-folding 을 봤나** 입니다.
-        #   τ = 2.5×창 인데 회복률이 94% 로 나오는 모순이 실제로 있었습니다 — 단일 지수로는
-        #   설명이 안 된다는 뜻이고(초반 빠름 + 느린 꼬리), τ 를 인용하면 안 됩니다.
+        # ★ The criterion is not "did it fit inside the window" but **how many
+        #   e-foldings did we see**. A real contradiction occurred: tau = 2.5x the
+        #   window while the recovery fraction came out 94%. That means a single
+        #   exponential does not explain it (fast early + slow tail), so tau must not
+        #   be quoted.
         efold = win / tau if tau > 0 else 0.0
         out.update(amp=float(pf[0]), tau_star=tau, U_inf=float(pf[2]),
                    tau_sem=float(np.sqrt(abs(pc[1, 1]))), tau_over_window=tau / win,
@@ -450,18 +510,24 @@ def fit_relaxation(t, y, y_eq):
 
 @RUN.builder("trap-drag-2d-hex300")
 def build(spec, outdir=None) -> RUN.Build:
-    """스펙 → HOOMD 계. **케이스 YAML 을 다시 읽지 않습니다** (L2↔L4 계약은 스펙 하나).
+    """Spec -> HOOMD system. **The case YAML is never re-read** (the L2<->L4 contract is
+    the spec alone).
 
-    ★ **네 구간 프로토콜** — 사용자 질문 3종(평형 vs 구동 에너지 · 이완 다이나믹스 ·
-      g(r)·결함 변화)이 한 궤적 안에서 답해집니다:
+    ★ **The four-phase protocol** — all three user questions (equilibrium vs driven
+      energy, relaxation dynamics, change in g(r) and defects) are answered inside one
+      trajectory:
 
-        예열  트랩 고정, 표본 버림   완전격자 IC 에서 열평형으로
-        평형  트랩 고정, 표본 수집   ⟨U⟩_eq · g(r)_eq · 결함_eq  ← 기준선
-        끌기  트랩 등속 이동         ⟨U⟩_drag · g(r)_drag · 결함_drag + 상승 과도
-        이완  트랩 **정지**(끝 위치에 고정)  에너지가 평형으로 돌아가는 다이나믹스
+        warm   trap fixed, samples discarded   perfect-lattice IC -> thermal equilibrium
+        equil  trap fixed, samples kept        ⟨U⟩_eq · g(r)_eq · defects_eq  <- baseline
+        drag   trap moves at constant v        ⟨U⟩_drag · g(r)_drag · defects_drag
+                                               + the rising transient
+        relax  trap **stopped** (pinned at its final position)
+                                               the dynamics of the energy returning to
+                                               equilibrium
 
-      구동을 켜고 끄는 것을 `traps.make_trap(drive=...)` 의 조각별 함수로 만듭니다 —
-      `velocity=` 는 껐다 켤 수 없어서 쓰지 않습니다.
+      Turning the drive on and off is done with a piecewise function passed to
+      `traps.make_trap(drive=...)` — `velocity=` is not used because it cannot be
+      switched off and on.
     """
     import freud
     import hoomd.md as md
@@ -480,22 +546,23 @@ def build(spec, outdir=None) -> RUN.Build:
     sim = SIM.make_sim(SIM.frame_2d(pos0, (Lx, Ly)), seed=seed)
 
     cell = md.nlist.Cell(buffer=0.4)
-    # r⁻³ 꼬리 — pair.Table. ★ endpoint=False (함정 10), 컷오프에서 시프트
+    # r^-3 tail — pair.Table. ★ endpoint=False (trap 10), shifted at the cutoff
     rr = np.linspace(r_tab_min, r_c, 1000, endpoint=False)
     tab = md.pair.Table(nlist=cell, default_r_cut=r_c)
     tab.params[("A", "A")] = dict(r_min=r_tab_min,
                                   U=A / rr**3 - A / r_c**3, F=3 * A / rr**4)
-    wca = SIM.wca(cell, epsilon=eps, sigma=1.0)          # 함정 4·11 (코어를 별도 힘으로)
+    wca = SIM.wca(cell, epsilon=eps, sigma=1.0)          # traps 4 and 11 (core as a separate force)
 
-    # ★ 트랩은 탐침 하나에만 (스케치: X 표시가 원 하나). 나머지는 k=0.
+    # ★ The trap acts on one probe only (sketch: the X mark is on a single circle).
+    #   All the rest get k=0.
     probe = (n_y // 2) * n_x + n_x // 2
     k_arr = np.zeros(N)
     k_arr[probe] = k_star
 
-    # ── 구동 프로토콜: 정지 → 등속 → 정지 (조각별 선형) ────────────────
-    T1 = (n_warm + n_equil) * dt_star            # 끌기 시작 (무차원 시간)
-    T2 = T1 + n_drag * dt_star                   # 끌기 종료 → 그 자리에 고정
-    _off = np.zeros((N, 3))                      # 매 스텝 할당하지 않으려고 미리 잡음
+    # ── Drive protocol: stopped -> constant v -> stopped (piecewise linear) ─────
+    T1 = (n_warm + n_equil) * dt_star            # drag starts (reduced time)
+    T2 = T1 + n_drag * dt_star                   # drag ends -> pinned there
+    _off = np.zeros((N, 3))                      # preallocated to avoid allocating every step
 
     def drive(t):
         _off[probe, 0] = v_star * (min(max(t, T1), T2) - T1)
@@ -512,12 +579,14 @@ def build(spec, outdir=None) -> RUN.Build:
     hexatic = freud.order.Hexatic(k=6, weighted=True)
     voro = freud.locality.Voronoi()
     r_max = min(r_c, min(Lx, Ly) / 2 - 1e-6)
-    # ★ g(r) 은 구간마다 **따로** 쌓는다. 하나에 몰아 쌓으면 평형과 구동이 섞인다.
+    # ★ g(r) accumulates **separately** per phase. Piling it into one mixes equilibrium
+    #   with driven.
     rdf = {ph: freud.density.RDF(bins=300, r_max=r_max, r_min=0.5)
            for ph in (PH_EQ, PH_DRAG, PH_RELAX)}
-    # ★ freud 는 compute() 전에 `.rdf` 를 읽으면 AttributeError 를 냅니다 (빈 객체가
-    #   아니라 예외). 길이 0 인 구간(`--relax 0`)이 있으면 finalize 가 죽습니다 —
-    #   실제로 평형화 연구를 돌리다 런이 끝난 뒤에 죽어서 4.5분을 날렸습니다.
+    # ★ freud raises AttributeError if `.rdf` is read before compute() (an exception,
+    #   not an empty object). A zero-length phase (`--relax 0`) therefore kills
+    #   finalize — this actually happened during an equilibration study, dying after
+    #   the run had finished and wasting 4.5 minutes.
     rdf_used: set = set()
     anchor3 = np.c_[pos0, np.zeros(N)]
 
@@ -525,21 +594,26 @@ def build(spec, outdir=None) -> RUN.Build:
         return np.array(sim.state.get_snapshot().particles.position, dtype=float)
 
     def pe_pair():
-        """콜로이드 계의 퍼텐셜 에너지 /N. **트랩 에너지는 제외** — 그건 광집게에
-        저장된 것이지 계의 것이 아니다. 트랩 쪽은 따로 잰다."""
+        """Potential energy of the colloidal system per particle.
+
+        **The trap energy is excluded** — that is stored in the optical tweezer, not in
+        the system. The trap side is measured separately.
+        """
         return float(np.array(tab.energies).sum() + np.array(wca.energies).sum()) / N
 
     def sample(timestep, phase):
         p = xy()
         d_probe = trap.displacement(sim.state, timestep)[probe]
-        # 격자 변형장: 초기 격자 자리로부터의 변위 (탐침 제외, 최소이미지).
-        # ★ 강체 병진을 뺀다 — 끌린 탐침이 격자 전체를 조금씩 끌고 가는데 그건 변형이
-        #   아니다. 빼지 않으면 dev_rms 가 런이 길수록 계속 자란다 (변형이 아니라 표류).
+        # Lattice deformation field: displacement from the initial lattice site
+        # (probe excluded, minimum image).
+        # ★ Subtract the rigid translation — the dragged probe pulls the whole lattice
+        #   along slightly, and that is not deformation. Without subtracting it,
+        #   dev_rms keeps growing with run length (drift, not deformation).
         dev = SIM.minimum_image(p - anchor3, (Lx, Ly))[:, :2]
         dev = np.delete(dev, probe, axis=0)
         dev = dev - dev.mean(axis=0)
         vn = voro.compute((box, p)).nlist
-        z = np.asarray(vn.neighbor_counts)               # Voronoi 배위수
+        z = np.asarray(vn.neighbor_counts)               # Voronoi coordination number
         if phase in rdf:
             rdf[phase].compute((box, p), reset=False)
             rdf_used.add(phase)
@@ -551,7 +625,7 @@ def build(spec, outdir=None) -> RUN.Build:
             "u_total": u_pair + u_trap / N,
             "psi6": float(np.abs(hexatic.compute((box, p), neighbors=vn)
                                  .particle_order).mean()),
-            # ★ 결함 = Voronoi 배위수 ≠ 6. 전위는 5–7 쌍으로 나온다.
+            # ★ Defect = Voronoi coordination != 6. Dislocations appear as 5-7 pairs.
             "n_def": int((z != 6).sum()), "n5": int((z == 5).sum()),
             "n7": int((z == 7).sum()),
             "dev_rms": float(np.sqrt((dev**2).sum(axis=1).mean())),
@@ -562,17 +636,18 @@ def build(spec, outdir=None) -> RUN.Build:
     def finalize(cols):
         ph = cols["phase"]
         sel = {k: (ph == k) for k in (PH_EQ, PH_DRAG, PH_RELAX)}
-        t = cols["_t_step"] * dt_star                     # 무차원 시간
+        t = cols["_t_step"] * dt_star                     # reduced time
         obs, extra = [], {}
 
         def stat(key, mask):
             v = cols[key][mask]
             return (float(v.mean()), float(ST.block_sem(v))) if v.size else (float("nan"),) * 2
 
-        # ── ① 평형 vs 구동 에너지 ─────────────────────────────────────
+        # ── ① Equilibrium vs driven energy ────────────────────────────────
         u_eq, u_eq_e = stat("u_pair", sel[PH_EQ])
         u_dr, u_dr_e = stat("u_pair", sel[PH_DRAG])
-        # 끌기 구간의 **후반 절반**만 정상상태로 본다 (앞은 상승 과도).
+        # Only the **second half** of the drag phase counts as steady state (the first
+        # half is the rising transient).
         dmask = sel[PH_DRAG].copy()
         if dmask.sum() >= 4:
             idx = np.flatnonzero(dmask)
@@ -583,19 +658,23 @@ def build(spec, outdir=None) -> RUN.Build:
         obs += [
             MET.observable("U_pair_equilibrium", u_eq, None, "kT/particle",
                            role="measurement",
-                           note=f"트랩 고정 구간의 격자 에너지 (±{u_eq_e:.4g})"),
+                           note=f"lattice energy while the trap is fixed "
+                                f"(±{u_eq_e:.4g})"),
             MET.observable("U_pair_driven", u_ss, None, "kT/particle", role="measurement",
-                           note=f"끌기 정상상태(후반 절반) (±{u_ss_e:.4g})"),
+                           note=f"drag steady state (second half) (±{u_ss_e:.4g})"),
             MET.observable("dU_drive", dU, None, "kT/particle", role="measurement",
-                           note=f"구동이 격자에 저장시킨 초과 에너지 = {dU:+.5g} "
-                                f"± {dU_e:.4g} kT/입자 ({dU/u_eq*100:+.3f}%). "
-                                f"전체로는 {dU*N:+.4g} kT. 예측 없음 — 이게 답이다"),
+                           note=f"excess energy the drive stored in the lattice = "
+                                f"{dU:+.5g} "
+                                f"± {dU_e:.4g} kT/particle ({dU/u_eq*100:+.3f}%). "
+                                f"{dU*N:+.4g} kT in total. No prediction — this IS the "
+                                f"answer"),
         ]
 
-        # ── ② 이완 다이나믹스 ─────────────────────────────────────────
+        # ── ② Relaxation dynamics ─────────────────────────────────────────
         rel = sel[PH_RELAX]
         fit = fit_relaxation(t[rel], cols["u_pair"][rel], u_eq) if rel.sum() else {}
-        # ★ 결함도 같이 이완한다 — 에너지와 **다른 시간척도**일 수 있어 따로 잰다.
+        # ★ Defects relax too — possibly on a **different timescale** from the energy,
+        #   so they are measured separately.
         fit_def = (fit_relaxation(t[rel], cols["n_def"][rel].astype(float), 0.0)
                    if rel.sum() else {})
         extra["relax_fit"] = fit
@@ -607,19 +686,24 @@ def build(spec, outdir=None) -> RUN.Build:
             obs.append(MET.observable(
                 "U_recovered_frac", fit.get("recovered_frac", float("nan")), None, "1",
                 role="measurement",
-                note=f"이완 끝 20% 평균이 평형선까지 돌아온 비율. "
-                     f"잔차 {fit.get('residual', float('nan')):+.4g} kT/입자 "
-                     f"(평형 요동 ±{u_eq_e:.4g}). ★ 피팅과 독립인 숫자다"))
+                note=f"fraction by which the mean of the last 20% of the relaxation has "
+                     f"returned to the equilibrium line. "
+                     f"Residual {fit.get('residual', float('nan')):+.4g} kT/particle "
+                     f"(equilibrium fluctuation ±{u_eq_e:.4g}). "
+                     f"★ This number is independent of the fit"))
             obs.append(MET.observable(
                 "tau_relax", tau_rel, None, "tau_B", role="measurement",
-                note=(f"⟨U⟩ 이완시간 = {tau_rel/tau_int:.2f} τ_int "
-                      f"(창의 {fit.get('tau_over_window', float('nan')):.2f}배). "
+                note=(f"⟨U⟩ relaxation time = {tau_rel/tau_int:.2f} tau_int "
+                      f"({fit.get('tau_over_window', float('nan')):.2f}x the window). "
                       if ok_fit else
-                      f"★ 창 안에서 이완이 끝나지 않아 τ 를 정할 수 없다 "
-                      f"(τ={tau_rel/tau_int:.3g} τ_int 는 상한에 붙은 값이다). ")
-                     + f"국소 케이지 τ_int 는 집단 이완과 일치할 이유가 없다 — 눈금일 뿐"))
+                      f"★ The relaxation did not finish inside the window, so tau "
+                      f"cannot be determined "
+                      f"(tau={tau_rel/tau_int:.3g} tau_int is pinned to the upper "
+                      f"bound). ")
+                     + f"The local cage tau_int has no reason to match the collective "
+                       f"relaxation — it is only a yardstick"))
 
-        # ── ③ g(r) · 결함 ─────────────────────────────────────────────
+        # ── ③ g(r) and defects ────────────────────────────────────────────
         for key, unit in (("n_def", ""), ("n5", ""), ("n7", ""), ("psi6", "1")):
             e_m, _ = stat(key, sel[PH_EQ])
             d_m, _ = stat(key, dmask)
@@ -627,29 +711,31 @@ def build(spec, outdir=None) -> RUN.Build:
             extra[key] = {"equilibrium": e_m, "driven": d_m, "relaxed": r_m}
             obs.append(MET.observable(
                 f"{key}_driven_vs_eq", d_m - e_m, None, unit, role="measurement",
-                note=f"평형 {e_m:.4g} → 구동 {d_m:.4g} → 이완후 {r_m:.4g} [{unit}]"))
+                note=f"equilibrium {e_m:.4g} -> driven {d_m:.4g} -> after relaxation "
+                     f"{r_m:.4g} [{unit}]"))
 
         gr, arrays = {}, {}
-        for name in rdf_used:                    # ★ 실제로 compute 된 것만 (위 주석)
+        for name in rdf_used:                    # ★ only what was actually computed (comment above)
             gr[name] = np.asarray(rdf[name].rdf)
         if gr:
             arrays["gr_r"] = np.asarray(rdf[next(iter(rdf_used))].bin_centers)
             key = {PH_EQ: "gr_eq", PH_DRAG: "gr_drag", PH_RELAX: "gr_relax"}
             arrays.update({key[k]: v for k, v in gr.items()})
-            # 첫 봉우리 — 구조가 바뀌었는지 한 숫자로 보는 눈금
+            # First peak — a one-number yardstick for whether the structure changed
             for k, v in gr.items():
                 i = int(np.argmax(v))
                 extra.setdefault("g_r_peak", {})[k] = {
                     "r": float(arrays["gr_r"][i]), "g": float(v[i])}
 
-        # ── 끌림힘 (전 세션에서 이미 있던 것) ──────────────────────────
+        # ── Drag force (already present from the previous session) ────────
         dx = cols["dx_probe"][dmask]
         f_drag = -k_star * float(dx.mean()) if dx.size else float("nan")
         sem = k_star * float(ST.block_sem(dx)) if dx.size else float("nan")
         obs.append(MET.observable(
             "F_drag_total", f_drag, None, "kT/d", role="measurement",
-            note=f"⟨F_drag⟩ = −k*·⟨Δx⟩ (정상상태). 맨 Stokes γv = {v_star:.4g} 대비 "
-                 f"초과 {100*(f_drag/v_star - 1):+.2f}% (±{100*sem/v_star:.2f}%)"))
+            note=f"⟨F_drag⟩ = -k*·⟨Δx⟩ (steady state). Against bare Stokes "
+                 f"gamma*v = {v_star:.4g}, "
+                 f"excess {100*(f_drag/v_star - 1):+.2f}% (±{100*sem/v_star:.2f}%)"))
         extra.update(f_drag_kT_per_d=f_drag, f_drag_sem=sem, f_stokes_bare=v_star,
                      excess_pct=100 * (f_drag / v_star - 1), probe_index=probe,
                      U_pair_eq=u_eq, U_pair_driven=u_ss, dU_drive=dU, dU_sem=dU_e,
@@ -661,14 +747,18 @@ def build(spec, outdir=None) -> RUN.Build:
     every_dr = max(1, n_drag // 2000)
     phases = [
         RUN.Phase(PH_WARM, n_warm, collect=False,
-                  note="트랩 고정 · 표본 버림 (완전격자 IC → 열평형)"),
+                  note="trap fixed, samples discarded "
+                       "(perfect-lattice IC -> thermal equilibrium)"),
         RUN.Phase(PH_EQ, n_equil, max(1, n_equil // 200),
-                  note="트랩 고정 · 기준선 ⟨U⟩_eq · g(r) · 결함"),
+                  note="trap fixed, baseline ⟨U⟩_eq, g(r), defects"),
         RUN.Phase(PH_DRAG, n_drag, every_dr,
-                  note=f"트랩 등속 이동 v*={v_star:.4g} · 격자 {n_x}주기 횡단"),
-        # ★ 이완은 에너지가 **변하는 것이 물리**다 → 표류 검사를 끈다 (거짓 경고 방지)
+                  note=f"trap moves at constant v*={v_star:.4g}, "
+                       f"crossing {n_x} lattice periods"),
+        # ★ In the relaxation phase a **changing** energy IS the physics -> turn the
+        #   drift check off (avoids a false warning)
         RUN.Phase(PH_RELAX, n_relax, max(1, n_relax // 400), expect_steady=False,
-                  note="트랩 정지(끝 위치 고정) · 에너지가 평형으로 돌아가는 다이나믹스"),
+                  note="trap stopped (pinned at its final position), the dynamics of "
+                       "the energy returning to equilibrium"),
     ]
 
     return RUN.Build(
@@ -685,21 +775,21 @@ def build(spec, outdir=None) -> RUN.Build:
 
 
 def make_plots(outdir: Path, spec) -> Path:
-    """4패널 — 사용자 질문 3종에 대한 그림.
+    """Six panels — the figures answering the three user questions.
 
-    ① ⟨U⟩/N 전체 시계열 (구간 음영)   평형 vs 구동 에너지
-    ② 이완 구간 확대 + 지수 피팅       이완 다이나믹스
-    ③ g(r) 세 구간 겹쳐 그리기         구조 변화
-    ④ 결함 수 (전체·5배위·7배위)       전위 생성/소멸
+    ① ⟨U⟩/N full time series (phases shaded)   equilibrium vs driven energy
+    ② relaxation phase zoom + exponential fit   relaxation dynamics
+    ③ g(r) for the three phases overlaid   structural change
+    ④ defect counts (total, 5-fold, 7-fold)   dislocation creation/annihilation
     """
     import json as _json
 
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    matplotlib.rcParams["font.family"] = ["Apple SD Gothic Neo", "AppleGothic", "DejaVu Sans"]
+    matplotlib.rcParams["font.family"] = ["DejaVu Sans"]     # * labels in English (CLAUDE.md)
     matplotlib.rcParams["axes.unicode_minus"] = False
-    # ★ 로그 축 눈금(10^{-1})은 mathtext 라 한글 폰트에 U+2212 글리프가 없어 깨진다.
+    # ★ Log-axis ticks (10^{-1}) are mathtext, so keep the mathtext font set explicitly.
     matplotlib.rcParams["mathtext.fontset"] = "dejavusans"
     from matplotlib.ticker import FuncFormatter, NullFormatter
 
@@ -714,25 +804,27 @@ def make_plots(outdir: Path, spec) -> Path:
 
     fig, ax = plt.subplots(3, 2, figsize=(13, 13.5))
 
-    # ① 에너지 전체
+    # ① Energy, full series
     a = ax[0, 0]
     for k, c in col.items():
         mk = ph == k
         if mk.any():
             a.plot(t[mk] / tau_int, z["u_pair"][mk], ".", ms=2, color=c, label=k)
-    for key, c, lab in (("U_pair_eq", "green", "⟨U⟩ 평형"),
-                        ("U_pair_driven", "red", "⟨U⟩ 구동 정상상태")):
+    for key, c, lab in (("U_pair_eq", "green", "⟨U⟩ equilibrium"),
+                        ("U_pair_driven", "red", "⟨U⟩ driven steady state")):
         if key in res:
             a.axhline(res[key], color=c, ls="--", lw=1.2, alpha=.8, label=lab)
     a.set(xlabel=r"$t/\tau_{int}$", ylabel=r"$\langle U\rangle/N$  [kT]",
-          title=f"① 격자 에너지 — ΔU = {res.get('dU_drive', float('nan')):+.4g} kT/입자"
-                f"  (전체 {res.get('dU_total_kT', float('nan')):+.4g} kT)")
+          title=f"① Lattice energy — ΔU = "
+                f"{res.get('dU_drive', float('nan')):+.4g} kT/particle"
+                f"  (total {res.get('dU_total_kT', float('nan')):+.4g} kT)")
     a.legend(fontsize=8); a.grid(alpha=.3)
 
-    # ② 이완 확대 + 피팅
-    # ② 이완 — **log–log**. 단일 지수가 안 맞으므로(0.4 e-folding 인데 회복 94%)
-    #    거듭제곱인지 보려면 양쪽 로그가 맞다. 세로축은 U 자체가 아니라 **초과분**
-    #    ΔU = U − U_eq 다 — 105 근처의 값은 로그로 그려도 아무것도 안 보인다.
+    # ② Relaxation zoom + fit
+    # ② Relaxation — **log-log**. A single exponential does not fit (0.4 e-foldings yet
+    #    94% recovery), so log on both axes is the right way to see whether it is a
+    #    power law. The y axis is the **excess** ΔU = U - U_eq, not U itself — values
+    #    near 105 show nothing on a log axis.
     a = ax[0, 1]
     mk = ph == PH_RELAX
     u_eq = res.get("U_pair_eq", float("nan"))
@@ -742,7 +834,8 @@ def make_plots(outdir: Path, spec) -> Path:
         du = z["u_pair"][mk] - u_eq
         fit = fit_relaxation(t[mk], z["u_pair"][mk], u_eq)
 
-        # 로그 구간 평균 — 생표본은 ΔU 가 음수로도 튀어 로그를 못 그린다
+        # Log-bin averages — raw samples let ΔU go negative, which cannot be plotted
+        # on a log axis
         pos = tr > 0
         edges = np.geomspace(max(tr[pos].min(), 1e-3), tr.max(), 26)
         ctr, val = [], []
@@ -753,21 +846,22 @@ def make_plots(outdir: Path, spec) -> Path:
         ctr, val = np.array(ctr), np.array(val)
         ok = val > 0
         a.loglog(ctr[ok], val[ok], "o-", ms=5, lw=1.4, color="tab:blue",
-                 label=r"$\Delta U = \langle U\rangle/N - U_{eq}$ (로그구간 평균)")
-        if (~ok).any():                      # 0 아래로 내려간 구간은 숨기지 않고 표시
+                 label=r"$\Delta U = \langle U\rangle/N - U_{eq}$ (log-bin mean)")
+        if (~ok).any():                      # bins that went below 0 are shown, not hidden
             a.loglog(ctr[~ok], np.full((~ok).sum(), val[ok].min() * 0.5), "x",
-                     ms=6, color="gray", label="ΔU ≤ 0 (평형 도달·잡음)")
+                     ms=6, color="gray", label="ΔU ≤ 0 (equilibrium reached / noise)")
         if "tau_star" in fit:
             tt = np.geomspace(ctr.min(), ctr.max(), 200)
             a.loglog(tt, abs(fit["amp"]) * np.exp(-tt * tau_int / fit["tau_star"]),
                      "-", lw=1.6, color="k",
-                     label=(fr"지수 $\tau$={fit['tau_star']/tau_int:.0f}$\tau_{{int}}$ "
+                     label=(fr"exponential $\tau$={fit['tau_star']/tau_int:.0f}"
+                            fr"$\tau_{{int}}$ "
                             f"({fit['e_foldings']:.2f} e-folding"
-                            f"{'' if fit.get('resolved') else ' — 미해상'})"))
-        # 거듭제곱 눈금 — 직선이면 거듭제곱, 휘면 지수
+                            f"{'' if fit.get('resolved') else ' — unresolved'})"))
+        # Power-law guides — straight means a power law, curved means exponential
         for p_, c_ in ((-0.5, "tab:orange"), (-1.0, "tab:red")):
             ref = val[ok][0] * (ctr[ok] / ctr[ok][0]) ** p_
-            a.loglog(ctr[ok], ref, "--", lw=1, color=c_, alpha=.7, label=fr"$t^{{{p_:g}}}$ 눈금")
+            a.loglog(ctr[ok], ref, "--", lw=1, color=c_, alpha=.7, label=fr"$t^{{{p_:g}}}$ guide")
         if "n_def" in z:
             a2 = a.twinx()
             nd = np.array([z["n_def"][mk][(tr >= l) & (tr < h)].mean()
@@ -775,11 +869,11 @@ def make_plots(outdir: Path, spec) -> Path:
                            if ((tr >= l) & (tr < h)).sum() >= 2])
             m2 = nd > 0
             a2.loglog(ctr[m2], nd[m2], "s--", ms=4, lw=1.1, color="tab:purple", alpha=.75)
-            a2.set_ylabel("결함 수 (z≠6)", color="tab:purple")
+            a2.set_ylabel("defect count (z!=6)", color="tab:purple")
             a2.tick_params(axis="y", colors="tab:purple")
             a2.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
             a2.yaxis.set_minor_formatter(NullFormatter())
-        # 선형 인셋 — 105 근처를 그대로 보고 싶을 때
+        # Linear inset — for looking at the values near 105 directly
         ins = a.inset_axes([0.055, 0.06, 0.40, 0.30])
         ins.plot(tr, z["u_pair"][mk], ".", ms=1.5, color="tab:blue", alpha=.45)
         w = max(5, len(tr) // 25)
@@ -787,15 +881,18 @@ def make_plots(outdir: Path, spec) -> Path:
                  "-", lw=1.2, color="tab:cyan")
         ins.axhline(u_eq, color="green", ls="--", lw=1.1)
         lo, hi = np.percentile(z["u_pair"][mk], [0.5, 99.5])
-        ins.set_ylim(min(lo, u_eq) - 0.03, hi + 0.03)          # ★ 105 근처로 고정
-        ins.set_title("선형 (kT/입자)", fontsize=7)
+        ins.set_ylim(min(lo, u_eq) - 0.03, hi + 0.03)          # ★ pinned near 105
+        ins.set_title("linear (kT/particle)", fontsize=7)
         ins.tick_params(labelsize=6)
-    rec = f"회복 {100*fit['recovered_frac']:.0f}%" if "recovered_frac" in fit else ""
-    a.set(xlabel=r"이완 시작 후 $t/\tau_{int}$", ylabel=r"$\Delta U$  [kT/입자]",
-          title=f"② 이완 다이나믹스 — log–log  ({rec})")
-    # ★ 로그 눈금을 10^{-1} 대신 평범한 숫자로. mathtext 의 U+2212 를 한글 폰트가
-    #   못 그려서 "10□1" 로 깨졌습니다 (rcParams 로는 안 고쳐집니다 — \mathdefault 가
-    #   본문 폰트를 그대로 씁니다). 값 범위가 0.02~0.4 라 십진 표기가 더 읽기 쉽습니다.
+    rec = f"recovered {100*fit['recovered_frac']:.0f}%" if "recovered_frac" in fit else ""
+    a.set(xlabel=r"$t/\tau_{int}$ after relaxation starts",
+          ylabel=r"$\Delta U$  [kT/particle]",
+          title=f"② Relaxation dynamics — log-log  ({rec})")
+    # ★ Plain numbers on the log ticks instead of 10^{-1}. With a Hangul font the
+    #   mathtext U+2212 could not be drawn and rendered as "10□1" (rcParams does not
+    #   fix it — \mathdefault uses the body font as-is). The labels are now English so
+    #   that specific failure is gone, but the range is 0.02-0.4, where decimal
+    #   notation simply reads better. Kept for that reason.
     plain = FuncFormatter(lambda v, _: f"{v:g}")
     for axis in (a.xaxis, a.yaxis):
         axis.set_major_formatter(plain)
@@ -811,14 +908,15 @@ def make_plots(outdir: Path, spec) -> Path:
                 a.plot(z["gr_r"], z[key], "-", lw=1.3, color=col[name], label=name)
         a.axvline(spec.params["a_nn_star"], ls=":", c="gray", label=r"$a_{NN}$")
         a.axhline(1, color="k", lw=.5, alpha=.5)
-    a.set(xlabel="r / d", ylabel="g(r)", title="③ 동경분포함수 — 구간별",
+    a.set(xlabel="r / d", ylabel="g(r)",
+          title="③ Radial distribution function — by phase",
           xlim=(0.8, min(6.0, float(z["gr_r"].max()) if "gr_r" in z else 6.0)))
     a.legend(fontsize=8); a.grid(alpha=.3)
 
-    # ④ 결함
+    # ④ Defects
     a = ax[1, 1]
-    for key, c, lab in (("n_def", "k", "전체 (z≠6)"), ("n5", "tab:orange", "5배위"),
-                        ("n7", "tab:purple", "7배위")):
+    for key, c, lab in (("n_def", "k", "total (z!=6)"), ("n5", "tab:orange", "5-fold"),
+                        ("n7", "tab:purple", "7-fold")):
         if key in z:
             a.plot(t / tau_int, z[key], "-", lw=.9, color=c, alpha=.85, label=lab)
     for k, c in col.items():
@@ -826,36 +924,39 @@ def make_plots(outdir: Path, spec) -> Path:
         if mk.any():
             a.axvspan(t[mk].min() / tau_int, t[mk].max() / tau_int, color=c, alpha=.07)
     nmax = float(z["n_def"].max()) if "n_def" in z else 0.0
-    a.set(xlabel=r"$t/\tau_{int}$", ylabel="입자 수", ylim=(0, max(nmax * 1.25, 1.0)),
-          title=f"④ 결함 (Voronoi 배위수 ≠ 6) — N={spec.params['N']}")
+    a.set(xlabel=r"$t/\tau_{int}$", ylabel="particle count", ylim=(0, max(nmax * 1.25, 1.0)),
+          title=f"④ Defects (Voronoi coordination != 6) — N={spec.params['N']}")
     if nmax == 0:
-        # ★ 0 은 버그가 아니라 결과다. 정합 완전격자에서 시작하고 Γ=29.7 로 강결합이면
-        #   열요동이 Voronoi 위상을 못 바꾼다. 1-B(RSA 초기배치)는 결함 1.3% 가 남았다 —
-        #   차이를 만드는 것은 결합세기가 아니라 **초기배치와 정합성**이다.
-        a.text(0.5, 0.5, "결함 0개 — 정합 완전격자가 끝까지 유지됨\n"
-                         "(1-B는 RSA 초기배치라 1.3% 잔류)",
+        # ★ Zero is a result, not a bug. Starting from a commensurate perfect lattice
+        #   with strong coupling (Γ=29.7), thermal fluctuations cannot change the
+        #   Voronoi topology. 1-B (RSA initial placement) retained 1.3% defects — what
+        #   makes the difference is **the initial placement and commensurability**, not
+        #   the coupling strength.
+        a.text(0.5, 0.5, "0 defects — the commensurate perfect lattice survives\n"
+                         "(1-B used RSA placement and retained 1.3%)",
                transform=a.transAxes, ha="center", va="center", fontsize=10,
                bbox=dict(boxstyle="round", fc="lightyellow", alpha=.9))
     a.legend(fontsize=8); a.grid(alpha=.3)
 
-    # ⑤ 탐침에 걸리는 힘 — F = −k*·Δ (정상상태에서 계가 탐침에 주는 항력의 크기)
-    #    ★ 한 표본의 잡음이 k*·ℓ_k/d = 246 kT/d 로 **신호(~100)보다 크다** (SNR=0.0985).
-    #      생점을 그대로 그리면 아무것도 안 보이므로 이동평균을 겹쳐 그린다.
+    # ⑤ Force on the probe — F = -k*·Δ (in steady state, the drag the system exerts
+    #    on the probe)
+    #    ★ Single-sample noise is k*·ℓ_k/d = 246 kT/d, **larger than the signal (~100)**
+    #      (SNR=0.0985). Raw points show nothing, so a moving average is overlaid.
     k_star, v_star = spec.params["k_star"], spec.params["v_star"]
     a = ax[2, 0]
     fx, fy = -k_star * z["dx_probe"], -k_star * z["dy_probe"]
-    a.plot(t / tau_int, fx, ".", ms=1.2, color="0.75", label="$F_x$ 생표본")
+    a.plot(t / tau_int, fx, ".", ms=1.2, color="0.75", label="$F_x$ raw samples")
     w = max(9, len(fx) // 60)
     kern = np.ones(w) / w
     a.plot(t / tau_int, np.convolve(fx, kern, mode="same"), "-", lw=1.5,
-           color="tab:red", label=f"$F_x$ 이동평균 ({w}점)")
+           color="tab:red", label=f"$F_x$ moving average ({w} pts)")
     a.plot(t / tau_int, np.convolve(fy, kern, mode="same"), "-", lw=1.1,
-           color="tab:blue", alpha=.8, label=f"$F_y$ 이동평균")
-    a.axhline(v_star, color="k", ls="--", lw=1.3, label=fr"맨 Stokes $\gamma v$ = {v_star:.1f}")
+           color="tab:blue", alpha=.8, label=f"$F_y$ moving average")
+    a.axhline(v_star, color="k", ls="--", lw=1.3, label=fr"bare Stokes $\gamma v$ = {v_star:.1f}")
     a.axhline(0, color="k", lw=.5, alpha=.5)
     if "f_drag_kT_per_d" in res:
         a.axhline(res["f_drag_kT_per_d"], color="darkred", ls=":", lw=1.4,
-                  label=f"⟨$F_x$⟩ 정상상태 = {res['f_drag_kT_per_d']:.0f}")
+                  label=f"⟨$F_x$⟩ steady state = {res['f_drag_kT_per_d']:.0f}")
     for k, c in col.items():
         mk2 = ph == k
         if mk2.any():
@@ -863,18 +964,19 @@ def make_plots(outdir: Path, spec) -> Path:
     lo, hi = np.percentile(np.convolve(fx, kern, mode="same"), [1, 99])
     a.set(xlabel=r"$t/\tau_{int}$", ylabel=r"$F = -k^*\Delta$  [kT/d]",
           ylim=(min(lo, -50) - 100, max(hi, v_star) + 150),
-          title="⑤ 탐침에 걸리는 힘 (트랩이 가하는 힘 = 계가 주는 항력)")
+          title="⑤ Force on the probe (trap force = drag from the system)")
     a.legend(fontsize=7, ncol=2); a.grid(alpha=.3)
 
-    # ⑥ 격자 주기로 접기 — L3가 "stick-slip 이면 주기 평균이 필요하다"고 경고한 자리.
-    #    끌기 구간만, 탐침이 지나온 거리를 a_NN 으로 나눈 나머지에 대해 F_x 를 평균한다.
+    # ⑥ Folded onto the lattice period — the place L3 warned "if stick-slip, a period
+    #    average is needed". Drag phase only: average F_x against the distance the
+    #    probe has travelled, modulo a_NN.
     a = ax[2, 1]
     dmk = ph == PH_DRAG
     a_nn = spec.params["a_nn_star"]
     if dmk.sum() > 40:
         t_d = t[dmk] - t[dmk][0]
-        x_travel = v_star * t_d                      # 트랩 중심이 간 거리 [d]
-        phase_x = (x_travel % a_nn) / a_nn           # 0~1 (한 격자 주기)
+        x_travel = v_star * t_d                      # distance the trap centre travelled [d]
+        phase_x = (x_travel % a_nn) / a_nn           # 0..1 (one lattice period)
         fxd = fx[dmk]
         nb = 12
         edges = np.linspace(0, 1, nb + 1)
@@ -886,17 +988,20 @@ def make_plots(outdir: Path, spec) -> Path:
                        for l, h in zip(edges[:-1], edges[1:])])
         a.errorbar(np.r_[ctr, ctr + 1], np.r_[mu, mu], yerr=np.r_[se, se],
                    fmt="o-", ms=5, lw=1.4, capsize=3, color="tab:red",
-                   label=f"⟨$F_x$⟩ (주기 {x_travel[-1]/a_nn:.0f}회 평균, 2주기 반복 표시)")
+                   label=f"⟨$F_x$⟩ (mean over {x_travel[-1]/a_nn:.0f} periods, "
+                         f"2 periods shown)")
         a.axhline(np.nanmean(mu), color="darkred", ls=":", lw=1.3,
-                  label=f"전체 평균 {np.nanmean(mu):.0f}")
-        a.axhline(v_star, color="k", ls="--", lw=1.2, label="맨 Stokes")
+                  label=f"overall mean {np.nanmean(mu):.0f}")
+        a.axhline(v_star, color="k", ls="--", lw=1.2, label="bare Stokes")
         a.axvline(1, color="0.7", lw=.8)
         amp = (np.nanmax(mu) - np.nanmin(mu)) / 2
-        a.set_title(f"⑥ 격자 주기로 접은 힘 — 변조 진폭 ±{amp:.0f} kT/d "
-                    f"(평균 대비 {100*amp/max(abs(np.nanmean(mu)),1e-9):.0f}%)")
+        a.set_title(f"⑥ Force folded onto the lattice period — modulation amplitude "
+                    f"±{amp:.0f} kT/d "
+                    f"({100*amp/max(abs(np.nanmean(mu)),1e-9):.0f}% of the mean)")
     else:
-        a.set_title("⑥ 격자 주기 접기 — 표본 부족")
-    a.set(xlabel="격자 주기 내 위상  (x mod $a_{NN}$)/$a_{NN}$", ylabel=r"$F_x$  [kT/d]")
+        a.set_title("⑥ Lattice-period folding — too few samples")
+    a.set(xlabel="phase within the lattice period  (x mod $a_{NN}$)/$a_{NN}$",
+          ylabel=r"$F_x$  [kT/d]")
     a.legend(fontsize=7); a.grid(alpha=.3)
 
     fig.suptitle(f"{spec.label}   Γ={spec.params['Gamma']:.2f}  "
@@ -910,34 +1015,37 @@ def make_plots(outdir: Path, spec) -> Path:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# main — L3 리포트/스펙 + L4 실행
+# main — L3 report/spec + the L4 run
 # ════════════════════════════════════════════════════════════════════════
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", action="store_true", help="the L3 report only")
     ap.add_argument("--spec", action="store_true", help="the L3 spec -> specs/<run_id>.json")
     ap.add_argument("--dt-scale", type=float, default=1.0, help="dt multiplier (for a convergence check)")
-    ap.add_argument("--traverse", type=float, default=1.0, help="박스 횡단 횟수 (T_obs 배율)")
-    ap.add_argument("--samples", type=int, default=2000, help="끌기 구간 표본 수")
-    ap.add_argument("--warm", type=float, default=10.0, help="예열 구간 [τ_int]")
-    ap.add_argument("--equil", type=float, default=20.0, help="평형 측정 구간 [τ_int]")
-    ap.add_argument("--relax", type=float, default=40.0, help="이완 구간 [τ_int]")
+    ap.add_argument("--traverse", type=float, default=1.0, help="number of box traverses (T_obs multiplier)")
+    ap.add_argument("--samples", type=int, default=2000, help="number of samples in the drag phase")
+    ap.add_argument("--warm", type=float, default=10.0, help="warm-up phase [tau_int]")
+    ap.add_argument("--equil", type=float, default=20.0, help="equilibrium measurement phase [tau_int]")
+    ap.add_argument("--relax", type=float, default=40.0, help="relaxation phase [tau_int]")
     ap.add_argument("--gsd-every", type=int, default=None,
-                    help="궤적 저장 주기 [스텝]. 영상용 — 스펙/해시에 들어가지 않는다")
+                    help="trajectory write period [steps]. For animation — does NOT "
+                         "enter the spec or the hash")
     ap.add_argument("--v", type=float, default=None,
-                    help="끌기 속도 [µm/s]. L2 의 drag_velocity 목록 중 하나여야 한다")
+                    help="drag velocity [µm/s]. Must be one of the L2 drag_velocity "
+                         "list")
     ap.add_argument("--seed", type=int, default=20260804,
-                    help="시드. ★ 함정 12: HOOMD 는 16비트로 자르므로 앙상블은 "
-                         "작은 연속 정수(1,2,3…)를 쓸 것 — 65536 차이면 같은 궤적이 된다")
+                    help="seed. ★ trap 12: HOOMD truncates to 16 bits, so an ensemble "
+                         "must use small consecutive integers (1,2,3...) — seeds "
+                         "differing by 65536 give the same trajectory")
     ap.add_argument("--force", action="store_true", help="re-run a completed run")
-    ap.add_argument("--smoke", action="store_true", help="짧게 (L4 배선 확인용)")
+    ap.add_argument("--smoke", action="store_true", help="short run (to check the L4 wiring)")
     args = ap.parse_args()
 
     global GSD_EVERY
     GSD_EVERY = args.gsd_every
     sys_ = load_system(ROOT / "intake/trap-drag-2d-hex300/system.yaml", args.v)
     if args.smoke:
-        # ★ 배선 확인용. 물리 결과가 아니다 — 횡단의 1/200 만 돈다.
+        # ★ Wiring check only. NOT a physics result — it runs 1/200 of a traverse.
         args.traverse, args.samples = min(args.traverse, 0.01), min(args.samples, 40)
         args.warm, args.equil, args.relax = 0.5, 1.0, 2.0
     lg = build_ledger(sys_, dt_scale=args.dt_scale, n_traverse=args.traverse,
@@ -945,10 +1053,13 @@ def main() -> int:
     D = lg.derived
     dt, T_obs = lg.get("times", "dt"), lg.get("times", "T_obs")
 
-    # ── 네 구간 프로토콜 (사용자 질문: 평형 vs 구동 에너지 · 이완 · g(r)·결함) ──
-    #   시간 단위는 전부 **τ_int**(격자의 국소 이완시간)입니다 — 끌기만 L_x/v_x 로 정해집니다.
-    #   ★ 이완 구간을 τ_int 의 40배로 잡은 것은 ★제안입니다. 집단 모드가 τ_int 보다
-    #     느리면 꼬리가 잘리므로, 런 후에 피팅된 τ 와 구간 길이를 반드시 대조해야 합니다.
+    # ── The four-phase protocol (user questions: equilibrium vs driven energy,
+    #    relaxation, g(r) and defects) ──
+    #   All time units are **tau_int** (the lattice's local relaxation time) — only the
+    #   drag phase is set by L_x/v_x.
+    #   ★ Taking the relaxation phase as 40x tau_int is a ★proposal. If the collective
+    #     mode is slower than tau_int the tail is truncated, so after the run the fitted
+    #     tau MUST be compared against the phase length.
     tau_int_steps = D["tau_int_steps"]
     n_warm, n_equil, n_relax = D["n_warm"], D["n_equil"], D["n_relax"]
     n_prod = D["n_drag"]
@@ -974,21 +1085,22 @@ def main() -> int:
         case=sys_["label"], system=sys_["_raw"], reference=lg.ref, ledger=lg,
         groups=groups, checks=checks,
         params={"A": sys_["A"], "phi": sys_["phi"], "N": sys_["N"],
-                # ★ 직사각 박스 — L4는 정사각을 가정하면 안 된다.
+                # ★ Rectangular box — L4 must not assume a square.
                 "Lx_star": D["Lx_star"], "Ly_star": D["Ly_star"],
                 "n_x": D["n_x"], "n_y": D["n_y"], "a_nn_star": D["a_nn_star"],
                 "lattice": "hex_commensurate", "drag_axis": "x",
                 "r_c_star": D["r_c_star"],
                 "wca_eps": sys_["wca_eps_kT"], "Gamma": Gamma,
-                # 트랩·끌기를 무차원으로. L4는 이것만 보고 돌린다.
+                # Trap and drag in reduced units. L4 runs from these alone.
                 "k_star": lg.ratio("energies", "k_t_d2", "kT"),
                 "v_star": lg.ratio("times", "tau_B", "tau_v"),
                 "n_trapped": sys_["n_trapped"],
                 "r_table_min_star": R_TABLE_MIN},
         numerics={"dt_star": lg.ratio("times", "dt", "tau_B"),
                   "dt_over_tau_k": args.dt_scale * C.GATE,
-                  # ★ 구간 길이는 **물리를 정하는 값**이라 해시에 들어갑니다 —
-                  #   프로토콜이 다르면 다른 런입니다 (같은 계여도).
+                  # ★ The phase lengths **determine the physics**, so they enter the
+                  #   hash — a different protocol is a different run (even for the
+                  #   same system).
                   "n_warm": n_warm, "n_equil": n_equil,
                   "n_prod": n_prod, "n_relax": n_relax,
                   "n_samples": args.samples,
@@ -1012,20 +1124,22 @@ def main() -> int:
     print(report)
 
     if spec.errors:
-        print(f"\n❌ L3 무결성 오류 {len(spec.errors)}건 — 무차원화가 성립하지 않습니다.")
+        print(f"\n❌ {len(spec.errors)} L3 integrity error(s) — the "
+              f"non-dimensionalization does not hold.")
         return 1
     if verdict == "FAIL":
-        print("\n❌ 하드 분리 검사 실패 — 스펙을 쓰지 않습니다.")
+        print("\n❌ A hard separation check failed — no spec is written.")
         return 1
     p = spec.write(ROOT / "specs" / f"{run_id}.json")
     if args.spec or args.report:
         if args.spec:
-            print(f"\nL3 스펙: {p.relative_to(ROOT)}")
+            print(f"\nL3 spec: {p.relative_to(ROOT)}")
         return 0
 
-    # ── L4 — 스펙을 **되읽어서** 실행한다 (메모리의 객체가 아니라) ──────
-    #   되읽는 것이 핵심입니다: 디스크의 스펙만으로 돌 수 있어야 L2↔L4 계약이 성립하고,
-    #   해시 검증도 그때 걸립니다 (`execute` 가 verify_hash 를 먼저 봅니다).
+    # ── L4 — run by **re-reading** the spec from disk (not the in-memory object) ────
+    #   Re-reading is the point: the L2<->L4 contract only holds if the run works from
+    #   the on-disk spec alone, and that is also when the hash check fires (`execute`
+    #   looks at verify_hash first).
     outdir = ROOT / "runs" / run_id
     loaded = ND.load(p)
     outdir.mkdir(parents=True, exist_ok=True)
@@ -1034,7 +1148,8 @@ def main() -> int:
                     force=args.force, progress=True)
     print(RUN.render_verdict(v))
     if v["status"] == RUN.OK:
-        print(f"플롯: {make_plots(outdir, loaded).relative_to(ROOT)}")
+        print(f"plot: {make_plots(outdir, loaded).relative_to(ROOT)}")
+
     return 0 if v["status"] in (RUN.OK, "skipped") else 1
 
 
