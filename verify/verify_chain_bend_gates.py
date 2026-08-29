@@ -1,44 +1,61 @@
-"""`chain-bend-2d-oscill` 실행 전 관문 2종. 둘 다 프로덕션 스윕 **전에** 통과해야 한다.
+"""Two pre-run gates for `chain-bend-2d-oscill`. Both must pass **before** the
+production sweep.
 
 ────────────────────────────────────────────────────────────────────────────
-관문 A (`--gate lockin`) — 관측 코드를 해석해에 대조 (mater_plan 원칙 9 / 규칙 7)
+Gate A (`--gate lockin`) -- compare the measurement code against an analytic
+solution (mater_plan principle 9 / rule 7)
 ────────────────────────────────────────────────────────────────────────────
-이 케이스의 산출물 전체가 **새로 쓰는 락인 추출 코드**에 얹혀 있다. 사슬을 빼고
-비드 1개 + 구동 트랩(k_t) + 정적 유령 스프링(k_s) 으로 바꾸면 답이 닫힌 형태로 나온다:
+Everything this case produces rests on **newly written lock-in extraction code**.
+Remove the chain and replace it with one bead + a driving trap (k_t) + a static
+ghost spring (k_s), and the answer comes out in closed form:
 
-    ŷ = k_t a / (k_t + k_s + iωγ)          (비드 응답)
-    K*_sample = k_s  (실수, ω 무관)         ← 추정량이 돌려줘야 하는 값
+    y_hat = k_t a / (k_t + k_s + i*omega*gamma)   (the bead response)
+    K*_sample = k_s  (real, omega-independent)    <- what the estimator must return
 
-★ 이 관문이 1차 시도에서 **FAIL 했고**, 그게 이 관문을 만든 이유다. 원인은 물리가
-아니라 구동이었다 — 유령을 U 스텝마다 옮기면 구동이 **영차 유지(zero-order hold)**
-가 되어 기본파가 sinc(ωΔt/2) 로 줄고 위상이 ωΔt/2 만큼 늦는다 (Δt = U·dt).
-실측 De=10 에서 |ŷ_c|/a = 0.98999, 위상 −0.2522 rad / ZOH 예측 0.99040, −0.2404 rad.
+★ This gate **FAILED on the first attempt**, and that is why it exists. The cause was
+not the physics but the drive -- moving the ghost only every U steps makes the drive
+a **zero-order hold**, which attenuates the fundamental by sinc(omega*dt_h/2) and
+retards the phase by omega*dt_h/2 (dt_h = U*dt).
+Measured at De=10: |y_hat_c|/a = 0.98999, phase -0.2522 rad, against the ZOH
+prediction of 0.99040 and -0.2404 rad.
 
-교훈은 **공칭 진폭 a 를 추정량에 쓰지 말라**는 것이다. 유령 위치를 같이 재서
-**측정된 위상자 ŷ_c** 를 쓰면 ZOH 감쇠가 분자·분모에서 정확히 상쇠된다 — 비드는
-공칭 사인이 아니라 유령이 실제로 있는 곳에 반응하기 때문이다. 아래 표는 두 추정량을
-나란히 찍어 그것을 보인다 (공칭은 De 와 함께 무너지고 측정은 평평하다).
+The lesson is **do not use the nominal amplitude a in the estimator**. Measure the
+ghost's position too and use the **measured phasor y_hat_c**, and the ZOH attenuation
+cancels exactly between numerator and denominator -- because the bead responds to
+where the ghost actually is, not to the nominal sine. The table below prints both
+estimators side by side to show it (the nominal one collapses with De; the measured
+one stays flat).
 
-  ① 유령 위치 락인 → ZOH 예측과 일치하는가        [구동을 정량적으로 이해했는가]
-  ② 비드 위치 락인 → 해석해 ŷ                    [BD + 트랩 + 락인]
-  ③ K* 추정량 (측정 ŷ_c) → (k_s, 0)              [추정량 전체]
-  ④ 통계 10배 → 오차가 1/√N 로 줄어드는가        [편향과 잡음의 분리]
-①이 없으면 조용히 틀린다 — 유령이 안 움직여도 런은 완주하고 K* 만 엉뚱해진다.
+  (1) lock-in on the ghost position -> does it match the ZOH prediction?
+      [is the drive quantitatively understood]
+  (2) lock-in on the bead position -> the analytic y_hat
+      [BD + trap + lock-in]
+  (3) the K* estimator (using the measured y_hat_c) -> (k_s, 0)
+      [the estimator as a whole]
+  (4) 10x the statistics -> does the error fall as 1/sqrt(N)?
+      [separating bias from noise]
+Without (1) it fails silently -- if the ghost never moves, the run still completes
+and only K* comes out wrong.
 
-생산 런의 dt(4.53e-10) 에서는 U=100 이어도 ωΔt = 2.19e-3 rad (De=10) 이라 ZOH 자체가
-무해하다. 관문 A 는 dt 가 220배 커서 효과가 증폭된 것이고, 그래서 **추정량의 취약점을
-드러내는 데 오히려 유용한 조건**이다 (함정 1 의 교훈 — 약한 조건으로 검증한다).
+At the production run's dt (4.53e-10), even U=100 gives omega*dt_h = 2.19e-3 rad at
+De=10, so the ZOH is harmless there. Gate A's dt is 220x larger, which amplifies the
+effect -- making it **a more useful condition for exposing the estimator's weak
+point** (the lesson of trap 1: verify under the weak condition).
 
 ────────────────────────────────────────────────────────────────────────────
-관문 B (`--gate inertia`) — τ_p/τ_fast = 0.60 을 논증하지 말고 측정 (규칙 6)
+Gate B (`--gate inertia`) -- measure tau_p/tau_fast = 0.60 rather than argue about
+it (rule 6)
 ────────────────────────────────────────────────────────────────────────────
-최속 굽힘 모드는 과감쇠가 아니다 (감쇠비 ζ = γ/2√(mλ_max) = 0.65 < 1). BD 는 그
-모드를 과감쇠로 강제하므로 그 대역의 동역학이 틀린다 — 어떤 dt 로도 안 고쳐진다.
-"관측 대역과 4570배 떨어져 있어 영향 없을 것"은 지금까지 **확인되지 않은 추론**이다.
+The fastest bending mode is not overdamped (damping ratio
+zeta = gamma/2*sqrt(m*lambda_max) = 0.65 < 1). BD forces that mode to be overdamped,
+so the dynamics in that band is wrong -- and no choice of dt fixes it.
+"It sits 4570x away from the observed band so it will not matter" was, until now,
+**an unverified inference**.
 
-같은 파라미터로 Brownian(관성 없음) vs Langevin(관성 있음) 을 돌려 측정 대역의
-K*(ω) 를 비교한다. 일치하면 그 추론이 **측정된 여유**가 된다. 오염이 가장 클 곳은
-τ_fast 에 가장 가까운 **최고 ω** 이므로 De = 10 과 4.7 에서 본다.
+Run Brownian (no inertia) against Langevin (with inertia) at identical parameters and
+compare K*(omega) in the measured band. If they agree, that inference becomes **a
+measured margin**. Contamination is largest where omega is closest to tau_fast, i.e.
+at the **highest omega**, so De = 10 and 4.7 are the ones examined.
 
 ────────────────────────────────────────────────────────────────────────────
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
@@ -63,36 +80,45 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 import sys as _sys; _sys.path.insert(0, str(ROOT))
 OUT = ROOT / "verify" / "_gates"
-UPDATE_EVERY = 100          # 구동 유령을 옮기는 주기. ZOH 를 남겨 두고 추정량으로 상쇠한다
-SAMPLES_PER_CYCLE = 20      # 스펙과 같은 표본 밀도 (2000표본/100주기)
-N_SIGMA = 3.0               # 해석해와 "구분 안 됨" 판정 기준
-KAPPA_CENTER = 2.0 * 2415.33   # κ_center* = 2 κ_end* (스펙 원장 kappa_end_d2/kT)
-TAU_P = 2.70624e-8          # 스펙 원장 tau_p/tau_B
-TAU_CHAIN = 2.07011e-4      # 스펙 원장 tau_chain/tau_B
+UPDATE_EVERY = 100          # how often the driving ghost is moved. The ZOH is left in
+                            # and cancelled by the estimator
+SAMPLES_PER_CYCLE = 20      # the same sample density as the spec
+                            # (2000 samples / 100 cycles)
+N_SIGMA = 3.0               # the threshold for "indistinguishable from the analytic
+                            # solution"
+KAPPA_CENTER = 2.0 * 2415.33   # kappa_center* = 2 kappa_end* (the spec ledger's
+                               # kappa_end_d2/kT)
+TAU_P = 2.70624e-8          # the spec ledger's tau_p/tau_B
+TAU_CHAIN = 2.07011e-4      # the spec ledger's tau_chain/tau_B
 
 
 def load_specs() -> list[dict]:
-    """ω 오름차순. ★ 파일명 알파벳 정렬은 ω 순서가 아니다 (w1737 < w85)."""
+    """Ascending in omega. ★ Alphabetical filename order is NOT omega order
+    (w1737 sorts before w85)."""
     specs = [json.loads(Path(p).read_text())
              for p in glob.glob(str(ROOT / "specs" / "chain-bend-2d-oscill__*.json"))]
     if not specs:
-        raise SystemExit("specs/chain-bend-2d-oscill__*.json 이 없습니다")
+        raise SystemExit("no specs/chain-bend-2d-oscill__*.json found")
     return sorted(specs, key=lambda s: s["params"]["omega_star"])
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 락인 — 블록별 위상자를 돌려준다 (오차막대를 블록 산포에서 만든다)
+# Lock-in -- returns a phasor per block (the error bars come from the block scatter)
 # ════════════════════════════════════════════════════════════════════════
-# ★ 락인 추정량은 `bdbot/lockin.py` 로 올렸습니다 (관문 A + 생산 런에서 두 번 씀).
-#   본문은 이 파일에서 검증된 것을 그대로 옮긴 것이고, 수치 동일성을 대조했습니다.
+# ★ The lock-in estimator was promoted to `bdbot/lockin.py` (used twice: gate A and
+#   the production run). The body was moved across verbatim from what this file
+#   verified, and numerical identity was checked.
 from bdbot.lockin import agg, k_star, lockin_blocks  # noqa: E402
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 표본 수집 + 구동
+# Sample collection + driving
 # ════════════════════════════════════════════════════════════════════════
 class Sampler(hoomd.custom.Action):
-    """비드와 구동 유령의 y 를 함께 남긴다 — 유령까지 재야 구동을 검사·보정할 수 있다."""
+    """Record the y of both the bead and the driving ghost.
+
+    The ghost has to be measured too, or the drive cannot be checked or corrected.
+    """
 
     def __init__(self, bead_tag: int, ghost_tag: int, dt: float):
         self.bead_tag, self.ghost_tag, self.dt = int(bead_tag), int(ghost_tag), float(dt)
@@ -110,7 +136,10 @@ class Sampler(hoomd.custom.Action):
 
 
 class MoveGhost(hoomd.custom.Action):
-    """구동 유령을 y = y0 + a sin(ωt) 로 옮긴다. 컴파일 경로를 비워 두는 것이 목적."""
+    """Move the driving ghost as y = y0 + a sin(omega*t).
+
+    The point is to leave the compiled path free of Python.
+    """
 
     def __init__(self, ghost_tag: int, y0: float, amp: float, omega: float, dt: float):
         self.ghost_tag, self.y0 = int(ghost_tag), float(y0)
@@ -122,7 +151,8 @@ class MoveGhost(hoomd.custom.Action):
             tags = np.array(snap.particles.tag, copy=True)
             loc = np.flatnonzero(tags == self.ghost_tag)
             if len(loc):
-                snap.particles.position[loc[0], 1] = y      # 2-인덱스로 확실히 써넣는다
+                snap.particles.position[loc[0], 1] = y   # write via a 2-index so it
+                                                         # definitely lands
 
 
 def attach(sim, dt, bead_tag, ghost_tag, amp, omega, sample_every):
@@ -136,7 +166,7 @@ def attach(sim, dt, bead_tag, ghost_tag, amp, omega, sample_every):
 
 
 def run_window(sim, dt, bead_tag, ghost_tag, amp, omega, n_cycles, n_eq=0):
-    """구동을 켜고 n_eq 스텝 지난 뒤 n_cycles 주기를 수집한다."""
+    """Turn the drive on, let n_eq steps pass, then collect n_cycles cycles."""
     period = 2.0 * math.pi / omega
     spc = max(SAMPLES_PER_CYCLE, int(round(period / dt)))
     sample_every = max(1, spc // SAMPLES_PER_CYCLE)
@@ -149,16 +179,19 @@ def run_window(sim, dt, bead_tag, ghost_tag, amp, omega, n_cycles, n_eq=0):
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 관문 A — 비드 1개 + 구동 트랩 + 정적 유령 스프링
+# Gate A -- one bead + a driving trap + a static ghost spring
 # ════════════════════════════════════════════════════════════════════════
 def build_single(k_t: float, k_s: float, dt: float):
-    """tag 0 = 비드, 1 = 구동 유령(k_t), 2 = 정적 유령(k_s). 유령은 적분하지 않는다."""
+    """tag 0 = the bead, 1 = the driving ghost (k_t), 2 = the static ghost (k_s).
+
+    Ghosts are not integrated.
+    """
     f = gsd.hoomd.Frame()
     f.particles.N = 3
     f.particles.position = np.zeros((3, 3))
     f.particles.typeid = [0, 1, 1]
     f.particles.types = ["A", "G"]
-    f.configuration.box = [40.0, 40.0, 0, 0, 0, 0]          # Lz=0 → 2D (함정 9)
+    f.configuration.box = [40.0, 40.0, 0, 0, 0, 0]          # Lz=0 -> 2D (trap 9)
     f.configuration.dimensions = 2
     f.bonds.N = 2
     f.bonds.types = ["trap", "spring"]
@@ -167,11 +200,11 @@ def build_single(k_t: float, k_s: float, dt: float):
     sim = hoomd.Simulation(device=hoomd.device.CPU(), seed=3)
     sim.create_state_from_snapshot(f)
     bond = md.bond.Harmonic()
-    bond.params["trap"] = dict(k=k_t, r0=0.0)               # U = ½k r² = 조화 트랩
+    bond.params["trap"] = dict(k=k_t, r0=0.0)     # U = 0.5*k*r^2 = a harmonic trap
     bond.params["spring"] = dict(k=k_s, r0=0.0)
     bd = md.methods.Brownian(filter=hoomd.filter.Type(["A"]), kT=1.0, default_gamma=1.0)
     integ = md.Integrator(dt=dt, methods=[bd], forces=[bond])
-    integ.integrate_rotational_dof = False                  # BD 는 과감쇠 (함정 5)
+    integ.integrate_rotational_dof = False       # BD is overdamped (trap 5)
     return sim, integ
 
 
@@ -194,17 +227,20 @@ def gate_lockin() -> int:
     k_t = float(specs[0]["params"]["k_t_star"])
     amp = float(specs[0]["params"]["amp_star"])
     k_s, gamma, n_cycles = KAPPA_CENTER, 1.0, 100
-    dt = 1e-3 * gamma / (k_t + k_s)                          # BD 는 O(δt) — 넉넉히 (함정 2)
+    dt = 1e-3 * gamma / (k_t + k_s)              # BD is O(dt) -- keep it generous
+                                                 # (trap 2)
 
     print("=" * 104)
-    print("관문 A — 락인 + K* 추정량을 해석해에 대조 (비드 1개 + 구동 트랩 + 정적 스프링)")
+    print("Gate A -- lock-in + the K* estimator against the analytic solution "
+          "(one bead + driving trap + static spring)")
     print("=" * 104)
     print(f"k_t = {k_t:.2f}   k_s = κ_center* = {k_s:.2f}   a = {amp:.5f}   "
-          f"γ = {gamma}   dt = {dt:.3e}   {n_cycles}주기")
-    print(f"기대: K* = ({k_s:.2f}, 0)  실수, ω 무관.   판정 = 해석해와 {N_SIGMA:.0f}σ 안\n")
-    print(f"{'De':>6} │{'|ŷ_c|/a':>9}{'ZOH예측':>9} │{'ŷ 오차%':>9} │"
-          f"{'K′(공칭a)':>11}{'오차%':>8} │{'K′(측정ŷ_c)':>13}{'±σ':>8}{'오차%':>8}"
-          f"{'K″':>9}{'±σ':>7} │{'3차/1차':>9} {'':>3}")
+          f"gamma = {gamma}   dt = {dt:.3e}   {n_cycles} cycles")
+    print(f"expected: K* = ({k_s:.2f}, 0), real and omega-independent.   "
+          f"verdict = within {N_SIGMA:.0f} sigma of the analytic solution\n")
+    print(f"{'De':>6} |{'|y_c|/a':>9}{'ZOH pred':>9} |{'y err%':>9} |"
+          f"{'K1(nom a)':>11}{'err%':>8} |{'K1(meas y_c)':>13}{'±sig':>8}{'err%':>8}"
+          f"{'K2':>9}{'±sig':>7} |{'3rd/1st':>9} {'':>3}")
     print("-" * 104)
 
     fails, worst = [], 0.0
@@ -215,7 +251,9 @@ def gate_lockin() -> int:
 
         x = omega * dt * UPDATE_EVERY / 2.0
         zoh = math.sin(x) / x if x else 1.0
-        y_ex = k_t * g_hat / complex(k_t + k_s, omega * gamma)   # 측정 구동 기준 해석해
+        y_ex = k_t * g_hat / complex(k_t + k_s, omega * gamma)   # the analytic
+                                                                # solution referenced
+                                                                # to the MEASURED drive
         err_y = 100.0 * abs(y_hat - y_ex) / abs(y_ex)
         err_K = 100.0 * abs(K.real - k_s) / k_s
         err_Kn = 100.0 * abs(Kn.real - k_s) / k_s
@@ -229,14 +267,16 @@ def gate_lockin() -> int:
               f"{'✓' if ok else '✗':>3}")
 
     print("-" * 104)
-    print(f"측정 ŷ_c 추정량 최대 오차 {worst:.2f}%   "
-          f"{'✓ 모든 ω 에서 해석해와 3σ 안' if not fails else f'✗ FAIL at De={fails}'}")
+    print(f"worst error of the measured-y_c estimator: {worst:.2f}%   "
+          f"{'✓ within 3 sigma of the analytic solution at every omega' if not fails else f'✗ FAIL at De={fails}'}")
 
-    # ④ 편향 vs 잡음 — 통계를 10배로 늘려 오차가 1/√N 로 줄면 편향이 아니다
-    print("\n④ 편향 검사 — 통계 10배 (De≈1). 편향이 없으면 오차와 σ 가 함께 √10 배 줄어든다")
+    # (4) bias vs noise -- raise the statistics 10x; if the error falls as 1/sqrt(N)
+    #     it is not a bias
+    print("\n(4) bias check -- 10x the statistics (De ~ 1). With no bias, both the "
+          "error and sigma fall by sqrt(10)")
     sp1 = min(specs, key=lambda s: abs(s["params"]["De"] - 1.0))
     om1 = float(sp1["params"]["omega_star"])
-    print(f"{'주기수':>8}{'K′':>12}{'±σ':>9}{'|K′−k_s|':>11}{'그 배수 σ':>11}{'K″':>10}")
+    print(f"{'cycles':>8}{'K1':>12}{'±sig':>9}{'|K1-k_s|':>11}{'in sig':>11}{'K2':>10}")
     prev = None
     for nc, nb in ((100, 10), (1000, 10)):
         m = measure_single(k_t, k_s, amp, om1, dt, nc, n_blocks=nb)
@@ -244,13 +284,14 @@ def gate_lockin() -> int:
         d = abs(K.real - k_s)
         print(f"{nc:>8}{K.real:>12.1f}{Ks:>9.1f}{d:>11.1f}{d / Ks:>11.2f}{K.imag:>10.1f}")
         prev = (d, Ks) if prev is None else prev
-    print(f"  (기대: 100→1000 주기에서 σ 가 약 √10 = 3.16 배 감소)")
+    print(f"  (expected: from 100 to 1000 cycles, sigma falls by about "
+          f"sqrt(10) = 3.16)")
     print("=" * 104)
     return 0 if not fails else 1
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 관문 B — 사슬 전체, Brownian vs Langevin
+# Gate B -- the full chain, Brownian vs Langevin
 # ════════════════════════════════════════════════════════════════════════
 def build_chain(sp: dict, mass: float):
     p = sp["params"]
@@ -259,7 +300,7 @@ def build_chain(sp: dict, mass: float):
     ell = float(p["L_chain_star"]) / (n - 1)
     pos = [[(i - (n - 1) / 2) * ell, 0.0, 0.0] for i in range(n)]
     typeid = [0] * n
-    for g in trapped:                                        # 유령을 비드 위에 겹쳐 둔다
+    for g in trapped:                            # place each ghost on top of its bead
         pos.append(list(pos[g]))
         typeid.append(1)
 
@@ -300,8 +341,9 @@ def gate_inertia_one(de_target: float, method: str, n_cycles: int, n_eq_tau: flo
     p, nu = sp["params"], sp["numerics"]
     omega, amp = float(p["omega_star"]), float(p["amp_star"])
     k_t, dt, gamma = float(p["k_t_star"]), float(nu["dt_star"]), 1.0
-    # 관성이 있는 쪽만 질량을 준다. kT=0 인 두 방법은 **결정론적** — 통계오차가 0 이라
-    # 관성 항만 따로 떼어 볼 수 있다 (열적 비교는 검정력이 없었다).
+    # Only the inertial side gets a mass. With kT=0 both methods are
+    # **deterministic** -- the statistical error is 0, so the inertial term can be
+    # isolated on its own (the thermal comparison had no statistical power).
     inertial = method in ("langevin", "lang0")
     mass = TAU_P * gamma if inertial else 0.0
 
@@ -310,7 +352,8 @@ def gate_inertia_one(de_target: float, method: str, n_cycles: int, n_eq_tau: flo
     integ_m = {
         "bd": lambda: md.methods.Brownian(filter=filt, kT=1.0, default_gamma=gamma),
         "langevin": lambda: md.methods.Langevin(filter=filt, kT=1.0, default_gamma=gamma),
-        # 열잡음 없는 과감쇠 — skill bd-hoomd 가 결정론적 검증용으로 지정한 적분기
+        # Overdamped with no thermal noise -- the integrator skill bd-hoomd
+        # designates for deterministic verification
         "ov": lambda: md.methods.OverdampedViscous(filter=filt, default_gamma=gamma),
         "lang0": lambda: md.methods.Langevin(filter=filt, kT=0.0, default_gamma=gamma),
     }[method]()
@@ -320,13 +363,15 @@ def gate_inertia_one(de_target: float, method: str, n_cycles: int, n_eq_tau: flo
     if method == "langevin":
         sim.state.thermalize_particle_momenta(filter=filt, kT=1.0)
 
-    # ★ TAU_CHAIN(= γ/κ_center) 은 이 계의 최장 이완시간이 **아니다** — (A+T) 의 최저
-    # 고유값에서 나오는 τ_max = γ/λ_min 이 9.18배 길다. 그것으로 평형화해야 한다.
+    # ★ TAU_CHAIN (= gamma/kappa_center) is **NOT** this system's longest relaxation
+    # time -- tau_max = gamma/lambda_min, from the smallest eigenvalue of (A+T), is
+    # 9.18x longer. Equilibration must use that one.
     n_eq = int(eq_steps) if eq_steps else int(round(n_eq_tau * TAU_CHAIN / dt))
     t, yb, yg = run_window(sim, dt, bead_tag, ghost_tag, amp, omega, n_cycles, n_eq=n_eq)
 
-    # ★ 블록은 **최소 한 주기**를 담아야 한다. 반주기 블록으로 락인하면 블록값이
-    # 무의미해지고 SEM 이 물리와 무관한 수가 된다 (전체창 추정치는 영향 없음).
+    # ★ A block must contain **at least one full cycle**. Locking in on half-cycle
+    # blocks makes the per-block values meaningless and turns the SEM into a number
+    # unrelated to the physics (the whole-window estimate is unaffected).
     nb = max(1, min(6, n_cycles))
     yb_b = lockin_blocks(t, yb, omega, n_blocks=nb)
     yg_b = lockin_blocks(t, yg, omega, n_blocks=nb)
@@ -344,15 +389,19 @@ def gate_inertia_one(de_target: float, method: str, n_cycles: int, n_eq_tau: flo
 def gate_inertia_collect() -> int:
     rows = [json.loads(f.read_text()) for f in sorted(OUT.glob("inertia_*.json"))]
     if not rows:
-        raise SystemExit(f"{OUT}/inertia_*.json 이 없습니다 — 먼저 각 구성을 돌리세요")
+        raise SystemExit(f"no {OUT}/inertia_*.json found -- run each configuration "
+                         f"first")
 
     print("=" * 96)
-    print("관문 B — τ_p/τ_fast = 0.60 의 오염을 측정 (Brownian vs Langevin, 같은 파라미터)")
+    print("Gate B -- measure the contamination from tau_p/tau_fast = 0.60 "
+          "(Brownian vs Langevin, identical parameters)")
     print("=" * 96)
-    print(f"κ_center* = {KAPPA_CENTER:.1f}   ζ_fast = 0.65 (< 1 → 최속 모드는 실제로 저감쇠)")
-    print("Langevin 은 관성이 있고 BD 는 없다. 측정 대역에서 K* 가 같으면 BD 로 재도 된다.\n")
-    print(f"{'De':>6} {'방법':<10}{'|ŷ_c|/a':>10}{'K′':>11}{'±σ':>9}{'K″':>11}{'±σ':>9}"
-          f"{'3차/1차':>10}{'표본':>7}")
+    print(f"kappa_center* = {KAPPA_CENTER:.1f}   zeta_fast = 0.65 "
+          f"(< 1 -> the fastest mode really is underdamped)")
+    print("Langevin has inertia and BD does not. If K* agrees in the measured band, "
+          "BD is a valid instrument for it.\n")
+    print(f"{'De':>6} {'method':<10}{'|y_c|/a':>10}{'K1':>11}{'±sig':>9}{'K2':>11}{'±sig':>9}"
+          f"{'3rd/1st':>10}{'samp':>7}")
     print("-" * 96)
     for r in sorted(rows, key=lambda x: (-x["de"], x["method"])):
         print(f"{r['de']:>6.2f} {r['method']:<10}{r['drive_abs']:>10.6f}"
@@ -364,7 +413,7 @@ def gate_inertia_collect() -> int:
     for de in sorted({r["de"] for r in rows}, reverse=True):
         pair = {r["method"]: r for r in rows if r["de"] == de}
         if len(pair) < 2:
-            print(f"De={de:.2f}: 짝이 없어 비교 못 함 ({list(pair)})")
+            print(f"De={de:.2f}: unpaired, cannot compare ({list(pair)})")
             verdict = 1
             continue
         b, l = pair["bd"], pair["langevin"]
@@ -375,39 +424,46 @@ def gate_inertia_collect() -> int:
             ok = nsig <= N_SIGMA
             verdict |= 0 if ok else 1
             print(f"De={de:>5.2f} {lbl}: |BD−Langevin| = {d:9.2f} = {nsig:5.2f}σ "
-                  f"({rel:6.2f}%)  {'✓ 구분 안 됨' if ok else '✗ 유의한 차이'}")
+                  f"({rel:6.2f}%)  "
+                  f"{'✓ indistinguishable' if ok else '✗ a significant difference'}")
     print("-" * 96)
-    print("✓ PASS — 관성이 측정 대역의 K* 를 바꾸지 않는다. BD 로 스윕해도 된다."
+    print("✓ PASS -- inertia does not change K* in the measured band. The sweep may "
+          "use BD."
           if verdict == 0 else
-          "✗ FAIL — 관성이 측정 대역에 들어온다. BD 로는 이 대역을 못 잰다.")
+          "✗ FAIL -- inertia reaches into the measured band. BD cannot measure it.")
     print("=" * 96)
     return verdict
 
 
 def gate_det_collect() -> int:
-    """결정론적(kT=0) 비교 — 통계오차가 0 이므로 관성 항만 정확히 떼어 본다.
+    """Deterministic (kT=0) comparison -- the statistical error is 0, so the inertial
+    term is isolated exactly.
 
-    부수 산출: 잡음 없는 K*(ω) 곡선. 저주파 극한이 κ_center 로 가는지가
-    implementation_check 이고, 곡선의 **모양**이 hypothesis (단일 Maxwell vs 모드 스펙트럼).
+    Side product: a noise-free K*(omega) curve. Whether the low-frequency limit goes
+    to kappa_center is the implementation_check; the **shape** of the curve is a
+    hypothesis (a single Maxwell mode vs a mode spectrum).
     """
     rows = [json.loads(f.read_text()) for f in sorted(OUT.glob("det_*.json"))]
     if not rows:
-        raise SystemExit(f"{OUT}/det_*.json 이 없습니다")
+        raise SystemExit(f"no {OUT}/det_*.json found")
 
     print("=" * 100)
-    print("관문 B′ — 결정론적 비교 (OverdampedViscous vs Langevin kT=0). 통계오차 0")
+    print("Gate B' -- deterministic comparison (OverdampedViscous vs Langevin kT=0). "
+          "Statistical error 0")
     print("=" * 100)
-    print(f"κ_center* = {KAPPA_CENTER:.1f}   m* = {TAU_P:.3e}   ζ_fast = 0.65 (최속 모드는 저감쇠)")
-    print("열적 비교는 |ŷ|/ℓ_k < 1 때문에 검정력이 없었다. kT=0 이면 그 문제가 사라진다.\n")
-    print(f"{'De':>7} │{'K′(과감쇠)':>13}{'K′(관성)':>13}{'차이%':>8} │"
-          f"{'K″(과감쇠)':>13}{'K″(관성)':>13}{'차이%':>8} │{'K′/κ_c':>8}")
+    print(f"kappa_center* = {KAPPA_CENTER:.1f}   m* = {TAU_P:.3e}   "
+          f"zeta_fast = 0.65 (the fastest mode is underdamped)")
+    print("The thermal comparison had no statistical power because |y_hat|/l_k < 1. "
+          "With kT=0 that problem disappears.\n")
+    print(f"{'De':>7} |{'K1(overdamp)':>13}{'K1(inertia)':>13}{'diff%':>8} |"
+          f"{'K2(overdamp)':>13}{'K2(inertia)':>13}{'diff%':>8} |{'K1/kap_c':>8}")
     print("-" * 100)
 
     worst, pairs = 0.0, 0
     for de in sorted({r["de"] for r in rows}):
         pr = {r["method"]: r for r in rows if r["de"] == de}
         if len(pr) < 2:
-            print(f"{de:>7.3f} │ 짝 없음 ({list(pr)})")
+            print(f"{de:>7.3f} | unpaired ({list(pr)})")
             continue
         o, l = pr["ov"], pr["lang0"]
         pairs += 1
@@ -419,12 +475,16 @@ def gate_det_collect() -> int:
               f"{o['K_re'] / KAPPA_CENTER:>8.3f}")
     print("-" * 100)
     ok = worst < 1.0
-    print(f"짝 {pairs}개 · 관성 유무의 최대 차이 = {worst:.3f}%")
-    print("✓ PASS — 관성 항이 측정 대역의 K*(ω) 를 1% 미만으로 바꾼다. BD 로 스윕해도 된다."
+    print(f"{pairs} pairs . largest difference with/without inertia = {worst:.3f}%")
+    print("✓ PASS -- the inertial term changes K*(omega) in the measured band by "
+          "less than 1%. The sweep may use BD."
           if ok else
-          f"✗ FAIL — 관성이 최대 {worst:.1f}% 바꾼다. BD 로는 이 대역을 못 잰다.")
-    print("  (이 검정은 관성 항 자체만 본다. 열적 링잉 × 비선형 결합은 덮지 못한다 —")
-    print("   max|θ| = 2.8e-3 rad 라 작을 것으로 보이지만 별도 확인이 필요하다.)")
+          f"✗ FAIL -- inertia changes it by up to {worst:.1f}%. BD cannot measure "
+          f"this band.")
+    print("  (this test looks at the inertial term alone. It does NOT cover "
+          "thermal ringing combined with")
+    print("   nonlinear coupling -- max|theta| = 2.8e-3 rad suggests that is small, "
+          "but needs a separate check.)")
     print("=" * 100)
     return 0 if ok else 1
 
@@ -437,7 +497,8 @@ def main() -> int:
     ap.add_argument("--cycles", type=int, default=60)
     ap.add_argument("--eq-tau", type=float, default=5.0)
     ap.add_argument("--eq-steps", type=int, default=0,
-                    help="평형화 스텝을 절대값으로 지정 (τ_max 기준으로 줄 때)")
+                    help="give the equilibration steps as an absolute number "
+                         "(when specifying them in units of tau_max)")
     ap.add_argument("--collect", action="store_true")
     a = ap.parse_args()
 
@@ -446,13 +507,14 @@ def main() -> int:
     if a.collect:
         return gate_det_collect() if a.gate == "det" else gate_inertia_collect()
     if not a.method:
-        raise SystemExit("--method bd|langevin|ov|lang0 이 필요합니다")
+        raise SystemExit("--method bd|langevin|ov|lang0 is required")
     OUT.mkdir(parents=True, exist_ok=True)
     res = gate_inertia_one(a.de, a.method, a.cycles, a.eq_tau, a.eq_steps)
     pre = ("deq" if a.eq_steps else "det") if a.gate == "det" else "inertia"
     (OUT / f"{pre}_de{res['de']:.3f}_{a.method}.json").write_text(json.dumps(res, indent=2))
     print(f"[de{res['de']:.2f} {a.method}] K* = ({res['K_re']:.1f}, {res['K_im']:.1f}) "
-          f"± {res['K_sem']:.1f}   유령 {res['drive_abs']:.6f}   표본 {res['n_samples']}")
+          f"± {res['K_sem']:.1f}   ghost {res['drive_abs']:.6f}   "
+          f"samples {res['n_samples']}")
     return 0
 
 
