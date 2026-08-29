@@ -252,25 +252,25 @@ def build_ledger(sys_, n: int, omega: float, amp_nm: float, *, dt_scale=1.0,
 
     lg = SC.ScaleLedger()
     lg.add_length("sigma_bond", sigma_bond.to("m"), "결합 방사 열요동 폭 √(kT/k_bond)", star=True)
-    lg.add_length("h_min", Q(w["h_min"], "dimensionless") * d, "2차극소 위치(표면간극)", star=True)
-    lg.add_length("a", amp, "구동 진폭", star=True)
-    lg.add_length("d", d, "비드 지름")
-    lg.add_length("ell", ell.to("m"), "결합 자연길이 (중심간, d+h_min)")
-    lg.add_length("L_chain", L_chain.to("m"), "사슬 윤곽길이 (n-1)ell")
-    lg.add_time("tau_p", b["tau_p"], "m/γ 관성 이완", role="inertia")
-    lg.add_time("dt", dt, "적분 스텝", role="dt")
+    lg.add_length("h_min", Q(w["h_min"], "dimensionless") * d, "secondary-minimum position (surface gap)", star=True)
+    lg.add_length("a", amp, "drive amplitude", star=True)
+    lg.add_length("d", d, "bead diameter")
+    lg.add_length("ell", ell.to("m"), "natural bond length (centre to centre, d+h_min)")
+    lg.add_length("L_chain", L_chain.to("m"), "chain contour length (n-1)*ell")
+    lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
+    lg.add_time("dt", dt, "integration step", role="dt")
     lg.add_time("tau_bond", tau_bond, "★ γ/k_bond 결합 신축 — 유일한 선형 강성 모드. dt를 정한다",
                 star=True)
-    lg.add_time("tau_k", tau_k, "γ/k_t 트랩")
+    lg.add_time("tau_k", tau_k, "gamma/k_t trap")
     lg.add_time("tau_w", tau_w, f"1/ω 구동 (ω={omega:.0f} rad/s)")
-    lg.add_time("tau_period", tau_period, "2π/ω 구동 주기")
+    lg.add_time("tau_period", tau_period, "2*pi/omega drive period")
     lg.add_time("tau_chain_diff", tau_chain_diffusion,
                 "★제안: L_chain²/D_t — 사슬 형태 이완의 거친 상한 (굽힘강성이 0이라 "
                 "정확한 Rouse 스펙트럼 유도는 별도 검증 필요, 지금은 어림)", star=True)
-    lg.add_time("tau_B", tau_B, "d²/D_t 확산 (기준)")
+    lg.add_time("tau_B", tau_B, "d^2/D_t diffusion (reference)")
     lg.add_time("T_obs", T_obs, f"관측창 ({n_cycles:g}주기)", role="observation")
-    lg.add_energy("kT", kT, "열에너지 (기준)")
-    lg.add_energy("k_t_d2", (k_t * d ** 2).to("J"), "k_t d² 트랩 강성")
+    lg.add_energy("kT", kT, "thermal energy (reference)")
+    lg.add_energy("k_t_d2", (k_t * d ** 2).to("J"), "k_t*d^2 trap stiffness")
     lg.add_energy("k_bond_d2", (k_bond * d ** 2).to("J"), "k_bond d² 결합 방사강성", star=True)
     lg.add_energy("well_depth", Q(-w["U_min"], "dimensionless") * kT,
                   "|2차극소 깊이| — 결합이 가역적일 수 있는 열에너지 규모", star=True)
@@ -344,19 +344,19 @@ def analyze_scales(sys_, lg, n):
                  ("times", "tau_chain_diff"), ("times", "tau_w"), "ω τ_chain_diff",
                  "★제안: 사슬 형태이완 기준 Deborah (어림)"),
         ND.Group("De_trap", r("times", "tau_k", "tau_w"),
-                 ("times", "tau_k"), ("times", "tau_w"), "ω τ_k", "트랩 기준"),
+                 ("times", "tau_k"), ("times", "tau_w"), "ω τ_k", "trap reference"),
         ND.Group("tau_bond/tau_chain_diff", r("times", "tau_bond", "tau_chain_diff"),
                  ("times", "tau_bond"), ("times", "tau_chain_diff"), "",
                  "★ 척도 분리 폭 (dt를 정하는 모드 vs 형태 이완 어림)"),
         ND.Group("dt/tau_bond", r("times", "dt", "tau_bond"),
                  ("times", "dt"), ("times", "tau_bond"), "", "적분 해상"),
         ND.Group("n_cycles", r("times", "T_obs", "tau_period"),
-                 ("times", "T_obs"), ("times", "tau_period"), "", "관측 주기 수"),
+                 ("times", "T_obs"), ("times", "tau_period"), "", "cycles observed"),
         ND.Group("St", r("times", "tau_p", "tau_B"),
-                 ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "관성 vs 확산"),
+                 ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "inertia vs diffusion"),
     ]
     checks = [
-        C.Check("model", "참고: τ_p/τ_bond", r("times", "tau_p", "tau_bond"),
+        C.Check("model", "note: tau_p/tau_bond", r("times", "tau_p", "tau_bond"),
                 C.GATE, "<=",
                 "★ 결합이 깊고 좁은 우물이라 τ_bond 가 τ_p 에 근접한다 (관성 무시 기준을 "
                 "~2.8배 넘김, n·ω·amp 와 무관 — 결합 물리 자체의 성질). "
@@ -380,7 +380,7 @@ def analyze_scales(sys_, lg, n):
         C.Check("statistics", "SNR(결합)     a/σ_bond", r("lengths", "a", "sigma_bond"), 3.0, ">=",
                 "구동 진폭이 결합 열요동보다 커야 신호가 잡음 위로 나온다", hard=False),
         C.Check("statistics", "cycles observed      T_obs/(2pi/w)", r("times", "T_obs", "tau_period"),
-                N_CYCLES, ">=", "위상 평균에 쓸 주기 수", hard=False),
+                N_CYCLES, ">=", "cycles used for the phase average", hard=False),
     ]
     return groups, checks
 
@@ -392,9 +392,9 @@ def report_blocks(sys_, lg, n_eq, n_prod, n):
            R.kv("I(MgCl2)", f"{sys_['ionic_strength'].value:~.4gP}",
                 sys_["ionic_strength"].tier, sys_["ionic_strength"].source[:44]),
            R.kv("A_H", f"{sys_['A_H'].value:~.4gP}", sys_["A_H"].tier, sys_["A_H"].source[:44]),
-           R.kv("n", f"{n}", 3, "★제안 스윕"),
-           R.kv("omega", f"{D['omega']:.0f} rad/s", 3, "★제안 스윕"),
-           R.kv("amp", f"{D['amp'].to('nm'):~.1fP}", 3, "★제안 스윕")]
+           R.kv("n", f"{n}", 3, "*suggested sweep"),
+           R.kv("omega", f"{D['omega']:.0f} rad/s", 3, "*suggested sweep"),
+           R.kv("amp", f"{D['amp'].to('nm'):~.1fP}", 3, "*suggested sweep")]
     der = [
         f"  λ_D(반지름 무관) 는 build_ledger 밖 scratch/dlvo_ledger.py 참조",
         f"  결합: 장벽 {D['barrier_star']:.2f} kT   2차극소 {D['U_min_star']:.3f} kT"
@@ -480,7 +480,7 @@ def emit(sys_, n, omega, amp_nm, args) -> int:
 
     l3 = spec.validate()
     if l3:
-        print("L3 무결성 검사")
+        print("L3 INTEGRITY CHECK")
         for i in l3:
             print(str(i))
         print()
@@ -574,7 +574,7 @@ def main() -> int:
         sys_["amp_range"][0] * sys_["amp_range"][1])
 
     if not (args.report or args.spec or args.run):
-        print("무엇을 할지 고르세요 — `--report` · `--spec` · `--run`")
+        print("choose what to do -- `--report`, `--spec` or `--run`")
         return 3
 
     rc = 0
@@ -928,9 +928,9 @@ def build(spec, outdir=None) -> RUN.Build:
     return RUN.Build(
         sim=sim, forces=forces, n_particles=n,
         sample=sample, pe_per_particle=pe_per_particle, sample_every=every,
-        phases=[RUN.Phase("예열", int(Nm["n_eq"]), collect=False,
+        phases=[RUN.Phase("warm-up", int(Nm["n_eq"]), collect=False,
                           note="구동 ON · 국소(결합) 이완만 — 전체 형태이완 아님(스모크)"),
-                RUN.Phase("생산", int(Nm["n_prod"]), every,
+                RUN.Phase("production", int(Nm["n_prod"]), every,
                           note=f"ω*={omega:.4g}")],
         tags=["2D", "chain", "dlvo", "pair_table", "oscillatory_drive", "no_bending",
               "hypothesis_test", "structural"],

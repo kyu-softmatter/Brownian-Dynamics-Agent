@@ -213,19 +213,19 @@ def build_ledger(sys_, n: int, kink_angle: float, *, dt_scale=1.0,
 
     lg = SC.ScaleLedger()
     lg.add_length("sigma_bond", sigma_bond.to("m"), "결합 신장 열요동 폭 √(kT/k_bond)", star=True)
-    lg.add_length("h_min", Q(w["h_min"], "dimensionless") * d, "2차극소 위치(표면간극)")
-    lg.add_length("d", d, "비드 지름")
-    lg.add_length("ell", ell.to("m"), "결합 자연길이 (중심간, d+h_min)")
-    lg.add_length("L_chain", L_chain.to("m"), "사슬 윤곽길이 (n-1)ell")
-    lg.add_time("tau_p", b["tau_p"], "m/γ 관성 이완", role="inertia")
-    lg.add_time("dt", dt, "적분 스텝", role="dt")
+    lg.add_length("h_min", Q(w["h_min"], "dimensionless") * d, "secondary-minimum position (surface gap)")
+    lg.add_length("d", d, "bead diameter")
+    lg.add_length("ell", ell.to("m"), "natural bond length (centre to centre, d+h_min)")
+    lg.add_length("L_chain", L_chain.to("m"), "chain contour length (n-1)*ell")
+    lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
+    lg.add_time("dt", dt, "integration step", role="dt")
     lg.add_time("tau_bond", tau_bond,
                "★★ γ/k_bond 결합 신장 — 이 계의 **유일한** 강성 모드. dt를 정한다",
                star=True)
-    lg.add_time("tau_B", tau_B, "d²/D_t 확산 (기준)")
+    lg.add_time("tau_B", tau_B, "d^2/D_t diffusion (reference)")
     lg.add_time("T_obs", T_obs, "관측창 (τ_bond 배수 — 국소 모드만 필요, 사슬 전체"
                " 형태이완 τ_chain_diff 는 불필요, observation.yaml R2)", role="observation")
-    lg.add_energy("kT", kT, "열에너지 (기준)")
+    lg.add_energy("kT", kT, "thermal energy (reference)")
     lg.add_energy("k_bond_d2", (k_bond * d ** 2).to("J"), "k_bond d² 결합 신장강성", star=True)
     lg.add_energy("well_depth", Q(-w["U_min"], "dimensionless") * kT, "|2차극소 깊이|")
     lg.declare_absent(
@@ -279,7 +279,7 @@ def analyze_scales(lg, n, init, kink_angle):
                  ("times", "tau_bond"), "tau_p/tau_bond", "관성 vs 결합신장"),
     ]
     checks = [
-        C.Check("model", "참고: τ_p/τ_bond", r("times", "tau_p", "tau_bond"), C.GATE, "<=",
+        C.Check("model", "note: tau_p/tau_bond", r("times", "tau_p", "tau_bond"), C.GATE, "<=",
               "chain-bend-2d-dlvo 와 동일한 미검증 상태(같은 입자·같은 결합) — 여기서 "
               "재검증하지 않는다. 그 케이스가 OverdampedViscous 대조로 검증하면 이 "
               "케이스도 같이 검증된다", hard=False),
@@ -384,7 +384,7 @@ def emit(sys_, n, init, kink_angle, args) -> int:
 
     l3 = spec.validate()
     if l3:
-        print("L3 무결성 검사")
+        print("L3 INTEGRITY CHECK")
         for i in l3:
             print(str(i))
         print()
@@ -721,7 +721,7 @@ def main() -> int:
         args.eq_scale = min(args.eq_scale, 20.0)
 
     if not (args.report or args.spec or args.run):
-        print("무엇을 할지 고르세요 — `--report` · `--spec` · `--run`")
+        print("choose what to do -- `--report`, `--spec` or `--run`")
         return 3
 
     return emit(sys_, n, args.init, kink_angle, args)

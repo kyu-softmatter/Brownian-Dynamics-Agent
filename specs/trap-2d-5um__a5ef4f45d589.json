@@ -83,7 +83,7 @@
   },
   "reference": {
     "strategy": "thermal",
-    "rationale": "thermal 규약 고정 (σ=d, E=kT, τ=τ_B). 단위계는 문헌 비교를 위해 계마다 바꾸지 않는다 (bd-physics §1.1). 지배 시간척도는 계마다 다를 수 있고, dt는 그쪽으로 정한다. 이 계의 지배 시간척도는 τ_k다 — τ_B=242s는 트랩이 4ms에 붙잡아 실현되지 않는다. 결과 보고는 τ_k 단위로 재척도한다.",
+    "rationale": "thermal convention, fixed (sigma=d, E=kT, tau=tau_B). The unit system is not changed per system, so that literature comparison stays possible (bd-physics 1.1). The governing timescale may differ per system, and dt is set from that one. The governing timescale of this system is tau_k -- tau_B=242s is never realized because the trap catches the particle in 4ms. Results are rescaled into units of tau_k for reporting.",
     "length": {
       "symbol": "d",
       "value": 4.9999999999999996e-06,
@@ -114,7 +114,7 @@
         "symbol": "d",
         "value": 4.9999999999999996e-06,
         "unit": "meter",
-        "note": "입자 지름 (기준)",
+        "note": "particle diameter (reference)",
         "role": "",
         "star": false,
         "reduced": 1.0
@@ -123,7 +123,7 @@
         "symbol": "l_k",
         "value": 2.0351773878460817e-08,
         "unit": "meter",
-        "note": "√(kT/k) 트랩 요동폭",
+        "note": "sqrt(kT/k) trap fluctuation width",
         "role": "",
         "star": false,
         "reduced": 0.004070354775692164
@@ -132,7 +132,7 @@
         "symbol": "L",
         "value": 0.00015999999999999999,
         "unit": "meter",
-        "note": "박스",
+        "note": "box",
         "role": "box",
         "star": false,
         "reduced": 32.0
@@ -143,7 +143,7 @@
         "symbol": "tau_p",
         "value": 3.2641336989163074e-06,
         "unit": "second",
-        "note": "m/γ 관성 이완",
+        "note": "m/gamma momentum relaxation",
         "role": "inertia",
         "star": false,
         "reduced": 1.3485336132119386e-08
@@ -152,7 +152,7 @@
         "symbol": "dt",
         "value": 8.02048604461474e-06,
         "unit": "second",
-        "note": "적분 스텝",
+        "note": "integration step",
         "role": "dt",
         "star": false,
         "reduced": 3.313557600000001e-08
@@ -161,7 +161,7 @@
         "symbol": "tau_k",
         "value": 0.0040102430223073705,
         "unit": "second",
-        "note": "γ/k 트랩 이완",
+        "note": "gamma/k trap relaxation",
         "role": "",
         "star": true,
         "reduced": 1.6567788000000008e-05
@@ -170,7 +170,7 @@
         "symbol": "tau_B",
         "value": 242.05059977272577,
         "unit": "second",
-        "note": "d²/D_t 확산 (기준)",
+        "note": "d^2/D_t diffusion (reference)",
         "role": "",
         "star": false,
         "reduced": 1.0
@@ -179,7 +179,7 @@
         "symbol": "T_obs",
         "value": 8.02048604461474,
         "unit": "second",
-        "note": "관측창",
+        "note": "observation window",
         "role": "observation",
         "star": false,
         "reduced": 0.033135576000000014
@@ -190,7 +190,7 @@
         "symbol": "kT",
         "value": 4.141947e-21,
         "unit": "kilogram * meter ** 2 / second ** 2",
-        "note": "열에너지 (기준)",
+        "note": "thermal energy (reference)",
         "role": "",
         "star": false,
         "reduced": 1.0
@@ -199,7 +199,7 @@
         "symbol": "k_d2",
         "value": 2.499999999999999e-16,
         "unit": "kilogram * meter ** 2 / second ** 2",
-        "note": "k·d² 트랩 강성",
+        "note": "k*d^2 trap stiffness",
         "role": "",
         "star": false,
         "reduced": 60358.087633665986
@@ -211,8 +211,8 @@
     {
       "name": "k*",
       "value": 60358.087633665986,
-      "expr": "k d²/kT",
-      "meaning": "트랩 vs 열요동",
+      "expr": "k d^2/kT",
+      "meaning": "trap vs thermal fluctuation",
       "num": [
         "energies",
         "k_d2"
@@ -225,8 +225,8 @@
     {
       "name": "l_k/d",
       "value": 0.004070354775692164,
-      "expr": "1/√k*",
-      "meaning": "요동폭 vs 입자",
+      "expr": "1/sqrt(k*)",
+      "meaning": "fluctuation width vs particle",
       "num": [
         "lengths",
         "l_k"
@@ -240,7 +240,7 @@
       "name": "tau_k/tau_B",
       "value": 1.6567788000000008e-05,
       "expr": "1/k*",
-      "meaning": "트랩 이완 vs 확산",
+      "meaning": "trap relaxation vs diffusion",
       "num": [
         "times",
         "tau_k"
@@ -254,7 +254,7 @@
       "name": "dt/tau_k",
       "value": 0.002,
       "expr": "",
-      "meaning": "적분 해상",
+      "meaning": "integration resolution",
       "num": [
         "times",
         "dt"
@@ -268,7 +268,7 @@
       "name": "T_obs/tau_k",
       "value": 1999.9999999999998,
       "expr": "",
-      "meaning": "관측창",
+      "meaning": "observation window",
       "num": [
         "times",
         "T_obs"
@@ -281,8 +281,8 @@
   ],
   "checks": [
     {
-      "kind": "모델",
-      "name": "관성 무시   τ_p/τ_k",
+      "kind": "model",
+      "name": "inertia negligible  tau_p/tau_k",
       "value": 0.0008139491000319041,
       "limit": 0.01,
       "op": "<=",
@@ -292,8 +292,8 @@
       "phase": "design"
     },
     {
-      "kind": "적분",
-      "name": "트랩 해상   dt/τ_k",
+      "kind": "integration",
+      "name": "trap resolved      dt/tau_k",
       "value": 0.002,
       "limit": 0.01,
       "op": "<=",
@@ -303,8 +303,8 @@
       "phase": "design"
     },
     {
-      "kind": "기하",
-      "name": "요동 vs 박스 2ℓ_k/L",
+      "kind": "geometry",
+      "name": "fluctuation vs box 2l_k/L",
       "value": 0.00025439717348076026,
       "limit": 0.5,
       "op": "<=",
@@ -314,8 +314,8 @@
       "phase": "design"
     },
     {
-      "kind": "통계",
-      "name": "관측창     T_obs/τ_k",
+      "kind": "statistics",
+      "name": "observation window T_obs/tau_k",
       "value": 1999.9999999999998,
       "limit": 100.0,
       "op": ">=",

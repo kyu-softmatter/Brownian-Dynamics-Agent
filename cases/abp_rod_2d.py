@@ -94,7 +94,7 @@ def build_ledger(s, dt=None, T_obs=None):
     lg.add_length("d_eq", d, "등가부피 구 지름 (기준)")
     lg.add_length("l_p", l_p, "v·τ_eff 지속길이", star=True)
     lg.add_length("2a_major", (2 * semi[0]).to("m"), "장축 길이")
-    lg.add_length("L", L, "박스", role="box")
+    lg.add_length("L", L, "box", role="box")
     lg.add_time("tau_p", tau_p, "m/γ̄ 관성", role="inertia")
     if dt is not None:
         lg.add_time("dt", dt, "적분 스텝 (numerics.dt, 사람이 정함)", role="dt")
@@ -104,8 +104,8 @@ def build_ledger(s, dt=None, T_obs=None):
     lg.add_time("tau_r", tau_r, "1/D_r 열적 회전확산")
     lg.add_time("tau_B", tau_B, "d_eq²/D̄ 확산 (기준)")
     if T_obs is not None:
-        lg.add_time("T_obs", T_obs, "관측창", role="observation")
-    lg.add_energy("kT", kT, "열에너지 (기준)")
+        lg.add_time("T_obs", T_obs, "observation window", role="observation")
+    lg.add_energy("kT", kT, "thermal energy (reference)")
     lg.add_energy("fa_d", (gbar * v * d).to("J"), "f_a·d_eq 자기추진 일")
     lg.derived = dict(d=d, kT=kT, gbar=gbar, gr=gr, v=v, D_bar=D_bar, tau_B=tau_B,
                       D_r=D_r, tau_r=tau_r, tau_eff=tau_eff, tau_tumble=tau_tumble,
@@ -131,7 +131,7 @@ def analyze_scales(s, lg, N):
     # Pe 는 τ_B/τ_v 와 **같은 값**입니다 (v d/D̄ = (d²/D̄)/(d/v)) — 원장으로 교차검증됩니다.
     groups = [
         ND.Group("Pe", Pe, ("times", "tau_B"), ("times", "tau_v"),
-                 "v d_eq/D̄ = τ_B/τ_v", "이류 vs 확산"),
+                 "v d_eq/D̄ = τ_B/τ_v", "advection vs diffusion"),
         ND.Group("D_r*", f_(D["D_r"] * D["tau_B"]), ("times", "tau_B"), ("times", "tau_r"),
                  "D_r τ_B", "회전 vs 병진"),
         ND.Group("l_p/d_eq", f_(D["l_p"] / D["d"]), ("lengths", "l_p"), ("lengths", "d_eq"),
@@ -141,16 +141,16 @@ def analyze_scales(s, lg, N):
         ND.Group("tau_tumble/tau_r", f_(D["tau_tumble"] / D["tau_r"]),
                  ("times", "tau_tumble"), ("times", "tau_r"), "", "★ 텀블 vs 회전확산"),
         ND.Group("L/d_eq", f_(D["L"] / D["d"]), ("lengths", "L"), ("lengths", "d_eq"),
-                 "", "박스"),
+                 "", "box"),
         ND.Group("T_obs/tau_eff", f_(T_obs / D["tau_eff"]), ("times", "T_obs"),
-                 ("times", "tau_eff"), "", "관측창"),
+                 ("times", "tau_eff"), "", "observation window"),
         ND.Group("St", f_(D["tau_p"] / D["tau_B"]), ("times", "tau_p"), ("times", "tau_B"),
-                 "tau_p/tau_B", "관성 vs 확산"),
+                 "tau_p/tau_B", "inertia vs diffusion"),
     ]
     ck = [
         C.Check("model", "관성 무시     τ_p/τ_v", f_(D["tau_p"] / D["tau_v"]), C.GATE, "<=",
                 "τ_dyn = 관심 최속 척도 = τ_v (이류). BD 타당성, dt와 무관"),
-        C.Check("integration", "이류 해상     dt/τ_v", f_(dt / D["tau_v"]), C.GATE, "<=",
+        C.Check("integration", "advection resolved   dt/tau_v", f_(dt / D["tau_v"]), C.GATE, "<=",
                 f"한 스텝에 d_eq의 {100*f_(dt/D['tau_v']):.1f}% 이동"),
         C.Check("integration", "회전 해상     dt·D_r", f_(dt * D["D_r"]), C.GATE, "<=",
                 "열적 회전확산 해상"),
@@ -512,7 +512,7 @@ def main():
 
     l3 = spec.validate()
     if l3:
-        print("L3 무결성 검사")
+        print("L3 INTEGRITY CHECK")
         for i in l3:
             print(str(i))
         print()

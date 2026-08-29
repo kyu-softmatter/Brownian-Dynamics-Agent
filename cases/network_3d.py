@@ -153,7 +153,7 @@ def build_ledger(sys_, n: int, *, dt_scale=1.0, stage_tau=1e-3,
     lg = SC.ScaleLedger(ref=SC.thermal_reference(
         d, kT, tau_B,
         rationale="d·kT·τ_B 열 기준. HOOMD 에서 σ=kT=γ=1 이 되고, 압축은 박스만 바뀐다."))
-    lg.add_length("d", d, "입자 지름 (기준)")
+    lg.add_length("d", d, "particle diameter (reference)")
     lg.add_length("ell", ell, "DLVO 결합길이 (중심간, 자연장)", star=True)
     lg.add_length("h_min", d * w["h_min"], "2차극소 표면간극")
     lg.add_length("h_edge", d * h_edge, "결합 판정 경계 (U=well/2)")
@@ -171,10 +171,10 @@ def build_ledger(sys_, n: int, *, dt_scale=1.0, stage_tau=1e-3,
     lg.add_time("T_stage", T_stage, "압축 한 단계의 물리 시간")
     lg.add_time("T_compress", T_compress if n_stages else dt,
                 f"압축 전체 ({n_stages} 단계)" if n_stages else "압축 없음 (sprout)")
-    lg.add_time("dt", dt, "적분 스텝", role="dt")
+    lg.add_time("dt", dt, "integration step", role="dt")
     lg.add_time("T_obs", T_obs, "관측창 (응집+압축+후이완)", role="observation")
 
-    lg.add_energy("kT", kT, "열에너지 (기준)")
+    lg.add_energy("kT", kT, "thermal energy (reference)")
     lg.add_energy("well_depth", Q(-w["U_min"], "dimensionless") * kT, "2차극소 깊이 (부호 반대)")
     lg.add_energy("barrier", Q(w["barrier_U"], "dimensionless") * kT, "DLVO 장벽")
     lg.add_energy("k_bond_d2", k_bond * d ** 2, "결합 신축 강성 × d²")
@@ -238,7 +238,7 @@ def analyze_scales(sys_, lg, n):
         # ★ 소프트 처리는 `chain-bend-2d-dlvo` 의 확립된 관례를 그대로 따른다 —
         #   같은 입자·같은 DLVO 결합이라 이 비는 **글자 그대로 같은 값(0.0282)** 이고,
         #   그 케이스가 이미 같은 판단을 문서화했다. 검사를 없애지 않고 남겨 보고한다.
-        C.Check("model", "참고: τ_p/τ_bond", lg.ratio("times", "tau_p", "tau_bond"),
+        C.Check("model", "note: tau_p/tau_bond", lg.ratio("times", "tau_p", "tau_bond"),
                 C.GATE, "<=",
                 "★ 결합 우물이 깊고 좁아 τ_bond 가 τ_p 에 근접한다 (관성 무시 기준을 "
                 "2.82배 넘김 — N·φ·압축과 무관한 **결합 물리 자체의 성질**). "
@@ -381,7 +381,7 @@ def emit(sys_, n, args) -> int:
 
     l3 = spec.validate()
     if l3:
-        print("L3 무결성 검사")
+        print("L3 INTEGRITY CHECK")
         for i in l3:
             print(str(i))
         print()
@@ -870,7 +870,7 @@ def build(spec, outdir=None) -> RUN.Build:
                             note=f"{n_stages} 단계 등방 압축"),
                   RUN.Phase("후이완", n_post, expect_steady=True, note="φ₁ 에서 구조 정착")]
     else:
-        phases = [RUN.Phase("이완", n_post, expect_steady=True,
+        phases = [RUN.Phase("relaxation", n_post, expect_steady=True,
                             note="돋아난 망을 φ₁ 에서 이완 (압축 없음)")]
     return RUN.Build(
         sim=sim, forces=forces, n_particles=n, sample=sample,

@@ -165,11 +165,11 @@ def build_ledger(sys_, *, dt_scale=1.0, n_traverse=1.0,
     lg = SC.ScaleLedger()
     lg.add_length("dr_ss", dr_ss, "γv/k_t 끌림 지연 (신호)", star=True)
     lg.add_length("l_k", l_k.to("m"), "√(kT/k_t) 트랩 요동 (잡음)", star=True)
-    lg.add_length("d", d, "입자 지름 (기준)")
-    lg.add_length("r_min", r_min_star * d, "최근접 접근거리")
-    lg.add_length("a_mean", a_star * d, "평균 간격")
+    lg.add_length("d", d, "particle diameter (reference)")
+    lg.add_length("r_min", r_min_star * d, "closest approach distance")
+    lg.add_length("a_mean", a_star * d, "mean spacing")
     lg.add_length("a_NN", a_nn_star * d, "육방 최근접 = 격자 상수 (a_mean 이 아님)")
-    lg.add_length("r_c", r_c_star * d, "컷오프")
+    lg.add_length("r_c", r_c_star * d, "cutoff")
     # ★ 직사각 박스라 변이 둘이다. 최소이미지를 정하는 것은 **짧은 변**이므로 거기에
     #   `box` 역할을 준다 (역할은 기호가 아니라 기능이다 — bdbot.scales).
     #   긴 변은 끌기 방향이고 T_obs·격자 주기 수를 정한다.
@@ -181,22 +181,22 @@ def build_ledger(sys_, *, dt_scale=1.0, n_traverse=1.0,
     lg.add_length(long_[0], long_[1] * d,
                   f"박스 긴 변 = 끌기 방향 ({n_x}열 × a_NN)"
                   if long_[0] == "L_x" else f"박스 긴 변 ({n_y}행)")
-    lg.add_time("tau_p", b["tau_p"], "m/γ 관성 이완", role="inertia")
-    lg.add_time("dt", dt, "적분 스텝", role="dt")
+    lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
+    lg.add_time("dt", dt, "integration step", role="dt")
     lg.add_time("tau_k", tau_k, "γ/k_t 트랩 — 최속, dt를 정한다", star=True)
     lg.add_time("tau_int", tau_int, f"γ/U''(r_min={r_min_star:.3f}d) 페어")
     lg.add_time("tau_v", tau_v, "d/v_x 이류 (움직이는 트랩)")
     lg.add_time("tau_cell", (HEX_NN * a_star * d / v_x).to("s"), "a_NN/v_x 격자 주기")
     lg.add_time("tau_cross", tau_cross, "L_x/v_x 박스 횡단 (계의 성질 — 프로토콜 무관)")
-    lg.add_time("tau_B", tau_B, "d²/D_t 확산 (기준)")
+    lg.add_time("tau_B", tau_B, "d^2/D_t diffusion (reference)")
     lg.add_time("T_obs", T_obs, "관측창 = 네 구간 전체", role="observation")
-    lg.add_energy("kT", kT, "열에너지 (기준)")
+    lg.add_energy("kT", kT, "thermal energy (reference)")
     lg.add_energy("U_a", (float(U_star(a_star, A, eps)) * kT).to("J"),
-                  "U(a_mean) 평균간격 결합 = Γ kT")
+                  "U(a_mean) mean-spacing coupling = Gamma*kT")
     # ★ U(d) = (A+ε) kT — A kT 가 아니다 (1-B에서 L3 검사가 잡은 라벨 오류)
     lg.add_energy("U_d", (float(U_star(1.0, A, eps)) * kT).to("J"),
-                  "U(d) 접촉 결합 = (A+ε_WCA) kT")
-    lg.add_energy("k_t_d2", (k_t * d**2).to("J"), "k_t d² 트랩 강성")
+                  "U(d) contact coupling = (A+eps_WCA)*kT")
+    lg.add_energy("k_t_d2", (k_t * d**2).to("J"), "k_t*d^2 trap stiffness")
 
     lg.derived = dict(gamma=gamma, D_t=b["D_t"], m=b["m"], kT=kT, d=d, tau_B=tau_B,
                       tau_k=tau_k, tau_int=tau_int, tau_v=tau_v, dt=dt, T_obs=T_obs,
@@ -242,16 +242,16 @@ def analyze_scales(sys_, lg):
                  "A(d/a_mean)³", "페어 결합 → 육방 결정 ★"),
         ND.Group("A", A, None, None, "", "r⁻³ 진폭 (입력, ★제안)"),
         ND.Group("U(d)/kT", float(U_star(1.0, A, eps)),
-                 ("energies", "U_d"), ("energies", "kT"), "(A+ε_WCA)", "접촉 결합"),
+                 ("energies", "U_d"), ("energies", "kT"), "(A+ε_WCA)", "contact coupling"),
         ND.Group("k*", lg.ratio("energies", "k_t_d2", "kT"),
                  ("energies", "k_t_d2"), ("energies", "kT"), "k_t d²/kT",
                  "트랩 vs 열요동 (매우 뻣뻣)"),
-        ND.Group("phi", phi, None, None, "", "밀집도"),
+        ND.Group("phi", phi, None, None, "", "packing"),
         ND.Group("Pe_drag", lg.ratio("times", "tau_B", "tau_v"),
-                 ("times", "tau_B"), ("times", "tau_v"), "v_x d/D_t", "이류 vs 확산"),
+                 ("times", "tau_B"), ("times", "tau_v"), "v_x d/D_t", "advection vs diffusion"),
         ND.Group("SNR", snr, ("lengths", "dr_ss"), ("lengths", "l_k"), "Δr_ss/ℓ_k",
                  "★ 끌림 신호가 열요동의 1/10"),
-        ND.Group("a_mean/d", a_star, ("lengths", "a_mean"), ("lengths", "d"), "", "평균간격"),
+        ND.Group("a_mean/d", a_star, ("lengths", "a_mean"), ("lengths", "d"), "", "mean spacing"),
         ND.Group("a_NN/a_mean", HEX_NN, ("lengths", "a_NN"), ("lengths", "a_mean"),
                  "√(2/√3)", "육방 최근접 (파라미터 없는 예측)"),
         ND.Group("L_x/d", Lx_star, ("lengths", "L_x"), ("lengths", "d"), "n_x·a_NN/d",
@@ -270,7 +270,7 @@ def analyze_scales(sys_, lg):
                  ("times", "tau_k"), ("times", "tau_int"), "",
                  "★ 두 강성의 비 — 트랩이 218배 빠르다"),
         ND.Group("dt/tau_k", lg.ratio("times", "dt", "tau_k"),
-                 ("times", "dt"), ("times", "tau_k"), "", "적분 해상 (지배 척도)"),
+                 ("times", "dt"), ("times", "tau_k"), "", "integration resolution (governing scale)"),
         ND.Group("T_obs/tau_B", lg.ratio("times", "T_obs", "tau_B"),
                  ("times", "T_obs"), ("times", "tau_B"), "", "관측창 (네 구간 전체)"),
         ND.Group("tau_cross/tau_B", lg.ratio("times", "tau_cross", "tau_B"),
@@ -278,7 +278,7 @@ def analyze_scales(sys_, lg):
         ND.Group("n_cell", n_cell, ("times", "tau_cross"), ("times", "tau_cell"),
                  "L_x/a_NN", "한 번 횡단의 격자 주기 수 = n_x"),
         ND.Group("St", lg.ratio("times", "tau_p", "tau_B"),
-                 ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "관성 vs 확산"),
+                 ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "inertia vs diffusion"),
     ]
     checks = [
         C.Check("model", "관성 무시     τ_p/τ_k", lg.ratio("times", "tau_p", "tau_k"),
@@ -292,7 +292,7 @@ def analyze_scales(sys_, lg):
                 C.GATE, "<=",
                 f"τ_int = γ/U''(r_min={D['r_min_star']:.3f}d), {D['crit']} 기준. "
                 "트랩이 정한 dt라 여유가 크다"),
-        C.Check("integration", "이류 해상     dt/τ_v", lg.ratio("times", "dt", "tau_v"),
+        C.Check("integration", "advection resolved   dt/tau_v", lg.ratio("times", "dt", "tau_v"),
                 C.GATE, "<=",
                 "한 스텝에 트랩 중심이 지름의 1% 이상 움직이면 안 된다 (움직이는 경계조건)"),
         C.Check("geometry", "컷오프       r_c/(L_min/2)", r_c_star / (L_min / 2), 1.0, "<=",
@@ -308,7 +308,7 @@ def analyze_scales(sys_, lg):
                 f"★ 격자가 주기박스와 정합인가. L_x = {D['n_x']}·a_NN, "
                 f"L_y = {D['n_y']}·(√3/2)a_NN, n_y 짝수. 비정합이면 이음매에 결함이 "
                 f"주입되고 관측량(격자 변형장·ψ₆)이 바로 거기에 민감하다"),
-        C.Check("geometry", "코어 여유    r_table_min/r_min", R_TABLE_MIN / D["r_min_star"],
+        C.Check("geometry", "core margin        r_table_min/r_min", R_TABLE_MIN / D["r_min_star"],
                 1.0, "<=",
                 f"pair.Table 함정 11: r<{R_TABLE_MIN}d 면 힘이 0"),
         C.Check("geometry", "항적 치유    v τ_int/L_x", lg.ratio("times", "tau_int", "tau_cross"),
@@ -396,7 +396,7 @@ def hex_lattice(n_x: int, n_y: int, a_nn: float) -> np.ndarray:
     return np.c_[x, y]
 
 
-PH_WARM, PH_EQ, PH_DRAG, PH_RELAX = "예열", "평형", "끌기", "이완"
+PH_WARM, PH_EQ, PH_DRAG, PH_RELAX = "warm-up", "평형", "끌기", "relaxation"
 TAIL_FRAC = 0.2            # 이완 '끝값'으로 볼 뒷부분 비율
 
 
@@ -620,7 +620,7 @@ def build(spec, outdir=None) -> RUN.Build:
                      + f"국소 케이지 τ_int 는 집단 이완과 일치할 이유가 없다 — 눈금일 뿐"))
 
         # ── ③ g(r) · 결함 ─────────────────────────────────────────────
-        for key, unit in (("n_def", "개"), ("n5", "개"), ("n7", "개"), ("psi6", "1")):
+        for key, unit in (("n_def", ""), ("n5", ""), ("n7", ""), ("psi6", "1")):
             e_m, _ = stat(key, sel[PH_EQ])
             d_m, _ = stat(key, dmask)
             r_m, _ = stat(key, rel)
@@ -914,9 +914,9 @@ def make_plots(outdir: Path, spec) -> Path:
 # ════════════════════════════════════════════════════════════════════════
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--report", action="store_true", help="L3 리포트만")
-    ap.add_argument("--spec", action="store_true", help="L3 스펙 → specs/<run_id>.json")
-    ap.add_argument("--dt-scale", type=float, default=1.0, help="dt 배율 (수렴 확인용)")
+    ap.add_argument("--report", action="store_true", help="the L3 report only")
+    ap.add_argument("--spec", action="store_true", help="the L3 spec -> specs/<run_id>.json")
+    ap.add_argument("--dt-scale", type=float, default=1.0, help="dt multiplier (for a convergence check)")
     ap.add_argument("--traverse", type=float, default=1.0, help="박스 횡단 횟수 (T_obs 배율)")
     ap.add_argument("--samples", type=int, default=2000, help="끌기 구간 표본 수")
     ap.add_argument("--warm", type=float, default=10.0, help="예열 구간 [τ_int]")
@@ -929,7 +929,7 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260804,
                     help="시드. ★ 함정 12: HOOMD 는 16비트로 자르므로 앙상블은 "
                          "작은 연속 정수(1,2,3…)를 쓸 것 — 65536 차이면 같은 궤적이 된다")
-    ap.add_argument("--force", action="store_true", help="완료된 런을 다시 실행")
+    ap.add_argument("--force", action="store_true", help="re-run a completed run")
     ap.add_argument("--smoke", action="store_true", help="짧게 (L4 배선 확인용)")
     args = ap.parse_args()
 
@@ -998,7 +998,7 @@ def main() -> int:
 
     l3 = spec.validate()
     if l3:
-        print("L3 무결성 검사")
+        print("L3 INTEGRITY CHECK")
         for i in l3:
             print(str(i))
         print()

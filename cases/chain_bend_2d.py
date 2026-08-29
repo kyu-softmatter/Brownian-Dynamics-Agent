@@ -295,25 +295,25 @@ def build_ledger(sys_, omega: float, *, dt_scale=1.0, n_cycles=N_CYCLES) -> SC.S
                   "★ 구동 비드 응답 진폭 |ŷ(ω)| — 관측량. a 가 아니라 이것이 SNR 의 분자다"
                   " (선형응답 추정, HOOMD 와 고주파에서 28% 차 — 미해명)", star=True)
     lg.add_length("a_c", sys_["a_c"].value.to("m"), "JKR 접촉 반경 (점 hinge 가정)")
-    lg.add_length("a", amp, "구동 진폭", star=True)
+    lg.add_length("a", amp, "drive amplitude", star=True)
     lg.add_length("delta_max", delta_max, "M_c 선형 탄성 한계 진폭", star=True)
     lg.add_length("d", d, "비드 지름 = 결합 길이 ℓ (기준)")
     lg.add_length("L_chain", L_chain.to("m"), "사슬 윤곽길이 (n−1)d")
-    lg.add_time("tau_p", b["tau_p"], "m/γ 관성 이완", role="inertia")
-    lg.add_time("dt", dt, "적분 스텝", role="dt")
+    lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
+    lg.add_time("dt", dt, "integration step", role="dt")
     lg.add_time("tau_fast", tau_fast, "γ/λ_max 최속 굽힘 모드 — dt를 정한다", star=True)
     lg.add_time("tau_bond", tau_bond, "γ/λ_max(신축) 결합 신축")
     lg.add_time("tau_w", tau_w, f"1/ω 구동 (ω = {omega:.0f} rad/s)")
-    lg.add_time("tau_k", tau_k, "γ/k_t 트랩")
+    lg.add_time("tau_k", tau_k, "gamma/k_t trap")
     lg.add_time("tau_chain", tau_chain, "γ/κ_center (빔 공식 기준 — 지배 척도가 아니다)")
     lg.add_time("tau_max", tau_max,
                 "★★ γ/λ_min 최장 이완시간 — **지배 척도**. De·평형화가 이걸 써야 한다",
                 star=True)
-    lg.add_time("tau_period", tau_period, "2π/ω 구동 주기")
-    lg.add_time("tau_B", tau_B, "d²/D_t 확산 (기준)")
+    lg.add_time("tau_period", tau_period, "2*pi/omega drive period")
+    lg.add_time("tau_B", tau_B, "d^2/D_t diffusion (reference)")
     lg.add_time("T_obs", T_obs, f"관측창 ({n_cycles:g}주기)", role="observation")
-    lg.add_energy("kT", kT, "열에너지 (기준)")
-    lg.add_energy("k_t_d2", (k_t * d**2).to("J"), "k_t d² 트랩 강성")
+    lg.add_energy("kT", kT, "thermal energy (reference)")
+    lg.add_energy("k_t_d2", (k_t * d**2).to("J"), "k_t*d^2 trap stiffness")
     lg.add_energy("kappa_end_d2", (kappa_end * d**2).to("J"), "κ_end d² 사슬 강성 (논문 정의)")
     lg.add_energy("kappa_drive_d2", Q(kappa_drive, "N/m").to("N/m") * d**2,
                   "★ κ_drive d² — 구동 트랩이 **실제로** 느끼는 정적 강성 "
@@ -403,16 +403,16 @@ def analyze_scales(sys_, lg):
                  ("lengths", "y_resp"), ("lengths", "l_k"), "",
                  "★★ 실제 SNR — 응답이 열요동보다 큰가. a/ℓ_k 는 이걸 최대 60배 과대평가"),
         ND.Group("De_trap", r("times", "tau_k", "tau_w"),
-                 ("times", "tau_k"), ("times", "tau_w"), "ω τ_k", "트랩 기준"),
+                 ("times", "tau_k"), ("times", "tau_w"), "ω τ_k", "trap reference"),
         ND.Group("tau_fast/tau_chain", r("times", "tau_fast", "tau_chain"),
                  ("times", "tau_fast"), ("times", "tau_chain"), "",
                  "★ 척도 분리 폭 — dt를 정하는 모드가 관심 모드보다 이만큼 빠르다"),
         ND.Group("dt/tau_fast", r("times", "dt", "tau_fast"),
-                 ("times", "dt"), ("times", "tau_fast"), "", "적분 해상 (지배 척도)"),
+                 ("times", "dt"), ("times", "tau_fast"), "", "integration resolution (governing scale)"),
         ND.Group("n_cycles", r("times", "T_obs", "tau_period"),
-                 ("times", "T_obs"), ("times", "tau_period"), "", "관측 주기 수"),
+                 ("times", "T_obs"), ("times", "tau_period"), "", "cycles observed"),
         ND.Group("St", r("times", "tau_p", "tau_B"),
-                 ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "관성 vs 확산"),
+                 ("times", "tau_p"), ("times", "tau_B"), "tau_p/tau_B", "inertia vs diffusion"),
     ]
     checks = [
         C.Check("model", "inertia negligible   tau_p/tau_max", r("times", "tau_p", "tau_max"),
@@ -479,7 +479,7 @@ def analyze_scales(sys_, lg):
                 "포화 곡선을 이 스윕으로는 못 낸다. ω 범위는 system.yaml tier 3 "
                 "(사용자 승인)이라 여기서 바꾸지 않고 검사로 드러낸다", hard=False),
         C.Check("statistics", "cycles observed      T_obs/(2pi/w)", r("times", "T_obs", "tau_period"),
-                N_CYCLES, ">=", "위상 평균에 쓸 주기 수", hard=False),
+                N_CYCLES, ">=", "cycles used for the phase average", hard=False),
     ]
     return groups, checks
 
@@ -604,7 +604,7 @@ def emit(sys_, omega, args) -> int:
 
     l3 = spec.validate()
     if l3:
-        print("L3 무결성 검사")
+        print("L3 INTEGRITY CHECK")
         for i in l3:
             print(str(i))
         print()
@@ -641,14 +641,14 @@ def emit(sys_, omega, args) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--report", action="store_true", help="L3 리포트만")
-    ap.add_argument("--spec", action="store_true", help="L3 스펙 → specs/<run_id>.json")
+    ap.add_argument("--report", action="store_true", help="the L3 report only")
+    ap.add_argument("--spec", action="store_true", help="the L3 spec -> specs/<run_id>.json")
     ap.add_argument("--omega", type=float, default=None,
                     help="구동 각진동수 [rad/s]. 기본은 스윕 최저값 (가장 비싼 점)")
     ap.add_argument("--sweep", action="store_true", help="ω 스윕 전체")
-    ap.add_argument("--cycles", type=float, default=N_CYCLES, help="관측 주기 수")
-    ap.add_argument("--force", action="store_true", help="완료된 런을 다시 실행")
-    ap.add_argument("--dt-scale", type=float, default=1.0, help="dt 배율 (수렴 확인용)")
+    ap.add_argument("--cycles", type=float, default=N_CYCLES, help="cycles observed")
+    ap.add_argument("--force", action="store_true", help="re-run a completed run")
+    ap.add_argument("--dt-scale", type=float, default=1.0, help="dt multiplier (for a convergence check)")
     ap.add_argument("--samples", type=int, default=2000, help="주기당 표본이 아니라 총 표본 수")
     ap.add_argument("--run", action="store_true",
                     help="L4 실행. ★ chain-bend 는 angle.Harmonic 힘 버그로 현재 거부됩니다")
@@ -663,7 +663,7 @@ def main() -> int:
         omegas = [args.omega if args.omega is not None else lo]
 
     if not (args.report or args.spec or args.run):
-        print("무엇을 할지 고르세요 — `--report` · `--spec` · `--run`")
+        print("choose what to do -- `--report`, `--spec` or `--run`")
         return 3
 
     rc = 0
@@ -917,9 +917,9 @@ def build(spec, outdir=None) -> RUN.Build:
     return RUN.Build(
         sim=sim, forces=[bond, angle], n_particles=n,
         sample=sample, pe_per_particle=pe_per_particle, sample_every=every,
-        phases=[RUN.Phase("예열", int(Nm["n_eq"]), collect=False,
+        phases=[RUN.Phase("warm-up", int(Nm["n_eq"]), collect=False,
                           note="구동 ON · 표본 버림 (20 τ_max — 2.2 τ_max 는 11% 과도가 남았다)"),
-                RUN.Phase("생산", int(Nm["n_prod"]), every,
+                RUN.Phase("production", int(Nm["n_prod"]), every,
                           note=f"락인 수집 · ω*={omega:.4g} · De={P['De']:.3f}")],
         tags=["2D", "chain", "bending", "angle_harmonic", "oscillatory_drive",
               "microrheology", "lockin", "newtonian"],
