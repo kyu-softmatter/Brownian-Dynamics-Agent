@@ -47,7 +47,7 @@ right.** It converts torque to Cartesian force through `1/sin θ` and clamps
 linear. With `t0=π` the equilibrium itself is at `sinθ=0`, so it bites hardest on
 **stiff, nearly-straight chains**. Energy is **0.0000 % correct throughout**.
 This one broke a whole case ([04
-`chain-bend-2d-oscill`](04-cases.md#chain-bend-2d-oscill--blocked-by-a-hoomd-bug)),
+`chain-bend-2d-oscill`](04-cases.md#chain-bend-2d-oscill--the-hoomd-bug-and-the-way-around-it)),
 and no energy-based check could have found it.
 
 **★ `update.BoxResize` collapses bonds in a narrow well.** It affinely scales

@@ -137,79 +137,136 @@ double-counted with the instantaneous random force; check against a `kT=0` run.
 
 The longer-term goal is not a better simulator. It is to close the loop between
 **what to compute** and **what to measure**, which today are two separate agents
-built by the same person for the same systems:
+built by the same person for the same systems. The other half is
+[**agentic-microscope**](https://github.com/kyu-softmatter/agentic-microscope):
+the same architecture pointed at the instrument instead of the integrator. It
+takes a research goal, decides what the microscope can actually record, and
+returns executable settings with an evidence tier and a per-check margin —
+refusing, with the one missing input named, when a gate's input was never
+measured.
 
-| | [**Brownian-Dynamics Agent**](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent) (this repo) | [**agentic-microscope**](https://github.com/kyu-softmatter/agentic-microscope) |
+| | **Brownian-Dynamics Agent** (this repo) | **agentic-microscope** |
 |---|---|---|
 | Input | a sketch of a physical system | a research goal |
 | Decides | what the system does, in silico | what the instrument can actually record |
-| Refuses when | a parameter has no provenance | a measurement has no calibrated input |
-| Produces | a dimensionless spec + a defended result | executable microscope settings + evidence tier |
-| Its knowledge base | system cards, findings, benchmarks | instrument config, calibrations, tacit expertise |
+| Refuses when | a number has no provenance | a gate's input was never measured |
+| Produces | a dimensionless spec and a defended result | executable settings, an evidence tier, per-check margins |
+| Its knowledge base | system cards, findings, benchmarks, post-mortems | instrument config, calibrations, tacit expertise, decisions |
+| Its unit of doubt | `tier` and `derived_from` on every number, and a sealed prediction | `measured` vs `assumed`, and a falsifier on every prior |
 
-They already share their architecture — a deterministic core under an agent
-layer, hard gates that return `BLOCKED` naming the one missing input, and a
-knowledge base that is read before every decision and written after every
-verdict. That is not a coincidence; the second was built from the first's
-lessons. **Neither is finished, and joining them before each stands alone would
-couple two moving targets.** So this is future work, not a current task.
+The two architectures match because this one was built from that one's lessons:
+hard gates that return `BLOCKED` naming the one missing input, a deterministic
+core under a thin agent layer, and a knowledge base read before every decision
+and written after every verdict. **Neither is finished, and coupling two moving
+targets would be a mistake** — so this is future work, with a stated order of
+preconditions.
+
+→ the mirror of this section, from the instrument's side:
+[agentic-microscope README](https://github.com/kyu-softmatter/agentic-microscope#future-work--joining-this-agent-to-the-simulation-agent)
 
 ### Why joining them is worth doing
 
-**1 · A simulation can tell the microscope what resolution the question needs.**
-Right now the microscope agent's sample and detection lenses ask *"is this
-measurable?"* against thresholds a human supplies. But whether 40 nm of
-localization precision is enough is a property of **the physics being measured**,
-not of the microscope. This repository computes exactly that: `chain-bend-2d-dlvo`
-established that bow discriminates DLVO from JKR at 22.3σ under a soft trap and
-at 1.4× under a stiff one — which is a *statement about what an experiment must
-do to see the difference*. Fed forward, it becomes a required precision, a
-required frame rate and a required trap stiffness, derived rather than guessed.
+**1 · Four of its gates currently ask a human for numbers this repo computes.**
+Its decision order opens by taking *the physical quantity to measure and the
+target precision* from a person, and its next step wants the system's
+correlation time τ_c and correlation length ℓ_c — measured if measurable,
+otherwise a theoretical estimate marked `evidence: assumed`. Those are outputs
+here. They propagate through its committee: **G8** needs `D` or τ_c for the
+motion-blur ceiling, **G5** needs ℓ_c and the task kind, **G11** needs a target
+error, **G14** needs the trap stiffness κ. Fed from a spec instead of from a
+person, four gates stop asking and start deriving — each number still carrying
+its own provenance.
 
-**2 · A measurement can close this repository's open assumptions.**
-The single most damaging soft spot here is `T = 300 K`, labelled tier 1 but
-actually inherited from a sketch with no temperature — worth −4 % to −14 % on
-every timescale (§2). A thermometer reading closes it. The same is true of the
-particle-size distribution, the salt concentration and the surface potential:
-each is currently a tier-1 *choice*, and each is something the microscope side
-either measures or has already measured. **Provenance is the shared currency** —
-both repositories already carry `tier` and a falsifier on every stored value, so
-a measured number can replace an assumed one without either side losing track of
-which is which.
+**2 · A measurement closes assumptions this repo cannot close by itself.**
+The most damaging soft spot here is `T = 300 K`, labelled tier 1 but actually
+inherited from a sketch that never stated a temperature (§2) — worth −4 % to
+−14 % on every timescale, because water's viscosity is 2.06 %/K sensitive. A
+thermometer reading ends that. The same holds for the particle size
+distribution, the salt concentration and the surface potential: tier-1 *choices*
+here, routine measurements there. Neither side has to lose track of what a
+number is, because both already carry a tier and a falsifier on every stored
+value — and that repo's `kb/literature/` exists precisely so a value nobody
+there measured can let a gate **compute** while never setting
+`evidence: measured`.
 
-**3 · The two refusals compose into one honest answer.**
-Today, asking "can I see this effect?" needs two separate consultations, and the
-answers can silently contradict: the simulation says the effect is 0.1 d in
-amplitude, the microscope says it can resolve 0.05 d, and nobody checks that the
-two `d` mean the same thing in the same units. Joined, a single `BLOCKED` would
-name the single missing input — *"the effect is below your localization
-precision; either raise the DLVO well depth or change objective"* — with the
-physics and the optics reconciled in one place.
+**3 · The central hypothesis needs both halves, and neither half can settle it
+alone.** `chain-bend-2d-dlvo` found that a colloidal chain held together by DLVO
+forces alone has no bending stiffness: bow **0.1135 ± 0.0048 d** without
+adhesion against **0.00639 ± 0.00011 d** with JKR, **22.3 σ** apart
+([04 · 1-D](04-cases.md)). At the bead diameter this case actually used,
+d = 1.47 ± 0.01 µm from [P1] p.1, that is a transverse displacement of
+**166.8 ± 7.1 nm** against **9.39 ± 0.16 nm** — and the two readings split apart:
 
-**4 · Real trajectories become a fifth evidence layer.**
+| the experimental question | what it requires | against a 10 nm target precision |
+|---|---|---|
+| is it DLVO or JKR? | resolve the **157.5 nm difference** | **15.7 ×** margin — comfortable |
+| is the JKR branch separable from zero? | resolve **9.39 nm** | **0.94 ×** — just under |
+
+So *which model* is settled by physics and is easy; *whether the adhesive branch
+is nonzero* is settled by photon count and frame count, at that repo's G11, and
+sits right at the precision its own worked examples target. **That is the
+question neither repository can answer alone** — and today it is answered by
+consulting them separately and trusting that the two `d` mean the same thing in
+the same units. (The ±0.01 µm on `d` itself contributes only ±1.14 nm, 0.68 %,
+so the diameter is not the limiting uncertainty.)
+
+**4 · Proposing the next experiment, not only checking the current one.**
+The same result read the other way: bow separates DLVO from JKR at 22.3 σ under
+a soft trap and at only **1.4 ×** under a stiff one, because forcing the
+deformation destroys the shape signal (§ rule: *free deformation → shape;
+imposed deformation → force*). **Discriminating power is a property of the
+protocol, not of the effect.** So a sweep here, scored against that repo's
+feasibility gates, ranks candidate experiments by predicted separation *per unit
+of instrument time*, and the ones worth running are those whose predicted effect
+clears the achievable precision by a stated margin. That pairing — predicted
+separation against achievable precision — is a number both sides can compute and
+neither can compute alone. It is also what turns a `BLOCKED` into a proposal
+rather than a dead end: *the effect is below your localization precision; either
+deepen the DLVO well or change objective.*
+
+**5 · Its bias ledger is what makes the fifth evidence layer usable here.**
 [02 §3](02-verification.md#3--result-verification--four-layers-of-evidence) lists
-four kinds of evidence, and `BD_agent` reserved a fifth — comparison against
-experiment — but deliberately did not adopt it, because a mismatch has too many
-candidate causes (no HI, polydispersity, tracking error, or simply a different
-system). **A microscope agent that reports its own calibration and evidence tier
-removes most of those candidates**, which is precisely what makes the fifth layer
-usable. In a domain with no grader, an independent measured oracle is the most
-valuable evidence there is.
+four kinds of evidence and deliberately leaves the fifth — comparison against
+experiment — unadopted, because a mismatch there has too many candidate causes
+(no HI, polydispersity, tracking error, or simply a different system). Its
+lens 6 removes most of them: **G23** carries every bias that damages the
+specific quantity being measured, **G24–G26** check that the calibrations behind
+it exist. And the terms are already written down over there — a measured MSD
+carries `−2D·t_exp/3` from motion blur and `+2ε²` from static localization
+error, which **at short lags cancel into a plausible but wrong straight line**.
+★ Those terms belong on this side of the comparison, **added to the prediction
+rather than subtracted from the data** — the same discipline as
+`implementation_check` versus `hypothesis` (rule 7′): correct the model for what
+the instrument does, and let the residual mean something. In a domain with no
+grader an independent measured oracle is the most valuable evidence there is,
+but only when it arrives with its own bias ledger attached.
 
 ### What has to be true first
 
 | Precondition | Where it stands |
 |---|---|
-| This repo's predictions are **sealed before running** | not yet — §2, and it is item 1 below |
-| The microscope agent is **connected to the instrument** | not yet — it produces offline recommendations; the working PC and the microscope PC are separate |
-| Illumination power at the sample is **measured** | not yet — its top blocker, and it needs a power meter, not code |
+| This repo **seals its predictions before running** | not yet — §2, and item 1 of §7 below. `simbot` has `SEALED.sha256`; the 8 `bdbot` cases do not go through it |
 | The two `knowledge/` schemas here are **unified** | not yet — §2. Adding a third consumer to two divergent schemas would be a mistake |
-| A shared **quantity vocabulary** exists | does not exist. Both sides speak SI with provenance and tiers, which is the hard half; a common serialization for "particle diameter, measured, tier 1, ±3 %" is the missing half |
+| The instrument is **connected** on that side | not yet — the working PC and the microscope PC are separate. Its stages 5a–5d are built (2026-08-26) but exercised against a demo config only |
+| Illumination power at the sample is **measured** | not yet — its top blocker, deferred by decision (2026-08-19). A power meter, not code |
+| τ_c · ℓ_c have **somewhere to live** over there | not yet — its `kb/samples/` arrives with its Phase 4 |
+| Computed values have a **provenance kind of their own** | they do not, on either side. That repo has `measured` and `assumed`; a simulated τ_c is neither a measurement of the sample nor a literature value. Giving it its own tier — with this repo's gate verdict as its falsifier — is the honest fix |
+| A shared **quantity vocabulary** exists | it does not. Both sides already speak SI with a provenance and a tier, which is the hard half; a common serialization for *"particle diameter, measured, tier 1, ±3 %"* is the missing half |
 
-**The order matters.** Sealing first, because an unsealed prediction fed to an
-instrument produces an experiment designed around a post-hoc rationalization.
-Then the shared vocabulary, because that is the actual interface. The connection
-itself is small once those two exist.
+**The order matters.** Sealing first, here, because an unsealed prediction handed
+to an instrument produces an experiment designed around a post-hoc
+rationalization. Then the vocabulary, because that is the actual interface and
+nothing useful crosses until a number can cross with its provenance intact. The
+wiring itself is small once those two exist.
+
+**And one hazard to hold from the start:** a simulated number must never be
+allowed to set `evidence: measured`. If it can, the loop closes on itself — this
+repo supplies the threshold, the gate clears against it, and the experiment
+confirms the simulation that designed it. That is the same failure this project
+already has a name for in another form: a checker that was never wired up cannot
+be wrong out loud (§2, and the `step_health` case in [05](05-pitfalls.md)). The
+rule that keeps that repo's `kb/literature/` honest is the rule this interface
+needs.
 
 ---
 

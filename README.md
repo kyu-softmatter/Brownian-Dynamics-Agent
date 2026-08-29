@@ -228,7 +228,7 @@ write the answer down first, hash it, refuse to build the comparison table if th
 hash breaks — has never been applied to the results above. Those results are
 defensible on their numbers and *not* defensible against the charge of having
 been interpreted after the fact. Closing that is item 1 on the
-[roadmap](docs/06-roadmap.md#6--what-would-most-improve-the-science-in-order).
+[roadmap](docs/06-roadmap.md#7--what-would-most-improve-the-science-in-order).
 
 **Where this is going.** The longer-term goal is to join this agent to
 [**agentic-microscope**](https://github.com/kyu-softmatter/agentic-microscope) —
@@ -240,9 +240,25 @@ effect, a measurement would close the assumptions this repository currently
 carries as tier-1 *choices* (`T = 300 K` foremost), and experiment would become
 the fifth layer of evidence that
 [02](docs/02-verification.md#3--result-verification--four-layers-of-evidence)
-deliberately left unadopted. **Neither is finished, and coupling two moving
-targets would be a mistake** — so it is future work, with a stated order of
-preconditions. → [06 §6](docs/06-roadmap.md#6--future-work--joining-this-agent-to-the-microscope-agent)
+deliberately left unadopted.
+
+The sharpest case for it is this repository's own central result. At the bead
+diameter `chain-bend-2d-dlvo` actually used, d = 1.47 µm, its 22.3 σ separation
+is a transverse displacement of **166.8 nm** without adhesion against
+**9.39 nm** with JKR. Deciding *which model* means resolving the 157.5 nm
+difference — a 15.7× margin against a 10 nm target precision, comfortable.
+Deciding *whether the adhesive branch is separable from zero* means resolving
+9.39 nm — **0.94×**, just under. The first question is settled by physics; the
+second is settled by photon count and frame count. **Neither repository can
+answer the second alone**, and today it is answered by consulting them separately
+and trusting that the two `d` mean the same thing in the same units.
+
+**Neither is finished, and coupling two moving targets would be a mistake** — so
+it is future work, with a stated order of preconditions: sealing first, then a
+shared quantity vocabulary, and never letting a simulated number set
+`evidence: measured`.
+→ [06 §6](docs/06-roadmap.md#6--future-work--joining-this-agent-to-the-microscope-agent)
+· [the mirror of it, from the instrument's side](https://github.com/kyu-softmatter/agentic-microscope#future-work--joining-this-agent-to-the-simulation-agent)
 
 Read [the pitfalls](docs/05-pitfalls.md) before implementing anything.
 

@@ -9,7 +9,7 @@ Measured in the merged tree, 2026-08-28:
 |---|:---:|---:|---:|---:|---:|
 | [`abp-rod-2d-run-flip`](#abp-rod-2d-run-flip) | end-to-end | 3 | 4 | 4 | 4 |
 | [`chain-bend-2d-dlvo`](#chain-bend-2d-dlvo--the-central-result) | end-to-end | 162 | 145 | 145 | 145 |
-| [`chain-bend-2d-oscill`](#chain-bend-2d-oscill--blocked-by-a-hoomd-bug) | L3 only | 15 | 8 | 7 | 0 |
+| [`chain-bend-2d-oscill`](#chain-bend-2d-oscill--the-hoomd-bug-and-the-way-around-it) | L3 only | 15 | 8 | 7 | 0 |
 | [`chain-relax-2d-dlvo`](#chain-relax-2d-dlvo) | end-to-end | 6 | 4 | 4 | 4 |
 | [`network`](#network--3d-colloidal-network) | end-to-end | 3 | 4 | 1 | 1 |
 | [`soft-r3-2d-A-sweep`](#soft-r3-2d-a-sweep) | end-to-end | 2 | 10 | 9 | 9 |
