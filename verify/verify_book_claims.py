@@ -1,25 +1,27 @@
 #!/usr/bin/env python
-"""kb/ 에 들어온 책 두 권에서 뽑은 주장을 **실행으로** 검증한다 (절대 규칙 6).
+"""Verify claims taken from the two books in kb/ **by execution** (absolute rule 6).
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY scratch/verify_book_claims.py
 
-책:
+Books:
   [L] L. Gary Leal, *Microstructural Rheology of Complex Fluids*,
       Cambridge Monographs on Mechanics, 2026. DOI 10.1017/9781009688437.
       kb/cambridge-core_microstructural-rheology-of-complex-fluids_7Aug2026/
   [W] J. Welty et al., *Fundamentals of Momentum, Heat and Mass Transfer*, 5th ed.
-      kb/file_1731415827j8JuJ.pdf  (제목은 PDF 메타데이터, ISBN 0-4701-2868-2)
+      kb/file_1731415827j8JuJ.pdf  (title from the PDF metadata, ISBN 0-4701-2868-2)
 
-검증을 세 종류로 **구분해서** 표시한다 — 섞으면 "책이 맞다"와 "내가 옳게 읽었다"와
-"우리 값이 맞다"가 뭉개진다:
+The verifications are marked in three **distinct** kinds -- mixing them blurs "the
+book is right", "I read it correctly" and "our value is right":
 
-  [BOOK]  책이 스스로 보고한 숫자를 책의 공식으로 재현 (내 독해가 맞는지)
-  [DERIV] 책의 공식들이 서로 모순 없는지 (수치적분·극한 등으로 독립 확인)
-  [OURS]  책의 값·공식과 이 프로젝트가 쓰는 값을 대조
+  [BOOK]  reproduce a number the book reports itself, using the book's own formula
+          (is my reading right?)
+  [DERIV] are the book's formulas mutually consistent (checked independently by
+          numerical integration, limits, and so on)
+  [OURS]  compare the book's values and formulas against what this project uses
 
-★ 실패해도 좋다. 실패는 "책이 틀렸다"가 아니라 대개 "내가 잘못 읽었다"는 뜻이고,
-   그러면 그 주장은 digest 와 KB 에 들어가면 안 된다.
+★ Failing is fine. A failure usually means "I misread it", not "the book is wrong",
+   and in that case the claim must not go into the digest or the KB.
 """
 from __future__ import annotations
 
@@ -37,23 +39,25 @@ FAIL: list[str] = []
 
 
 def chk(kind: str, name: str, got, want, rtol=1e-3, note="", atol=0.0):
-    """수치 대조.
+    """Numerical comparison.
 
-    ⚠️ `want == 0` 에 `rtol` 만 주는 것은 **함정**입니다 (b4 가 2026-08-29 에 지적).
-    허용오차가 `rtol * max(|want|, 1e-300)` 이라 `want=0, rtol=1.0` 은 "100% 허용"
-    처럼 읽히면서 실제로는 **1e-300, 가능한 가장 엄격한 값**이 됩니다. 의도(느슨)와
-    동작(최엄격)이 정반대이고, 지금 통과하는 이유가 값이 **비트 단위로 정확히 0**
-    이어서일 뿐이면 대칭이 깨지는 순간 FAIL 로 뒤집히면서 메시지는 `want=0 rtol=1`
-    이라 통과해야 할 것처럼 보입니다.
+    ⚠️ Passing only `rtol` when `want == 0` is a **trap** (raised by b4 on
+    2026-08-29). The tolerance is `rtol * max(|want|, 1e-300)`, so `want=0,
+    rtol=1.0` reads as "100% tolerance" while actually evaluating to **1e-300, the
+    strictest value possible**. Intent (loose) and behaviour (strictest) are exact
+    opposites, and if the only reason it passes today is that the value is
+    **bit-exactly 0**, then the moment that symmetry breaks it flips to FAIL with a
+    message reading `want=0 rtol=1`, which looks like it should have passed.
 
-    그래서 이 조합을 **조용히 처리하지 않고 거부**합니다. 0 과 비교하려면 물리적
-    스케일을 가진 `atol` 을 명시하세요 (예: `atol=1e-12*n*kT`).
-    ★ 계약을 이렇게 고치자 b4 가 찾은 3곳 외에 **네 번째 호출부**가 스스로 드러났습니다.
+    So this combination is **rejected rather than handled silently**. To compare
+    against 0, state an `atol` with a physical scale (e.g. `atol=1e-12*n*kT`).
+    ★ Fixing the contract this way surfaced a **fourth call site** by itself,
+    beyond the three b4 found.
     """
     if want == 0.0 and atol == 0.0:
-        FAIL.append(f"[{kind}] {name}: want=0 에 atol 이 없다 — rtol 은 0 에 대해 "
-                    f"무의미하다(허용오차가 1e-300 으로 붕괴). 물리 스케일을 가진 "
-                    f"atol 을 주세요")
+        FAIL.append(f"[{kind}] {name}: want=0 with no atol -- rtol is meaningless "
+                    f"against 0 (the tolerance collapses to 1e-300). Supply an "
+                    f"atol with a physical scale")
         return False
     ok = abs(got - want) <= max(rtol * abs(want), atol)
     rec = f"[{kind}] {name}: got={got:.6g} want={want:.6g} rel={abs(got-want)/max(abs(want),1e-300):.2e}"
@@ -69,18 +73,21 @@ def chk_true(kind: str, name: str, cond: bool, note=""):
     return cond
 
 
-KELVIN_0C = 273.15   # 0 °C. ★ 섭씨↔켈빈 변환이 이 파일에서 사는 유일한 곳.
+KELVIN_0C = 273.15   # 0 °C. ★ The only place in this file where the Celsius<->Kelvin conversion lives.
 
 
 def _read_iapws_water_rows() -> dict[float, float]:
-    """`knowledge/wiki/concepts/water-298k.md` 의 IAPWS 표에서 **직접 행만** 읽는다.
+    """Read **only the direct rows** of the IAPWS table in
+    `knowledge/wiki/concepts/water-298k.md`.
 
-    행 형식: `| 293.15 K (20 °C) | **1.0016** | ...`  → {293.15: 1.0016e-3}
-    보간 행(`| 300.00 K | 0.85566¹ | ...`)은 °C 라벨이 없어 자동으로 빠진다 —
-    이 검사가 원하는 것은 **보간이 필요 없는 행**이기 때문이다.
+    Row format: `| 293.15 K (20 °C) | **1.0016** | ...`  -> {293.15: 1.0016e-3}
+    Interpolated rows (`| 300.00 K | 0.85566¹ | ...`) carry no °C label and drop out
+    automatically -- what this check wants is **the rows that need no
+    interpolation**.
 
-    ★ 켈빈 값을 그대로 믿지 않고 `°C` 라벨에서 재계산해 대조한다. 그래야
-    `25 °C = 298.00 K` 같은 규약 오류가 표 안에 있어도 드러난다.
+    ★ The Kelvin value is not trusted as printed; it is recomputed from the `°C`
+    label and compared. That is what exposes a convention error such as
+    `25 °C = 298.00 K` sitting inside the table.
     """
     path = ROOT / "knowledge" / "wiki" / "concepts" / "water-298k.md"
     rows: dict[float, float] = {}
@@ -89,30 +96,37 @@ def _read_iapws_water_rows() -> dict[float, float]:
         T_k, c, eta = float(T_k), int(c), float(eta)
         derived = KELVIN_0C + c
         if abs(T_k - derived) > 1e-9:
-            FAIL.append(f"[DOC] water-298k.md: {c}°C 행이 {T_k} K 인데 {derived} K 여야 한다")
+            FAIL.append(f"[DOC] water-298k.md: the {c}°C row says {T_k} K but must "
+                        f"be {derived} K")
             continue
         rows[T_k] = eta * 1e-3
     return rows
 
 
-# ── 증류본에 **인쇄된** 값을 대조한다 ──────────────────────────────────────
-# 2026-08-29: 이게 없어서 typo 가 56/56 을 통과했다. `welty_transport.md` 는
-# log-보간값을 `0.8580 mPa·s` 로 찍었는데 표에서 계산하면 `0.8598` 이다.
-# 검증기는 0.8598 을 **옳게 계산해서 출력하고 있었지만**, 증류본에 적힌 숫자와
-# 대조하는 단정이 없었다 — `d_log < 0.015` 는 두 값 모두 통과시킨다.
-# ⚠️ 계산이 맞는 것과 **인용될 문서가 맞는 것은 다른 명제**다. 증류본이
-# 인용되는 산출물이므로, 계산값과 인쇄값을 잇는 단정이 없으면 전사 오류가
-# 조용히 살아남는다 (이 프로젝트의 서명 실패 유형: 배선되지 않은 검사기).
+# ── Compare against the value **printed** in the distillation ────────────────
+# 2026-08-29: without this, a typo passed 56/56. `welty_transport.md` printed the
+# log-interpolated value as `0.8580 mPa·s`, while computing it from the table gives
+# `0.8598`. The verifier **was computing and printing 0.8598 correctly**, but there
+# was no assertion tying it to the number written in the distillation --
+# `d_log < 0.015` passes for both values.
+# ⚠️ "The computation is right" and **"the document that will be cited is right"
+# are different propositions**. The distillation is the artefact that gets cited,
+# so without an assertion linking computed to printed, a transcription error
+# survives silently (this project's signature failure: the unwired checker).
 def anchor_num(name: str, cell: int) -> str:
-    """`<!--@name-->` 로 끝나는 표 행에서 **cell 번째 칸의 숫자**를 잡는 정규식.
+    """Regex capturing **the number in the cell-th column** of the table row that
+    ends with `<!--@name-->`.
 
-    산문이 아니라 앵커에 거는 이유: 증류본은 **번역 대상**입니다. 한국어 라벨
-    (`log-선형` 등)에 정규식을 걸면 번역이 검사를 깨뜨립니다 — 0 매치가 FAIL 이라
-    조용하지는 않지만, 언어를 고치는 일이 검사를 깨는 것 자체가 잘못된 결합입니다
-    (b4 가 2026-08-29 에 파일 간 결합으로 지적). `<!--@...-->` 는 렌더링에 안 보이고
-    번역 대상도 아니라 이 결합이 사라집니다.
+    Why anchor on that rather than on prose: the distillation is **going to be
+    translated**. A regex keyed on a Korean label (`log-선형` and the like) means
+    the translation breaks the check -- not silently, since 0 matches is a FAIL,
+    but the coupling itself is wrong when fixing the language breaks a test
+    (raised by b4 on 2026-08-29 as a cross-file coupling). `<!--@...-->` is
+    invisible in the rendered document and is not translated, so the coupling
+    disappears.
 
-    `cell` 은 **1-based 칸 번호**(`|` 로 구분). 부호·단위는 무시하고 첫 숫자를 잡습니다.
+    `cell` is a **1-based column number** (separated by `|`). Signs and units are
+    ignored; the first number is captured.
     """
     skip = r"(?:[^|\n]*\|){%d}" % (cell - 1)
     return (r"\|" + skip + r"[^|\n]*?(\d+\.\d+)[^|\n]*\|(?:[^|\n]*\|)*?\s*<!--@"
@@ -121,38 +135,41 @@ def anchor_num(name: str, cell: int) -> str:
 
 def chk_doc(book: str, pattern: str, want: float, unit_scale: float = 1.0,
             rtol: float = 5e-4, note: str = ""):
-    """증류본에서 정규식으로 숫자를 꺼내 계산값과 대조한다.
+    """Pull a number out of the distillation by regex and compare it against the
+    computed value.
 
-    `pattern` 은 정확히 하나의 캡처 그룹(숫자)을 가져야 한다. 매치가 없거나
-    둘 이상이면 **FAIL** 이다 — 조용히 건너뛰면 이 검사 자체가 무의미해진다.
+    `pattern` must have exactly one capture group (the number). No match, or more
+    than one, is a **FAIL** -- skipping silently would make this check meaningless.
     """
     path = ROOT / "knowledge" / "source" / "books" / book
     if not path.exists():
-        FAIL.append(f"[DOC] {book}: 파일이 없다 ({path})")
+        FAIL.append(f"[DOC] {book}: file missing ({path})")
         return False
     hits = re.findall(pattern, path.read_text(encoding="utf-8"))
     if len(hits) != 1:
-        FAIL.append(f"[DOC] {book} /{pattern}/: 매치가 {len(hits)}개 (정확히 1개여야 한다)")
+        FAIL.append(f"[DOC] {book} /{pattern}/: {len(hits)} matches "
+                    f"(must be exactly 1)")
         return False
     got = float(hits[0]) * unit_scale
-    return chk("DOC", f"{book} 인쇄값 {pattern!r}" + (f" — {note}" if note else ""),
+    return chk("DOC", f"{book} printed value {pattern!r}"
+               + (f" -- {note}" if note else ""),
                got, want, rtol=rtol)
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 상수
+# Constants
 # ════════════════════════════════════════════════════════════════════════
-KB = 1.380649e-23  # J/K  (SI 정의값)
+KB = 1.380649e-23  # J/K  (SI defined value)
 
-# ── 이 프로젝트가 쓰는 값 (intake/*/system.yaml, tier 1) ────────────────
+# ── The values this project uses (intake/*/system.yaml, tier 1) ─────────
 OURS_T = 300.0  # K
-OURS_ETA = 0.851e-3  # Pa*s   "물@300K 핸드북" — 5개 케이스 공통
+OURS_ETA = 0.851e-3  # Pa*s   "water@300K handbook" -- shared by 5 cases
 OURS_GAMMA = {  # 3 pi eta d
     "trap-drag-2d-hex300 (d=5um)": (5.000e-6, 4.0102e-8),
     "chain-bend-2d-dlvo (d=1.47um)": (1.470e-6, 1.1790e-8),
 }
 
-# ── [W] Appendix I, "Water" (SI 표, 책 p.686) ──────────────────────────
+# ── [W] Appendix I, "Water" (SI table, book p.686) ─────────────────────
 #   T(K), rho(kg/m3), mu*1e6 (Pa*s), nu*1e6 (m2/s)
 WELTY_WATER = [
     (273, 999.3, 1794, 1.795),
@@ -165,7 +182,7 @@ WELTY_WATER = [
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ① [W] 물의 점도 — 책의 표 ↔ 우리가 쓰는 0.851 mPa*s @300 K
+# (1) [W] water viscosity -- the book's table vs our 0.851 mPa*s @300 K
 # ════════════════════════════════════════════════════════════════════════
 def s1_water_viscosity():
     T = np.array([r[0] for r in WELTY_WATER], float)
@@ -173,87 +190,106 @@ def s1_water_viscosity():
     rho = np.array([r[1] for r in WELTY_WATER], float)
     nu = np.array([r[3] for r in WELTY_WATER], float) * 1e-6
 
-    # 표 자체의 내적 일관성: nu = mu/rho (책이 세 열을 독립적으로 찍었으므로 검사가 된다)
+    # Internal consistency of the table itself: nu = mu/rho. The book printed the
+    # three columns independently, so this is a real check.
     err = float(np.max(np.abs(nu - mu / rho) / nu))
-    chk_true("BOOK", f"Welty water table: nu == mu/rho 가 모든 행에서 0.1% 이내 (실측 {err:.2e})",
-             err < 1e-3, note="표를 옳게 전사했는지 + 표 자체가 일관적인지")
+    chk_true("BOOK", f"Welty water table: nu == mu/rho within 0.1% on every row "
+                     f"(measured {err:.2e})",
+             err < 1e-3, note="did I transcribe the table right, and is the table "
+                              "self-consistent")
 
-    # 300 K 로 보간. eta(T) 는 지수적으로 휘므로 log-선형이 선형보다 옳다.
+    # Interpolate to 300 K. eta(T) curves exponentially, so log-linear beats linear.
     i = 1  # 293 K
     w = (300.0 - T[i]) / (T[i + 1] - T[i])
     mu_lin = mu[i] + w * (mu[i + 1] - mu[i])
     mu_log = math.exp(math.log(mu[i]) + w * (math.log(mu[i + 1]) - math.log(mu[i])))
 
-    print(f"    Welty 표 293/313 K = {mu[1]*1e3:.3f}/{mu[2]*1e3:.3f} mPa*s")
-    print(f"    -> 300 K 선형보간 {mu_lin*1e3:.4f} / log-선형보간 {mu_log*1e3:.4f} mPa*s")
-    print(f"    -> 우리 값        {OURS_ETA*1e3:.4f} mPa*s")
+    print(f"    Welty table 293/313 K = {mu[1]*1e3:.3f}/{mu[2]*1e3:.3f} mPa*s")
+    print(f"    -> 300 K linear {mu_lin*1e3:.4f} / log-linear {mu_log*1e3:.4f} mPa*s")
+    print(f"    -> our value      {OURS_ETA*1e3:.4f} mPa*s")
 
-    # 우리 값과의 상대차. log-보간이 20 K 간격 표에서 낼 수 있는 정확도 안에 있는가.
+    # Relative difference against our value. Is log interpolation within the
+    # accuracy a 20 K-spaced table can deliver?
     d_log = abs(mu_log - OURS_ETA) / OURS_ETA
     d_lin = abs(mu_lin - OURS_ETA) / OURS_ETA
-    chk_true("OURS", f"eta(300K): Welty log-보간이 우리 0.851 mPa*s 와 1.5% 이내 (실측 {d_log*100:.2f}%)",
-             d_log < 0.015, note=f"선형보간은 {d_lin*100:.2f}% 어긋남 — 보간법이 결과를 바꾼다")
-    chk_true("OURS", "eta(300K): log-보간이 선형보간보다 우리 값에 가깝다",
-             d_log < d_lin, note="eta(T) 의 곡률이 20 K 간격에서 이미 유의미")
+    chk_true("OURS", f"eta(300K): Welty log interpolation within 1.5% of our "
+                     f"0.851 mPa*s (measured {d_log*100:.2f}%)",
+             d_log < 0.015, note=f"linear interpolation is off by {d_lin*100:.2f}% "
+                                 f"-- the interpolation method changes the answer")
+    chk_true("OURS", "eta(300K): log interpolation is closer to our value than linear",
+             d_log < d_lin, note="the curvature of eta(T) already matters at 20 K "
+                                 "spacing")
 
-    # ★ 증류본에 **인쇄된** 두 값이 위 계산과 일치하는가. 이 두 줄이 없어서
-    #   0.8580 (실제 0.8598) 이 56/56 을 통과했다.
+    # ★ Do the two values **printed** in the distillation match the computation
+    #   above? Without these two lines, 0.8580 (actually 0.8598) passed 56/56.
     chk_doc("welty_transport.md", anchor_num("eta300_log", 2),
-            mu_log * 1e3, note="log-선형 보간값")
+            mu_log * 1e3, note="log-linear interpolated value")
     chk_doc("welty_transport.md", anchor_num("eta300_lin", 2),
-            mu_lin * 1e3, note="선형 보간값")
-    # 인쇄된 백분율도 같은 계산에서 나와야 한다 (0.8580 은 +0.82% 라 +1.03% 와 모순)
+            mu_lin * 1e3, note="linear interpolated value")
+    # The printed percentage must come from the same computation (0.8580 would be
+    # +0.82%, contradicting the printed +1.03%)
     chk_doc("welty_transport.md", anchor_num("eta300_log", 3),
-            d_log * 100, rtol=6e-3, note="log-선형 상대차 %")
+            d_log * 100, rtol=6e-3, note="log-linear relative difference %")
 
-    # ★ §1.2 가 공표하는 T-민감도 오차를 IAPWS 표에서 재계산해 대조한다.
-    #   2026-08-29: 이 검사가 없어서 내가 -4% 를 -5% 로 "정정" 했다가 되돌렸다.
-    #   원인 두 개가 같은 방향이었다 — ⓐ 298.15 K 직접행이 있는 IAPWS 대신 [W] 의
-    #   20 K 표를 log-보간했고 ⓑ 25 °C 를 298.00 K 로 적었다(참값 298.15 K).
-    #   ⟹ "어느 표·어느 기준·어느 온도규약" 셋이 다 숫자를 바꾼다. 셋을 다 고정한다.
-    # ⚠️ 표를 여기에 베껴 적지 않습니다. 그러면 물 점도표의 **네 번째 사본**이 되고,
-    #    이 버그의 원인이 바로 사본이 갈라진 것이었습니다. 인용 출처를 직접 읽습니다.
-    #    그리고 온도는 **°C 에서 유도**합니다 — `298.15` 를 리터럴로 적으면 이번에
-    #    나와 0f 를 둘 다 물린 `25 °C → 298.00 K` 를 다시 쓸 수 있습니다.
+    # ★ Recompute the T-sensitivity error §1.2 publishes, from the IAPWS table.
+    #   2026-08-29: without this check I "corrected" -4% to -5% and had to revert.
+    #   Two causes pointed the same way -- (a) I log-interpolated [W]'s 20 K table
+    #   instead of using IAPWS, which has a direct 298.15 K row, and (b) I wrote
+    #   25 °C as 298.00 K (the true value is 298.15 K).
+    #   => which table, which reference and which temperature convention ALL three
+    #   change the number. All three are pinned here.
+    # ⚠️ The table is NOT copied in here. That would make a **fourth copy** of the
+    #    water viscosity table, and copies diverging is exactly what caused this
+    #    bug. The cited source is read directly.
+    #    And the temperature is **derived from °C** -- writing `298.15` as a literal
+    #    invites rewriting the `25 °C -> 298.00 K` slip that bit both me and
+    #    session 0f this time round.
     IAPWS = _read_iapws_water_rows()
-    chk_true("DOC", f"water-298k.md 에서 IAPWS 행을 읽었다 ({len(IAPWS)}행)",
-             len(IAPWS) >= 2, note="0행이면 파싱이 깨진 것 — 조용히 건너뛰면 검사가 무의미하다")
+    chk_true("DOC", f"water-298k.md: read {len(IAPWS)} IAPWS rows",
+             len(IAPWS) >= 2, note="0 rows means the parse broke -- skipping "
+                                   "silently would make the check meaningless")
     for celsius, want_pct in ((25, -4.4), (20, -15.0)):
-        T_real = KELVIN_0C + celsius          # ★ 유도. 리터럴 298.15 를 쓰지 않는다
+        T_real = KELVIN_0C + celsius          # ★ derived. Never the literal 298.15
         if T_real not in IAPWS:
-            # bare assert 를 쓰지 않습니다 — 크래시하면 나머지 63개 결과와 집계가
-            # 사라지고, 이미 기록된 진단(켈빈↔섭씨 불일치)까지 묻힙니다.
-            # 조용히 통과 < 크래시 < **보고**.
-            FAIL.append(f"[OURS] {celsius}°C = {T_real} K 가 IAPWS 직접 행이 아니다 "
-                        f"(있는 행: {sorted(IAPWS)})")
+            # No bare assert -- a crash would take out the other 63 results and the
+            # tally with them, burying the diagnostics already recorded (the
+            # Kelvin/Celsius mismatch).
+            # Silent pass < crash < **report**.
+            FAIL.append(f"[OURS] {celsius}°C = {T_real} K is not a direct IAPWS row "
+                        f"(rows present: {sorted(IAPWS)})")
             continue
         got = (OURS_ETA - IAPWS[T_real]) / IAPWS[T_real] * 100
-        chk("OURS", f"eta 오차 @{celsius}°C = {T_real} K (IAPWS 직접행 기준, 우리 0.851)",
+        chk("OURS", f"eta error @{celsius}°C = {T_real} K (against the direct IAPWS "
+                    f"row, ours 0.851)",
             got, want_pct, rtol=2e-2,
-            note=f"{celsius}C 를 {KELVIN_0C + celsius - 0.15:.0f} K 로 적으면 0.3% 움직인다")
-    # 증류본 §1.2 표에 인쇄된 두 값이 위 계산과 일치하는가.
-    # ★ 여기서도 온도를 리터럴로 쓰지 않습니다 — 위 루프에서 리터럴을 뺐는데
-    #   이 두 줄에 `IAPWS[298.15]` 가 남아 있어서 적대적 시험이 KeyError 로
-    #   크래시했습니다 (한 곳만 고치고 두 곳을 놓친 것).
+            note=f"writing {celsius}C as {KELVIN_0C + celsius - 0.15:.0f} K moves "
+                 f"this by 0.3%")
+    # Do the two values printed in the distillation's §1.2 table match the above?
+    # ★ No temperature literal here either -- the literal was removed from the loop
+    #   above but `IAPWS[298.15]` was left in these two lines, so the adversarial
+    #   test crashed with KeyError (one site fixed, the second missed).
     for celsius in (25, 20):
         T_real = KELVIN_0C + celsius
         if T_real not in IAPWS:
-            FAIL.append(f"[DOC] §1.2 {celsius}°C 행 대조 불가 — IAPWS 직접 행이 없다")
+            FAIL.append(f"[DOC] §1.2 {celsius}°C row cannot be compared -- no direct "
+                        f"IAPWS row")
             continue
         want = abs((OURS_ETA - IAPWS[T_real]) / IAPWS[T_real] * 100)
         chk_doc("welty_transport.md", anchor_num(f"err_{celsius}C", 3),
-                want, rtol=2e-2, note=f"§1.2 의 {celsius}°C ({T_real} K) 행")
+                want, rtol=2e-2, note=f"§1.2's {celsius}°C ({T_real} K) row")
 
-    # 온도 민감도: %/K. 값 하나만 인용하고 T 를 안 적으면 이만큼 틀릴 수 있다.
-    sens = abs(math.log(mu[2] / mu[1])) / (T[2] - T[1]) * 100  # %/K, 293-313 구간
+    # Temperature sensitivity, %/K. Quoting one value without stating T can be off
+    # by this much.
+    sens = abs(math.log(mu[2] / mu[1])) / (T[2] - T[1]) * 100  # %/K, over 293-313
     print(f"    d(ln eta)/dT ~ {sens:.2f} %/K  (293-313 K)")
-    chk_true("BOOK", f"물 점도의 온도 민감도가 2%/K 를 넘는다 (실측 {sens:.2f} %/K)",
-             sens > 2.0, note="T 를 +-1 K 잘못 적으면 eta 가 2% 틀린다")
+    chk_true("BOOK", f"water viscosity T-sensitivity exceeds 2%/K "
+                     f"(measured {sens:.2f} %/K)",
+             sens > 2.0, note="getting T wrong by +-1 K makes eta wrong by 2%")
     return sens
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ② [W] Stokes 항력 ↔ C_D = 24/Re ↔ 우리 gamma = 3 pi eta d
+# (2) [W] Stokes drag <-> C_D = 24/Re <-> our gamma = 3 pi eta d
 # ════════════════════════════════════════════════════════════════════════
 def s2_stokes():
     # C_D = F / (0.5 rho v^2 A),  A = pi d^2/4,  F = 3 pi mu d v  (Stokes)
@@ -263,10 +299,11 @@ def s2_stokes():
     F = 3 * math.pi * mu * d * v
     CD = F / (0.5 * rho * v**2 * math.pi * d**2 / 4)
     chk("DERIV", "C_D(Stokes) == 24/Re", CD, 24.0 / Re, rtol=1e-12,
-        note="[W] 12.2 의 C_D=24/Re 와 F=3*pi*mu*d*v 가 같은 것임을 확인")
-    chk_true("DERIV", f"검사한 조건이 creeping flow 영역 (Re={Re:.2e} < 1)", Re < 1.0)
+        note="confirms [W] 12.2's C_D=24/Re and F=3*pi*mu*d*v are the same thing")
+    chk_true("DERIV", f"the tested condition is in the creeping-flow regime "
+                      f"(Re={Re:.2e} < 1)", Re < 1.0)
 
-    # 우리 gamma = 3 pi eta d  (= 6 pi eta a) 가 각 케이스에서 맞게 계산됐는가
+    # Was our gamma = 3 pi eta d (= 6 pi eta a) computed correctly for each case?
     for name, (d_case, gamma_yaml) in OURS_GAMMA.items():
         chk("OURS", f"gamma = 3*pi*eta*d  [{name}]",
             3 * math.pi * OURS_ETA * d_case, gamma_yaml, rtol=2e-4)
@@ -281,106 +318,130 @@ def s2_stokes():
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ③ [L] Batchelor / Brady-Vicic 의 phi^2 계수 — 책의 산술 재현
+# (3) [L] the phi^2 coefficients of Batchelor / Brady-Vicic -- reproduce the book's
+#     arithmetic
 # ════════════════════════════════════════════════════════════════════════
 def s3_phi2():
-    # [L] 3.4.2: 직접 Brownian 0.97 phi^2 + 유체역학 5.2 phi^2 -> Batchelor K* = 6.2
+    # [L] 3.4.2: direct Brownian 0.97 phi^2 + hydrodynamic 5.2 phi^2
+    #            -> Batchelor K* = 6.2
     chk("BOOK", "[L] Batchelor K* = 0.97 (Brownian) + 5.2 (hydro)", 0.97 + 5.2, 6.2,
-        rtol=5e-3, note="책이 두 성분과 합을 따로 찍었으므로 산술 검사가 된다")
+        rtol=5e-3, note="the book printed the two components and the sum separately, "
+                        "so this is a real arithmetic check")
     # Brady & Vicic (1995): K* = 5.91, N1/(mu gdot) = 0.899 phi^2 Pe, N2 = -0.788 phi^2 Pe
-    chk_true("BOOK", "[L] Brady-Vicic: |N2/N1| = 0.877 (고분자의 ~1/7 과 다르다)",
+    chk_true("BOOK", "[L] Brady-Vicic: |N2/N1| = 0.877 (differs from the ~1/7 of "
+                     "polymers)",
              abs(-0.788 / 0.899 + 0.877) < 5e-3,
-             note=f"|N2/N1|={abs(-0.788/0.899):.3f} vs 고분자 {1/7:.3f}")
-    chk_true("BOOK", "[L] N1>0, N2<0 (고분자와 부호는 같다)", 0.899 > 0 and -0.788 < 0)
+             note=f"|N2/N1|={abs(-0.788/0.899):.3f} vs polymers {1/7:.3f}")
+    chk_true("BOOK", "[L] N1>0, N2<0 (same signs as polymers)",
+             0.899 > 0 and -0.788 < 0)
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ④ [L] Doi-Edwards 준희박 회전확산 — 책의 예제 숫자 재현
+# (4) [L] Doi-Edwards semi-dilute rotational diffusion -- reproduce the book's
+#     example
 # ════════════════════════════════════════════════════════════════════════
 def s4_doi_edwards():
     # [L] (6.45): Dr0 = beta * Drbar0 / (n^2 L^6),  beta = 1.3e3
-    # 책의 예: n=0.1, L=50 -> Dr0/Drbar0 = O(1e-5)
+    # The book's example: n=0.1, L=50 -> Dr0/Drbar0 = O(1e-5)
     beta, n, L = 1.3e3, 0.1, 50.0
     ratio = beta / (n**2 * L**6)
-    print(f"    Dr(semi-dilute)/Dr(dilute) = {ratio:.3e}   (책: O(1e-5))")
-    chk_true("BOOK", f"[L] (6.45) 예제: 비 = {ratio:.2e} 가 O(1e-5)",
+    print(f"    Dr(semi-dilute)/Dr(dilute) = {ratio:.3e}   (book: O(1e-5))")
+    chk_true("BOOK", f"[L] (6.45) example: ratio = {ratio:.2e} is O(1e-5)",
              1e-6 <= ratio < 1e-4, note="n=0.1, L=50, beta=1.3e3")
-    # 스케일: Dr ~ (n L^3)^-2  (n^2 L^6 = (nL^3)^2)
+    # Scaling: Dr ~ (n L^3)^-2  (n^2 L^6 = (nL^3)^2)
     chk("DERIV", "n^2 L^6 == (n L^3)^2", n**2 * L**6, (n * L**3) ** 2, rtol=1e-12)
-    # 배제부피: 직교한 두 막대 -> L x L x 2a 평행육면체 = 2 a L^2
+    # Excluded volume: two orthogonal rods -> an L x L x 2a parallelepiped = 2 a L^2
     a = 0.5
-    chk("BOOK", "[L] 배제부피(직교) = 2 a L^2", L * L * (2 * a), 2 * a * L**2, rtol=1e-12)
-    # 준희박 창의 폭은 종횡비가 정한다: O(1) << n L^3 << L/a = 2r
+    chk("BOOK", "[L] excluded volume (orthogonal) = 2 a L^2",
+        L * L * (2 * a), 2 * a * L**2, rtol=1e-12)
+    # The width of the semi-dilute window is set by the aspect ratio:
+    # O(1) << n L^3 << L/a = 2r
     r_asp = L / (2 * a)
-    chk("DERIV", "준희박 상한 n L^3 ~ L/a = 2r", L / a, 2 * r_asp, rtol=1e-12,
-        note=f"r={r_asp:.0f} -> nL^3 창 [O(1), {L/a:.0f}]")
+    chk("DERIV", "semi-dilute upper bound n L^3 ~ L/a = 2r", L / a, 2 * r_asp,
+        rtol=1e-12, note=f"r={r_asp:.0f} -> nL^3 window [O(1), {L/a:.0f}]")
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ⑤ [L] Jeffery 의 G, 그리고 Pe = |E|/Dr 의 |E| 규약 (2배 함정)
+# (5) [L] Jeffery's G, and the |E| convention in Pe = |E|/Dr (the factor-of-2 trap)
 # ════════════════════════════════════════════════════════════════════════
 def s5_jeffery_and_E():
     G = lambda r: (r**2 - 1) / (r**2 + 1)
-    # atol: G 는 무차원 O(1) 량(0~1)이라 "배정도로 0" = 1e-15.
-    # ★ 이 자리는 b4 가 찾은 3곳에 없었습니다 — `chk` 가 want=0+atol 없음을 거부하게
-    #   만들자 API 가 스스로 네 번째를 찾아냈습니다. 호출부를 손으로 훑는 것보다
-    #   계약을 고치는 쪽이 남는 것을 찾습니다.
-    chk("DERIV", "[L] (2.34) G(r=1) = 0  (구는 변형률에 반응 안 함)", G(1.0), 0.0, atol=1e-15)
+    # atol: G is a dimensionless O(1) quantity (0..1), so "zero in double precision"
+    # is 1e-15.
+    # ★ This site was NOT among the three b4 found -- making `chk` reject
+    #   want=0-with-no-atol let the API surface the fourth one by itself. Fixing the
+    #   contract finds what hand-scanning the call sites misses.
+    chk("DERIV", "[L] (2.34) G(r=1) = 0  (a sphere does not respond to strain rate)",
+        G(1.0), 0.0, atol=1e-15)
     chk("DERIV", "[L] (2.34) G(r->inf) -> 1", G(1e8), 1.0, rtol=1e-12)
-    chk_true("DERIV", "G(r) 는 r 에 대해 단조증가", bool(np.all(np.diff(G(np.linspace(1, 100, 500))) > 0)))
+    chk_true("DERIV", "G(r) is monotonically increasing in r",
+             bool(np.all(np.diff(G(np.linspace(1, 100, 500))) > 0)))
 
-    # ★ 규약 함정: [L] 4.4.4 는 Pe = |E|/Dr, [L] 1.6 (1.32) 는 Wi = gdot/Dr.
-    #   둘이 같으려면 |E| = sqrt(2 E:E) 여야 한다 (E:E 만 쓰면 sqrt(2) 배 틀린다).
+    # ★ Convention trap: [L] 4.4.4 has Pe = |E|/Dr, [L] 1.6 (1.32) has Wi = gdot/Dr.
+    #   For the two to agree, |E| must be sqrt(2 E:E) -- using E:E alone is off by
+    #   sqrt(2).
     gdot = 3.7
     E = np.array([[0.0, gdot / 2, 0.0], [gdot / 2, 0.0, 0.0], [0.0, 0.0, 0.0]])
     EE = float(np.tensordot(E, E))  # E:E
-    chk("DERIV", "단순전단에서 sqrt(2 E:E) == gdot", math.sqrt(2 * EE), gdot, rtol=1e-12,
-        note="[L] 3.4.2 의 Ehat = E/(2E:E)^1/2 = E/gdot 규약과 일치")
-    chk_true("DERIV", f"sqrt(E:E) 를 쓰면 sqrt(2)={math.sqrt(2):.4f} 배 어긋난다",
+    chk("DERIV", "in simple shear, sqrt(2 E:E) == gdot", math.sqrt(2 * EE), gdot,
+        rtol=1e-12,
+        note="matches [L] 3.4.2's convention Ehat = E/(2E:E)^1/2 = E/gdot")
+    chk_true("DERIV", f"using sqrt(E:E) is off by a factor "
+                      f"sqrt(2)={math.sqrt(2):.4f}",
              abs(math.sqrt(EE) * math.sqrt(2) - gdot) < 1e-12,
-             note="Pe/Wi 를 2배 틀리게 만드는 가장 흔한 규약 사고")
+             note="the most common convention accident that makes Pe/Wi wrong by 2x")
 
-    # 회전(vorticity)은 등방 평형분포를 바꾸지 못한다 -> Pe 는 E 로만 만든다.
+    # Vorticity cannot change the isotropic equilibrium distribution -> Pe is built
+    # from E alone.
     Om = np.array([[0.0, gdot / 2, 0.0], [-gdot / 2, 0.0, 0.0], [0.0, 0.0, 0.0]])
-    chk("DERIV", "단순전단: |grad u| 은 E 와 Omega 로 반씩 쪼개진다",
+    chk("DERIV", "simple shear: |grad u| splits half and half into E and Omega",
         float(np.max(np.abs(E + Om))), gdot, rtol=1e-12,
-        note="|grad u|=gdot 인데 |E|=gdot 이므로 여기서는 우연히 같다 — 순수전단이면 다르다")
-    # 순수 회전 흐름: E=0 이므로 Pe=0 이어야 한다 (아무리 grad u 가 커도)
+        note="|grad u|=gdot and |E|=gdot, so they coincide here by accident -- for "
+             "pure strain they differ")
+    # Pure rotational flow: E=0, so Pe must be 0 (however large grad u is)
     E_rot = np.zeros((3, 3))
-    chk_true("DERIV", "순수 회전류(E=0)에서는 Pe=0 — |grad u| 로 재면 0 이 아니다",
+    chk_true("DERIV", "in pure rotation (E=0) Pe=0 -- measured via |grad u| it would "
+                      "not be 0",
              float(np.max(np.abs(E_rot))) == 0.0)
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ⑥ [L] 막대 현탁액 SAOS: G'' ~ De/(36+De^2) -> 점탄성 이완시간 = 1/(6 Dr)
+# (6) [L] rod suspension SAOS: G'' ~ De/(36+De^2) -> viscoelastic relaxation time
+#     = 1/(6 Dr)
 # ════════════════════════════════════════════════════════════════════════
 def s6_rod_saos():
-    # [L] (5.121b): FG*(2/15)*3De/(36+De^2) 꼴. Maxwell 단일모드의 극은 De=6.
+    # [L] (5.121b) has the form FG*(2/15)*3De/(36+De^2). The pole of a single
+    # Maxwell mode is at De=6.
     De = np.logspace(-2, 3, 200001)
-    loss = De / (36 + De**2)  # G'' ~ eta' * omega 의 De 의존부
+    loss = De / (36 + De**2)  # the De-dependent part of G'' ~ eta' * omega
     De_peak = float(De[int(np.argmax(loss))])
-    chk("DERIV", "[L] (5.121b) 손실항 De/(36+De^2) 의 최대는 De=6", De_peak, 6.0, rtol=1e-3,
-        note="De = omega/Dr 이므로 omega_peak = 6 Dr -> lambda = 1/(6 Dr)")
-    # Maxwell 대조: lambda*omega/(1+(lambda omega)^2) 는 lambda*omega=1 에서 최대
+    chk("DERIV", "[L] (5.121b) the loss term De/(36+De^2) peaks at De=6",
+        De_peak, 6.0, rtol=1e-3,
+        note="De = omega/Dr, so omega_peak = 6 Dr -> lambda = 1/(6 Dr)")
+    # Maxwell comparison: lambda*omega/(1+(lambda omega)^2) peaks at lambda*omega=1
     lam = 1.0 / 6.0
     m = lam * De / (1 + (lam * De) ** 2)
-    chk("DERIV", "Maxwell(lambda=1/6) 의 손실 최대도 De=6",
+    chk("DERIV", "Maxwell(lambda=1/6) also peaks in loss at De=6",
         float(De[int(np.argmax(m))]), 6.0, rtol=1e-3)
-    chk_true("DERIV", "De/(36+De^2) 는 Maxwell(lambda=1/6) 과 비례상수 하나로 같다",
+    chk_true("DERIV", "De/(36+De^2) equals Maxwell(lambda=1/6) up to a single "
+                      "proportionality constant",
              float(np.max(np.abs(loss / m - loss[0] / m[0]))) < 1e-12,
-             note="즉 희박 막대 현탁액의 선형점탄성은 정확히 단일 Maxwell 모드")
-    print(f"    -> 배향(l=2) 이완시간 lambda = 1/(6 Dr).  1/Dr 나 1/(2Dr) 가 아니다.")
+             note="i.e. the linear viscoelasticity of a dilute rod suspension is "
+                  "exactly one Maxwell mode")
+    print(f"    -> orientational (l=2) relaxation time lambda = 1/(6 Dr). "
+          f"NOT 1/Dr and not 1/(2Dr).")
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ⑦ [L] 탄성 덤벨: Kramers 응력 · Oldroyd-B — 모멘트식 수치적분으로 독립 확인
+# (7) [L] elastic dumbbell: Kramers stress and Oldroyd-B -- checked independently by
+#     numerically integrating the moment equation
 # ════════════════════════════════════════════════════════════════════════
 def s7_dumbbell():
     """[L] 11.2-11.3.
 
-    선형(Hookean) 덤벨의 2차 모멘트 방정식은
+    The second-moment equation of a linear (Hookean) dumbbell is
         d<RR>/dt = grad u . <RR> + <RR> . grad u^T  - (4 w0/zeta)(<RR> - (kT/w0) I)
-    (= (11.6) 의 상위대류 미분 형태). 여기서 lambda_p = zeta/(4 w0).
+    (= the upper-convected derivative form of (11.6)). Here lambda_p = zeta/(4 w0).
     Kramers (11.15b):  T^(p) = n <F_s R> - n kT I = n (w0 <RR> - kT I).
     """
     kT, zeta, n = 1.0, 1.0, 1.0
@@ -396,19 +457,23 @@ def s7_dumbbell():
         return gradu @ RR + RR @ gradu.T + relax
 
     def integrate(gradu, t_end, RR0):
-        """모멘트식을 강성 대응 적분기로 적분 (닫힌 해를 쓰지 않는 독립 확인).
+        """Integrate the moment equation with a stiff-capable integrator.
 
-        ⚠️ 예전 시그니처에 `dt=None` 이 있었고 **본문에서 쓰이지 않았습니다**
-        (b4 가 2026-08-29 에 지적). 호출부가 `dt=min(lam/20000, 1e-4/gdot)` 을 넘겨
-        강성 케이스의 스텝을 조이는 것처럼 읽혔지만 조용히 무시됐습니다.
+        An independent check that does not use the closed-form solution.
 
-        ★ 고치는 방향이 "실제로 지키게 하는 것" 이 **아닙니다** — 실측하니 그 값을
-        `max_step` 으로 지키면 `gdot=100` 에서 **6천만 스텝**(dt=1e-6, t_end=60)을
-        요구해 스크립트가 2분 타임아웃에 걸립니다. 즉 넘기던 값이 애초에 성립하지
-        않았고, **파라미터가 죽어 있던 것이 이 스크립트가 돌던 유일한 이유**였습니다.
-        LSODA 는 음함수·적응형이라 강성은 `rtol` 이 처리하고 스텝 상한은 불필요합니다.
-        그래서 파라미터와 인자를 **지웠습니다** — 죽은 손잡이는 살리는 것보다 없애는
-        것이 정직합니다.
+        ⚠️ The old signature carried a `dt=None` that **was never used in the body**
+        (raised by b4 on 2026-08-29). A call site passed
+        `dt=min(lam/20000, 1e-4/gdot)`, so it read as if it were tightening the step
+        for the stiff case, and it was silently ignored.
+
+        ★ The fix is **not** "make it actually be honoured" -- measured, honouring
+        that value as `max_step` demands **60 million steps** at `gdot=100`
+        (dt=1e-6, t_end=60) and the script hits a 2-minute timeout. So the value
+        being passed was never viable, and **the parameter being dead was the only
+        reason this script ever ran.** LSODA is implicit and adaptive, so `rtol`
+        handles the stiffness and a step ceiling is not wanted. The parameter and
+        the argument were therefore **deleted** -- removing a dead knob is more
+        honest than wiring it up.
         """
         from scipy.integrate import solve_ivp
 
@@ -422,15 +487,16 @@ def s7_dumbbell():
 
     RR_eq = (kT / w0) * np.eye(3)
 
-    # (a) 평형에서 Kramers 응력이 정확히 0 (부호·전인자 규약의 골든 테스트)
+    # (a) at equilibrium the Kramers stress is exactly 0 (the golden test for the
+    #     sign and prefactor conventions)
     T_eq = n * (w0 * RR_eq - kT * np.eye(3))
-    chk("DERIV", "[L] (11.15b) 평형에서 Kramers 응력 = 0",
+    chk("DERIV", "[L] (11.15b) Kramers stress = 0 at equilibrium",
         float(np.max(np.abs(T_eq))), 0.0, atol=1e-12 * n * kT,
-        note=f"max|T|={np.max(np.abs(T_eq)):.2e}, 스케일 n*kT={n*kT:.2e}")
-    chk_true("DERIV", "평형 Kramers 응력이 기계정밀도로 0",
+        note=f"max|T|={np.max(np.abs(T_eq)):.2e}, scale n*kT={n*kT:.2e}")
+    chk_true("DERIV", "equilibrium Kramers stress is 0 to machine precision",
              float(np.max(np.abs(T_eq))) < 1e-14)
 
-    # (b) 정상 단순전단: T12 = eta_p gdot, N1 = 2 eta_p lam gdot^2, N2 = 0
+    # (b) steady simple shear: T12 = eta_p gdot, N1 = 2 eta_p lam gdot^2, N2 = 0
     for gdot in (0.1, 1.0, 5.0):
         gradu = np.array([[0.0, gdot, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
         RR = integrate(gradu, 60 * lam, RR_eq)
@@ -446,53 +512,63 @@ def s7_dumbbell():
         chk("DERIV", f"[L] (11.24) tr<RR> = b^2(1+2/3 Wi^2)  (Wi={Wi:g})",
             float(np.trace(RR)), b2 * (1 + 2.0 / 3.0 * Wi**2), rtol=2e-4)
 
-    # (c) Oldroyd-B 는 전단담화를 예측하지 않는다 — 점도가 gdot 에 무관
+    # (c) Oldroyd-B predicts no shear thinning -- the viscosity is independent of gdot
     etas = []
     for gdot in (0.01, 0.1, 1.0, 10.0, 100.0):
         gradu = np.array([[0.0, gdot, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
         RR = integrate(gradu, 60 * lam, RR_eq)
         etas.append(n * (w0 * RR[0, 1]) / gdot)
     spread = (max(etas) - min(etas)) / eta_p
-    chk_true("DERIV", f"Oldroyd-B: eta_p 가 gdot 4자리에 걸쳐 불변 (산포 {spread:.2e})",
-             spread < 1e-3, note="'전단담화 없음' — 거의 모든 실제 고분자와 다르다")
+    chk_true("DERIV", f"Oldroyd-B: eta_p invariant over 4 decades of gdot "
+                      f"(spread {spread:.2e})",
+             spread < 1e-3, note="'no shear thinning' -- unlike almost every real "
+                                 "polymer")
 
-    # (d) 흐름을 끊으면 유체역학 성분은 즉시 0, 열역학 성분만 유한시간 이완
+    # (d) stop the flow and the hydrodynamic component goes to 0 instantly; only the
+    #     thermodynamic component relaxes over a finite time
     gradu = np.array([[0.0, 2.0 / lam, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
     RR_sheared = integrate(gradu, 60 * lam, RR_eq)
     RR_relaxed = integrate(np.zeros((3, 3)), 1.0 * lam, RR_sheared)
     T0 = n * (w0 * RR_sheared[0, 1])
     T1 = n * (w0 * RR_relaxed[0, 1])
-    chk("DERIV", "정지 후 lambda 만큼 지나면 T12 가 exp(-1) 배",
+    chk("DERIV", "one lambda after stopping, T12 is down by exp(-1)",
         T1 / T0, math.exp(-1.0), rtol=5e-3,
-        note="[L] 2.2.1: 유체역학 성분은 즉시 0 -> 남는 기억은 전부 열역학 성분")
+        note="[L] 2.2.1: the hydrodynamic component is instantly 0 -> all remaining "
+             "memory is the thermodynamic component")
     print(f"    lambda_p = zeta/(4 w0) = {lam:g},  eta_p = n kT lambda_p = {eta_p:g}")
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ⑧ [L] 2.2.1 의 '즉시성' 명제를 우리 계에 적용했을 때의 산술
-#      (chain-bend-2d-dlvo: 사슬을 붙여도 소산이 0.996 배)
+# (8) the arithmetic of applying [L] 2.2.1's 'instantaneity' claim to our system
+#      (chain-bend-2d-dlvo: bonding the chain leaves dissipation at 0.996x)
 # ════════════════════════════════════════════════════════════════════════
 def s8_our_dlvo():
-    # runs/.../system_moduli 결과 (CLAUDE.md 1-D 절)
+    # runs/.../system_moduli results (CLAUDE.md section 1-D)
     bead_only, dlvo, jkr = 18453.0, 18380.0, 75590.0
-    chk("OURS", "DLVO 사슬의 총 소산 / 비드 단독", dlvo / bead_only, 0.996, rtol=2e-3,
-        note="[L] 2.2.1 -> 복원기구가 없는 자유도는 응력에 기여하지 않는다")
-    chk("OURS", "JKR 사슬의 총 소산 / 비드 단독", jkr / bead_only, 4.10, rtol=5e-3)
-    chk("OURS", "JKR 에서 사슬이 담당하는 소산 비율", (jkr - bead_only) / jkr, 0.758, rtol=5e-3)
+    chk("OURS", "total dissipation of the DLVO chain / beads alone",
+        dlvo / bead_only, 0.996, rtol=2e-3,
+        note="[L] 2.2.1 -> a degree of freedom with no restoring mechanism does not "
+             "contribute to the stress")
+    chk("OURS", "total dissipation of the JKR chain / beads alone",
+        jkr / bead_only, 4.10, rtol=5e-3)
+    chk("OURS", "fraction of the dissipation carried by the chain in JKR",
+        (jkr - bead_only) / jkr, 0.758, rtol=5e-3)
     frac = (dlvo - bead_only) / bead_only
-    chk_true("OURS", f"DLVO 사슬의 초과 소산이 |{frac*100:.1f}%| < 1%",
+    chk_true("OURS", f"excess dissipation of the DLVO chain |{frac*100:.1f}%| < 1%",
              abs(frac) < 0.01,
-             note="[L] 언어로: 굽힘에 대한 열역학 복원기구가 없어 직접 성분이 0")
+             note="in [L]'s language: there is no thermodynamic restoring mechanism "
+                  "for bending, so the direct component is 0")
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ⑨ [W] Buckingham pi 는 r = '차원행렬의 rank' — 기본차원 개수가 아니다
+# (9) [W] in Buckingham pi, r is 'the rank of the dimensional matrix' -- NOT the
+#     number of base dimensions
 # ════════════════════════════════════════════════════════════════════════
 def s9_buckingham():
     # [W] 11.3: i = n - r,  r = rank of the dimensional matrix.
-    # 반례: 기본차원이 3개(M,L,t)인데 rank 가 2인 변수 목록
-    #   변수 = (v [L/t], gdot [1/t], L [L]) -> M 은 아무 데도 없다 -> rank 2
-    #   M L t 행 x 3 변수 열
+    # Counterexample: three base dimensions (M,L,t) but a variable list of rank 2
+    #   variables = (v [L/t], gdot [1/t], L [L]) -> M appears nowhere -> rank 2
+    #   rows M L t x 3 variable columns
     A = np.array([
         [0, 0, 0],   # M
         [1, 0, 1],   # L
@@ -500,52 +576,58 @@ def s9_buckingham():
     ], float)
     r = int(np.linalg.matrix_rank(A))
     n_var = A.shape[1]
-    chk("DERIV", "차원행렬 rank (v, gdot, L)", r, 2, rtol=1e-12)
+    chk("DERIV", "dimensional matrix rank (v, gdot, L)", r, 2, rtol=1e-12)
     chk("DERIV", "i = n - rank = 3 - 2", n_var - r, 1.0, rtol=1e-12,
-        note="'기본차원 3개' 로 세면 i=0 이라 무차원수가 없다고 오판한다")
-    # 실제 그 무차원수: gdot L / v
+        note="counting '3 base dimensions' gives i=0 and the wrong conclusion that "
+             "there is no dimensionless group")
+    # The actual group: gdot L / v
     v, gdot, Lc = 2.0, 3.0, 5.0
     pi1 = gdot * Lc / v
-    chk_true("DERIV", f"찾아진 무차원수 gdot*L/v = {pi1:g} 는 실제로 무차원",
-             True, note="rank 를 세야 개수가 맞는다")
+    chk_true("DERIV", f"the group found, gdot*L/v = {pi1:g}, really is dimensionless",
+             True, note="you have to count the rank to get the count right")
 
-    # Re 의 dimensional matrix 는 rank 3 -> i = 5-3 = 2 (Eu, Re) — 책의 예 (11-9)
-    #   변수 = (F, rho, v, L, mu)
+    # Re's dimensional matrix has rank 3 -> i = 5-3 = 2 (Eu, Re) -- the book's
+    # example (11-9)
+    #   variables = (F, rho, v, L, mu)
     B = np.array([
         [1, 1, 0, 0, 1],    # M
         [1, -3, 1, 1, -1],  # L
         [-2, 0, -1, 0, -1],  # t
     ], float)
-    chk("BOOK", "[W] (11-9) 예: rank=3, i = 5-3 = 2 (Eu, Re)",
+    chk("BOOK", "[W] (11-9) example: rank=3, i = 5-3 = 2 (Eu, Re)",
         B.shape[1] - int(np.linalg.matrix_rank(B)), 2.0, rtol=1e-12)
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ⑩ [L] 희박 구 현탁액은 뉴턴 유체 — Einstein (2.31) 과 우리 계의 거리
+# (10) [L] a dilute sphere suspension is Newtonian -- Einstein (2.31) and how far
+#      our system is from it
 # ════════════════════════════════════════════════════════════════════════
 def s10_einstein():
     # mu*/mu = 1 + 2.5 phi + K* phi^2
     for phi, want in [(0.01, 1.02562), (0.05, 1.14050), (0.10, 1.31200)]:
         chk("DERIV", f"mu*/mu (phi={phi}) = 1+2.5phi+6.2phi^2",
             1 + 2.5 * phi + 6.2 * phi**2, want, rtol=1e-4)
-    # phi^2 항이 2.5phi 항의 10% 가 되는 phi: 6.2 phi^2 = 0.25 phi -> phi = 0.0403
+    # The phi at which the phi^2 term is 10% of the 2.5phi term:
+    # 6.2 phi^2 = 0.25 phi -> phi = 0.0403
     phi_star = 0.25 / 6.2
-    chk("DERIV", "phi^2 항이 Einstein 항의 10% 가 되는 phi", phi_star, 0.0403, rtol=1e-3,
-        note="phi>4% 면 '희박=뉴턴' 이 이미 10% 수준에서 깨진다")
+    chk("DERIV", "phi at which the phi^2 term is 10% of the Einstein term",
+        phi_star, 0.0403, rtol=1e-3,
+        note="above phi=4%, 'dilute = Newtonian' is already broken at the 10% level")
 
 
 def main():
     sections = [
-        ("① 물의 점도 [W] Appendix I ↔ 우리 0.851 mPa*s", s1_water_viscosity),
-        ("② Stokes 항력 · C_D=24/Re · Stokes-Einstein", s2_stokes),
-        ("③ phi^2 계수 (Batchelor / Brady-Vicic)", s3_phi2),
-        ("④ Doi-Edwards 준희박 Dr", s4_doi_edwards),
-        ("⑤ Jeffery G · |E| 규약의 2배 함정", s5_jeffery_and_E),
-        ("⑥ 막대 SAOS -> lambda = 1/(6 Dr)", s6_rod_saos),
-        ("⑦ 탄성 덤벨: Kramers 응력 · Oldroyd-B (수치적분)", s7_dumbbell),
-        ("⑧ 우리 1-D 결과를 [L] 2.2.1 로 읽기", s8_our_dlvo),
-        ("⑨ Buckingham pi 의 r 은 rank 다", s9_buckingham),
-        ("⑩ Einstein 점도와 '희박' 의 한계", s10_einstein),
+        ("(1) water viscosity, [W] Appendix I vs our 0.851 mPa*s", s1_water_viscosity),
+        ("(2) Stokes drag, C_D=24/Re, Stokes-Einstein", s2_stokes),
+        ("(3) phi^2 coefficients (Batchelor / Brady-Vicic)", s3_phi2),
+        ("(4) Doi-Edwards semi-dilute Dr", s4_doi_edwards),
+        ("(5) Jeffery G, and the factor-of-2 trap in the |E| convention",
+         s5_jeffery_and_E),
+        ("(6) rod SAOS -> lambda = 1/(6 Dr)", s6_rod_saos),
+        ("(7) elastic dumbbell: Kramers stress, Oldroyd-B (numerical)", s7_dumbbell),
+        ("(8) reading our 1-D result through [L] 2.2.1", s8_our_dlvo),
+        ("(9) the r in Buckingham pi is a rank", s9_buckingham),
+        ("(10) Einstein viscosity and the limit of 'dilute'", s10_einstein),
     ]
     for title, fn in sections:
         print(f"\n{'='*78}\n{title}\n{'='*78}")
