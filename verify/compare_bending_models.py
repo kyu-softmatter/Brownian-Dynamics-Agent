@@ -31,7 +31,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "scratch"))
+sys.path.insert(0, str(ROOT / "verify"))
 
 from bdbot import lockin as LI                                          # noqa: E402
 from rolling_contact import (k_roll_from_kappa_theta,                   # noqa: E402

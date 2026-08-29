@@ -32,7 +32,7 @@ from scipy.optimize import minimize
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "scratch"))
+sys.path.insert(0, str(ROOT / "verify"))
 
 from rolling_contact import RollingContact, k_roll_from_kappa_theta  # noqa: E402
 

@@ -27,8 +27,8 @@ import numpy as np                       # noqa: E402
 from matplotlib.animation import FuncAnimation, PillowWriter   # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "scratch" / "_viz"
-GATES = ROOT / "scratch" / "_gates"
+OUT = ROOT / "verify" / "_viz"
+GATES = ROOT / "verify" / "_gates"
 sys.path.insert(0, str(ROOT))
 
 C_MEAS, C_THEORY, C_BAD, C_GOOD, C_GREY = "#1f77b4", "#d62728", "#ff7f0e", "#2ca02c", "#888888"

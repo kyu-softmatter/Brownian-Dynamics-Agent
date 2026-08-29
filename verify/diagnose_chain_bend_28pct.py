@@ -1,23 +1,30 @@
-"""chain-bend 의 **28% 미해명 불일치**를 격리로 좁힌다 (규칙 7).
+"""Narrow chain-bend's **unexplained 28% discrepancy** by isolation (rule 7).
 
-배경: 소각 선형응답 (iωγI + A + T)ŷ = k_t a e_mid 로 계산한 K*(ω) 가 평형화를 충분히 준
-HOOMD 결정론 실측과 고주파에서 최대 28% 어긋난다. 이미 확인된 것 —
-  · 굽힘 행렬 ↔ HOOMD angle.Harmonic : 0.55% 일치 (정적, 트랩 없음, 강체 고정)
-  · λ_max : 스펙과 일치
-  · 유령 트랩 : 관문 A 에서 7개 ω 전부 해석해와 3σ 안
-  · 과도 : 20 τ_max 로 수렴 (σ/K = 0.02%)
-남은 후보를 사다리로 하나씩 떼어 본다.
+Background: K*(omega) from the small-angle linear response
+(i*omega*gamma*I + A + T) y_hat = k_t a e_mid disagrees by up to 28% at high
+frequency with a well-equilibrated deterministic HOOMD measurement. Already
+established --
+  . bending matrix vs HOOMD angle.Harmonic: agree to 0.55% (static, no traps,
+    rigidly clamped)
+  . lambda_max: matches the spec
+  . ghost traps: within 3 sigma of the analytic solution at all 7 omega, in gate A
+  . transient: converged by 20 tau_max (sigma/K = 0.02%)
+The remaining candidates are peeled off one rung at a time.
 
-  ① dt (명시적 오일러 이산화)  — **시뮬레이션 없이** z-영역 정확해로 판정
-     명시적 오일러 y_{n+1} = (I − (A+T)dt/γ) y_n + (k_t dt/γ) u_n 의 정상응답은
-     (e^{iωdt} I − M) ŷ = B â 로 **닫힌 형태**다. 연속 해와 비교하면 dt 기여가 정확히 나온다.
-  ② 정적 + 트랩              — 트랩까지 켠 정적 강성을 HOOMD 로 직접 (kT=0, 큰 dt)
-     ①에서 검증된 것은 '강체 고정, 트랩 없음' 이었다. 트랩이 들어오면 달라지는가?
-  ③ 동적 모드 형태            — 25개 비드 전부의 복소 위상자 ŷ_i 를 재서 모델과 비교
-     불일치가 **공간적으로 어디서** 생기는지 본다 (구동 비드만? 끝? 전체 스케일?)
+  (1) dt (explicit-Euler discretisation) -- settled **without simulating**, using
+      the exact z-domain solution. The steady response of explicit Euler
+      y_{n+1} = (I - (A+T)dt/gamma) y_n + (k_t dt/gamma) u_n is the **closed form**
+      (e^{i*omega*dt} I - M) y_hat = B a_hat. Comparing with the continuous solution
+      gives the dt contribution exactly.
+  (2) static + traps -- the static stiffness with the traps on, measured directly in
+      HOOMD (kT=0, large dt). What (1) verified was 'rigidly clamped, no traps'.
+      Does it change once the traps are in?
+  (3) dynamic mode shape -- measure the complex phasor y_hat_i of all 25 beads and
+      compare against the model, to see **where spatially** the disagreement arises
+      (only the driven bead? the ends? an overall scale?)
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
-    $PY scratch/diagnose_chain_bend_28pct.py --stage 12      # ①② (빠름)
+    $PY scratch/diagnose_chain_bend_28pct.py --stage 12      # (1) and (2) (fast)
     $PY scratch/diagnose_chain_bend_28pct.py --stage 3 --de 91.8
 """
 from __future__ import annotations
@@ -35,13 +42,14 @@ import hoomd.md as md
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
-GATES = ROOT / "scratch" / "_gates"
+GATES = ROOT / "verify" / "_gates"
 sys.path.insert(0, str(ROOT))
 from cases.chain_bend_2d import bending_matrix, sweep_specs, trapped_indices   # noqa: E402
 
 
 def setup():
-    sp = sweep_specs()                      # 스펙 파일 없이도 동작 (하드 검사 실패가 정상 상태)
+    sp = sweep_specs()                      # works without a spec file (a failed hard check is the normal
+                      # state here)
     p = sp[0]["params"]
     n = int(p["n_beads"])
     kth = float(p["kappa_theta_star"]); kt = float(p["k_t_star"])
@@ -64,7 +72,9 @@ def K_continuous(S, omega, gamma=1.0):
 
 
 def K_euler(S, omega, dt, gamma=1.0):
-    """명시적 오일러의 **정확한** 정상응답. y_n = Im[ŷ e^{iωn dt}] 를 넣으면
+    """The **exact** steady response of explicit Euler.
+
+    Substituting y_n = Im[y_hat e^{i*omega*n*dt}] gives
     (e^{iωdt} I − M) ŷ = B â,  M = I − (A+T)dt/γ,  B = (k_t dt/γ) e_mid."""
     n, mid = S["n"], S["mid"]
     M = np.eye(n) - S["AT"] * dt / gamma
@@ -75,11 +85,12 @@ def K_euler(S, omega, dt, gamma=1.0):
 
 def stage1(S):
     print("=" * 92)
-    print("① dt (명시적 오일러) — 시뮬레이션 없이 z-영역 정확해로 판정")
+    print("(1) dt (explicit Euler) -- settled by the exact z-domain solution, "
+          "without simulating")
     print("=" * 92)
     print(f"dt = {S['dt']:.4e}   dt·λ_max/γ = {S['dt']*np.linalg.eigvalsh(S['AT'])[-1]:.4f}")
-    print(f"{'De':>8}{'K′ 연속':>12}{'K′ 오일러':>12}{'차이%':>8}"
-          f"{'K″ 연속':>12}{'K″ 오일러':>12}{'차이%':>8}")
+    print(f"{'De':>8}{'K1 cont':>12}{'K1 Euler':>12}{'diff%':>8}"
+          f"{'K2 cont':>12}{'K2 Euler':>12}{'diff%':>8}")
     print("-" * 92)
     worst = 0.0
     for sp in S["specs"]:
@@ -91,14 +102,17 @@ def stage1(S):
         print(f"{de:>8.3f}{Kc.real:>12.1f}{Ke.real:>12.1f}{dre:>8.3f}"
               f"{Kc.imag:>12.1f}{Ke.imag:>12.1f}{dim:>8.3f}")
     print("-" * 92)
-    print(f"최대 차이 {worst:.3f}%  →  "
-          f"{'dt 는 원인이 아니다 (28% 를 설명 못 함)' if worst < 1 else 'dt 가 기여한다'}")
+    print(f"largest difference {worst:.3f}%  ->  "
+          f"{'dt is NOT the cause (it cannot explain 28%)' if worst < 1 else 'dt does contribute'}")
     print("=" * 92)
     return worst
 
 
 def stage2(S):
-    """트랩까지 켠 정적 강성을 HOOMD 로. kT=0 · 큰 dt · 유령을 δ 만큼 옮겨 고정."""
+    """The static stiffness with the traps on, in HOOMD.
+
+    kT=0, large dt, and the ghost displaced by delta and held there.
+    """
     n, kt, ell, mid = S["n"], S["kt"], S["ell"], S["mid"]
     delta = S["amp"]
     lam = np.linalg.eigvalsh(S["AT"])
@@ -109,7 +123,7 @@ def stage2(S):
     typeid = [0] * n
     for g in S["idx"]:
         pos.append(list(pos[g])); typeid.append(1)
-    pos[n + S["idx"].index(mid)][1] = delta              # 구동 유령만 δ 로 옮겨 고정
+    pos[n + S["idx"].index(mid)][1] = delta              # only the driven ghost is displaced by delta and held
 
     f = gsd.hoomd.Frame()
     f.particles.N = len(pos)
@@ -142,28 +156,31 @@ def stage2(S):
     sim.run(n_steps)
 
     y = np.array(sim.state.get_snapshot().particles.position)[:n, 1]
-    K_hd = kt * (delta / y[mid] - 1.0)                   # 정적: K = k_t(y_c/y_mid − 1)
+    K_hd = kt * (delta / y[mid] - 1.0)                   # static: K = k_t(y_c/y_mid - 1)
     y_mod = np.linalg.solve(S["AT"], kt * delta * np.eye(n)[mid])
     K_mod = kt * (delta / y_mod[mid] - 1.0)
 
     print("=" * 92)
-    print("② 정적 + 트랩 — 트랩을 켠 정적 강성 (①의 검증은 '강체 고정·트랩 없음' 이었다)")
+    print("(2) static + traps -- the static stiffness with traps on ((1) verified "
+          "'rigidly clamped, no traps')")
     print("=" * 92)
-    print(f"dt={dt:.3e}  스텝={n_steps:,}  δ={delta:.5f}")
-    print(f"모델  K_static = {K_mod:10.2f}")
+    print(f"dt={dt:.3e}  steps={n_steps:,}  delta={delta:.5f}")
+    print(f"model  K_static = {K_mod:10.2f}")
     print(f"HOOMD K_static = {K_hd:10.2f}   ({100*(K_hd/K_mod-1):+.2f}%)")
-    print(f"y_mid: 모델 {y_mod[mid]:.6f} · HOOMD {y[mid]:.6f}  "
+    print(f"y_mid: model {y_mod[mid]:.6f}, HOOMD {y[mid]:.6f}  "
           f"({100*(y[mid]/y_mod[mid]-1):+.3f}%)")
-    print(f"변위 프로파일 최대 차이 = {100*np.max(np.abs(y-y_mod))/delta:.3f}% of δ")
+    print(f"largest difference in the displacement profile = "
+          f"{100*np.max(np.abs(y-y_mod))/delta:.3f}% of delta")
     ok = abs(K_hd / K_mod - 1) < 0.02
     print("-" * 92)
-    print(f"→ {'정적은 트랩까지 켜도 일치한다. 불일치는 **동역학**이다' if ok else '정적부터 어긋난다 — 트랩/경계 쪽 문제'}")
+    print(f"-> {'the static case agrees even with the traps on, so the disagreement is **dynamical**' if ok else 'it already disagrees statically -- a trap/boundary problem'}")
     print("=" * 92)
     return K_hd, K_mod, y, y_mod
 
 
 def stage3(S, de_target, n_cycles=3, eq_tau=12.0):
-    """동적 모드 형태 — 25개 비드 전부의 복소 위상자를 재서 모델과 비교."""
+    """Dynamic mode shape -- measure the complex phasor of all 25 beads and compare
+    against the model."""
     sp = min(S["specs"], key=lambda s: abs(s["params"]["De"] - de_target))
     p = sp["params"]
     om = float(p["omega_star"]); n, mid, ell = S["n"], S["mid"], S["ell"]
@@ -245,26 +262,28 @@ def stage3(S, de_target, n_cycles=3, eq_tau=12.0):
     y_mod = np.linalg.solve(1j * om * np.eye(n) + S["AT"], kt * g_hat * np.eye(n)[mid])
 
     print("=" * 92)
-    print(f"③ 동적 모드 형태 — De={float(p['De']):.2f}  (25비드 전부의 복소 위상자)")
+    print(f"(3) dynamic mode shape -- De={float(p['De']):.2f}  "
+          f"(complex phasors of all 25 beads)")
     print("=" * 92)
-    print(f"평형화 {n_eq:,} 스텝 = {eq_tau:g} τ_max · 표본 {len(t)}")
-    print(f"{'비드':>5}{'|ŷ| 모델':>12}{'|ŷ| HOOMD':>12}{'비':>8}"
-          f"{'위상 모델':>11}{'위상 HOOMD':>12}{'차[rad]':>10}")
+    print(f"equilibration {n_eq:,} steps = {eq_tau:g} tau_max, {len(t)} samples")
+    print(f"{'bead':>5}{'|y| model':>12}{'|y| HOOMD':>12}{'ratio':>8}"
+          f"{'ph model':>11}{'ph HOOMD':>12}{'diff[rad]':>10}")
     print("-" * 92)
     for i in range(n):
         if i in S["idx"] or i % 4 == 0:
-            mark = " ←트랩" if i in S["idx"] else ""
+            mark = " <-trap" if i in S["idx"] else ""
             print(f"{i:>5}{abs(y_mod[i]):>12.6f}{abs(y_hd[i]):>12.6f}"
                   f"{abs(y_hd[i])/abs(y_mod[i]):>8.3f}"
                   f"{np.angle(y_mod[i]):>11.4f}{np.angle(y_hd[i]):>12.4f}"
                   f"{np.angle(y_hd[i])-np.angle(y_mod[i]):>10.4f}{mark}")
     print("-" * 92)
     rat = np.abs(y_hd) / np.abs(y_mod)
-    print(f"진폭비 범위 {rat.min():.3f} ~ {rat.max():.3f}   "
-          f"{'★ 전 비드가 같은 비율 → 전체 스케일 문제' if rat.max()/rat.min() < 1.05 else '★ 비드마다 다름 → 모드 형태가 다르다'}")
+    print(f"amplitude-ratio range {rat.min():.3f} to {rat.max():.3f}   "
+          f"{'★ every bead has the same ratio -> an overall scale problem' if rat.max()/rat.min() < 1.05 else '★ it varies per bead -> the mode SHAPE differs'}")
     Kh = kt * g_hat / y_hd[mid] - kt - 1j * om
     Km = kt * g_hat / y_mod[mid] - kt - 1j * om
-    print(f"K* 모델 ({Km.real:.0f}, {Km.imag:.0f})  ·  HOOMD ({Kh.real:.0f}, {Kh.imag:.0f})"
+    print(f"K* model ({Km.real:.0f}, {Km.imag:.0f})  .  "
+          f"HOOMD ({Kh.real:.0f}, {Kh.imag:.0f})"
           f"  → K′ {100*(Kh.real/Km.real-1):+.1f}%  K″ {100*(Kh.imag/Km.imag-1):+.1f}%")
     print("=" * 92)
     np.savez(GATES / f"modeshape_de{float(p['De']):.1f}.npz",

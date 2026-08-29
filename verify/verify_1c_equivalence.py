@@ -24,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PY = sys.executable
-REF = ROOT / "scratch/ref_1b"
+REF = ROOT / "verify/ref_1b"
 
 TARGETS = [
     ("1-A trap-2d-5um", "cases/trap_2d_5um.py", [], "trap-2d-5um.metrics.json"),

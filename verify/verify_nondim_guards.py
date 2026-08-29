@@ -181,7 +181,7 @@ def main() -> int:
     # ⑦ 저장 → 로드 보존
     print("\n[⑦] 저장 → 로드 (L4가 쓰는 경로)")
     s = good_spec()
-    tmp = ROOT / "scratch" / "_tmp_spec.json"
+    tmp = ROOT / "verify" / "_tmp_spec.json"
     s.write(tmp)
     ls = ND.load(tmp)
     check("run_id 보존", ls.run_id == s.run_id(), f"{ls.run_id} vs {s.run_id()}")

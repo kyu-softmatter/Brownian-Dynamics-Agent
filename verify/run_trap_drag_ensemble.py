@@ -39,7 +39,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PY = sys.executable
 CASE = ROOT / "cases" / "trap_drag_2d.py"
-LOG = ROOT / "scratch" / "trap_drag_ensemble_run.log"
+LOG = ROOT / "verify" / "trap_drag_ensemble_run.log"
 
 TRAVERSE = 0.117647
 VELOCITIES = [0.05, 0.1, 0.5, 1.5, 4.0, 12.0, 32.0]

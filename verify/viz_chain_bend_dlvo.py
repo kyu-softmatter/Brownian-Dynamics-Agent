@@ -21,7 +21,7 @@ import numpy as np                       # noqa: E402
 from matplotlib.animation import FuncAnimation, PillowWriter   # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "scratch" / "_viz"
+OUT = ROOT / "verify" / "_viz"
 OUT.mkdir(parents=True, exist_ok=True)
 
 for _f in ("Arial Unicode MS", "Apple SD Gothic Neo", "AppleGothic", "NanumGothic"):

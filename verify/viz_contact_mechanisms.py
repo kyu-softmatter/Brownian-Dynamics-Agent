@@ -28,7 +28,7 @@ import numpy as np                                                     # noqa: E
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "scratch"))
+sys.path.insert(0, str(ROOT / "verify"))
 sys.path.insert(0, str(ROOT / "cases"))
 
 from dlvo_tension_stiffening import (ELL, K_BOND, KAPPA_THETA,          # noqa: E402

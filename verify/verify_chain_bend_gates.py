@@ -62,7 +62,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 import sys as _sys; _sys.path.insert(0, str(ROOT))
-OUT = ROOT / "scratch" / "_gates"
+OUT = ROOT / "verify" / "_gates"
 UPDATE_EVERY = 100          # 구동 유령을 옮기는 주기. ZOH 를 남겨 두고 추정량으로 상쇠한다
 SAMPLES_PER_CYCLE = 20      # 스펙과 같은 표본 밀도 (2000표본/100주기)
 N_SIGMA = 3.0               # 해석해와 "구분 안 됨" 판정 기준
