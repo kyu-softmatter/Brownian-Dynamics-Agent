@@ -1,41 +1,56 @@
-# overdamped-stability — `dt` 는 힘이 정한다, 시간 규모가 아니다
+# overdamped-stability — `dt` is set by force, not by a timescale ratio
 
-오버댐프 BD 의 위치 갱신은 `Δx = (F/γ)Δt + √(2DΔt)·ξ` 다. 관성이 없으므로 **큰 힘을
-받은 입자는 한 스텝에 그 거리를 그냥 간다** — 되돌릴 관성이 없다. 그래서 `Δt` 는
-"`τ_D` 의 몇 분의 일" 이 아니라 **스텝당 변위**로 정한다.
+The position update in overdamped BD is `Δx = (F/γ)Δt + √(2DΔt)·ξ`. There is no
+inertia, so **a particle under a large force simply travels that distance in one
+step** — nothing carries it back. So `Δt` is chosen from **displacement per
+step**, not as "some fraction of `τ_D`".
 
 ```
-rms 열변위   √(2·dim·D·Δt) / ℓ  ≤ 0.03          (SD8)
-힘 변위      max|F|·Δt/γ / ℓ    ≤ 0.03          (배제부피·강한 반발이 있을 때)
+rms thermal displacement   √(2·dim·D·Δt) / ℓ  ≤ 0.03
+force displacement         max|F|·Δt/γ  / ℓ   ≤ 0.03   (when excluded volume
+                                                        or strong repulsion is present)
 ```
 
-`ℓ` 은 **그 계의 기준 길이**다 — 계마다 다르다 (`SD9`). `free_bd` 는 `σ`,
-`harmonic_trap` 은 `ℓ_trap = √(k_BT/k_t)`, `pair_repulsive` 는 평균간격 `d`.
-`Δt/τ_D` 를 기준으로 삼으면 안 된다: 변위가 `Δt` 의 **제곱근**이라 차원이 바뀌면
-같은 `Δt/τ_D` 가 다른 변위를 준다.
+`ℓ` is **that system's reference length**, and it differs per system. For free BD
+it is `σ`; for a harmonic trap it is `ℓ_trap = √(k_BT/k_t)`; for a repulsive pair
+system it is the mean spacing `d`.
 
-**Why (the triggering incident):** 선행 프로젝트에서 실제로 당했다 —
-`~/Research/MD_particle/brownian_slit_sim/src/forces.py:117`. WCA 의 `r⁻¹³` 코어가
-오버댐프에서 입자를 **박스 밖으로 날렸다.** 열적 변위 기준으로 고른 `Δt` 는 통계적으로
-멀쩡했지만, 두 입자가 우연히 가까워진 한 스텝에서 `F` 가 폭발했고 관성이 없으니
-그대로 날아갔다. 증상은 NaN 이 아니라 **조용한 박스 이탈**이라 로그만 보면 정상이었다.
+Do not use `Δt/τ_D` as the criterion: displacement goes as the **square root** of
+`Δt`, so when the dimensionality changes the same `Δt/τ_D` gives a different
+displacement.
 
-두 번째 사례는 트랩 계다 (`SD9`, 2026-07-28). `τ_D/τ_trap = 2.41e5` — 다섯 자릿수다.
-`τ_D` 기준의 자유 BD `dt` 규칙을 그대로 쓰면 `Δt = 54 τ_trap` 이 되어, 발산 여부와
-무관하게 **트랩을 아예 못 본다.** 안 터졌다고 옳은 게 아니다.
+**Why (the triggering incident):** this actually happened in a predecessor
+project — WCA's `r⁻¹³` core **threw a particle out of the box** under overdamped
+dynamics. The `Δt` chosen from thermal displacement was statistically fine, but
+in one step where two particles happened to come close, `F` exploded, and with
+no inertia the particle simply left. The symptom was not NaN but a **quiet box
+escape**, so the log looked normal.
+
+The second instance was a trap system (2026-07-28). `τ_D/τ_trap = 2.41e5` — five
+orders of magnitude. Carrying over the free-BD `dt` rule based on `τ_D` gives
+`Δt = 54 τ_trap`, which, divergence or not, **cannot see the trap at all.**
+Not blowing up is not the same as being right.
 
 **How to apply:**
-- 새 계를 추가할 때 **기준 길이와 시간을 먼저 정한다.** reduced 에서 `kT=D=γ=1` 이
-  되는 조합이 그 계의 고유 길이와 그것을 확산해 지나가는 시간이다
-- `run_plan.yaml` 의 `dt_constraint` 를 읽는다 — 어느 조건이 `dt` 를 묶었는지가 거기 있다.
-  사후에 "왜 이 dt 인가"에 답하는 유일한 기록이다
-- **채택하지 않은 규칙이 줬을 값을 함께 적는다** (`SD9`). 조용히 틀리는 것을 눈에 보이게
-  만드는 값싼 방법이다
-- 강한 반발을 넣을 때 초기 배치의 최소간격을 확인한다. 겹친 채로 시작하면 첫 스텝에서 날아간다
+- When adding a new system, **fix the reference length and time first.** The
+  combination that makes `kT = D = γ = 1` in reduced units is that system's
+  intrinsic length and the time to diffuse across it
+- Read which constraint actually bound `dt`. That record is the only thing that
+  answers "why this `dt`" after the fact
+- **Also record what the rule you did not adopt would have given.** It is a cheap
+  way to make a silent error visible
+- When adding strong repulsion, check the minimum separation of the initial
+  placement. Start overlapped and the first step throws the particle out
+- ⚠️ The `dt` candidate list is not static. When a knob can reorder the
+  timescales, re-derive it — with `--kt-scale` near 200 the trap becomes the
+  *fastest* mode and `dt` had not been recomputed
 
 **Anti-patterns explicitly forbidden:**
-- **`Δt/τ_D` 하나로 모든 계 재기** — 차원·계 종류가 바뀌면 같은 비율이 다른 변위를 준다
-- **"안 터졌으니 됐다"** — 발산하지 않아도 완화시간보다 큰 `Δt` 는 계를 못 본다
-- **NaN 만 감시하기** — 이 실패의 증상은 박스 이탈이고 NaN 이 아니다
+- **Measuring every system by `Δt/τ_D` alone** — change the dimensionality or the
+  system kind and the same ratio gives a different displacement
+- **"It didn't blow up, so it's fine"** — a `Δt` larger than the relaxation time
+  cannot see the system even when it does not diverge
+- **Watching only for NaN** — the symptom of this failure is a box escape, not NaN
 
-See also: [axioms](axioms.md) · `docs/11_simbot.md` `SD8` `SD9`
+See also: [axioms](axioms.md) ·
+[docs/05-pitfalls.md](../../docs/05-pitfalls.md)

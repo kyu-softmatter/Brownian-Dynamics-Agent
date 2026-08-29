@@ -1,86 +1,118 @@
-# `.claude/` — L1 에이전트 층
+# `.claude/` — the L1 agent layer
 
-`simbot/` 이 계산하고, 여기가 판단한다. 이 층에는 **숫자를 만드는 코드가 없다.**
+The core computes; this layer judges. **There is no number-producing code here.**
 
-## 구성
+## Contents
 
 ```
 .claude/
-├── settings.json                  권한 — 인터프리터 허용 + 봉인 문서 편집 금지
+├── settings.json                  permissions — allow the interpreter, forbid editing a sealed document
+├── rules/                         4 rules, each born from a dated accident
+│   ├── axioms.md                  the four that need human approval to change
+│   ├── deterministic-core.md      the core does not call an LLM
+│   ├── overdamped-stability.md    dt is set by force, not by a timescale ratio
+│   └── verify-against-literature.md   literature is cited, not remembered
 ├── skills/
-│   ├── bd-pipeline/               [메인] S1→S8 오케스트레이터
-│   │   ├── SKILL.md               단계·게이트·금지사항 체크리스트
+│   ├── bd-pipeline/               [main] the S1→S8 orchestrator
+│   │   ├── SKILL.md               stages, gates, and the checklist of prohibitions
 │   │   └── references/
-│   │       ├── s1_intake_drawing.md   ★ 손그림 판독 — 스킬 층의 유일한 고유 내용
-│   │       ├── s2_prediction.md       예측·봉인·검정력
-│   │       ├── s3_s5_execute.md       명세·무차원화·실행 (대부분 cli.py 호출)
-│   │       ├── s6_s7_validate.md      그림·판정
-│   │       └── s8_knowledge.md        결론·지식 커밋
-│   ├── bd-diagnose/SKILL.md       터진 런 진단 (배제 순서)
-│   └── bd-knowledge/SKILL.md      knowledge 검색·추가·정리
-└── agents/                        9개. model: frontmatter 로 티어링
+│   │       ├── s1_intake_drawing.md   ★ reading a hand drawing — the only content unique to the skill layer
+│   │       ├── s2_prediction.md       prediction, sealing, power
+│   │       ├── s3_s5_execute.md       specify, non-dimensionalize, run (mostly CLI calls)
+│   │       ├── s6_s7_validate.md      figures and verdicts
+│   │       └── s8_knowledge.md        conclusion and the knowledge commit
+│   ├── bd-diagnose/SKILL.md       diagnosing a broken run (elimination order)
+│   ├── bd-knowledge/SKILL.md      searching, adding and tidying knowledge
+│   ├── bd-intake/SKILL.md         reading sketches — 8 anti-invention rules
+│   ├── bd-physics/SKILL.md        scale tables, non-dimensionalization, inversion
+│   └── bd-hoomd/SKILL.md          20 measured HOOMD traps + verified snippets
+└── agents/                        9, tiered by the `model:` frontmatter
 ```
 
-## 참조문서를 5개로 쪼갠 이유 (master_plan Q6 결정, 2026-07-28)
+Two skill classes live here and they are **not** interchangeable.
+`bd-pipeline`, `bd-diagnose` and `bd-knowledge` are mutually exclusive routers,
+so they must cross-reference each other or the wrong procedure runs.
+`bd-intake`, `bd-physics` and `bd-hoomd` are reference material the pipeline
+**reads at a stage** — they do not self-trigger, so the pipeline has to point at
+them. `tests/test_agent_layer.py` guards both properties; the second check was
+empty immediately after the 2026-08-28 merge, which would have meant S5 writing
+HOOMD code without reading the trap list.
 
-설계(§12.3)는 단계별 8개였다. 그러나 **결정론 코어가 완성된 뒤 S3·S4·S5 는
-`cli.py run` 한 줄**이 되었고, 각각에 별도 문서를 두면 "이 함수를 호출한다"만 적힌
-얇은 파일 3개가 생긴다.
+## Why the references are split into five (decided 2026-07-28)
 
-대신 **내용이 있는 곳에 문서를 둔다:**
+The original design had eight, one per stage. But **once the deterministic core
+was finished, S3 · S4 · S5 collapsed into a single CLI invocation**, and giving
+each its own document produces three thin files that say only "call this
+function."
 
-| 문서 | 왜 독립인가 |
+So instead, **the documents live where the content is:**
+
+| Document | Why it stands alone |
 |---|---|
-| `s1_intake_drawing.md` | **코드로 표현할 수 없는 유일한 단계.** 가장 비싼 오류 지점 |
-| `s2_prediction.md` | 봉인·tolerance·검정력 규율. 여기서 허술하면 검증이 무력화된다 |
-| `s3_s5_execute.md` | 셋 다 `cli.py` 호출 + 게이트 읽기. 합쳐야 흐름이 보인다 |
-| `s6_s7_validate.md` | 그림과 판정은 같은 판단(무엇이 이상한가)에 쓰인다 |
-| `s8_knowledge.md` | 결론 서술 + knowledge 계약 |
+| `s1_intake_drawing.md` | **The only stage that cannot be expressed as code.** The most expensive place to be wrong |
+| `s2_prediction.md` | Sealing, tolerance and power discipline. Sloppiness here disables verification entirely |
+| `s3_s5_execute.md` | All three are a CLI call plus reading a gate. Merged, the flow is visible |
+| `s6_s7_validate.md` | Figures and verdicts serve the same judgment — *what looks wrong* |
+| `s8_knowledge.md` | Writing the conclusion plus the knowledge contract |
 
-## 모델 티어링 (master_plan §12)
+## Model tiering
 
-> 원칙: **추출은 저가, 해석은 고가. 그리고 계산은 LLM 이 아니라 코드.**
+> Principle: **extraction is cheap, interpretation is expensive. And calculation
+> belongs to code, not to a model.**
 
-| 에이전트 | model | 담당 |
+| Agent | model | Responsibility |
 |---|---|---|
-| `bd-intake-extract` | haiku | S1 텍스트·숫자·파일 추출 |
-| **`bd-intake-interpret`** | **opus** | S1 물리 해석 — 여기서 틀리면 전부 틀린다 |
-| **`bd-predict`** | **opus** | S2 봉인되는 주장 |
-| `bd-spec` | sonnet | S3 규칙 적용 |
-| **`bd-validate`** | **opus** | S7 판정·원인 추론 |
-| **`bd-conclude`** | **opus** | S8 최종 주장 |
-| `bd-lit-distill` | sonnet | 문헌 증류 (식 변환은 Opus 검토) |
-| `bd-lit-scan` | haiku | 서지·INDEX 대량 처리 |
-| **`bd-diagnose`** | **opus** | 실패 진단 |
+| `bd-intake-extract` | haiku | S1 text, number and file extraction |
+| **`bd-intake-interpret`** | **opus** | S1 physical interpretation — wrong here means wrong everywhere |
+| **`bd-predict`** | **opus** | S2, the claim that gets sealed |
+| `bd-spec` | sonnet | S3 rule application |
+| **`bd-validate`** | **opus** | S7 verdict and causal inference |
+| **`bd-conclude`** | **opus** | S8 final claim |
+| `bd-lit-distill` | sonnet | literature distillation (equation transforms go to Opus for review) |
+| `bd-lit-scan` | haiku | bibliography and INDEX bulk work |
+| **`bd-diagnose`** | **opus** | failure diagnosis |
 
-### 안전장치 — 기계적으로 검사 가능하다
+**The purpose is not cost saving but allocating speed against quality.**
 
-> **`provenance` 가 `inference` 또는 `assumed` 인 필드는 Opus 만 쓸 수 있다.**
+<a name="authority-boundary"></a>
+### The authority boundary — mechanically checkable
 
-`observation` · `derived` · `rule` · `from_knowledge` 는 저가 모델이 채워도 된다.
-`bd-spec`(sonnet)·`bd-intake-extract`(haiku) 의 지시문에 이 경계가 명시돼 있고,
-`simbot.spec.Quantity.problems()` 가 `written_by` 를 검사한다.
+> **Only Opus may write a field whose `provenance` is `inference` or `assumed`.**
 
-**비용 절감이 목적이 아니라 속도와 품질의 배분이 목적이다.**
+`observation` · `derived` · `rule` · `from_knowledge` may be filled by a cheaper
+model. The boundary is stated in the instructions of `bd-spec` (sonnet),
+`bd-intake-extract` (haiku), `bd-lit-distill` (sonnet) and `bd-lit-scan` (haiku),
+`tests/test_agent_layer.py` asserts that each of them states it, and
+`simbot.spec.Quantity.problems()` checks `written_by` at runtime.
 
-## `settings.json` 의 두 결정
+The reason this is a hard boundary and not a preference: an `assumed` value is a
+physical assumption entering the system without a human ever seeing it. Every
+number downstream inherits it, and nothing in the pipeline can distinguish it
+later from a measured one — which is exactly the failure the `tier` field exists
+to make findable (`T = 300 K` is the live example; see
+[docs/03](../docs/03-knowledge-base.md#4--provenance-and-tiers--a-number-without-a-source-is-not-a-number)).
 
-**① 인터프리터 절대경로를 허용한다.** `conda activate` 는 non-interactive shell 에서
-불안정하므로 **거부 목록에 넣었다** — 실수로 쓰는 것을 막는다.
+## The two decisions in `settings.json`
 
-**② 봉인 문서의 `Edit` 을 거부한다.**
+**① Allow the interpreter's absolute path.** `conda activate` is unreliable in a
+non-interactive shell, so it is on the **deny** list — to stop it being used by
+accident.
+
+**② Deny `Edit` on a sealed document.**
 
 ```json
 "deny": ["Edit(./runs/**/02_prediction.md)", "Edit(./runs/**/01_intake.md)", ...]
 ```
 
-예측은 `cli.py` 가 파이썬으로 **쓰고**(생성), 그 뒤 에이전트가 텍스트 편집으로
-**고치는 것**을 막는다. 사후합리화의 가장 쉬운 경로를 구조적으로 닫는다.
-봉인 검증(`SEALED.sha256`)이 사후에 잡지만, **애초에 못 하게 하는 것이 낫다.**
+The prediction is **written** by code, and the agent is blocked from
+**amending** it by text edit afterwards. This closes the easiest route to post-hoc
+rationalization structurally. Seal verification (`SEALED.sha256`) would catch it
+after the fact, but **not being able to do it in the first place is better.**
 
-## 이 층이 하지 않는 것
+## What this layer does not do
 
-- 숫자를 만들지 않는다 — 전부 `simbot` 호출 결과
-- `confirmed_by` 를 채우지 않는다 — 사람만
-- `master_plan.md` 전문을 읽지 않는다 (1300줄) — 필요한 절만 링크로
-- 물리를 다시 적지 않는다 — `knowledge/wiki/` 와 카드를 인용한다
+- Does not produce numbers — every one is the return value of a core call
+- Does not fill `confirmed_by` — humans only
+- Does not read the predecessor master plans in full (`docs/history/`, 6,700
+  lines) — only the linked section
+- Does not restate physics — it cites `knowledge/wiki/` and the system card

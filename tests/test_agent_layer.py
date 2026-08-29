@@ -152,14 +152,24 @@ def test_pipeline_skill_links_every_reference():
     "path", [p for p in AGENTS if EXPECTED_MODELS[p.stem] != "opus"],
     ids=lambda p: p.stem)
 def test_cheap_agents_state_their_authority_boundary(path):
-    """★ `provenance` 가 `inference`/`assumed` 인 필드는 Opus 만 (§12.2).
+    """Only Opus may write a field whose `provenance` is `inference`/`assumed`.
 
-    저가 모델의 지시문에 이 경계가 없으면 그 모델이 물리 가정을 확정하게 된다.
+    Without this boundary in a cheap model's instructions, that model ends up
+    settling a physical assumption -- and every number downstream inherits it
+    with nothing able to tell it later from a measured one.
+
+    The citation used to be the predecessor master plan's section 12.2. That
+    document now lives in docs/history/, so the canonical statement moved to
+    .claude/README.md#authority-boundary (2026-08-28 merge). The assertion is
+    kept, not dropped: an unsourced boundary becomes a rule nobody can argue
+    with when circumstances change.
     """
     text = path.read_text(encoding="utf-8")
-    assert "§12.2" in text, "권한 경계 근거(§12.2) 인용 없음"
+    assert "authority-boundary" in text, (
+        "no citation of the authority boundary's basis "
+        "(.claude/README.md#authority-boundary)")
     assert "inference" in text and "assumed" in text
-    assert "Opus" in text, "누구에게 넘겨야 하는지 명시 없음"
+    assert "Opus" in text, "does not say who to hand it to"
 
 
 def test_extract_agent_cannot_write_files():
@@ -265,10 +275,15 @@ def test_settings_does_not_deny_reading_inputs():
 # 문서화된 결정
 # =============================================================================
 def test_readme_records_the_granularity_decision():
-    """참조문서를 8개→5개로 줄인 이유가 기록돼 있어야 한다 (master_plan Q6)."""
+    """The reason the references went from 8 to 5 must stay recorded.
+
+    A design that collapsed three stages into one CLI call is the kind of thing
+    that looks like an oversight later. The count and the reason both have to be
+    present, or someone re-splits them.
+    """
     text = (CLAUDE / "README.md").read_text(encoding="utf-8")
-    assert "Q6" in text
-    assert "5개" in text
+    assert "split into five" in text, "the granularity decision is not recorded"
+    assert "eight" in text, "does not say what it was reduced from"
 
 
 def test_readme_lists_the_tiering_table():

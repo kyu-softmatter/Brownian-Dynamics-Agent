@@ -1,40 +1,63 @@
-# deterministic-core — 코어는 LLM을 부르지 않는다
+# deterministic-core — the core does not call an LLM
 
-`simbot/` 과 `bdkit/` 에 LLM 의존을 넣지 않는다. LLM 호출은 `agent/llm.py` **한 곳**에서만
-일어나고, `cli.py` 가 둘을 엮는다. 의존 방향은 한쪽이다 — `agent → bdkit` 은 되고
-`bdkit → agent` 는 안 된다.
+`bdbot/`, `simbot/`, `cases/` and `tools/` carry no LLM dependency. The
+dependency direction is one-way: the agent layer may call the core, the core may
+never call the agent layer.
 
 ```
-pytest tests/test_invariants.py     # 이것이 검사다
+pytest tests/test_invariants.py     # this is the check
 ```
 
-**`grep` 으로 검사하지 않는다.** 원래 `A4` 는 `grep -rE "anthropic|claude" simbot/ bdkit/`
-로 적혀 있었는데, 그 검사는 **규칙을 설명하는 산문 자체에 걸린다** — 이 파일을 인용하는
-docstring 이 늘어날 때마다 걸린다 (2026-07-28 실측 7건). 문자열 검사는 코드와 산문을
-구분하지 못한다. `tests/test_invariants.py` 는 AST 를 파싱해 **실제 임포트만** 본다.
+**Do not check this with `grep`.** `A4` was originally written as
+`grep -rE "anthropic|claude" simbot/ bdkit/`, and that check **matches the prose
+that explains the rule** — it fires once more every time a docstring cites this
+file (7 false hits, measured 2026-07-28). A string search cannot tell code from
+prose. `tests/test_invariants.py` parses the AST and looks at **real imports
+only**.
 
-**Why (the triggering incident):** 사고가 아니라 아키텍처 결정이다 (`A4` · `D1` · `SD2`,
-2026-07-27). 이유는 하나뿐이고 그게 전부다 — **결과가 틀렸을 때 물리가 틀린 건지 LLM이
-틀린 건지 구분할 수 있어야 한다.** 시뮬레이션에서 이건 치명적이다: 그럴듯하지만 틀린
-`g(r)` 은 눈으로 구분이 안 되고, 채점자가 없는 도메인이라 스스로 틀렸다는 걸 알 방법도 없다.
+> **Merge note (2026-08-28).** The predecessor design had a thin LLM layer at
+> `agent/llm.py` that called the Anthropic API directly, and the rule named
+> `bdkit/` as the core. Both are gone: the runtime is Claude Code itself, so
+> there is no API-calling layer to isolate, and the core is now `bdbot/` +
+> `simbot/`. **The rule got stronger, not weaker** — there is no sanctioned
+> place for an LLM call in this repository at all. And it was found unenforced:
+> `tests/test_invariants.py` did not exist in any of the three predecessors, so
+> for a month `A4` was true but unchecked. That is the unwired-checker failure
+> this project keeps documenting, and it is now wired.
 
-이 분리가 실제로 값을 한 사례는 있다. `SQ6` — 트랩 자기상관 `τ` 가 이론보다 70% 높게
-나왔을 때 후보가 둘이었다: 시뮬레이션이 틀렸나, 추정기가 틀렸나. 코어가 결정론이라
-**정답을 아는 합성 OU 데이터를 넣어보는 것**으로 갈랐다 (추정기였다, `SD12`).
-코어에 LLM 이 섞여 있었으면 후보가 셋이 되고, 셋째는 재현조차 안 된다.
+**Why (the triggering incident):** an architecture decision, not an accident
+(2026-07-27). There is one reason and it is sufficient: **when a result is wrong
+you have to be able to tell whether the physics was wrong or the model reading
+it was.** In simulation that is fatal — a plausible-but-wrong `g(r)` is
+indistinguishable by eye, and with no grader in this domain there is no way to
+learn you were wrong.
+
+The separation has paid for itself at least once. When a trap's autocorrelation
+`τ` came out 70 % above theory, there were exactly two candidates: the
+simulation is wrong, or the estimator is wrong. Because the core is
+deterministic, it was settled by **feeding in synthetic OU data whose answer was
+known** — it was the estimator. With an LLM mixed into the core there would have
+been three candidates, and the third would not even reproduce.
 
 **How to apply:**
-- `simbot/` `bdkit/` 에 무엇을 더할 때 `import anthropic` 이 필요해지면 **위치가 틀린 것**이다.
-  그 함수는 `agent/` 로 간다
-- `agent/` 의 산출물은 항상 **스키마 고정 + 결정론 검증기 통과** 뒤에 코어로 들어간다.
-  LLM 이 낸 값이 검증 없이 config 에 도달하는 경로를 만들지 않는다
-- 새 분석 추정기는 **정답이 있는 합성 데이터**로 시험한다 (`tests/test_simbot_estimators.py`,
-  `tests/test_structure.py`). 이건 물리 검증이 아니라 "코드가 답을 아는 입력에 답을 내는가"다
-- `tests/test_invariants.py` 가 이 규칙을 강제한다. 끄지 않는다
+- If adding something to the core makes you want `import anthropic`, **the
+  location is wrong.** That function belongs in the agent layer
+- Anything the agent layer produces enters the core only after **a fixed schema
+  plus a deterministic validator**. Never build a path where an LLM-supplied
+  value reaches a config unchecked
+- Test a new analysis estimator against **synthetic data whose answer is known**
+  (`tests/test_s2_estimators.py`, `tests/test_s7_structure.py`). That is not
+  physics verification — it asks "does the code answer correctly on an input
+  whose answer it should know"
+- `tests/test_invariants.py` enforces this rule. Do not disable it
 
 **Anti-patterns explicitly forbidden:**
-- **편의 임포트** — "여기서 한 번만 부르면 되는데" 로 코어에 LLM 을 들이는 것
-- **검증기 우회** — LLM 제안을 "이번엔 확실하니까" 로 검증기 없이 적용하는 것
-- **세 번째 후보 만들기** — 물리·추정기 외에 재현 불가능한 원인을 디버깅 경로에 추가하는 것
+- **The convenience import** — letting an LLM into the core because "it is just
+  one call here"
+- **Bypassing the validator** — applying an LLM suggestion without the validator
+  because "this one is obviously right"
+- **Creating a third candidate** — adding an unreproducible cause to the
+  debugging path alongside physics and estimator
 
-See also: [axioms](axioms.md) · `docs/00_decision_log.md` `D23`
+See also: [axioms](axioms.md) ·
+[docs/02-verification.md](../../docs/02-verification.md)

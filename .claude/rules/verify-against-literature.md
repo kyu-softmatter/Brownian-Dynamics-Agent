@@ -1,39 +1,54 @@
-# verify-against-literature — 문헌은 인용하는 것이지 기억하는 것이 아니다
+# verify-against-literature — literature is cited, not remembered
 
-시뮬레이션 결과를 문헌값과 대조할 때, **`knowledge/source/papers/` 의 증류를 열어서
-인용한다.** 기억으로 쓰지 않는다. 증류에 없는 수가 필요하면 증류를 먼저 한다.
+When comparing a simulation result against a published value, **open the
+distillation in `knowledge/source/papers/` and cite it.** Do not write from
+memory. If you need a number the distillation does not carry, distil it first.
 
-대조는 네 층이고 **서로 다른 종류**여야 한다 (`A1`). 같은 종류 셋은 하나로 센다.
+The comparison has four layers and they must be **different in kind** (`A1`).
+Three of the same kind count as one.
 
-| | 증거 층 | 예 |
+| | Evidence layer | Example |
 |---|---|---|
-| ① | 해석해 · 극한 | `MSD = 2·dim·D·t`, `D = kT/γ`, 트랩 `⟨r²⟩ = dim·kT/k` |
-| ② | 자기일관성 | 입력 `D₀` ↔ 측정 `D_msd`, 입력 `k` ↔ 되찾은 `k` |
-| ③ | 문헌 벤치마크 | Carnahan–Starling `Z(φ)`, `φ_freeze`=0.494, Zahn `Γ` 융해점 |
-| ④ | 수렴 | `Δt`·`L`·`N`·초기조건을 흔들어도 안 변하는가 |
+| ① | analytic solution · limit | `MSD = 2·dim·D·t`, `D = kT/γ`, trap `⟨r²⟩ = dim·kT/k` |
+| ② | self-consistency | input `D₀` ↔ measured `D_msd`, input `k` ↔ recovered `k` |
+| ③ | literature benchmark | Carnahan–Starling `Z(φ)`, `φ_freeze = 0.494`, Zahn's melting `Γ` |
+| ④ | convergence | does it stay put when `Δt`, `L`, `N` and the initial condition are shaken |
 
-**두 증거가 어긋나면 진행을 멈춘다.** 평균 내지 않는다.
+**If two pieces of evidence disagree, stop. Do not average them.**
 
-**Why (the triggering incident):** 사고가 아니라 §6 의 설계다 (`master_plan.md`, 2026-07-27) —
-그 사실을 숨기지 않는다. 다만 **왜 이게 필요한지는 실제로 겪었다.** `SQ6`·§7 #15 에서
-"물리 불일치처럼 보이는 방법의 숫자" 를 연달아 셋 잡았다: 트랩 `τ` 가 70% 높았고(절단
-선택 편향), MSD 포화값이 3% 높았고(시간원점 1~2개짜리 단일 표본), `D` 가 9% 낮았다(프레임
-간격이 만든 구조적 하향). 셋 다 시뮬레이션은 멀쩡했고 **분석이 틀렸다.**
+**Why (the triggering incident):** this is design, not an accident (2026-07-27) —
+and that is not hidden. But **why it is needed was experienced directly.** Three
+"method numbers dressed as physics discrepancies" were caught in a row: a trap
+`τ` 70 % high (truncation-choice bias), an MSD plateau 3 % high (a single sample
+with only one or two time origins), and a `D` 9 % low (a structural downward bias
+from the frame interval). In all three the simulation was fine and **the analysis
+was wrong.**
 
-문헌 하나만 봤으면 셋 다 "우리 계가 문헌과 다르네" 로 끝났을 것이다. 갈라낸 것은
-**해석해(①)와 자기일관성(②)이 문헌(③)과 독립이었기 때문**이다.
+Had only the literature been consulted, all three would have ended as "our system
+differs from the literature." What separated them is that **the analytic solution
+(①) and self-consistency (②) are independent of the literature (③).**
 
 **How to apply:**
-- 결론에 문헌값을 쓸 때 `knowledge/source/papers/<slug>.md` 를 연다. 없으면 증류부터
-- 어긋났을 때 **먼저 의심할 것은 분석 코드다.** 정답을 아는 합성 데이터로 추정기를 재본다
-  (`tests/test_simbot_estimators.py` 가 그 사례)
-- 대조 결과를 `knowledge/wiki/findings/` 에 남긴다 — **일치도 findings 다.** 다음 런이 인용한다
-- 벤치마크에 없는 계를 "검증됐다" 고 말하지 않는다. 임계값이 없으면 판정도 없다
+- When a published value goes into a conclusion, open
+  `knowledge/source/papers/<slug>.md`. If it is not there, distil first
+- When there is a disagreement, **suspect the analysis code first.** Re-test the
+  estimator against synthetic data whose answer is known
+- Record the comparison in `knowledge/wiki/findings/` — **agreement is a finding
+  too.** The next run cites it
+- Do not call a system "verified" when it is in no benchmark. No threshold, no
+  verdict
+- ⚠️ 38 of the 42 distillations here are the group's own published work, so the
+  literature layer (③) is narrower than it looks. Weight it accordingly
 
 **Anti-patterns explicitly forbidden:**
-- **기억으로 인용** — "Carnahan–Starling 은 대략…" 으로 쓰는 것. 증류를 열어 수를 가져온다
-- **불일치 평균내기** — 두 증거가 어긋날 때 가운데를 취하거나 한쪽을 조용히 버리는 것
-- **같은 종류로 셋 채우기** — 시드만 다른 런 셋을 증거 셋으로 세는 것
-- **`reproduced: no` 인 파라미터 인용** — 사실 기록이지 근거가 아니다
+- **Citing from memory** — writing "Carnahan–Starling is roughly…". Open the
+  distillation and take the number
+- **Averaging a disagreement** — splitting the difference, or quietly dropping
+  one side, when two pieces of evidence conflict
+- **Filling the three with one kind** — counting three seed-only runs as three
+  pieces of evidence
+- **Citing a parameter marked `reproduced: no`** — that is a record of a fact, not
+  a basis for one
 
-See also: [axioms](axioms.md) · `knowledge/wiki/CLAUDE.md` · `master_plan.md` §6-B
+See also: [axioms](axioms.md) · `knowledge/wiki/CLAUDE.md` ·
+[docs/02-verification.md](../../docs/02-verification.md)
