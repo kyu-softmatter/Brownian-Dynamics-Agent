@@ -171,7 +171,7 @@ viscosity of water** (the main source of liquid-viscosity knowledge is experimen
 - ⚠️⚠️ **Water's viscosity is `2.06 %/K` sensitive to temperature.** The
   `T = 300 K` used across our cases is **an inherited choice** (the originating
   sketch had no temperature) and it is recorded as tier 1. If the truth is 298 K
-  that is −4%, at 293 K it is −14%, and **`τ_B` follows directly.** If a new
+  that is −5%, at 293 K it is −14%, and **`τ_B` follows directly.** If a new
   case's sketch states a temperature, **re-read `η` — do not inherit.**
 - ⚠️ **Check that `kT` and `η` use the same `T`.** If they disagree, `τ_B` is
   wrong twice over.

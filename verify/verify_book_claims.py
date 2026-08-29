@@ -24,9 +24,13 @@
 from __future__ import annotations
 
 import math
+import re
 import sys
+from pathlib import Path
 
 import numpy as np
+
+ROOT = Path(__file__).resolve().parent.parent
 
 PASS: list[str] = []
 FAIL: list[str] = []
@@ -46,6 +50,34 @@ def chk_true(kind: str, name: str, cond: bool, note=""):
     rec = f"[{kind}] {name}" + (f"  ({note})" if note else "")
     (PASS if cond else FAIL).append(rec)
     return cond
+
+
+# ── 증류본에 **인쇄된** 값을 대조한다 ──────────────────────────────────────
+# 2026-08-29: 이게 없어서 typo 가 56/56 을 통과했다. `welty_transport.md` 는
+# log-보간값을 `0.8580 mPa·s` 로 찍었는데 표에서 계산하면 `0.8598` 이다.
+# 검증기는 0.8598 을 **옳게 계산해서 출력하고 있었지만**, 증류본에 적힌 숫자와
+# 대조하는 단정이 없었다 — `d_log < 0.015` 는 두 값 모두 통과시킨다.
+# ⚠️ 계산이 맞는 것과 **인용될 문서가 맞는 것은 다른 명제**다. 증류본이
+# 인용되는 산출물이므로, 계산값과 인쇄값을 잇는 단정이 없으면 전사 오류가
+# 조용히 살아남는다 (이 프로젝트의 서명 실패 유형: 배선되지 않은 검사기).
+def chk_doc(book: str, pattern: str, want: float, unit_scale: float = 1.0,
+            rtol: float = 5e-4, note: str = ""):
+    """증류본에서 정규식으로 숫자를 꺼내 계산값과 대조한다.
+
+    `pattern` 은 정확히 하나의 캡처 그룹(숫자)을 가져야 한다. 매치가 없거나
+    둘 이상이면 **FAIL** 이다 — 조용히 건너뛰면 이 검사 자체가 무의미해진다.
+    """
+    path = ROOT / "knowledge" / "source" / "books" / book
+    if not path.exists():
+        FAIL.append(f"[DOC] {book}: 파일이 없다 ({path})")
+        return False
+    hits = re.findall(pattern, path.read_text(encoding="utf-8"))
+    if len(hits) != 1:
+        FAIL.append(f"[DOC] {book} /{pattern}/: 매치가 {len(hits)}개 (정확히 1개여야 한다)")
+        return False
+    got = float(hits[0]) * unit_scale
+    return chk("DOC", f"{book} 인쇄값 {pattern!r}" + (f" — {note}" if note else ""),
+               got, want, rtol=rtol)
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -104,6 +136,16 @@ def s1_water_viscosity():
              d_log < 0.015, note=f"선형보간은 {d_lin*100:.2f}% 어긋남 — 보간법이 결과를 바꾼다")
     chk_true("OURS", "eta(300K): log-보간이 선형보간보다 우리 값에 가깝다",
              d_log < d_lin, note="eta(T) 의 곡률이 20 K 간격에서 이미 유의미")
+
+    # ★ 증류본에 **인쇄된** 두 값이 위 계산과 일치하는가. 이 두 줄이 없어서
+    #   0.8580 (실제 0.8598) 이 56/56 을 통과했다.
+    chk_doc("welty_transport.md", r"log-선형[^|]*\|\s*\*\*([\d.]+) mPa·s\*\*",
+            mu_log * 1e3, note="log-선형 보간값")
+    chk_doc("welty_transport.md", r"\|\s*선형\s*\|\s*([\d.]+) mPa·s",
+            mu_lin * 1e3, note="선형 보간값")
+    # 인쇄된 백분율도 같은 계산에서 나와야 한다 (0.8580 은 +0.82% 라 +1.03% 와 모순)
+    chk_doc("welty_transport.md", r"log-선형[^|]*\|[^|]*\|\s*\*\*\+([\d.]+)%\*\*",
+            d_log * 100, rtol=6e-3, note="log-선형 상대차 %")
 
     # 온도 민감도: %/K. 값 하나만 인용하고 T 를 안 적으면 이만큼 틀릴 수 있다.
     sens = abs(math.log(mu[2] / mu[1])) / (T[2] - T[1]) * 100  # %/K, 293-313 구간

@@ -494,7 +494,7 @@ equilibrium. Using `√(E:E)` is off by **√2**, and pure rotational flow has
 `abp-rod`'s 2D `⟨cos Δθ⟩` is wrong.
 
 **★ Our `η = 0.851 mPa·s @ 300 K` survives, but `T=300 K` is the weak point.**
-Log-linear interpolation of [W] Appendix I gives 0.8580 mPa·s → **+1.03 %**
+Log-linear interpolation of [W] Appendix I gives 0.8598 mPa·s → **+1.03 %**
 (linear interpolation gives +2.91 % — **the interpolation method changes the
 answer**). But water's viscosity is **2.06 %/K** sensitive, and `T=300 K` was
 inherited from `trap-2d-5um`, whose sketch had no temperature — **it is recorded

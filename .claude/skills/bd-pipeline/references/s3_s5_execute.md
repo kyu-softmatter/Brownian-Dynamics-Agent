@@ -43,7 +43,7 @@ catches it. The authority boundary is stated in
 
 ⚠️ **`assumed` values inherit a false authority downstream.** `T = 300 K` is
 recorded as tier 1 across every case here and is actually a *choice* inherited
-from a sketch with no temperature — worth −4 % to −14 % on every timescale,
+from a sketch with no temperature — worth −5 % to −14 % on every timescale,
 because water's viscosity is 2.06 %/K sensitive. Mark the tier honestly; the
 tier field is the only thing that makes such a value findable later.
 

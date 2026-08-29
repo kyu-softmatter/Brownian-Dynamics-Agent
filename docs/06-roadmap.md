@@ -59,7 +59,7 @@ caused completed runs to be deleted. `bdbot.run.execute()` should write it.
 ### `T = 300 K` is labelled tier 1 but is a choice
 
 Inherited from a sketch that had no temperature. Water viscosity is 2.06 %/K
-sensitive, so this propagates −4 % (at 298 K) to −14 % (at 293 K) into every
+sensitive, so this propagates −5 % (at 298 K) to −14 % (at 293 K) into every
 `τ_B`. Qualitative conclusions hold; **any quantitative comparison to literature
 must expose it.** This one cannot be fixed by code — it needs the experiment's
 actual temperature.
@@ -180,7 +180,8 @@ its own provenance.
 **2 · A measurement closes assumptions this repo cannot close by itself.**
 The most damaging soft spot here is `T = 300 K`, labelled tier 1 but actually
 inherited from a sketch that never stated a temperature (§2) — worth −4 % to
-−14 % on every timescale, because water's viscosity is 2.06 %/K sensitive. A
+−14 % on every timescale, because water's viscosity is 2.06 %/K sensitive over
+the 293–313 K segment that contains 300 K. A
 thermometer reading ends that. The same holds for the particle size
 distribution, the salt concentration and the surface potential: tier-1 *choices*
 here, routine measurements there. Neither side has to lose track of what a

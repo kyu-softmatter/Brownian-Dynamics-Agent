@@ -358,7 +358,7 @@ will refuse, because a dimensionless number without an anchor cannot be inverted
 back to an experiment. This is not pedantry: `T = 300 K` in this repository is
 labelled tier 1 but is actually a *choice* inherited from a sketch with no
 temperature, and because water's viscosity is 2.06 %/K sensitive, that mislabel
-carries a −4 % to −14 % error into every timescale downstream. **The tier field
+carries a −5 % to −14 % error into every timescale downstream. **The tier field
 is the only reason that was findable at all.**
 
 **2 · A mismatch with theory is a result, not a bug — but only if you said so
