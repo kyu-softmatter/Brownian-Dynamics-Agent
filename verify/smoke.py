@@ -1,7 +1,8 @@
-"""HOOMD smoke test — 계획이 의존하는 API가 실제로 동작하는지 검증.
+"""HOOMD smoke test -- do the APIs the plan depends on actually work?
 
-존재 여부(survey.py)가 아니라 '돌아가는가'를 본다. 각 항목은 마스터플랜의
-특정 설계 결정에 대응하며, 실패하면 그 설계를 고쳐야 한다.
+This checks whether they RUN, not whether they exist (that is survey.py). Each item
+corresponds to a specific design decision in the masterplan, and a failure means
+that design has to change.
 """
 import itertools, math, sys, tempfile, traceback
 from pathlib import Path
@@ -53,8 +54,8 @@ def base_sim(frame, seed=1):
     return sim
 
 
-# ── 1. 기본 BD + WCA (2D) — 마스터플랜 §11 매핑, 부록 A ──────────────────
-@check("BD + WCA 2D", "§11, 부록A")
+# ── 1. basic BD + WCA (2D) -- masterplan §11 mapping, appendix A ─────────
+@check("BD + WCA 2D", "§11, appendix A")
 def _():
     frame, N, L = make_frame()
     sim = base_sim(frame)
@@ -69,7 +70,7 @@ def _():
     return f"N={N} L={L:.2f} step={sim.timestep}"
 
 
-# ── 2. Tier B: GSD logger로 per-particle 힘 저장 — §9.2 ─────────────────
+# ── 2. Tier B: store per-particle forces via the GSD logger -- §9.2 ─────
 @check("GSD(logger=) per-particle forces", "§9.2 Tier B")
 def _():
     frame, N, L = make_frame()
@@ -96,7 +97,7 @@ def _():
     return f"frames={len(keys)>0} force_shape={forces.shape} keys={keys}"
 
 
-# ── 3. Tier C: Burst 슬라이딩 윈도우 — §9.2 ────────────────────────────
+# ── 3. Tier C: Burst sliding window -- §9.2 ────────────────────────────
 @check("write.Burst sliding window + dump()", "§9.2 Tier C")
 def _():
     frame, N, L = make_frame()
@@ -112,17 +113,17 @@ def _():
                               mode="xb", max_burst_size=10,
                               write_at_start=True)
     sim.operations.writers.append(burst)
-    sim.run(100)                      # 버퍼에만 쌓임
+    sim.run(100)                      # accumulates in the buffer only
     n_buffered = len(burst)
-    burst.dump()                      # 조건 만족 → 디스크로
+    burst.dump()                      # condition met -> flushed to disk
     burst.flush()
     with gsd.hoomd.open(str(path), mode="r") as t:
         n_written = len(t)
     return f"buffered={n_buffered} written_after_dump={n_written}"
 
 
-# ── 4. 조화 트랩 (내장 없음 → force.Custom) — trap-2d-5um ───────────────
-@check("md.force.Custom 조화 트랩", "trap-2d-5um / external.harmonic_trap")
+# ── 4. harmonic trap (no built-in -> force.Custom) -- trap-2d-5um ───────
+@check("md.force.Custom harmonic trap", "trap-2d-5um / external.harmonic_trap")
 def _():
     class HarmonicTrap(md.force.Custom):
         def __init__(self, k, center=(0., 0., 0.)):
@@ -146,12 +147,14 @@ def _():
     sim.run(300)
     snap = sim.state.get_snapshot()
     r2 = float(np.mean((snap.particles.position[:, :2] ** 2).sum(axis=1)))
-    # 평형에서 <r²> = 2kT/k (2D) = 0.4 — 300 스텝으론 미수렴, 유한값이면 통과
-    return f"<r2>={r2:.4f} (평형 예측 {2*1.0/5.0:.3f})"
+    # At equilibrium <r^2> = 2kT/k (2D) = 0.4 -- 300 steps is not converged, so any
+    # finite value passes
+    return f"<r2>={r2:.4f} (equilibrium prediction {2*1.0/5.0:.3f})"
 
 
-# ── 5. 이동 트랩: variant로 중심 이동 — trap-drag ───────────────────────
-@check("variant.Ramp/Cycle 시간의존 구동", "trap-drag, chain-oscill / driving.*")
+# ── 5. moving trap: shift the centre with a variant -- trap-drag ────────
+@check("variant.Ramp/Cycle time-dependent driving",
+       "trap-drag, chain-oscill / driving.*")
 def _():
     ramp = hoomd.variant.Ramp(A=0.0, B=5.0, t_start=0, t_ramp=1000)
     cyc = hoomd.variant.Cycle(A=-1.0, B=1.0, t_start=0, t_A=10, t_AB=100, t_B=10, t_BA=100)
@@ -159,8 +162,8 @@ def _():
     return "ramp(0,500,1000)=%.2f,%.2f,%.2f cycle(0,60,160)=%.2f,%.2f,%.2f" % tuple(vals)
 
 
-# ── 6. 사슬: bond + angle — chain-bend-2d-oscill ───────────────────────
-@check("bond.Harmonic + angle.Harmonic (사슬)", "chain-bend / bonded.*")
+# ── 6. chain: bond + angle -- chain-bend-2d-oscill ─────────────────────
+@check("bond.Harmonic + angle.Harmonic (chain)", "chain-bend / bonded.*")
 def _():
     M = 20
     f = gsd.hoomd.Frame()
@@ -191,7 +194,7 @@ def _():
 
 
 # ── 7. ABP: Active + ActiveRotationalDiffusion — active.abp ────────────
-@check("force.Active + create_diffusion_updater", "§11 함정3 / active.abp")
+@check("force.Active + create_diffusion_updater", "§11 trap 3 / active.abp")
 def _():
     frame, N, L = make_frame(orientation=True)
     sim = base_sim(frame)
@@ -212,11 +215,14 @@ def _():
     return f"updater={type(upd).__name__} step={sim.timestep}"
 
 
-# ── 8. 이산 액티브: 커스텀 updater로 run-and-flip — abp-rod ─────────────
+# ── 8. discrete activity: run-and-flip via a custom updater -- abp-rod ──
 @check("custom Action updater (run-and-flip)", "abp-rod / active.run_and_flip")
 def _():
     class RunAndFlip(hoomd.custom.Action):
-        """포아송 과정으로 방향을 180° 반전. ABP의 연속 회전확산과 다름."""
+        """Reverse the orientation by 180 deg as a Poisson process.
+
+        Different from the ABP's continuous rotational diffusion.
+        """
         def __init__(self, rate, dt, seed=7):
             self.p = rate * dt
             self.rng = np.random.default_rng(seed)
@@ -227,7 +233,8 @@ def _():
                 q = np.array(snap.particles.orientation, copy=True)
                 flip = self.rng.random(len(q)) < self.p
                 self.n_flips += int(flip.sum())
-                # z축 180° 회전 quaternion (0,0,0,1)과 곱 → 방향 반전
+                # multiply by the 180 deg z-axis rotation quaternion (0,0,0,1)
+                # -> the orientation reverses
                 q[flip] = np.column_stack([-q[flip, 3], -q[flip, 2],
                                             q[flip, 1],  q[flip, 0]])
                 snap.particles.orientation[:] = q
@@ -244,11 +251,11 @@ def _():
     sim.operations.updaters.append(hoomd.update.CustomUpdater(
         action=action, trigger=hoomd.trigger.Periodic(1)))
     sim.run(500)
-    return f"flips={action.n_flips} (기대 ~{500*2.0*1e-4*N:.1f})"
+    return f"flips={action.n_flips} (expected ~{500*2.0*1e-4*N:.1f})"
 
 
-# ── 9. 임의 소프트 퍼텐셜 r^-3 — soft-r3-2d-A-sweep ────────────────────
-@check("pair.Table (임의 r^-n 퍼텐셜)", "soft-r3 / pair.table")
+# ── 9. arbitrary soft potential r^-3 -- soft-r3-2d-A-sweep ─────────────
+@check("pair.Table (arbitrary r^-n potential)", "soft-r3 / pair.table")
 def _():
     frame, N, L = make_frame()
     sim = base_sim(frame)
@@ -258,7 +265,7 @@ def _():
     A = 1.0
     U = A / r ** 3
     F = 3 * A / r ** 4
-    U = U - U[-1]                                   # 컷오프에서 0으로 시프트
+    U = U - U[-1]                                   # shifted to 0 at the cutoff
     tab = md.pair.Table(nlist=cell, default_r_cut=r_cut)
     tab.params[("A", "A")] = dict(r_min=r_min, U=U, F=F)
     bd = md.methods.Brownian(filter=hoomd.filter.All(), kT=1.0, default_gamma=1.0)
@@ -267,15 +274,16 @@ def _():
     return f"nbins={nbins} r=[{r_min},{r_cut}] U(r_min)={U[0]:.2f}"
 
 
-# ── 10. 비구형: GayBerne 타원체 + 축별 회전마찰 — abp-rod ───────────────
-@check("pair.aniso.GayBerne + 축별 gamma_r (타원체)", "abp-rod / shape.ellipsoid")
+# ── 10. non-spherical: GayBerne ellipsoid + per-axis rotational drag -- abp-rod ──
+@check("pair.aniso.GayBerne + per-axis gamma_r (ellipsoid)",
+       "abp-rod / shape.ellipsoid")
 def _():
     frame, N, L = make_frame(n_side=6, phi=0.2, orientation=True)
     sim = base_sim(frame)
     cell = md.nlist.Cell(buffer=0.4)
     gb = md.pair.aniso.GayBerne(nlist=cell, default_r_cut=4.0)
     gb.params[("A", "A")] = dict(epsilon=1.0, lperp=0.5, lpar=1.5)
-    # Perrin: 축별 회전 마찰을 튜플로 지정 가능
+    # Perrin: the per-axis rotational friction can be given as a tuple
     bd = md.methods.Brownian(filter=hoomd.filter.All(), kT=1.0,
                              default_gamma=1.0, default_gamma_r=(0.5, 0.5, 2.0))
     integ = md.Integrator(dt=1e-5, methods=[bd], forces=[gb])
@@ -285,19 +293,20 @@ def _():
     return f"lperp=0.5 lpar=1.5 gamma_r=(0.5,0.5,2.0) aspect={1.5/0.5:.1f}"
 
 
-# ── 11. 열요동 없는 과감쇠 (골든 테스트용) — §17 ────────────────────────
-@check("methods.OverdampedViscous (결정론적 과감쇠)", "§17 골든 테스트")
+# ── 11. overdamped with no thermal noise (for golden tests) -- §17 ──────
+@check("methods.OverdampedViscous (deterministic overdamped)",
+       "§17 golden test")
 def _():
     frame, N, L = make_frame(n_side=4)
     sim = base_sim(frame)
     ov = md.methods.OverdampedViscous(filter=hoomd.filter.All(), default_gamma=1.0)
     sim.operations.integrator = md.Integrator(dt=1e-3, methods=[ov], forces=[])
     sim.run(100)
-    return "결정론적 이완 검증에 사용 가능 (τ=γ/k)"
+    return "usable for deterministic relaxation checks (tau=gamma/k)"
 
 
 # ── 12. HDF5Log — §9.2 Tier L ──────────────────────────────────────────
-@check("write.HDF5Log 전역 스칼라 로그", "§9.2 Tier L")
+@check("write.HDF5Log global scalar logging", "§9.2 Tier L")
 def _():
     frame, N, L = make_frame()
     sim = base_sim(frame)
@@ -323,8 +332,8 @@ def _():
     return f"datasets={[k for k in keys if 'potential' in k or 'pressure' in k]}"
 
 
-# ── 13. 재시작 GSD — §14 ───────────────────────────────────────────────
-@check("restart GSD (truncate)", "§14 체크포인트")
+# ── 13. restart GSD -- §14 ─────────────────────────────────────────────
+@check("restart GSD (truncate)", "§14 checkpointing")
 def _():
     frame, N, L = make_frame()
     sim = base_sim(frame)
@@ -343,11 +352,11 @@ def _():
     sim2.create_state_from_gsd(filename=str(path))
     with gsd.hoomd.open(str(path), mode="r") as t:
         nframes = len(t)
-    return f"restart_frames={nframes} (truncate → 1이어야 함) reload_ok"
+    return f"restart_frames={nframes} (truncate -> must be 1) reload_ok"
 
 
-# ── 14. 런타임 가드용 커스텀 Action — §12.5 ────────────────────────────
-@check("custom Action 런타임 감시 (NaN/에너지)", "§12.5 런타임 가드")
+# ── 14. custom Action for the runtime guard -- §12.5 ───────────────────
+@check("custom Action runtime monitoring (NaN / energy)", "§12.5 runtime guard")
 def _():
     class Guard(hoomd.custom.Action):
         def __init__(self, thermo):
@@ -378,8 +387,8 @@ def _():
     return f"checks={g.checks} last_PE={g.pe_history[-1]:.4f}"
 
 
-# ── 15. Tier D: 추적 입자만 고빈도 — §9.2 ──────────────────────────────
-@check("GSD(filter=Tags) 추적 입자 서브셋", "§9.2 Tier D")
+# ── 15. Tier D: high frequency for tracer particles only -- §9.2 ───────
+@check("GSD(filter=Tags) tracer particle subset", "§9.2 Tier D")
 def _():
     frame, N, L = make_frame()
     sim = base_sim(frame)
@@ -398,10 +407,10 @@ def _():
     with gsd.hoomd.open(str(path), mode="r") as t:
         n_part = t[-1].particles.N
         n_fr = len(t)
-    return f"tracer_N={n_part} (전체 {N} 중) frames={n_fr}"
+    return f"tracer_N={n_part} (of {N} total) frames={n_fr}"
 
 
-# ── 결과 ────────────────────────────────────────────────────────────────
+# ── results ─────────────────────────────────────────────────────────────
 print("=" * 92)
 print(f"HOOMD {hoomd.version.version} SMOKE TEST   (tmp: {TMP})")
 print("=" * 92)
