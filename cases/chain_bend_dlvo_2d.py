@@ -1,39 +1,46 @@
-"""`chain-bend-2d-dlvo` — chain-bend-2d-oscill 의 대안가설 브랜치.
+"""`chain-bend-2d-dlvo` -- the alternative-hypothesis branch of
+chain-bend-2d-oscill.
 
-같은 3점 굽힘·오실레이션 기하(양끝 고정 트랩 + 중앙 트랩 진동)를 쓰되, 비드 결합을
-[P1][P2]의 JKR 접착접촉+굽힘강성이 아니라 **DLVO 중심 페어 퍼텐셜의 2차극소**로
-만든다. **명시적 각도(굽힘) 퍼텐셜은 없다 — 이게 가설이다.**
+Same three-point-bending, oscillatory geometry (fixed traps at both ends plus an
+oscillating central trap), but the bead bond is made from **the secondary minimum
+of a DLVO central pair potential** rather than [P1][P2]'s JKR adhesive contact plus
+bending stiffness. **There is no explicit angular (bending) potential -- that
+absence is the hypothesis.**
 
-[P1] Pantina & Furst, PRL 94, 138301 (2005) p.2 좌단이 명시적으로 예측한다:
-  "Such assumptions have been made based on DLVO interactions between particles,
-  which are centro-symmetric. If particles did undergo free rotations, we would
-  expect the aggregates to respond to the bending moment by forming a
-  trianglelike structure..."
-이 케이스는 그 예측을 실행으로 확인한다 (원칙 6·7 — 불일치는 발견이지 실패가 아니다).
+[P1] Pantina & Furst, PRL 94, 138301 (2005), p.2 left column predicts it
+explicitly: such assumptions have been made based on DLVO interactions between
+particles, which are centro-symmetric; if particles did undergo free rotations, we
+would expect the aggregates to respond to the bending moment by forming a
+trianglelike structure. The paper found that prediction contradicted by experiment
+and introduced JKR adhesive contact. This case runs the prediction side (rules 6
+and 7' -- a mismatch is a discovery, not a failure).
 
-★★ 구조적 사실 (실행 전 유도, `intake/chain-bend-2d-dlvo/observation.yaml` G1):
-직선 사슬에서 순수 중심력 결합이 **자연장(natural length, U'=0)에 있으면** 횡변위
-y에 대한 결합에너지 변화가 O(y⁴)이다 (O(y²) 항의 계수가 U'(ℓ)이고 힘이 0인 지점에선
-0이기 때문) — 즉 **선형 굽힘강성이 정확히 0**이다. chain-bend-2d-oscill 의
-bending_matrix() 같은 게 이 계에는 없다. 3점 굽힘에서 매끈한 빔 곡률 대신 [P1]이
-말한 "삼각형형" 국소 꺾임이 나올 가능성이 높다 — 지어내지 않고 L4로 확인한다.
+** The structural fact, derived before running
+   (`intake/chain-bend-2d-dlvo/observation.yaml` G1):
+in a straight chain, if a pure central-force bond sits at its **natural length
+(U'=0)**, the bond energy varies as O(y^4) in the transverse displacement y -- the
+coefficient of the O(y^2) term is U'(ell), which is zero where the force is zero.
+So **the linear bending stiffness is exactly 0.** There is nothing in this system
+corresponding to chain-bend-2d-oscill's bending_matrix(). Under three-point
+bending, the "trianglelike" local kinking [P1] described is more likely than smooth
+beam curvature -- and that is confirmed at L4 rather than assumed.
 
-물리 파라미터 출처: [P1] d=1.47µm·ψ0=40mV, MgCl2 10mM(이온강도),
-Hamaker A=1.05e-20 J(웹검색, tier 3 — 1차 출처 미확인, 불확실성 명시).
-DLVO 곡선: HHF(등전위 약한중첩) EDL + Derjaguin 비지연 vdW.
-계산: `scratch/dlvo_ledger.py` (장벽 382kT@0.49nm, 2차극소 −11.7kT@11.2nm).
+Physical parameter provenance: [P1] gives d=1.47um and psi0=40mV; MgCl2 10mM
+(ionic strength); Hamaker A=1.05e-20 J (from a web search, tier 3 -- the primary
+source was not confirmed, and that uncertainty is stated).
+DLVO curve: HHF (constant-potential, weak-overlap) EDL + Derjaguin non-retarded
+vdW. Computed in `verify/dlvo_ledger.py` (barrier 382kT @ 0.49nm, secondary minimum
+-11.7kT @ 11.2nm).
 
-퍼텐셜 구현: **본드 리스트가 아니라 전역 페어 퍼텐셜**이다 (`md.pair.Table`, 전체
-이웃쌍에 적용 — 1-B `soft-r3-2d-A-sweep` 과 같은 패턴). "결합"은 인접 비드가 서로의
-2차극소에 앉아서 생기는 것이지, 미리 정한 본드 토폴로지가 아니다 — 이게 "중심
-페어 퍼텐셜만으로 사슬을 만든다"는 가설 그 자체다. 컷오프(h≲60nm)가 비인접 비드
-간격(≈3µm)보다 훨씬 짧아 정상 상태에선 NN만 상호작용하지만, 사슬이 접히면 원거리
-비드끼리도 자연스럽게 상호작용한다 — 이것도 실제 물리이므로 막지 않는다.
-
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
-    $PY cases/chain_bend_dlvo_2d.py --n 9 --omega 1000 --amp 100 --report
-    $PY cases/chain_bend_dlvo_2d.py --n 9 --omega 1000 --amp 100 --spec
-    $PY cases/chain_bend_dlvo_2d.py --n 9 --omega 1000 --amp 100 --run
+Potential implementation: **a global pair potential, not a bond list**
+(`md.pair.Table`, applied to every neighbour pair -- the same pattern as
+`soft-r3-2d-A-sweep`). A "bond" arises because adjacent beads sit in each other's
+secondary minimum; it is not a predeclared bond topology. That IS the hypothesis
+that a chain can be made from a central pair potential alone. The cutoff
+(h <~ 60nm) is far shorter than the non-adjacent bead spacing (~3um), so in the
+normal state only nearest neighbours interact -- but if the chain folds, distant
+beads interact naturally too, and that is also real physics, so it is not
+prevented.
 """
 from __future__ import annotations
 
@@ -59,12 +66,13 @@ N_CYCLES = 50.0
 NA = 6.02214076e23
 E_CHARGE = 1.602176634e-19
 EPS0 = 8.8541878128e-12
-R_WCA = 2 ** (1 / 6)          # WCA 컷오프 (σ=d 단위) — bdbot/pairpot.py 와 동일 관례
-CUTOFF_H_STAR = 0.06          # 표 컷오프 — 표면간극 h/d. 2차극소(≈0.0076)의 8배 밖
+R_WCA = 2 ** (1 / 6)          # WCA cutoff (in sigma=d) -- the same convention as bdbot/pairpot.py
+CUTOFF_H_STAR = 0.06          # table cutoff -- surface gap h/d. 8x outside the
+                              # secondary minimum (~0.0076)
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ① 물리계 (SI)
+# 1. the physical system (SI)
 # ════════════════════════════════════════════════════════════════════════
 def load_system(path: Path) -> dict:
     raw = yaml.safe_load(path.read_text())
@@ -82,7 +90,7 @@ def load_system(path: Path) -> dict:
         "eps_r": P(raw["medium"]["relative_permittivity"]),
         "ionic_strength": P(raw["medium"]["ionic_strength"]),
         "A_H": P(con["hamaker_constant"]),
-        # ★ 대조군 — `--jkr` 일 때만 쓰인다. interactions[1] 은 기본 OFF.
+        # * the control -- used only with `--jkr`. interactions[1] is OFF by default.
         "kappa_theta": P(raw["interactions"][1]["angle_stiffness"]),
         "k_t": P(raw["external"]["stiffness"]),
         "amp_range": [float(x) for x in raw["external"]["amplitude"]["value"]],
@@ -95,9 +103,11 @@ def load_system(path: Path) -> dict:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ② DLVO(h) — 축약변수(h*=h/d) 3개(kappa_star, edl_amp, vdw_amp)로 결정된다.
-#    ★ 감으로 쓰지 않는다 — scratch/dlvo_ledger.py 에서 SI로 먼저 계산해 검증한
-#    바로 그 식(HHF 등전위 약한중첩 + Derjaguin 비지연 vdW)을 축약형으로 옮긴 것.
+# 2. DLVO(h) -- determined by three reduced variables in h*=h/d
+#    (kappa_star, edl_amp, vdw_amp).
+#    * Not written from memory -- this is the reduced form of exactly the expression
+#    (HHF constant-potential weak-overlap EDL + Derjaguin non-retarded vdW) that was
+#    first computed and verified in SI in verify/dlvo_ledger.py.
 # ════════════════════════════════════════════════════════════════════════
 def dlvo_reduced_params(sys_: dict) -> dict:
     d = sys_["d"].value.to("m").magnitude
@@ -107,21 +117,23 @@ def dlvo_reduced_params(sys_: dict) -> dict:
     eps_r = sys_["eps_r"].value.to("dimensionless").magnitude
     psi0 = sys_["psi0"].value.to("V").magnitude
     A_H = sys_["A_H"].value.to("J").magnitude
-    c_salt = sys_["ionic_strength"].value.to("mol/m^3").magnitude   # MgCl2 몰농도
-    I_SI = 0.5 * (c_salt * (2 ** 2) + 2 * c_salt * (1 ** 2)) * NA   # 1/m^3 (이온강도, MgCl2→Mg2++2Cl-)
+    c_salt = sys_["ionic_strength"].value.to("mol/m^3").magnitude   # MgCl2 molarity
+    I_SI = 0.5 * (c_salt * (2 ** 2) + 2 * c_salt * (1 ** 2)) * NA   # 1/m^3 (ionic strength, MgCl2 -> Mg2+ + 2Cl-)
     kappa = math.sqrt(2 * I_SI * E_CHARGE ** 2 / (EPS0 * eps_r * kT))
     a_star = 0.5
     return {
         "a_star": a_star,
         "kappa_star": kappa * d,
-        "edl_amp": 2 * math.pi * EPS0 * eps_r * a * psi0 ** 2 / kT,   # U_edl* 앞 계수
+        "edl_amp": 2 * math.pi * EPS0 * eps_r * a * psi0 ** 2 / kT,   # the coefficient in front of U_edl*
         "vdw_amp": A_H / (12 * kT),                                    # U_vdw* = -vdw_amp*a_star/h*
         "kT": kT, "d": d,
     }
 
 
 def U_star(h_star, p: dict):
-    """U(h)/kT, h*=h/d>0. EDL(HHF 등전위,약한중첩) + vdW(Derjaguin 비지연)."""
+    """U(h)/kT for h*=h/d>0. EDL (HHF constant-potential, weak-overlap) plus vdW
+    (Derjaguin, non-retarded).
+    """
     h_star = np.asarray(h_star, dtype=float)
     u_edl = p["edl_amp"] * np.log1p(np.exp(-p["kappa_star"] * h_star))
     u_vdw = -p["vdw_amp"] * p["a_star"] / h_star
@@ -129,7 +141,9 @@ def U_star(h_star, p: dict):
 
 
 def F_h_star(h_star, p: dict):
-    """-dU*/dh* (h* 증가 방향의 힘. 양수=반발). 해석적 도함수."""
+    """-dU*/dh* -- the force in the direction of increasing h* (positive = repulsive).
+    The analytic derivative.
+    """
     h_star = np.asarray(h_star, dtype=float)
     k = p["kappa_star"]
     dU_edl = p["edl_amp"] * (-k) * np.exp(-k * h_star) / (1 + np.exp(-k * h_star))
@@ -138,7 +152,9 @@ def F_h_star(h_star, p: dict):
 
 
 def find_well(p: dict) -> dict:
-    """장벽·2차극소 위치+깊이, 우물 곡률(=결합 방사강성, kT/d² 단위)을 이분법+중심차분으로."""
+    """The barrier and secondary-minimum positions and depths, plus the well curvature
+    (= the bond radial stiffness, in kT/d^2), via bisection and central differences.
+    """
     hs = np.geomspace(1e-4, CUTOFF_H_STAR * 3, 4000)
     Us = U_star(hs, p)
     ibar = int(np.argmax(Us[: int(len(hs) * 0.5)]))
@@ -157,13 +173,20 @@ def trapped_indices(n: int) -> list[int]:
 
 
 def _bow(y: np.ndarray) -> float:
-    """굽음 — 양끝을 잇는 직선 대비 최대 이탈 [d]. 강체 평행이동·기울기를 뺀 순수 굽힘.
+    """Bow -- the maximum deviation from the chord joining the two ends [d]. Pure
+    bending, with rigid translation and tilt removed.
 
-    ★ 왜 이게 필요한가: 이 계의 트랩은 유한강성(k_t)이라 사슬이 통째로 밀린다. y 변위를
-      그대로 재면 그 강체 운동이 굽힘 신호를 덮는다. 실측 (n=9, ω=3000, a=632nm):
-          y 전범위   DLVO 0.303 d  vs JKR 0.090 d  →  3.4배
-          굽음      DLVO 0.1175 d vs JKR 0.0060 d →  **19.6배**
-      같은 데이터인데 판별력이 5.8배 차이난다.
+    * Why this is needed: this system's traps have finite stiffness (k_t), so the
+      whole chain gets pushed. Measuring raw y lets that rigid-body motion mask the
+      bending signal. Measured (n=9, omega=3000, a=632nm):
+          full y range   DLVO 0.303 d  vs JKR 0.090 d  ->  3.4x
+          bow            DLVO 0.1175 d vs JKR 0.0060 d ->  **19.6x**
+      Same data, and the discriminating power differs by 5.8x.
+
+    WARNING: this holds **only under a soft trap (free deformation).** Under
+      position-forced driving, the bow ratio collapses from 15.4x to 1.4x -- when the
+      deformation is imposed, shape carries no information. Free deformation ->
+      measure shape; imposed deformation -> measure force.
     """
     n = len(y)
     base = np.linspace(0.0, 1.0, n) * (y[-1] - y[0]) + y[0]
@@ -171,13 +194,15 @@ def _bow(y: np.ndarray) -> float:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ③ 스케일 원장
+# 3. the scale ledger
 # ════════════════════════════════════════════════════════════════════════
 def bending_matrix(n: int, kappa_theta: float, ell: float) -> np.ndarray:
-    """U = ½κ_θ Σθ_i², θ_i=(y_{i+1}−2y_i+y_{i−1})/ℓ 의 2차형식 A = κ_θ BᵀB.
+    """The quadratic form A = kappa_theta * B^T B of
+    U = (1/2)*kappa_theta*sum(theta_i^2), theta_i=(y_{i+1}-2y_i+y_{i-1})/ell.
 
-    ★ chain-bend-2d-oscill 과 **같은 식**이다 (거기서 논문 κ₀ 재현·이산↔연속 매핑이
-      검증됐다). 여기서는 대조군(`--jkr`)에서만 쓴다.
+    * **The same expression** as chain-bend-2d-oscill, where the paper's kappa_0 was
+      reproduced and the discrete-to-continuum mapping verified. Used here only for
+      the control (`--jkr`).
     """
     B = np.zeros((n - 2, n))
     for i in range(n - 2):
@@ -192,36 +217,42 @@ def build_ledger(sys_, n: int, omega: float, amp_nm: float, *, dt_scale=1.0,
     d = sys_["d"].value.to("m")
     b = M.sphere_bulk(d, sys_["T"].value, sys_["eta"].value, sys_["rho_p"].value)
     kT, gamma, tau_B = b["kT"], b["gamma"], b["tau_B"]
-    # ★ kt_scale — 트랩을 의도적으로 세게 해서 **위치 제어 조건**으로 밀어넣는다.
-    #   왜 필요한가: 기본 k_t(스케치 tier 0, 10 pN/µm)로는 구동 비드가 트랩 위치를
-    #   전혀 못 따라간다 (실측 추종률 |ŷ|/a — JKR 3.5%, DLVO 29%). 사슬·점성이
-    #   트랩보다 강해서 트랩이 늘어날 뿐 비드가 안 끌려온다.
-    #   실측 설계표 (n=9, ω=3000, JKR):
-    #       배율     1   10   30  100  300  1000
-    #       추종률 0.035 0.33 0.59 0.82 0.93 0.98
-    #       dt비용  1.00 1.00 1.00 1.01 1.02 1.08 (JKR) / 1.0 1.0 - 2.0 6.0 20 (DLVO)
-    #   ★ 100배를 쓴다: 추종 0.82 인데 비용이 거의 없다. 300배부터는 K′ 추정의
-    #     차이 소거가 위험해진다 — K′ = k_t(ŷ_c/ŷ − 1) 인데 (ŷ_c/ŷ − 1) 이 0.09까지
-    #     줄어 상대 잡음이 증폭된다 (1000배면 0.027).
-    #   ⚠️ 물리적 정직성: 100배 = 1000 pN/µm 로, 실제 광집게([P1] ~40 pN/µm)보다
-    #     25배 세다. 이건 **위치 제어 극한의 수치 실험**이지 스케치의 계가 아니다.
-    #     (trap-drag 가 '뻣뻣한 트랩 = 위치 제어 조건'이라고 적어둔 것과 같은 맥락)
+    # * kt_scale -- deliberately stiffen the trap to push the system toward a
+    #   **position-control condition.**
+    #   Why it is needed: with the default k_t (sketch tier 0, 10 pN/um) the driven
+    #   bead does not follow the trap position at all (measured tracking |y_hat|/a --
+    #   JKR 3.5%, DLVO 29%). The chain and the viscosity are stronger than the trap,
+    #   so the trap simply stretches and the bead is not pulled along.
+    #   Measured design table (n=9, omega=3000, JKR):
+    #       scale       1   10   30  100  300  1000
+    #       tracking 0.035 0.33 0.59 0.82 0.93 0.98
+    #       dt cost   1.00 1.00 1.00 1.01 1.02 1.08 (JKR) / 1.0 1.0 - 2.0 6.0 20 (DLVO)
+    #   * Use 100x: tracking 0.82 at almost no cost. From 300x the cancellation in the
+    #     K' estimator becomes dangerous -- K' = k_t(y_hat_c/y_hat - 1), and
+    #     (y_hat_c/y_hat - 1) shrinks to 0.09, amplifying the relative noise (0.027 at
+    #     1000x). **Better tracking makes the measurement worse.**
+    #   WARNING on physical honesty: 100x = 1000 pN/um, which is 25x stiffer than a
+    #     real optical trap ([P1] ~40 pN/um). This is **a numerical experiment in the
+    #     position-control limit**, not the system in the sketch.
+    #     (Same context as trap-drag recording that a stiff trap = a position-control
+    #     condition.)
     k_t = sys_["k_t"].value.to("N/m") * float(kt_scale)
     amp = Q(amp_nm, "nm").to("m")
 
     p = dlvo_reduced_params(sys_)
     w = find_well(p)
-    ell = d * (1 + w["h_min"])                       # 결합 자연길이 (중심간, 자연장=U'=0)
+    ell = d * (1 + w["h_min"])                       # natural bond length (centre to centre, U'=0)
     L_chain = (n - 1) * ell
-    k_bond = Q(w["k_bond_star"], "dimensionless") * kT / d ** 2   # 방사(신축) 강성
+    k_bond = Q(w["k_bond_star"], "dimensionless") * kT / d ** 2   # radial (stretch) stiffness
     sigma_bond = (kT / k_bond) ** 0.5
 
-    tau_bond = C.relaxation_time(gamma, k_bond)      # DLVO 결합 신축
+    tau_bond = C.relaxation_time(gamma, k_bond)      # DLVO bond stretch
     tau_k = C.relaxation_time(gamma, k_t)
 
-    # ★ 대조군(`--jkr`): 굽힘항을 켜면 강성행렬의 최대고유값이 dt 를 정할 수도 있다.
-    #   chain-bend-2d-oscill 에서 실제로 그랬다(τ_fast=0.28µs 가 지배) — 여기서도
-    #   **더 빠른 쪽**으로 dt 를 잡는다. 안 그러면 조용히 발산한다.
+    # * The control (`--jkr`): with the bending term on, the largest eigenvalue of the
+    #   stiffness matrix may set dt. That is what happened in chain-bend-2d-oscill
+    #   (tau_fast=0.28us dominated) -- so here too dt is taken from **whichever is
+    #   faster.** Otherwise it diverges silently.
     kappa_theta = None
     tau_bend_fast = None
     if jkr:
@@ -230,20 +261,24 @@ def build_ledger(sys_, n: int, omega: float, amp_nm: float, *, dt_scale=1.0,
         A_bend = bending_matrix(n, kth_star, float((ell / d).to("dimensionless").magnitude))
         for i in trapped_indices(n):
             A_bend[i, i] += float((k_t * d ** 2 / kT).to("dimensionless").magnitude)
-        lam_max_star = float(np.linalg.eigvalsh(A_bend)[-1])          # kT/d² 단위
+        lam_max_star = float(np.linalg.eigvalsh(A_bend)[-1])          # in kT/d^2
         tau_bend_fast = C.relaxation_time(gamma, Q(lam_max_star, "dimensionless") * kT / d ** 2)
-    # ★★ dt 는 **가장 빠른 모드**가 정한다 — 후보 셋을 전부 넣는다.
-    #   구멍이었다: 예전에는 τ_k(트랩)를 빼고 τ_bond·τ_bend 만 봤다. --kt-scale 로
-    #   트랩을 세게 하면 k_t 가 k_bond 를 넘는 순간(배율 200 부근, k_bond*=1.04e6)
-    #   트랩이 최속 모드가 되는데 dt 는 그대로여서 **조용히 부족해진다**.
-    #   (DLVO 브랜치는 굽힘행렬이 없어 τ_bend 가 None 이라 특히 위험했다)
+    # ** dt is set by **the fastest mode** -- all three candidates go in.
+    #   This was a hole: tau_k (the trap) used to be omitted and only tau_bond and
+    #   tau_bend were considered. Stiffening the trap with --kt-scale makes k_t exceed
+    #   k_bond (around 200x, where k_bond*=1.04e6), at which point the trap becomes the
+    #   fastest mode while dt stays put -- and dt becomes **silently insufficient.**
+    #   (The DLVO branch was especially exposed, since with no bending matrix tau_bend
+    #   is None.)
     cands = [tau_bond, tau_k] + ([tau_bend_fast] if tau_bend_fast is not None else [])
     tau_fast = min(cands, key=lambda q: float(q.to("s").magnitude))
     dt = dt_scale * C.dt_from_gate(tau_fast)
 
-    # ★★ 굽힘(횡) 선형강성은 구조적으로 0 이다 (자연장 평형 + 중심력) — 지어낸 대체
-    #    척도를 쓰지 않는다. 대신 사슬 전체의 형태 이완을 "윤곽길이 확산시간"으로
-    #    거칠게 어림한다 (Rouse류 정확한 스펙트럼이 아니라 ★제안 상한선).
+    # ** The transverse (bending) linear stiffness is structurally 0 (natural-length
+    #    equilibrium plus central forces) -- no invented substitute scale is used.
+    #    Instead the whole-chain shape relaxation is roughly estimated as a "contour
+    #    length diffusion time" (a *proposed upper bound, not an exact Rouse
+    #    spectrum).
     tau_chain_diffusion = (L_chain ** 2 / b["D_t"]).to("s")
 
     tau_w = Q(1.0 / omega, "s")
@@ -251,7 +286,7 @@ def build_ledger(sys_, n: int, omega: float, amp_nm: float, *, dt_scale=1.0,
     T_obs = (n_cycles * tau_period).to("s")
 
     lg = SC.ScaleLedger()
-    lg.add_length("sigma_bond", sigma_bond.to("m"), "결합 방사 열요동 폭 √(kT/k_bond)", star=True)
+    lg.add_length("sigma_bond", sigma_bond.to("m"), "bond radial thermal width sqrt(kT/k_bond)", star=True)
     lg.add_length("h_min", Q(w["h_min"], "dimensionless") * d, "secondary-minimum position (surface gap)", star=True)
     lg.add_length("a", amp, "drive amplitude", star=True)
     lg.add_length("d", d, "bead diameter")
@@ -259,39 +294,44 @@ def build_ledger(sys_, n: int, omega: float, amp_nm: float, *, dt_scale=1.0,
     lg.add_length("L_chain", L_chain.to("m"), "chain contour length (n-1)*ell")
     lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
     lg.add_time("dt", dt, "integration step", role="dt")
-    lg.add_time("tau_bond", tau_bond, "★ γ/k_bond 결합 신축 — 유일한 선형 강성 모드. dt를 정한다",
+    lg.add_time("tau_bond", tau_bond, "* gamma/k_bond bond stretch -- the only linear stiffness mode. It sets dt",
                 star=True)
     lg.add_time("tau_k", tau_k, "gamma/k_t trap")
-    lg.add_time("tau_w", tau_w, f"1/ω 구동 (ω={omega:.0f} rad/s)")
+    lg.add_time("tau_w", tau_w, f"1/omega drive (omega={omega:.0f} rad/s)")
     lg.add_time("tau_period", tau_period, "2*pi/omega drive period")
     lg.add_time("tau_chain_diff", tau_chain_diffusion,
-                "★제안: L_chain²/D_t — 사슬 형태 이완의 거친 상한 (굽힘강성이 0이라 "
-                "정확한 Rouse 스펙트럼 유도는 별도 검증 필요, 지금은 어림)", star=True)
+                "*proposed: L_chain^2/D_t -- a rough upper bound on chain shape relaxation "
+                "(with zero bending stiffness, deriving an exact Rouse spectrum needs "
+                "separate verification; this is an estimate)", star=True)
     lg.add_time("tau_B", tau_B, "d^2/D_t diffusion (reference)")
-    lg.add_time("T_obs", T_obs, f"관측창 ({n_cycles:g}주기)", role="observation")
+    lg.add_time("T_obs", T_obs, f"observation window ({n_cycles:g} cycles)", role="observation")
     lg.add_energy("kT", kT, "thermal energy (reference)")
     lg.add_energy("k_t_d2", (k_t * d ** 2).to("J"), "k_t*d^2 trap stiffness")
-    lg.add_energy("k_bond_d2", (k_bond * d ** 2).to("J"), "k_bond d² 결합 방사강성", star=True)
+    lg.add_energy("k_bond_d2", (k_bond * d ** 2).to("J"), "k_bond*d^2 bond radial stiffness", star=True)
     lg.add_energy("well_depth", Q(-w["U_min"], "dimensionless") * kT,
-                  "|2차극소 깊이| — 결합이 가역적일 수 있는 열에너지 규모", star=True)
-    lg.add_time("tau_fast", tau_fast, "dt를 정하는 최속 모드", role="", star=True)
+                  "|secondary-minimum depth| -- the thermal scale at which bonding can be reversible", star=True)
+    lg.add_time("tau_fast", tau_fast, "the fastest mode, which sets dt", role="", star=True)
     lg.declare_absent(
         "box",
-        "주기경계 없음 (사슬 하나, 트랩이 위치를 고정). chain-bend-2d-oscill 과 같은 사유.")
+        "no periodic boundaries (one chain, with traps fixing its position). Same reason "
+        "as chain-bend-2d-oscill.")
     if jkr:
         lg.add_energy("kappa_theta", kappa_theta,
-                      "★ 대조군: JKR 접선 굽힘강성 κ_θ = EI/ℓ ([P1][P2])", star=True)
+                      "* the control: JKR tangential bending stiffness kappa_theta = EI/ell ([P1][P2])", star=True)
         lg.add_time("tau_bend_fast", tau_bend_fast,
-                    "★ 굽힘 강성행렬 최대고유값 기준 최속 모드 — dt를 정할 수 있다", star=True)
+                    "the fastest mode from the largest eigenvalue of the bending stiffness matrix -- it can set dt", star=True)
     else:
         lg.declare_absent(
             "bending_stiffness",
-            "★★ 구조적으로 없다 (지어낸 대체값을 넣지 않는다) — 직선 사슬 + 순수 중심력 + "
-            "결합이 자연장(U'=0)에 있으면 횡변위에 대한 선형(O(y²)) 복원력이 정확히 0이다 "
-            "(O(y²) 계수가 U'(ℓ)이고 자연장에서 0이기 때문). chain-bend-2d-oscill 의 "
-            "bending_matrix/λ_min 에 대응하는 것이 이 계엔 없다 — 이것 자체가 가설(G1)이고 "
-            "L4 궤적의 형태(매끈한 곡률 vs 국소 꺾임)로 확인한다. "
-            "★ `--jkr` 로 켜면 대조군이 된다.")
+            "** structurally absent (no invented substitute value goes here) -- for a "
+            "straight chain with pure central forces and bonds at their natural length "
+            "(U'=0), the linear (O(y^2)) restoring force against transverse "
+            "displacement is exactly 0, because the O(y^2) coefficient is U'(ell) and "
+            "that is zero at the natural length. There is nothing in this system "
+            "corresponding to chain-bend-2d-oscill's bending_matrix/lambda_min -- that "
+            "absence IS the hypothesis (G1), confirmed from the shape of the L4 "
+            "trajectory (smooth curvature vs local kinking). "
+            "* Turning on `--jkr` makes it the control.")
     lg.derived = dict(gamma=gamma, D_t=b["D_t"], m=b["m"], kT=kT, d=d, tau_B=tau_B,
                       ell=ell.to("m"), L_chain=L_chain.to("m"), k_bond=k_bond,
                       sigma_bond=sigma_bond.to("m"), tau_bond=tau_bond, tau_k=tau_k,
@@ -304,15 +344,17 @@ def build_ledger(sys_, n: int, omega: float, amp_nm: float, *, dt_scale=1.0,
                       reduced=p, trapped=trapped_indices(n))
     lg.ref = SC.thermal_reference(
         d, kT, tau_B,
-        SC.THERMAL_RATIONALE + " ★ 이 계는 chain-bend-2d-oscill 과 달리 굽힘 선형강성이 "
-        "구조적으로 없다 — dt를 정하는 척도(tau_bond, 결합 신축)와 재려는 대상(사슬 형태 "
-        "이완, tau_chain_diff)의 관계가 사전에 확정되지 않는다. L4 실행으로 확인한다.")
+        SC.THERMAL_RATIONALE + " * Unlike chain-bend-2d-oscill, this system has no "
+        "bending linear stiffness at all, structurally -- so the relation between the "
+        "scale that sets dt (tau_bond, bond stretch) and what is being measured (chain "
+        "shape relaxation, tau_chain_diff) is not fixed in advance. It is confirmed by "
+        "running L4.")
     lg.rationale = lg.ref["rationale"]
     return lg
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ④ 무차원수 + 검사
+# 4. dimensionless groups + checks
 # ════════════════════════════════════════════════════════════════════════
 def analyze_scales(sys_, lg, n):
     D = lg.derived
@@ -321,35 +363,35 @@ def analyze_scales(sys_, lg, n):
     groups = [
         ND.Group("well_depth/kT", r("energies", "well_depth", "kT"),
                  ("energies", "well_depth"), ("energies", "kT"), "",
-                 "★ 결합 깊이 — 열에너지 규모면 가역적(깨지기 쉬움)"),
+                 "* bond depth -- on the scale of kT it is reversible (easily broken)"),
         ND.Group("k_bond_star", r("energies", "k_bond_d2", "kT"),
                  ("energies", "k_bond_d2"), ("energies", "kT"), "k_bond d²/kT",
-                 "결합 방사(신축) 강성 — 굽힘강성 아님"),
+                 "bond radial (stretch) stiffness -- NOT a bending stiffness"),
         ND.Group("k_t/k_bond", r("energies", "k_t_d2", "k_bond_d2"),
                  ("energies", "k_t_d2"), ("energies", "k_bond_d2"), "",
-                 "트랩 vs 결합 강성"),
+                 "trap vs bond stiffness"),
         ND.Group("sigma_bond/h_min", r("lengths", "sigma_bond", "h_min"),
                  ("lengths", "sigma_bond"), ("lengths", "h_min"), "",
-                 "결합 열요동 폭 / 우물 위치 — 1에 가까우면 결합이 불안정"),
+                 "bond thermal width / well position -- close to 1 means the bond is unstable"),
         ND.Group("a/sigma_bond", r("lengths", "a", "sigma_bond"),
                  ("lengths", "a"), ("lengths", "sigma_bond"), "",
-                 "★ 구동 진폭 vs 결합 열요동 — SNR 대용"),
+                 "* drive amplitude vs bond thermal fluctuation -- a proxy for SNR"),
         ND.Group("a/L_chain", r("lengths", "a", "L_chain"),
-                 ("lengths", "a"), ("lengths", "L_chain"), "", "진폭 vs 사슬 길이"),
-        ND.Group("n_beads", float(n), None, None, "", "비드 수 (입력, ★제안 스윕)"),
+                 ("lengths", "a"), ("lengths", "L_chain"), "", "amplitude vs chain length"),
+        ND.Group("n_beads", float(n), None, None, "", "bead count (input, *suggested sweep)"),
         ND.Group("De_bond", r("times", "tau_bond", "tau_w"),
                  ("times", "tau_bond"), ("times", "tau_w"), "ω τ_bond",
-                 "결합 신축 기준 Deborah (매우 작을 것 — τ_bond 가 극히 빠름)"),
+                 "Deborah number referenced on bond stretch (expected very small -- tau_bond is extremely fast)"),
         ND.Group("De_chain_diff", r("times", "tau_chain_diff", "tau_w"),
                  ("times", "tau_chain_diff"), ("times", "tau_w"), "ω τ_chain_diff",
-                 "★제안: 사슬 형태이완 기준 Deborah (어림)"),
+                 "*proposed: Deborah referenced on chain shape relaxation (an estimate)"),
         ND.Group("De_trap", r("times", "tau_k", "tau_w"),
                  ("times", "tau_k"), ("times", "tau_w"), "ω τ_k", "trap reference"),
         ND.Group("tau_bond/tau_chain_diff", r("times", "tau_bond", "tau_chain_diff"),
                  ("times", "tau_bond"), ("times", "tau_chain_diff"), "",
-                 "★ 척도 분리 폭 (dt를 정하는 모드 vs 형태 이완 어림)"),
+                 "* the scale-separation span (the mode that sets dt vs the shape-relaxation estimate)"),
         ND.Group("dt/tau_bond", r("times", "dt", "tau_bond"),
-                 ("times", "dt"), ("times", "tau_bond"), "", "적분 해상"),
+                 ("times", "dt"), ("times", "tau_bond"), "", "integration resolution"),
         ND.Group("n_cycles", r("times", "T_obs", "tau_period"),
                  ("times", "T_obs"), ("times", "tau_period"), "", "cycles observed"),
         ND.Group("St", r("times", "tau_p", "tau_B"),
@@ -358,27 +400,31 @@ def analyze_scales(sys_, lg, n):
     checks = [
         C.Check("model", "note: tau_p/tau_bond", r("times", "tau_p", "tau_bond"),
                 C.GATE, "<=",
-                "★ 결합이 깊고 좁은 우물이라 τ_bond 가 τ_p 에 근접한다 (관성 무시 기준을 "
-                "~2.8배 넘김, n·ω·amp 와 무관 — 결합 물리 자체의 성질). "
-                "chain-bend-2d-oscill 에도 같은 종류의 위반(ζ=0.65, 이쪽보다 훨씬 심함)이 "
-                "있었고 OverdampedViscous vs Langevin(kT=0) 대조로 무해함(0.16%)이 검증됐다 "
-                "— 이 계는 **아직 그 대조를 하지 않았다**. 미검증 상태로 소프트 처리하고 "
-                "구조 스모크테스트 이후 필요하면 검증한다", hard=False),
-        C.Check("model", "결합 안정     σ_bond/h_min", r("lengths", "sigma_bond", "h_min"),
+                "* the bond well is deep and narrow, so tau_bond approaches tau_p "
+                "(exceeding the inertia-negligible criterion by ~2.8x, independent of "
+                "n, omega and amplitude -- a property of the bond physics itself). "
+                "chain-bend-2d-oscill had the same class of violation (zeta=0.65, far "
+                "worse than here) and it was verified harmless (0.16%) by comparing "
+                "OverdampedViscous against Langevin(kT=0). **That comparison has not "
+                "been run for this system yet.** It is treated as soft while unverified, "
+                "and will be verified if needed after the structural smoke test", hard=False),
+        C.Check("model", "bond stability     sigma_bond/h_min", r("lengths", "sigma_bond", "h_min"),
                 0.5, "<=",
-                "★★ 결합 열요동 폭이 우물 위치의 절반을 넘으면 열적으로 자꾸 깨질 "
-                "정도로 불안정하다는 뜻 — 그 자체가 결과일 수 있으나 사전에 표시",
+                "** if the bond thermal width exceeds half the well position, the bond "
+                "is unstable enough to keep breaking thermally -- that may itself be the "
+                "result, but it is flagged in advance",
                 hard=False),
-        C.Check("integration", "결합 신축 해상 dt/τ_bond", r("times", "dt", "tau_bond"),
-                C.GATE, "<=", "DLVO 결합 신축 모드. 못 맞추면 발산"),
+        C.Check("integration", "bond stretch resolved dt/tau_bond", r("times", "dt", "tau_bond"),
+                C.GATE, "<=", "the DLVO bond stretch mode. Miss it and it diverges"),
         C.Check("integration", "fastest mode resolved dt/tau_fast", r("times", "dt", "tau_fast"),
                 C.GATE, "<=",
-                "★ 대조군(--jkr)에서는 굽힘 강성행렬의 최대고유값이 더 빠를 수 있다 — "
-                "그쪽으로 dt 를 잡는다 (chain-bend-2d-oscill 에서 실제로 그랬다)"),
+                "* in the control (--jkr) the largest eigenvalue of the bending "
+                "stiffness matrix can be faster -- dt is taken from that (which is what "
+                "happened in chain-bend-2d-oscill)"),
         C.Check("integration", "drive resolved       dt/tau_w", r("times", "dt", "tau_w"), C.GATE, "<=",
-                f"구동 ω = {lg.derived['omega']:.0f} rad/s 를 해상"),
-        C.Check("statistics", "SNR(결합)     a/σ_bond", r("lengths", "a", "sigma_bond"), 3.0, ">=",
-                "구동 진폭이 결합 열요동보다 커야 신호가 잡음 위로 나온다", hard=False),
+                f"resolves the drive omega = {lg.derived['omega']:.0f} rad/s"),
+        C.Check("statistics", "SNR (bond)         a/sigma_bond", r("lengths", "a", "sigma_bond"), 3.0, ">=",
+                "the drive amplitude must exceed the bond thermal fluctuation for the signal to clear the noise", hard=False),
         C.Check("statistics", "cycles observed      T_obs/(2pi/w)", r("times", "T_obs", "tau_period"),
                 N_CYCLES, ">=", "cycles used for the phase average", hard=False),
     ]
@@ -396,24 +442,24 @@ def report_blocks(sys_, lg, n_eq, n_prod, n):
            R.kv("omega", f"{D['omega']:.0f} rad/s", 3, "*suggested sweep"),
            R.kv("amp", f"{D['amp'].to('nm'):~.1fP}", 3, "*suggested sweep")]
     der = [
-        f"  λ_D(반지름 무관) 는 build_ledger 밖 scratch/dlvo_ledger.py 참조",
-        f"  결합: 장벽 {D['barrier_star']:.2f} kT   2차극소 {D['U_min_star']:.3f} kT"
+        f"  lambda_D (radius-independent) -- see verify/dlvo_ledger.py, outside build_ledger",
+        f"  bond: barrier {D['barrier_star']:.2f} kT   secondary minimum {D['U_min_star']:.3f} kT"
         f" @ h={D['h_min_star']*float(D['d'].to('nm').magnitude):.2f} nm",
         f"  k_bond = {D['k_bond'].to('pN/um'):~.4fP} = {D['k_bond_star']:.4e} kT/d²"
         f"   σ_bond = {D['sigma_bond'].to('nm'):~.3fP}",
-        f"  ell(자연장) = {D['ell'].to('nm'):~.2fP}   L_chain = {D['L_chain'].to('um'):~.3fP}",
-        f"  ★★ 굽힘 선형강성 = 0 (구조적, declare_absent) — chain-bend-2d-oscill 의 "
-        f"λ_min 에 대응하는 값이 이 계엔 없다",
-        f"  τ_bond = {D['tau_bond'].to_compact():~.4gP}  (dt를 정하는 유일한 모드)",
-        f"  τ_chain_diff(어림) = {D['tau_chain_diff'].to_compact():~.4gP}"
+        f"  ell (natural length) = {D['ell'].to('nm'):~.2fP}   L_chain = {D['L_chain'].to('um'):~.3fP}",
+        f"  ** linear bending stiffness = 0 (structural, declare_absent) -- there is no "
+        f"value in this system corresponding to chain-bend-2d-oscill's lambda_min",
+        f"  tau_bond = {D['tau_bond'].to_compact():~.4gP}  (the only mode that sets dt)",
+        f"  tau_chain_diff (estimate) = {D['tau_chain_diff'].to_compact():~.4gP}"
         f" = {float(D['tau_chain_diff']/D['tau_bond']):.3e} × τ_bond",
     ]
     plan = [
         f"  dt      = {D['dt'].to_compact():~.4gP}  = {lg.ratio('times','dt','tau_B'):.3e} τ_B",
         f"  ω       = {D['omega']:.0f} rad/s  →  De_bond = {lg.ratio('times','tau_bond','tau_w'):.3e}"
-        f"   De_chain_diff(어림) = {lg.ratio('times','tau_chain_diff','tau_w'):.3f}",
+        f"   De_chain_diff (estimate) = {lg.ratio('times','tau_chain_diff','tau_w'):.3f}",
         f"  SNR     = a/σ_bond = {lg.ratio('lengths','a','sigma_bond'):.3f}",
-        f"  T_obs   = {D['T_obs'].to_compact():~.4gP}  ({N_CYCLES:g}주기)",
+        f"  T_obs   = {D['T_obs'].to_compact():~.4gP}  ({N_CYCLES:g} cycles)",
         f"  steps   = eq {n_eq:,} + prod {n_prod:,}   × n={n}",
     ]
     return inp, der, plan
@@ -427,11 +473,13 @@ def build_spec(sys_, n, omega, amp_nm, args):
                       jkr=args.jkr, kt_scale=args.kt_scale)
     D = lg.derived
     dt = lg.get("times", "dt")
-    # ★★ τ_chain_diff(어림) 기준 평형화(5×)는 n_eq 가 수백억 스텝으로 폭발한다
-    #   (τ_chain_diff/τ_bond ~ 1e7~1e8). 굽힘강성이 없어 "완전 평형화"의 의미 자체가
-    #   불분명하고, 지금은 **구조 확인이 목표**(smoke)이지 통계 수렴이 아니다 —
-    #   그래서 국소(결합) 이완 배수로 저렴하게 잡는다. 전체 형태 이완까지 재려면
-    #   --eq-scale 로 늘려 별도 검증한다 (사용자 확인 2026-08-05: 스모크테스트 우선).
+    # ** Equilibrating for 5x tau_chain_diff (the estimate) makes n_eq explode into
+    #   tens of billions of steps (tau_chain_diff/tau_bond ~ 1e7-1e8). With no bending
+    #   stiffness the very meaning of "fully equilibrated" is unclear, and the goal
+    #   right now is **structural confirmation** (a smoke test), not statistical
+    #   convergence -- so it is set cheaply as a multiple of the local (bond)
+    #   relaxation. To measure whole-chain shape relaxation, raise --eq-scale and
+    #   verify separately (user-confirmed: the smoke test comes first).
     n_eq = int(round(args.eq_scale * float((D["tau_fast"] / dt).to(""))))
     n_prod = int(round(float((D["T_obs"] / dt).to(""))))
     sample_every = max(1, n_prod // args.samples)
@@ -461,7 +509,8 @@ def build_spec(sys_, n, omega, amp_nm, args):
                 "De_bond": lg.ratio("times", "tau_bond", "tau_w"),
                 "well_depth_star": D["U_min_star"], "h_min_star": D["h_min_star"],
                 "k_bond_star": D["k_bond_star"],
-                # ★ 대조군 스위치 — run_id 해시에 들어가야 두 브랜치가 갈린다
+                # * the control switch -- it has to be in the run_id hash for the two
+                #   branches to be distinct
                 "jkr": bool(args.jkr),
                 "drive_mode": args.drive_mode,
                 "kappa_theta_star": (lg.ratio("energies", "kappa_theta", "kT")
@@ -494,15 +543,15 @@ def emit(sys_, n, omega, amp_nm, args) -> int:
     print(report)
 
     if spec.errors:
-        print(f"\n❌ L3 무결성 오류 {len(spec.errors)}건.")
+        print(f"\nx {len(spec.errors)} L3 integrity error(s).")
         return 1
     if verdict == "FAIL":
-        print("\n❌ 하드 분리 검사 실패 — 스펙을 쓰지 않습니다.")
+        print("\nx a hard separation check failed -- not writing the spec.")
         return 1
     p = spec.write(ROOT / "specs" / f"{run_id}.json")
     if args.spec or args.report:
         if args.spec:
-            print(f"\nL3 스펙: {p.relative_to(ROOT)}")
+            print(f"\nL3 spec: {p.relative_to(ROOT)}")
         return 0
 
     outdir = ROOT / "runs" / run_id
@@ -514,13 +563,17 @@ def emit(sys_, n, omega, amp_nm, args) -> int:
     verdict_txt = RUN.render_verdict(v)
     print(verdict_txt)
 
-    # ★★ `result.txt` 를 반드시 쓴다 — 프로젝트의 **완료 마커**다 (다른 케이스 3종이
-    #   전부 이걸 쓴다: soft_r3_2d·abp_rod_2d·trap_2d_5um). `bdbot.run.execute` 가
-    #   써주는 게 아니라 **케이스 스크립트의 책임**이다. 빠뜨리면 조용히 셋이 깨진다:
-    #     ① `bdbot.cli status` 가 런을 0개로 센다 (cli.py:133 이 result.txt 를 본다)
-    #     ② `runid.prepare_outdir` 가 완료를 못 알아봐 같은 런을 계속 재실행한다
-    #     ③ "미완료 정리" 스크립트가 **완료 런을 지운다** — 이 세션에서 실제로 6개 날렸다
-    #   (2026-08-06 에 뒤늦게 추가. 그 전 137런은 scratch/backfill_result_txt.py 로 채웠다)
+    # ** `result.txt` must be written -- it is the project's **completion marker**
+    #   (the other three cases all write it). `bdbot.run.execute` does not write it;
+    #   it is **the case script's responsibility.** Omit it and three things break
+    #   silently:
+    #     1. `bdbot.cli status` counts the run as zero (cli.py looks at result.txt)
+    #     2. `runid.prepare_outdir` cannot recognize completion and keeps re-running
+    #        the same run
+    #     3. an "incomplete cleanup" pass **deletes a completed run** -- 6 were
+    #        actually destroyed that way
+    #   (Added late; the 137 earlier runs were backfilled with
+    #   verify/backfill_result_txt.py.)
     if v["status"] != "skipped":
         obs_lines = []
         try:
@@ -528,12 +581,12 @@ def emit(sys_, n, omega, amp_nm, args) -> int:
             for o in mj.get("observables", []):
                 m = o.get("measured")
                 p_ = o.get("predicted")
-                tail = f"   (예측 {p_:.6g})" if isinstance(p_, (int, float)) else ""
+                tail = f"   (predicted {p_:.6g})" if isinstance(p_, (int, float)) else ""
                 obs_lines.append(f"  {o['name']:<22} {m:.6g}{tail}" if m is not None
                                  else f"  {o['name']:<22} —")
-        except Exception as e:                      # 결과를 못 읽어도 마커는 남긴다
-            obs_lines.append(f"  (metrics.json 을 읽지 못함: {e})")
-        result = "\n".join(["=" * 84, f"결과 — {run_id}", "=" * 84,
+        except Exception as e:                      # leave the marker even if the result cannot be read
+            obs_lines.append(f"  (could not read metrics.json: {e})")
+        result = "\n".join(["=" * 84, f"RESULT -- {run_id}", "=" * 84,
                             *obs_lines, "=" * 84, verdict_txt])
         (outdir / "result.txt").write_text(report + "\n" + result)
     return 0 if v["status"] in (RUN.OK, "skipped") else 1
@@ -544,27 +597,31 @@ def main() -> int:
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--spec", action="store_true")
     ap.add_argument("--run", action="store_true")
-    ap.add_argument("--n", type=int, default=None, help="비드 수 (기본: system.yaml 목록 전부)")
-    ap.add_argument("--omega", type=float, default=None, help="rad/s (기본: 범위 최저값)")
-    ap.add_argument("--amp", type=float, default=None, help="nm (기본: 범위 중앙값)")
+    ap.add_argument("--n", type=int, default=None, help="bead count (default: the whole list in system.yaml)")
+    ap.add_argument("--omega", type=float, default=None, help="rad/s (default: the lowest value in the range)")
+    ap.add_argument("--amp", type=float, default=None, help="nm (default: the median of the range)")
     ap.add_argument("--cycles", type=float, default=N_CYCLES)
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--dt-scale", type=float, default=1.0)
     ap.add_argument("--samples", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--eq-scale", type=float, default=200.0,
-                    help="평형화 = 이 값 × τ_fast/dt (기본 200 — 국소 이완만. "
-                         "★ 전체 형태 이완(τ_chain_diff)까지는 안 덮는다, 구조 스모크용")
+                    help="equilibration = this value x tau_fast/dt (default 200 -- local relaxation "
+                         "only. * It does NOT cover whole-chain shape relaxation "
+                         "(tau_chain_diff); this is for the structural smoke test")
     ap.add_argument("--drive-mode", choices=("trap", "position"), default="trap",
-                    help="trap=트랩 중심을 움직임(실험적, 컴플라이언스 있음) / "
-                         "position=구동 비드 y 를 직접 강제(변형률 제어, 유변학 표준). "
-                         "position 은 K_transfer 를 낸다 — trap 의 K′ 과 다른 양")
+                    help="trap = move the trap centre (experimental, with compliance) / "
+                         "position = force the driven bead's y directly (strain control, the "
+                         "rheological standard). position yields K_transfer, **a different "
+                         "quantity from trap's K'** -- do not compare them directly")
     ap.add_argument("--kt-scale", type=float, default=1.0,
-                    help="트랩 강성 배율. ★ 기본 1 이면 구동 비드가 트랩을 3.5~29%%밖에 "
-                         "못 따라간다. 100 이면 82%% (비용 거의 없음). build_ledger 도크스트링에 설계표")
+                    help="trap stiffness multiplier. * At the default 1 the driven bead follows the "
+                         "trap only 3.5-29%%. At 100 it is 82%% (at almost no cost). The design "
+                         "table is in the build_ledger docstring")
     ap.add_argument("--jkr", action="store_true",
-                    help="★ 대조군: JKR 접선 굽힘강성(κ_θ=EI/ℓ)을 DLVO 위에 추가. "
-                         "기하·트랩·DLVO·시드를 그대로 두고 굽힘항만 켜서 직접 대조한다")
+                    help="* the control: add JKR tangential bending stiffness (kappa_theta=EI/ell) on "
+                         "top of DLVO. Geometry, traps, DLVO and the seed stay identical and only "
+                         "the bending term is switched on, for a direct comparison")
     args = ap.parse_args()
 
     sys_ = load_system(ROOT / "intake/chain-bend-2d-dlvo/system.yaml")
@@ -587,32 +644,39 @@ def main() -> int:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# L4 — HOOMD 빌더
+# L4 -- the HOOMD builder
 #
-# ★★ WCA 코어를 particle diameter(σ=d)로 쓰면 안 된다 — WCA 는 r < 2^(1/6)σ 전체에서
-#    반발이라, σ=d 로 두면 반발이 r=1.122d(= h=180nm) 까지 침범해 우리 2차극소
-#    (h=11.16nm≪180nm)를 완전히 짓밟는다. 대신 WCA 컷오프가 **정확히 r=d 에서 끝나도록**
-#    σ_c = d·2^(-1/6) 로 잡는다 — 그러면 WCA 는 r<d(입자 겹침) 에서만 반발하고 r≥d
-#    (표면간극 h≥0, DLVO 가 사는 영역) 에서는 정확히 0 이다. 겹침도 이중계산도 없다.
+# ** The WCA core must NOT use the particle diameter (sigma=d) -- WCA is repulsive
+#    across all of r < 2^(1/6)*sigma, so with sigma=d the repulsion reaches
+#    r=1.122d (= h=180nm) and completely tramples our secondary minimum
+#    (h=11.16nm << 180nm). Instead sigma_c = d*2^(-1/6), so the WCA cutoff ends
+#    **exactly at r=d** -- then WCA repels only for r<d (particle overlap) and is
+#    exactly 0 for r>=d (surface gap h>=0, where DLVO lives). No overlap and no
+#    double counting.
 # ════════════════════════════════════════════════════════════════════════
-SIGMA_CORE_STAR = 2 ** (-1.0 / 6.0)     # WCA 컷오프가 r*=1(=d, 표면 접촉)에서 끝나도록
+SIGMA_CORE_STAR = 2 ** (-1.0 / 6.0)     # so the WCA cutoff ends at r*=1 (=d, surface contact)
 
 
 def build_table_arrays(P: dict, r_min_star: float, r_cut_star: float, nbins: int = 8000):
-    """`md.pair.Table` 용 (U, F) 배열. r* = 1+h*, h*≥0. endpoint=False (bd-hoomd 함정10)."""
+    """The (U, F) arrays for `md.pair.Table`. r* = 1+h*, h*>=0.
+
+    endpoint=False (bd-hoomd trap 10).
+    """
     r = np.linspace(r_min_star, r_cut_star, nbins, endpoint=False)
     h = r - 1.0
-    h = np.maximum(h, 1e-6)             # r_min_star 가 1+eps 이상이라 실질적으로 무관
+    h = np.maximum(h, 1e-6)             # r_min_star is >= 1+eps, so this is effectively moot
     U = U_star(h, P)
-    F = F_h_star(h, P)                  # r* 증가 = h* 증가 (같은 방향) → 그대로 쓴다
+    F = F_h_star(h, P)                  # increasing r* = increasing h* (same direction), so use it as-is
     U_cut = float(U_star(max(r_cut_star - 1.0, 1e-6), P))
-    U = U - U_cut                       # 컷오프에서 0 (bd-hoomd 스니펫 관례)
+    U = U - U_cut                       # zero at the cutoff (the bd-hoomd snippet convention)
     return r, U, F
 
 
 def make_frame(n: int, ell_star: float, trapped: list[int], box_star: float,
                skip_trap: int | None = None):
-    """skip_trap: 이 비드에는 트랩 본드를 걸지 않는다 (position 구동 모드의 구동 비드)."""
+    """skip_trap: do not attach a trap bond to this bead (the driven bead in position
+    mode).
+    """
     import gsd.hoomd
     pos = [[(i - (n - 1) / 2) * ell_star, 0.0, 0.0] for i in range(n)]
     typeid = [0] * n
@@ -627,8 +691,9 @@ def make_frame(n: int, ell_star: float, trapped: list[int], box_star: float,
     f.particles.mass = [1.0] * len(pos)
     f.configuration.box = [box_star] * 2 + [0, 0, 0, 0]
     f.configuration.dimensions = 2
-    # 트랩 본드만. 백본 본드 없음(가설). ★ position 구동에서는 구동 비드가 적분 대상이
-    # 아니라 트랩이 물리적으로 무의미하고, 늘어난 본드가 pe_per_particle 을 오염시킨다.
+    # Trap bonds only. No backbone bond (that is the hypothesis). * In position
+    # driving the driven bead is not integrated, so a trap on it is physically
+    # meaningless and the stretched bond contaminates pe_per_particle.
     grp = [[g, n + j] for j, g in enumerate(trapped) if g != skip_trap]
     f.bonds.N = len(grp)
     f.bonds.types = ["trap"]
@@ -638,12 +703,15 @@ def make_frame(n: int, ell_star: float, trapped: list[int], box_star: float,
 
 
 def make_bending_force(A, n_beads):
-    """선형화 굽힘 U = ½κ_θΣθ_i² 을 `md.force.Custom` 으로 직접 구현 (F_y = −A y).
+    """Implement the linearized bending U = (1/2)*kappa_theta*sum(theta_i^2) directly
+    with `md.force.Custom` (F_y = -A y).
 
-    ★★ `md.angle.Harmonic` 을 쓰지 않는 이유 — sin θ 를 SMALL=1.414e-3 으로 클램프해서
-       거의 곧은 사슬의 **힘만** 축소된다 (에너지는 0.000% 정확 → 에너지 검증으로 안 잡힘).
-       chain-bend-2d-oscill 에서 실측 규명됐고 (bd-hoomd 함정 15), 이 계도 같은 영역이다.
-       거기서 검증된 구현을 그대로 가져왔다 — 모델(bending_matrix)과 구현이 정확히 일치한다.
+    ** Why not `md.angle.Harmonic`: it clamps sin theta at SMALL=1.414e-3, which
+       shrinks **only the force** on a nearly straight chain (the energy is 0.000%
+       accurate, so an energy check does not catch it). This was established by
+       measurement in chain-bend-2d-oscill (bd-hoomd trap 15), and this system is in
+       the same regime. The implementation verified there is carried over unchanged --
+       the model (bending_matrix) and the implementation match exactly.
     """
     import hoomd.md as md
 
@@ -656,9 +724,9 @@ def make_bending_force(A, n_beads):
         def set_forces(self, timestep):
             with self._state.cpu_local_snapshot as snap, \
                  self.cpu_local_force_arrays as arr:
-                tags = np.array(snap.particles.tag, copy=True)   # ★ tag 인덱싱 필수
+                tags = np.array(snap.particles.tag, copy=True)   # * tag indexing is mandatory
                 pos = np.array(snap.particles.position, copy=True)
-                m = tags < self.n                                # 유령 제외
+                m = tags < self.n                                # exclude the ghosts
                 y = np.zeros(self.n)
                 y[tags[m]] = pos[m, 1]
                 fy = -(self.A @ y)
@@ -704,7 +772,7 @@ def build(spec, outdir=None) -> RUN.Build:
     reduced = {"kappa_star": P["kappa_star"], "edl_amp": P["edl_amp"],
               "vdw_amp": P["vdw_amp"], "a_star": P["a_star"]}
     h_min_star = float(P["h_min_star"])
-    ell_star = 1.0 + h_min_star                      # 결합 자연길이 (중심간, r*=1+h_min)
+    ell_star = 1.0 + h_min_star                      # natural bond length (centre to centre, r*=1+h_min)
     r_cut_star = 1.0 + float(P["cutoff_h_star"])
     r_min_star = 1.0 + 1e-6
     box_star = 4.0 * (n - 1) * ell_star
@@ -719,18 +787,19 @@ def build(spec, outdir=None) -> RUN.Build:
     tab.params[("A", "A")] = dict(r_min=r_min_star, U=U_arr, F=F_arr)
     tab.params[("A", "G")] = dict(r_min=r_min_star, U=U_arr * 0, F=F_arr * 0)
     tab.params[("G", "G")] = dict(r_min=r_min_star, U=U_arr * 0, F=F_arr * 0)
-    tab.r_cut[("A", "G")] = tab.r_cut[("G", "G")] = r_min_star     # 사실상 꺼짐
+    tab.r_cut[("A", "G")] = tab.r_cut[("G", "G")] = r_min_star     # effectively off
 
     wca = md.pair.LJ(nlist=cell, default_r_cut=SIGMA_CORE_STAR * 2 ** (1 / 6), mode="shift")
     wca.params[("A", "A")] = dict(epsilon=1.0, sigma=SIGMA_CORE_STAR)
     wca.params[("A", "G")] = wca.params[("G", "G")] = dict(epsilon=0.0, sigma=SIGMA_CORE_STAR)
 
     bond = md.bond.Harmonic()
-    bond.params["trap"] = dict(k=k_t, r0=0.0)          # 트랩 = 유령과의 조화 본드. 백본 없음
+    bond.params["trap"] = dict(k=k_t, r0=0.0)          # the trap = a harmonic bond to a ghost. No backbone
 
-    # ★ 대조군 — JKR 굽힘강성. `angle.Harmonic` 을 쓰지 **않는다**: 거의 곧은 사슬에서
-    #   sinθ 클램프로 힘이 조용히 틀린다 (bd-hoomd 함정 15, chain-bend-2d-oscill 에서
-    #   실측 규명). 그쪽과 **같은** 선형화 굽힘을 force.Custom 으로 직접 건다.
+    # * The control -- JKR bending stiffness. `angle.Harmonic` is **not** used: on a
+    #   nearly straight chain the sin-theta clamp makes the force silently wrong
+    #   (bd-hoomd trap 15, established by measurement in chain-bend-2d-oscill). The
+    #   **same** linearized bending is applied directly via force.Custom.
     forces = [tab, wca, bond]
     bend = None
     if bool(P.get("jkr", False)):
@@ -738,21 +807,25 @@ def build(spec, outdir=None) -> RUN.Build:
         bend = make_bending_force(bending_matrix(n, kth_star, ell_star), n)
         forces.append(bend)
 
-    # ★★ 구동 방식 두 가지 (유변학적으로 의미가 다르다)
-    #   "trap"     — 트랩 중심을 y=a·sin(ωt) 로 옮기고, 비드는 트랩에 끌려온다.
-    #                실험(광집게)에 가깝지만 **트랩 컴플라이언스** 때문에 비드가 명령
-    #                위치를 못 따라간다 (실측 추종률 JKR 3.5% / DLVO 29%).
-    #                → K* = k_t(ŷ_c/ŷ − 1)  [구동 트랩이 느끼는 강성]
-    #   "position" — 구동 비드의 y 를 **직접** 강제한다 (변형률 제어). 컴플라이언스가
-    #                아예 없어 변형이 정확히 부과되고, 유변학의 표준 프로토콜
-    #                (변형을 주고 응력을 잰다)에 맞는다. [P1][P2] 도 실험적으로는
-    #                중앙을 움직이고 **양끝 비드의 힘**을 센서로 잰다.
-    #                → K*_transfer = k_t_sensor·ŷ_end / ŷ_mid  [전달 강성]
-    #   ⚠️ 두 K* 는 **같은 양이 아니다** — 전자는 구동점 강성, 후자는 전달 함수다.
-    #      값을 직접 비교하지 말고 각각 DLVO vs JKR 대비로 볼 것.
+    # ** Two driving modes (rheologically different quantities)
+    #   "trap"     -- move the trap centre as y=a*sin(omega*t) and let the bead be
+    #                pulled along. Closer to the experiment (optical tweezers), but
+    #                **trap compliance** means the bead does not follow the commanded
+    #                position (measured tracking: JKR 3.5% / DLVO 29%).
+    #                -> K* = k_t(y_hat_c/y_hat - 1)  [the stiffness the driving trap feels]
+    #   "position" -- force the driven bead's y **directly** (strain control). There is
+    #                no compliance at all, so the deformation is imposed exactly, and it
+    #                matches the standard rheological protocol (impose a strain, measure
+    #                a stress). [P1][P2] also, experimentally, move the centre and use
+    #                **the force on the end beads** as the sensor.
+    #                -> K*_transfer = k_t_sensor*y_hat_end / y_hat_mid  [transfer stiffness]
+    #   WARNING: the two K* are **not the same quantity** -- the first is a
+    #      drive-point stiffness, the second a transfer function. Do not compare their
+    #      values directly; read each as a DLVO vs JKR contrast.
     pos_drive = str(P.get("drive_mode", "trap")) == "position"
     if pos_drive:
-        # 구동 비드를 적분에서 제외 → 브라운 운동 없음, updater 가 위치를 직접 씀
+        # exclude the driven bead from integration -> no Brownian motion, and the
+        # updater writes its position directly
         bd_filter = hoomd.filter.SetDifference(hoomd.filter.Type(["A"]),
                                                hoomd.filter.Tags([mid]))
     else:
@@ -761,7 +834,7 @@ def build(spec, outdir=None) -> RUN.Build:
     integ = md.Integrator(dt=dt, methods=[bd], forces=forces)
     integ.integrate_rotational_dof = False
     sim.operations.integrator = integ
-    # position 모드는 **비드 자신**을, trap 모드는 **유령**을 움직인다
+    # position mode moves **the bead itself**; trap mode moves **the ghost**
     sim.operations.updaters.append(hoomd.update.CustomUpdater(
         action=_move_ghost_action(mid if pos_drive else ghost_mid, amp, omega, dt),
         trigger=hoomd.trigger.Periodic(UPDATE_EVERY)))
@@ -777,20 +850,22 @@ def build(spec, outdir=None) -> RUN.Build:
         nb = p[:n, :2]
         sep = np.linalg.norm(nb[:, None, :] - nb[None, :, :], axis=-1)
         np.fill_diagonal(sep, np.inf)
-        nn_sep = np.array([sep[i, i + 1] for i in range(n - 1)])   # NN 간격 (결합 감시)
+        nn_sep = np.array([sep[i, i + 1] for i in range(n - 1)])   # NN spacing (bond monitoring)
         return {"t": timestep * dt, "y_bead": float(p[mid, 1]),
                 "y_ghost": float(p[ghost_mid, 1]),
                 "y_end0": float(p[trapped[0], 1]), "y_end1": float(p[trapped[-1], 1]),
                 "min_sep_all": float(sep.min()), "nn_sep_max": float(nn_sep.max()),
                 "nn_sep_min": float(nn_sep.min()),
-                # ★★ 굽음 — 양끝을 잇는 직선 대비 최대 이탈. **강체 평행이동·회전을 뺀
-                #   순수 굽힘 변형**이다. 이게 이 케이스의 핵심 판별량인 이유:
-                #   y 전범위로 보면 DLVO/JKR 이 3.4배 차이지만, 굽음으로 보면 19.6배다 —
-                #   JKR 사슬이 움직이는 것의 대부분은 (트랩이 유한강성이라) 사슬 통째의
-                #   평행이동이지 굽힘이 아니기 때문. shape_localization 은 두 계를 전혀
-                #   구별하지 못했다(1.481 vs 1.470) — 열잡음에 지배돼서다. 굽음이 그 대체다.
+                # ** bow -- the maximum deviation from the chord joining the two ends.
+                #   **Pure bending deformation, with rigid translation and rotation
+                #   removed.** Why it is this case's central discriminant: measured over
+                #   the full y range, DLVO and JKR differ by 3.4x; measured as bow, by
+                #   19.6x -- because most of what a JKR chain does is translate as a
+                #   whole (the traps have finite stiffness), not bend.
+                #   shape_localization failed to distinguish the two systems at all
+                #   (1.481 vs 1.470), being dominated by thermal noise. Bow replaces it.
                 "bow": float(_bow(p[:n, 1])),
-                "shape_y": p[:n, 1].copy()}       # ★ 전체 y-프로필 — 매끈한 곡률 vs 국소꺾임 판정용
+                "shape_y": p[:n, 1].copy()}       # * the full y profile -- for judging smooth curvature vs local kinking
 
     def finalize(cols):
         t, yb, yg = cols["t"], cols["y_bead"], cols["y_ghost"]
@@ -801,11 +876,13 @@ def build(spec, outdir=None) -> RUN.Build:
         yh, _ = LI.agg(blocks_y)
         gh, _ = LI.agg(blocks_g)
 
-        # ★★ position 구동이면 **전달 강성**을 따로 낸다.
-        #   변형은 정확히 부과됐으므로(컴플라이언스 0) 응력에 해당하는 것은 양끝
-        #   센서 비드가 받는 힘 F_end = k_t·y_end 다 ([P1][P2] 의 실험 프로토콜).
+        # ** Under position driving, emit **the transfer stiffness** separately.
+        #   The deformation is imposed exactly (zero compliance), so what corresponds to
+        #   a stress is the force on the end sensor beads, F_end = k_t*y_end
+        #   ([P1][P2]'s experimental protocol).
         #       K_transfer = k_t·⟨ŷ_end⟩ / ŷ_mid
-        #   ⚠️ trap 모드의 K′(구동점 강성)와 **다른 양**이다. 값을 직접 비교하지 말 것.
+        #   WARNING: **a different quantity** from trap mode's K' (a drive-point
+        #      stiffness). Do not compare their values directly.
         pos_mode = str(P.get("drive_mode", "trap")) == "position"
         K_tr = None
         if pos_mode:
@@ -813,50 +890,62 @@ def build(spec, outdir=None) -> RUN.Build:
             be = LI.lockin_blocks(t, ye - ye.mean(), omega,
                                   n_blocks=min(10, max(2, len(t) // 20)))
             eh, esem = LI.agg(be)
-            mh, _ = LI.agg(blocks_y)          # 구동 비드 = 부과된 변형 (측정 위상자)
+            mh, _ = LI.agg(blocks_y)          # the driven bead = the imposed deformation (measured phasor)
             K_tr = (k_t * eh / mh) if abs(mh) > 0 else complex("nan")
 
-        # ★ 예측은 브랜치에 따라 다르다 — 결과를 보기 전에 고정된다 (원칙 9.2).
+        # * The prediction differs per branch -- and it is fixed before the result is seen.
         if bool(P.get("jkr", False)):
-            # 대조군: 굽힘항이 있으면 구동 트랩이 느끼는 정적 강성이 예측값이다.
+            # the control: with the bending term on, the static stiffness the driving
+            # trap feels is the prediction.
             #   (A_bend + T) y = k_t y_c e_mid  →  K = k_t(y_c/y_mid − 1)
-            #   chain-bend-2d-oscill.driven_static_stiffness 와 같은 식.
+            #   the same expression as chain-bend-2d-oscill.driven_static_stiffness.
             A_ = bending_matrix(n, float(P["kappa_theta_star"]), ell_star)
             for i in trapped:
                 A_[i, i] += k_t
             e_ = np.zeros(n)
             e_[mid] = k_t
             K_pred = float(k_t * (1.0 / np.linalg.solve(A_, e_)[mid] - 1.0))
-            K_derivation = ("굽힘항이 있으므로 선형응답 정적극한이 예측을 준다: "
-                            "(A_bend+T)y = k_t·y_c·e_mid 를 풀어 K = k_t(y_c/y_mid − 1). "
-                            "양끝이 강체가 아니라 유한강성 트랩이라 48EI/L³ 이 아니다. "
-                            "저주파(준정적)에서만 성립 — De가 크면 점성이 섞인다.")
-            K_note = (f"★ 대조군(JKR 굽힘 ON). 정적극한 예측 {K_pred:.4g} kT/d². "
-                      f"DLVO-only 브랜치(예측 0)와 같은 기하·같은 시드에서 대조한다")
+            K_derivation = ("with the bending term present, the static limit of linear "
+                            "response gives the prediction: solve "
+                            "(A_bend+T)y = k_t*y_c*e_mid for K = k_t(y_c/y_mid - 1). "
+                            "It is not 48EI/L^3, because the ends are finite-stiffness "
+                            "traps rather than rigid clamps. Valid only at low frequency "
+                            "(quasi-static) -- at large De, viscosity mixes in.")
+            K_note = (f"* the control (JKR bending ON). Static-limit prediction {K_pred:.4g} "
+                      f"kT/d^2. Compared against the DLVO-only branch (prediction 0) at "
+                      f"identical geometry and identical seed")
         else:
             K_pred = 0.0
-            K_derivation = ("중심력 U(r), 결합이 자연장 ℓ(U'(ℓ)=0)에 있을 때 횡변위 "
-                            "y_i,y_{i+1}에 대한 결합에너지는 U(ℓ)+U'(ℓ)(y_i-y_{i+1})²/(2ℓ)"
-                            "+O(y⁴) — U'(ℓ)=0이라 O(y²) 항이 사라진다. 비드 수·본드 "
-                            "토폴로지에 무관한 국소 대칭 논증이라 조합 전체(사슬)에도 "
-                            "그대로 성립한다 (극한 조건: 작은 y, 트랩이 사슬을 늘이거나 "
-                            "압축하지 않음).")
-            K_note = ("★ 예측 0 — G1(직선사슬+순수중심력+자연장 평형이면 선형 굽힘강성"
-                      " 정확히 0). 유의미하게 0이 아니면 장력/유한변형 효과가 섞인 것")
+            K_derivation = ("for a central force U(r) with the bond at its natural length "
+                            "ell (U'(ell)=0), the bond energy against transverse "
+                            "displacements y_i, y_{i+1} is "
+                            "U(ell)+U'(ell)(y_i-y_{i+1})^2/(2*ell)+O(y^4) -- and since "
+                            "U'(ell)=0 the O(y^2) term vanishes. It is a local symmetry "
+                            "argument independent of the bead count and the bond "
+                            "topology, so it carries over unchanged to the full "
+                            "combination (the chain). Limit conditions: small y, and the "
+                            "traps neither stretching nor compressing the chain.")
+            K_note = ("* prediction 0 -- G1 (a straight chain with pure central forces at "
+                      "natural-length equilibrium has exactly zero linear bending "
+                      "stiffness). A significantly non-zero value means tension or "
+                      "finite-deformation effects have mixed in")
 
         shapes = np.stack(cols["shape_y"])          # (n_samples, n)
-        # ★★ G1 검사: 매끈한 곡률이면 프로파일 이차미분이 완만하게 분포, "삼각형형"
-        #   좌굴이면 특정 결합에서 각도(이차미분)가 국소적으로 튀어야 한다.
+        # ** The G1 check: smooth curvature spreads the profile's second derivative
+        #   gently, whereas "trianglelike" buckling should make the angle (the second
+        #   derivative) spike locally at one particular bond.
         d2 = np.diff(shapes, n=2, axis=1)            # (n_samples, n-2)
         d2_mean = np.abs(d2).mean(axis=0)
-        kurt_like = float(d2_mean.max() / (d2_mean.mean() + 1e-30))   # 1에 가까움=매끈, 크면 국소집중
+        kurt_like = float(d2_mean.max() / (d2_mean.mean() + 1e-30))   # near 1 = smooth, large = locally concentrated
 
-        # ★★ 굽음 — 이 케이스의 핵심 판별량 (_bow 도크스트링 참조).
-        #   두 가지를 따로 낸다:
-        #     bow_rms    시간평균 — **열요동 + 구동**이 섞여 있다
-        #     bow_drive  구동 주파수 성분만 락인으로 뽑은 것 — **구동에 의한 굽힘만**
-        #   후자가 진짜 응답이다. 전자만 보면 열적으로 흐물대는 사슬(DLVO)이 "많이 휜다"고
-        #   나오는데 그건 구동에 대한 탄성 응답이 아니다.
+        # ** bow -- this case's central discriminant (see the _bow docstring).
+        #   Two versions are emitted separately:
+        #     bow_rms    the time average -- **thermal fluctuation AND drive** mixed
+        #     bow_drive  only the drive-frequency component, extracted by lock-in --
+        #                **bending due to the drive alone**
+        #   The latter is the real response. Reading only the former makes a thermally
+        #   floppy chain (DLVO) look like it "bends a lot", which is not an elastic
+        #   response to the drive.
         bow = np.asarray(cols["bow"], dtype=float)
         bow_rms = float(np.sqrt((bow ** 2).mean()))
         bb = LI.lockin_blocks(t, bow - bow.mean(), omega,
@@ -864,11 +953,12 @@ def build(spec, outdir=None) -> RUN.Build:
         bow_hat, bow_sem = LI.agg(bb)
         bow_drive = float(abs(bow_hat))
 
-        # ★★ position 구동에서는 K′(구동 트랩 강성)이 **정의되지 않는다** — 트랩이 없다.
-        #   그대로 계산하면 유령이 안 움직여 ŷ_c=0 이 되고 K′ = k_t(0/ŷ − 1) = −k_t 라는
-        #   **의미 없는 상수**가 나온다 (실측 −5217.11 = −k_t*, K_sem=1.2e-12 로 산포조차
-        #   0). 숫자가 그럴듯해서 실제 측정값으로 오독되기 딱 좋다 — 아예 내보내지 않는다.
-        #   position 모드의 관측량은 K_transfer_* 다.
+        # ** Under position driving, K' (the driving-trap stiffness) is **undefined** --
+        #   there is no trap. Computing it anyway gives y_hat_c=0 (the ghost does not
+        #   move) and therefore K' = k_t(0/y_hat - 1) = -k_t, **a meaningless constant**
+        #   (measured -5217.11 = -k_t*, with K_sem=1.2e-12, so even the spread is 0).
+        #   The number looks plausible enough to be misread as a real measurement, so it
+        #   is not emitted at all. The observable in position mode is K_transfer_*.
         obs = ([] if pos_mode else [
             MET.observable("K_prime", float(K.real), K_pred, "kT/d^2",
                            role="implementation_check", sigma=Ksem, tol_sigma=3.0,
@@ -880,31 +970,37 @@ def build(spec, outdir=None) -> RUN.Build:
             MET.observable("y_response", float(abs(yh)), None, "d", role="measurement"),
             *([MET.observable("K_transfer_prime", float(K_tr.real), None, "kT/d^2",
                               role="measurement",
-                              note="★ 위치(변형률) 제어의 전달 강성 실수부 = k_t·ŷ_end/ŷ_mid. "
-                                   "변형이 정확히 부과되므로 트랩 컴플라이언스가 없다 "
-                                   "([P1][P2] 실험 프로토콜과 같은 구성: 중앙을 움직이고 "
-                                   "양끝 센서의 힘을 잰다). ⚠ trap 모드 K′ 과 다른 양"),
+                              note="* the real part of the transfer stiffness under position (strain) "
+                                   "control = k_t*y_hat_end/y_hat_mid. The deformation is imposed "
+                                   "exactly, so there is no trap compliance (the same "
+                                   "configuration as [P1][P2]'s experimental protocol: move the "
+                                   "centre, measure the force at the end sensors). WARNING: a "
+                                   "different quantity from trap mode's K'"),
                MET.observable("K_transfer_dprime", float(K_tr.imag), None, "kT/d^2",
-                              role="measurement", note="전달 강성 허수부")]
+                              role="measurement", note="imaginary part of the transfer stiffness")]
               if K_tr is not None else []),
             MET.observable("bow_rms", bow_rms, None, "d", role="measurement",
-                           note="★★ 굽음 RMS — 양끝 잇는 직선 대비 최대이탈. 강체 평행이동을 "
-                                "뺀 순수 굽힘 변형이다 (트랩이 유한강성이라 사슬이 통째로 "
-                                "밀리는데, y 변위로 재면 그게 굽힘 신호를 덮는다). "
-                                "실측 판별력: y전범위 3.4배 vs 굽음 19.6배 (DLVO vs JKR). "
-                                "★ 단 이 값은 열요동+구동이 섞여 있다 — 구동 응답만 보려면 "
-                                "아래 bow_drive"),
+                           note="** bow RMS -- the maximum deviation from the chord joining the "
+                                "two ends. Pure bending deformation with rigid translation "
+                                "removed (the traps have finite stiffness so the chain gets "
+                                "pushed as a whole, and measuring raw y lets that mask the "
+                                "bending signal). Measured discriminating power: 3.4x over the "
+                                "full y range vs 19.6x for bow (DLVO vs JKR). "
+                                "* But this value mixes thermal fluctuation with the drive -- "
+                                "for the drive response alone use bow_drive below"),
             MET.observable("bow_drive", bow_drive, None, "d", role="measurement",
                            sigma=bow_sem,
-                           note="★ 구동 주파수 성분만 락인으로 뽑은 굽음 = **구동에 의한 "
-                                "굽힘 응답**. bow_rms 만 보면 열적으로 흐물대는 사슬이 '많이 "
-                                "휜다'고 나오지만 그건 탄성 응답이 아니다"),
+                           note="* bow with only the drive-frequency component extracted by "
+                                "lock-in = **the bending response due to the drive.** Reading "
+                                "bow_rms alone makes a thermally floppy chain look like it "
+                                "'bends a lot', which is not an elastic response"),
             MET.observable("shape_localization", kurt_like, None, "dimensionless",
                            role="measurement",
-                           note="⚠ **판별력 없음이 실측으로 확인됨** (JKR 1.481 vs DLVO 1.470 — "
-                                "육안으로는 명백히 다른데 지표는 동일). 양쪽 모두 열잡음이 "
-                                "이차미분을 지배해서다. 남겨두되 판정에 쓰지 말 것 — "
-                                "대체는 bow_drive. max|θ''|/mean|θ''| 정의"),
+                           note="WARNING: **measured to have no discriminating power** (JKR 1.481 "
+                                "vs DLVO 1.470 -- obviously different by eye, identical by this "
+                                "metric), because thermal noise dominates the second derivative "
+                                "in both. Kept but must not be used for a verdict -- bow_drive "
+                                "replaces it. Defined as max|theta''|/mean|theta''|"),
         ]
         return {"observables": obs,
                 "extra": {**({} if pos_mode else
@@ -929,7 +1025,7 @@ def build(spec, outdir=None) -> RUN.Build:
         sim=sim, forces=forces, n_particles=n,
         sample=sample, pe_per_particle=pe_per_particle, sample_every=every,
         phases=[RUN.Phase("warm-up", int(Nm["n_eq"]), collect=False,
-                          note="구동 ON · 국소(결합) 이완만 — 전체 형태이완 아님(스모크)"),
+                          note="drive ON, local (bond) relaxation only -- not whole-chain shape relaxation (smoke)"),
                 RUN.Phase("production", int(Nm["n_prod"]), every,
                           note=f"ω*={omega:.4g}")],
         tags=["2D", "chain", "dlvo", "pair_table", "oscillatory_drive", "no_bending",
