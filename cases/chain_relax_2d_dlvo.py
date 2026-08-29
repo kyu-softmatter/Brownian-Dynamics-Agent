@@ -1,30 +1,39 @@
-"""`chain-relax-2d-dlvo` — chain-bend-2d-dlvo 의 구동 없는(자유 이완) 짝.
+"""`chain-relax-2d-dlvo` -- the undriven (free-relaxation) partner of
+chain-bend-2d-dlvo.
 
-같은 물리(PMMA 비드, DLVO 2차극소 중심력 결합, 명시적 굽힘/마찰 없음)를 쓰되,
-**트랩·오실레이션을 전부 뗀다** — 사용자가 요청한 "입자간 마찰력은 없고 인력만
-있는 체인"을 구동 없이 가장 단순한 형태로 본다 (CLAUDE.md 규칙 8: 정적인 계를
-먼저, 움직임은 그 다음). chain-bend-2d-dlvo 는 이 정적 단계를 건너뛰고 곧바로
-오실레이션 실험을 했다 — 이 케이스가 그 빠진 단계를 채운다.
+Same physics (PMMA beads, a DLVO secondary-minimum central-force bond, no explicit
+bending and no friction), but with **the trap and the oscillation removed
+entirely** -- the simplest undriven form of "a chain with attraction only and no
+inter-particle friction" (CLAUDE.md rule 8: build the static system first, add
+motion afterwards). chain-bend-2d-dlvo skipped that static stage and went straight
+to the oscillation experiment; this case fills it in.
 
-두 실험 (--init):
-  straight  직선 사슬을 열평형시켜 **결합 신장(radial)** 열요동을 잰다.
-            예측: ⟨δℓ*²⟩ = kT*/k_bond* (트랩의 ⟨x²⟩=kT/k 와 같은 종류의 등분배
-            골든테스트 — DLVO 표 퍼텐셜을 이 케이스로 이식한 게 맞는지 확인한다).
-            implementation_check.
-  kink      중앙 결합 하나에 정확한 턴각 Δφ 를 주고(다른 모든 결합은 완전히 곧고
-            모든 결합이 정확히 자연장에서 시작 — 신장 신호 없이 순수 굽힘만) 풀어서
-            굽음(bow)이 탄성 복원되는지 확산적으로 흩어지는지 본다. G1(횡방향 선형
-            굽힘강성이 정확히 0)은 대수적으로만 유도돼 있었고 구동 없이 직접 확인한
-            적이 없다 — 사전 정량 예측이 없으므로 measurement.
+Two experiments (--init):
+  straight  thermalize a straight chain and measure the **radial (bond-stretch)**
+            thermal fluctuation. An equipartition golden test of the same kind as
+            the trap's <x^2>=kT/k -- it confirms that the DLVO table potential was
+            ported into this case correctly.
+            WARNING: the prediction is NOT kT*/k_bond*. The harmonic approximation
+            underestimated the true value by 4.6x, because the well is asymmetric
+            and softer on the outside. See bond_variance_boltzmann below.
 
-DLVO 식·표 퍼텐셜 구현은 **재정의하지 않고** chain_bend_dlvo_2d 에서 그대로 임포트한다
-(두 번째 케이스 — network 가 이미 같은 방식으로 재사용한 전례를 따름. bdbot/ 로
-올릴지는 세 번째 케이스가 나올 때 판단, CLAUDE.md "두 번 나왔는가" 원칙).
+  kink      give exactly one central bond a precise turn angle dPhi (every other
+            bond perfectly straight, every bond starting exactly at its natural
+            length -- pure bending perturbed with no stretch signal), release it,
+            and see whether the bow recovers elastically or disperses diffusively.
+            G1 (the transverse linear bending stiffness is exactly zero) had only
+            been derived algebraically and never confirmed directly without driving.
+            There is no prior quantitative prediction, so this is a measurement.
 
+The DLVO expressions and the table-potential implementation are **not redefined**;
+they are imported from chain_bend_dlvo_2d as-is (the second case to do so,
+following the precedent `network` already set). Whether to promote them into
+`bdbot/` is decided when a third case appears -- the "has it appeared twice"
+principle in CLAUDE.md.
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY cases/chain_relax_2d_dlvo.py --init straight --report
     $PY cases/chain_relax_2d_dlvo.py --init kink --kink-angle 0.3 --report
-    $PY cases/chain_relax_2d_dlvo.py --init straight --smoke --run     # 빠른 정합성 확인
+    $PY cases/chain_relax_2d_dlvo.py --init straight --smoke --run     # a quick sanity check
     $PY cases/chain_relax_2d_dlvo.py --init kink --run
 """
 from __future__ import annotations
@@ -46,8 +55,8 @@ from bdbot import nondim as ND, run as RUN, scales as SC, sim as SIM, stats as S
 from bdbot.provenance import load_node  # noqa: E402
 from bdbot.units import Q  # noqa: E402
 
-# ★ DLVO 식은 chain-bend-2d-dlvo 에서 SI로 검증된 것을 **그대로** 쓴다 (두 번 적지 않는다,
-#   network 와 같은 전례).
+# * The DLVO expressions are used **as-is** from chain-bend-2d-dlvo, where they were
+#   verified in SI -- they are not written twice (the same precedent as `network`).
 from chain_bend_dlvo_2d import (  # noqa: E402
     CUTOFF_H_STAR, SIGMA_CORE_STAR, build_table_arrays, dlvo_reduced_params, find_well,
     F_h_star, U_star,
@@ -57,7 +66,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ① 물리계 (SI)
+# 1. the physical system (SI)
 # ════════════════════════════════════════════════════════════════════════
 def load_system(path: Path) -> dict:
     raw = yaml.safe_load(path.read_text())
@@ -82,23 +91,26 @@ def load_system(path: Path) -> dict:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ② 기하 — 회전/평행이동 불변 형태 서술자
-#    ★★ chain-bend-2d-dlvo 의 `_bow(y)` 는 트랩이 방향을 고정해줘서 실험실좌표 y를
-#    그대로 썼다. 이 케이스엔 트랩이 없어 사슬 전체가 자유로이 회전·평행이동한다 —
-#    반드시 사슬 자신의 몸좌표계(양끝을 잇는 축)로 회전시켜야 한다. 안 그러면
-#    "굽음"이 실제로는 그냥 열적 회전 표류를 재는 것이 된다.
+# 2. geometry -- shape descriptors invariant under rotation and translation
+#    ** chain-bend-2d-dlvo's `_bow(y)` used lab-frame y directly, because the trap
+#    fixed the orientation. This case has no trap, so the whole chain rotates and
+#    translates freely -- the descriptor MUST be rotated into the chain's own body
+#    frame (the axis joining the two ends). Otherwise "bow" is really just measuring
+#    thermal rotational drift.
 # ════════════════════════════════════════════════════════════════════════
 def bond_vectors(pos: np.ndarray) -> np.ndarray:
     return pos[1:] - pos[:-1]
 
 
 def bend_angles(pos: np.ndarray) -> np.ndarray:
-    """내부 비드마다 결합방향의 국소 턴각 dtheta_i (n-2,). 0=그 지점이 국소적으로 곧다.
+    """The local turn angle dtheta_i of the bond direction at each interior bead,
+    (n-2,). Zero means that point is locally straight.
 
-    회전/평행이동 불변 — 연속 결합방향의 **차이**만 본다. chain_bend_dlvo_2d.py 의
-    `bending_matrix()` 가 쓰는 이산곡률 θ_i=(y_{i+1}-2y_i+y_{i-1})/ell 과 소각도에서
-    동등하다(둘 다 1차 이산곡률) — 여기선 트랩이 없어 y 기반 정의를 못 쓰므로
-    턴각으로 재정의했다.
+    Invariant under rotation and translation -- it looks only at the **difference**
+    between consecutive bond directions. Equivalent at small angles to the discrete
+    curvature theta_i=(y_{i+1}-2y_i+y_{i-1})/ell used by `bending_matrix()` in
+    chain_bend_dlvo_2d.py (both are first-order discrete curvature) -- redefined via
+    turn angles here because with no trap the y-based definition cannot be used.
     """
     bv = bond_vectors(pos)
     ang = np.arctan2(bv[:, 1], bv[:, 0])
@@ -107,19 +119,25 @@ def bend_angles(pos: np.ndarray) -> np.ndarray:
 
 
 def bow_metrics(pos: np.ndarray) -> tuple[float, float]:
-    """양끝을 잇는 축을 x'축으로 정렬한 뒤 그 축에서 벗어난 정도 (max, rms) [d]."""
+    """Align the axis joining the two ends with x', then measure the deviation from
+    that axis (max, rms) [d].
+    """
     d = pos[-1] - pos[0]
     L_ee = float(np.hypot(d[0], d[1]))
     if L_ee < 1e-9:
         return 0.0, 0.0
     u = d / L_ee
     rel = pos - pos[0]
-    yp = -rel[:, 0] * u[1] + rel[:, 1] * u[0]        # 몸좌표계 횡성분. yp[0]=yp[-1]=0(구성상)
+    yp = -rel[:, 0] * u[1] + rel[:, 1] * u[0]        # transverse component in the body frame.
+                                                 # yp[0]=yp[-1]=0 by construction
     return float(np.abs(yp).max()), float(np.sqrt(np.mean(yp ** 2)))
 
 
 def min_nnn_gap_star(pos: np.ndarray) -> float:
-    """|i-j|>=2 인 쌍의 최소 표면간극 h*=r*-1. 조기 비인접 결합("삼각형형") 감지."""
+    """The minimum surface gap h*=r*-1 over pairs with |i-j|>=2.
+
+    Detects premature non-adjacent bonding (the "trianglelike" structure).
+    """
     n = len(pos)
     if n < 4:
         return float("inf")
@@ -131,10 +149,12 @@ def min_nnn_gap_star(pos: np.ndarray) -> float:
 
 
 def kink_positions(n: int, ell_star: float, kink_angle: float) -> np.ndarray:
-    """중앙 결합 하나에만 정확한 턴각 `kink_angle` 을 주고 나머지는 완전히 곧다.
+    """Give exactly one central bond the turn angle `kink_angle`; every other bond is
+    perfectly straight.
 
-    모든 결합이 정확히 `ell_star` 로 시작한다 — 신장(radial) 신호를 섞지 않고
-    순수 굽힘 자유도만 교란한다. `kink_angle=0` 이면 직선(= --init straight).
+    Every bond starts at exactly `ell_star` -- so no radial (stretch) signal is mixed
+    in and only the bending degrees of freedom are perturbed. `kink_angle=0` gives a
+    straight chain (= --init straight).
     """
     mid = n // 2
     pos = np.zeros((n, 2))
@@ -148,21 +168,28 @@ def kink_positions(n: int, ell_star: float, kink_angle: float) -> np.ndarray:
 
 
 def bond_variance_boltzmann(p: dict, w: dict, cutoff_h_star: float, nbins: int = 400_000):
-    """결합 신장(h-h_min)의 **진짜**(비조화) 열평형 분산 — 2차극소 우물 안(h>barrier_h)
-    에서 수치 적분 (basin-restricted Boltzmann average, kT*=1).
+    """The **true** (anharmonic) thermal-equilibrium variance of the bond stretch
+    (h-h_min), integrated numerically inside the secondary-minimum well
+    (h>barrier_h) -- a basin-restricted Boltzmann average at kT*=1.
 
-    ★★ 조화 근사 `1/k_bond_star` 는 우물 바닥의 국소 곡률만 본다. 이 우물은 안쪽(장벽
-    쪽)이 가파르고 바깥쪽(h→∞, U→0⁻)이 훨씬 무른 **비대칭**이라 조화 근사가 진값을
-    과소평가한다 — 실측(스모크런, n=9): 조화 예측의 2.9배, 전 우물 수치적분은 4.6배.
-    soft-r3 의 "Einstein 케이지 근사가 비조화성으로 어긋난다"(bd-physics §6.2)와
-    같은 종류의 함정이다. 여기서는 **체제 판정용으로 낮추지 않고** 적분으로 정확한
-    예측값을 만들어 진짜 골든테스트로 쓴다 — 이 계는 조화 근사를 요구하지 않는다
-    (자유 이완, 트랩 없음. soft-r3 는 dt 설계에 근사가 필요해서 못 피했다).
+    ** The harmonic approximation `1/k_bond_star` sees only the local curvature at
+    the bottom of the well. This well is **asymmetric** -- steep on the inside
+    (barrier side) and much softer on the outside (h->inf, U->0-) -- so the harmonic
+    approximation underestimates the true value. Measured (smoke run, n=9): 2.9x the
+    harmonic prediction, and 4.6x for the full-well numerical integral. The same
+    class of trap as soft-r3's "the Einstein cage approximation breaks under
+    anharmonicity" (bd-physics 6.2). Here it is **not demoted to a regime
+    indicator** -- the integral gives an exact prediction and it is used as a real
+    golden test, because this system does not require the harmonic approximation
+    (free relaxation, no trap; soft-r3 could not avoid it because its dt design
+    needed it).
 
-    적분 구간을 장벽(barrier_h) 안쪽까지 열지 않는 이유: 장벽이 416 kT 라 시뮬레이션
-    시간축에서 **절대 못 넘는다** — 전 구간(h→0의 1차극소 포함)으로 적분하면 vdW
-    발산 때문에 분포가 h→0 으로 완전히 무너진다(실측 확인). 시뮬레이션이 실제로
-    샘플링하는 것은 **2차극소 우물 안**뿐이므로 그 basin 으로 제한해야 한다.
+    Why the integration range is not opened past the barrier: the barrier is 416 kT,
+    so it can **never** be crossed on the simulation timescale. Integrating over the
+    full range (including the primary minimum at h->0) makes the distribution
+    collapse entirely to h->0 because of the vdW divergence (measured). What the
+    simulation actually samples is **inside the secondary-minimum well only**, so the
+    integral must be restricted to that basin.
     """
     h = np.linspace(w["barrier_h"], cutoff_h_star, nbins)
     U = U_star(h, p)
@@ -174,7 +201,7 @@ def bond_variance_boltzmann(p: dict, w: dict, cutoff_h_star: float, nbins: int =
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ③ 스케일 원장
+# 3. the scale ledger
 # ════════════════════════════════════════════════════════════════════════
 def build_ledger(sys_, n: int, kink_angle: float, *, dt_scale=1.0,
                  T_obs_tau: float, eq_scale: float = 200.0) -> SC.ScaleLedger:
@@ -189,30 +216,34 @@ def build_ledger(sys_, n: int, kink_angle: float, *, dt_scale=1.0,
     sigma_bond = (kT / k_bond) ** 0.5
     L_chain = (n - 1) * ell
 
-    # ★★ 이 계의 유일한 강성 모드가 결합 신장이다 (굽힘강성은 구조적으로 0, 트랩도
-    #   없다) — chain-bend-2d-dlvo 처럼 여러 후보 중 최속을 고를 필요가 없다.
+    # ** The bond stretch is this system's ONLY stiffness mode (the bending stiffness
+    #   is structurally 0 and there is no trap) -- unlike chain-bend-2d-dlvo, there is
+    #   no need to pick the fastest among several candidates.
     tau_bond = C.relaxation_time(gamma, k_bond)
     dt = dt_scale * C.dt_from_gate(tau_bond)
     T_obs = Q(T_obs_tau, "dimensionless") * tau_bond
 
-    # 킹크 초기조건의 안전성 — 결합은 전부 정확히 ell 에서 시작하므로 "신장"은 0이지만
-    # 킹크 자체가 만드는 NNN(2결합 건너) 간극은 좁아질 수 있다 (기하로 직접 확인).
+    # Safety of the kink initial condition -- every bond starts at exactly ell so the
+    # "stretch" is 0, but the kink itself can narrow the next-nearest-neighbour
+    # (two-bonds-away) gap. Checked directly from the geometry.
     ell_star = float((ell / d).to("dimensionless").magnitude)
     nnn_gap0 = min_nnn_gap_star(kink_positions(n, ell_star, kink_angle)) if kink_angle else float("inf")
 
-    # 결합이 h_min 밖으로 얼마나 늘어나야 최대 인장력(F_max)에 닿는지 — 정보용 앵커.
-    # (킹크는 신장 신호가 없게 지었으므로 여기서 실제로 쓰이진 않지만, dt/안전 논의의
-    # 참조 스케일로 원장에 남긴다.)
+    # How far past h_min a bond has to stretch to reach the maximum tensile force
+    # (F_max) -- an informational anchor. (The kink was built to produce no stretch
+    # signal so it is not actually used here, but it stays in the ledger as a
+    # reference scale for dt and safety discussions.)
     hs = np.linspace(w["h_min"], CUTOFF_H_STAR, 20_000)
     Fs = F_h_star(hs, p)
     F_max = float(-Fs.min())
 
-    # ★★ 골든테스트의 진짜 예측값 — 조화 근사(1/k_bond_star)가 아니라 우물 전체의
-    #   비조화 볼츠만 적분(basin-restricted, 위 bond_variance_boltzmann 참조).
+    # ** The golden test's real predicted value -- not the harmonic approximation
+    #   (1/k_bond_star) but the anharmonic Boltzmann integral over the whole well
+    #   (basin-restricted; see bond_variance_boltzmann above).
     dl_var_boltz, dl_mean_boltz_h = bond_variance_boltzmann(p, w, CUTOFF_H_STAR)
 
     lg = SC.ScaleLedger()
-    lg.add_length("sigma_bond", sigma_bond.to("m"), "결합 신장 열요동 폭 √(kT/k_bond)", star=True)
+    lg.add_length("sigma_bond", sigma_bond.to("m"), "bond-stretch thermal width sqrt(kT/k_bond)", star=True)
     lg.add_length("h_min", Q(w["h_min"], "dimensionless") * d, "secondary-minimum position (surface gap)")
     lg.add_length("d", d, "bead diameter")
     lg.add_length("ell", ell.to("m"), "natural bond length (centre to centre, d+h_min)")
@@ -220,25 +251,27 @@ def build_ledger(sys_, n: int, kink_angle: float, *, dt_scale=1.0,
     lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
     lg.add_time("dt", dt, "integration step", role="dt")
     lg.add_time("tau_bond", tau_bond,
-               "★★ γ/k_bond 결합 신장 — 이 계의 **유일한** 강성 모드. dt를 정한다",
+               "** gamma/k_bond bond stretch -- this system's **only** stiffness mode. It sets dt",
                star=True)
     lg.add_time("tau_B", tau_B, "d^2/D_t diffusion (reference)")
-    lg.add_time("T_obs", T_obs, "관측창 (τ_bond 배수 — 국소 모드만 필요, 사슬 전체"
-               " 형태이완 τ_chain_diff 는 불필요, observation.yaml R2)", role="observation")
+    lg.add_time("T_obs", T_obs, "observation window (multiples of tau_bond -- only the "
+               "local mode is needed; whole-chain shape relaxation "
+               "tau_chain_diff is not)", role="observation")
     lg.add_energy("kT", kT, "thermal energy (reference)")
-    lg.add_energy("k_bond_d2", (k_bond * d ** 2).to("J"), "k_bond d² 결합 신장강성", star=True)
-    lg.add_energy("well_depth", Q(-w["U_min"], "dimensionless") * kT, "|2차극소 깊이|")
+    lg.add_energy("k_bond_d2", (k_bond * d ** 2).to("J"), "k_bond*d^2 bond-stretch stiffness", star=True)
+    lg.add_energy("well_depth", Q(-w["U_min"], "dimensionless") * kT, "|secondary-minimum depth|")
     lg.declare_absent(
         "box",
-        "주기경계 없음 (사슬 하나, 트랩도 없어 자유 이완·자유 회전). HOOMD 프레임에 "
-        "형식적 박스가 필요하므로 사슬 자신의 최대 크기(4×L_chain, chain-bend-2d-dlvo와 "
-        "같은 여유)로 크게 잡아 자기 주기이미지와의 상호작용만 피한다 — 물리적으로 "
-        "의미 있는 확인 스케일이 아니다.")
+        "no periodic boundaries (one chain, and with no trap it relaxes and rotates "
+        "freely). HOOMD's frame needs a formal box, so it is set large -- 4x the "
+        "chain's own maximum extent, the same margin as chain-bend-2d-dlvo -- purely "
+        "to avoid interacting with its own periodic image. It is not a physically "
+        "meaningful confinement scale.")
     lg.declare_absent(
         "bending_stiffness",
-        "★★ 구조적으로 없다 (G1, chain-bend-2d-dlvo 에서 유도) — 이 케이스가 그 "
-        "구조적 사실을 구동 없는 최소 구성에서 직접 실행으로 확인하는 것 자체가 "
-        "목적이다. 지어낸 대체 척도를 넣지 않는다.")
+        "** structurally absent (G1, derived in chain-bend-2d-dlvo). Confirming that "
+        "structural fact by execution, in the minimal undriven configuration, is the "
+        "whole point of this case. No invented substitute scale is put here.")
     lg.derived = dict(gamma=gamma, kT=kT, d=d, tau_B=tau_B, ell=ell.to("m"),
                       L_chain=L_chain.to("m"), ell_star=ell_star, k_bond=k_bond,
                       k_bond_star=w["k_bond_star"], sigma_bond=sigma_bond.to("m"),
@@ -248,14 +281,15 @@ def build_ledger(sys_, n: int, kink_angle: float, *, dt_scale=1.0,
                       dl_var_boltz=dl_var_boltz, dl_mean_boltz_h=dl_mean_boltz_h)
     lg.ref = SC.thermal_reference(
         d, kT, tau_B,
-        SC.THERMAL_RATIONALE + " ★ 이 계엔 굽힘강성도 트랩도 없다 — 유일한 강성 모드가 "
-        "결합 신장(tau_bond)뿐이라, dt·평형화 판정이 chain-bend-2d-dlvo 보다 단순하다.")
+        SC.THERMAL_RATIONALE + " * This system has neither a bending stiffness nor a "
+        "trap -- the only stiffness mode is the bond stretch (tau_bond), which makes "
+        "the dt and equilibration verdicts simpler than in chain-bend-2d-dlvo.")
     lg.rationale = lg.ref["rationale"]
     return lg
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ④ 무차원수 + 분리 검사
+# 4. dimensionless groups + separation checks
 # ════════════════════════════════════════════════════════════════════════
 def analyze_scales(lg, n, init, kink_angle):
     D = lg.derived
@@ -263,37 +297,39 @@ def analyze_scales(lg, n, init, kink_angle):
 
     groups = [
         ND.Group("k_bond_star", D["k_bond_star"], ("energies", "k_bond_d2"),
-                 ("energies", "kT"), "k_bond d²/kT", "결합 신장강성 — 유일한 조화 모드"),
+                 ("energies", "kT"), "k_bond d^2/kT", "bond-stretch stiffness -- the only harmonic mode"),
         ND.Group("well_depth/kT", r("energies", "well_depth", "kT"), ("energies", "well_depth"),
-                 ("energies", "kT"), "", "결합 깊이 — 열에너지 규모면 가역적"),
+                 ("energies", "kT"), "", "bond depth -- reversible if it is on the scale of kT"),
         ND.Group("sigma_bond/d", r("lengths", "sigma_bond", "d"), ("lengths", "sigma_bond"),
-                 ("lengths", "d"), "", "결합 신장 열요동 (예측 골든테스트)"),
-        ND.Group("n_beads", float(n), None, None, "", "사슬 길이 (입력)"),
+                 ("lengths", "d"), "", "bond-stretch thermal fluctuation (the predicted golden test)"),
+        ND.Group("n_beads", float(n), None, None, "", "chain length (input)"),
         ND.Group("kink_angle_rad", float(kink_angle), None, None, "",
-                 "초기 킹크각 (입력, straight면 0)"),
+                 "initial kink angle (input; 0 for straight)"),
         ND.Group("dt/tau_bond", r("times", "dt", "tau_bond"), ("times", "dt"),
-                 ("times", "tau_bond"), "", "적분 해상 — 유일한 강성 모드"),
+                 ("times", "tau_bond"), "", "integration resolution -- the only stiffness mode"),
         ND.Group("T_obs/tau_bond", r("times", "T_obs", "tau_bond"), ("times", "T_obs"),
-                 ("times", "tau_bond"), "", "관측창 (국소모드 통계용)"),
+                 ("times", "tau_bond"), "", "observation window (for local-mode statistics)"),
         ND.Group("St", r("times", "tau_p", "tau_bond"), ("times", "tau_p"),
-                 ("times", "tau_bond"), "tau_p/tau_bond", "관성 vs 결합신장"),
+                 ("times", "tau_bond"), "tau_p/tau_bond", "inertia vs bond stretch"),
     ]
     checks = [
         C.Check("model", "note: tau_p/tau_bond", r("times", "tau_p", "tau_bond"), C.GATE, "<=",
-              "chain-bend-2d-dlvo 와 동일한 미검증 상태(같은 입자·같은 결합) — 여기서 "
-              "재검증하지 않는다. 그 케이스가 OverdampedViscous 대조로 검증하면 이 "
-              "케이스도 같이 검증된다", hard=False),
-        C.Check("integration", "결합 신장 해상 dt/τ_bond", r("times", "dt", "tau_bond"), C.GATE, "<=",
-              "이 계의 유일한 강성 모드. 못 맞추면 발산"),
-        C.Check("statistics", "관측창 충분     T_obs/τ_bond", r("times", "T_obs", "tau_bond"),
-              1000.0, ">=", "국소(결합) 등분배 통계에 필요한 최소 배수 — 사슬 전체 "
-              "형태이완(τ_chain_diff)까지는 불필요", hard=False),
+              "the same unverified state as chain-bend-2d-dlvo (same particles, same "
+              "bond) -- not re-verified here. When that case verifies it against "
+              "OverdampedViscous, this case is verified with it", hard=False),
+        C.Check("integration", "bond stretch resolved dt/tau_bond", r("times", "dt", "tau_bond"), C.GATE, "<=",
+              "this system's only stiffness mode. Miss it and it diverges"),
+        C.Check("statistics", "observation sufficient T_obs/tau_bond", r("times", "T_obs", "tau_bond"),
+              1000.0, ">=", "the minimum multiple needed for local (bond) "
+              "equipartition statistics -- whole-chain shape relaxation "
+              "(tau_chain_diff) is not required", hard=False),
     ]
     if kink_angle:
         checks.append(C.Check(
-            "geometry", "킹크 NNN 간극(초기) vs 컷오프", D["nnn_gap0_star"], CUTOFF_H_STAR, ">=",
-            f"2결합 건너 비드가 방출 순간부터 이미 DLVO 컷오프 안(조기 비인접 결합)에 "
-            f"들어가 있으면 '순수 굽힘만 교란'했다는 설계 의도가 깨진다", hard=False))
+            "geometry", "kink NNN gap (initial) vs cutoff", D["nnn_gap0_star"], CUTOFF_H_STAR, ">=",
+            f"if the two-bonds-away bead is already inside the DLVO cutoff at the "
+            f"moment of release (premature non-adjacent bonding), the design intent of "
+            f"'perturbing pure bending only' is broken", hard=False))
     return groups, checks
 
 
@@ -303,25 +339,26 @@ def report_blocks(sys_, lg, n, init, kink_angle, n_steps):
            R.kv("psi0", f"{sys_['psi0'].value:~.4gP}", sys_["psi0"].tier, sys_["psi0"].source[:44]),
            R.kv("I(MgCl2)", f"{sys_['ionic_strength'].value:~.4gP}",
                 sys_["ionic_strength"].tier, sys_["ionic_strength"].source[:44]),
-           R.kv("n", f"{n}", 3, "chain-bend-2d-dlvo 승계값과 맞춤"),
-           R.kv("init", init, 3, "straight=직선 열평형 / kink=방출 이완"),
-           R.kv("kink_angle", f"{kink_angle:.3f} rad", 3, "★제안 (observation.yaml R1)")]
+           R.kv("n", f"{n}", 3, "matched to the value inherited from chain-bend-2d-dlvo"),
+           R.kv("init", init, 3, "straight = thermalize a straight chain / kink = release and relax"),
+           R.kv("kink_angle", f"{kink_angle:.3f} rad", 3, "*proposed (observation.yaml R1)")]
     der = [
-        f"  결합: 2차극소 {D['well_star']:.3f} kT @ h_min*={D['h_min_star']:.5f}"
-        f"   장벽 {D['barrier_star']:.1f} kT",
+        f"  bond: secondary minimum {D['well_star']:.3f} kT @ h_min*={D['h_min_star']:.5f}"
+        f"   barrier {D['barrier_star']:.1f} kT",
         f"  k_bond = {D['k_bond'].to('pN/um'):~.4fP} = {D['k_bond_star']:.4e} kT/d²"
-        f"   σ_bond(조화) = {D['sigma_bond'].to('nm'):~.4fP}",
-        f"  ★ 결합 신장 골든테스트 예측(비조화 볼츠만 적분) = {D['dl_var_boltz']:.4e} d²"
-        f"   ({D['dl_var_boltz']*D['k_bond_star']:.2f}× 조화근사 — 우물이 바깥쪽으로 "
-        f"무른 비대칭 탓, soft-r3 의 Einstein 케이지와 같은 종류의 비조화 보정)",
-        f"  ell(자연장) = {D['ell'].to('nm'):~.2fP}   L_chain = {D['L_chain'].to('um'):~.3fP}",
-        f"  F_max(우물 최대 인장력) = {D['F_max_star']:.1f} kT/d — 킹크는 결합신장 "
-        f"신호를 안 만들어서(정확히 ell 에서 시작) 참조용",
-        f"  ★★ 굽힘 선형강성 = 0 (구조적, declare_absent) — 이 실행이 직접 확인 대상",
+        f"   sigma_bond (harmonic) = {D['sigma_bond'].to('nm'):~.4fP}",
+        f"  * bond-stretch golden-test prediction (anharmonic Boltzmann integral) = {D['dl_var_boltz']:.4e} d^2"
+        f"   ({D['dl_var_boltz']*D['k_bond_star']:.2f}x the harmonic approximation -- because "
+        f"the well is asymmetric and softer on the outside; the same class of "
+        f"anharmonic correction as soft-r3's Einstein cage)",
+        f"  ell (natural length) = {D['ell'].to('nm'):~.2fP}   L_chain = {D['L_chain'].to('um'):~.3fP}",
+        f"  F_max (the well's maximum tensile force) = {D['F_max_star']:.1f} kT/d -- for "
+        f"reference, since the kink produces no stretch signal (it starts exactly at ell)",
+        f"  ** linear bending stiffness = 0 (structural, declare_absent) -- confirming this directly is what this run is for",
     ]
     if kink_angle:
-        der.append(f"  킹크 NNN 간극(초기, h*) = {D['nnn_gap0_star']:+.4f}"
-                   f"   (컷오프 {CUTOFF_H_STAR:.2f} — 크면 조기 비인접결합 없음)")
+        der.append(f"  kink NNN gap (initial, h*) = {D['nnn_gap0_star']:+.4f}"
+                   f"   (cutoff {CUTOFF_H_STAR:.2f} -- larger means no premature non-adjacent bonding)")
     plan = [
         f"  dt      = {D['dt'].to_compact():~.4gP}  = {lg.ratio('times','dt','tau_B'):.3e} τ_B",
         f"  T_obs   = {D['T_obs'].to_compact():~.4gP}  = {lg.ratio('times','T_obs','tau_bond'):.3g} τ_bond",
@@ -368,8 +405,9 @@ def build_spec(sys_, n, init, kink_angle, args):
                 "a_star": p["a_star"], "cutoff_h_star": CUTOFF_H_STAR,
                 "h_min_star": D["h_min_star"], "k_bond_star": D["k_bond_star"],
                 "well_star": D["well_star"],
-                # ★ L3에서 한 번 적분한 진짜(비조화) 골든테스트 예측값 — L4는 이 숫자를
-                #   그대로 읽는다(스펙이 유일한 계약, 재유도하지 않는다).
+                # * The true (anharmonic) golden-test prediction, integrated once at
+                #   L3 -- L4 reads this number as-is (the spec is the only contract; it
+                #   is never re-derived).
                 "dl_var_boltz": D["dl_var_boltz"]},
         numerics={"dt_star": lg.ratio("times", "dt", "tau_B"),
                   "n_eq": n_eq, "n_prod": n_prod, "n_samples": args.samples,
@@ -398,15 +436,15 @@ def emit(sys_, n, init, kink_angle, args) -> int:
     print(report)
 
     if spec.errors:
-        print(f"\n❌ L3 무결성 오류 {len(spec.errors)}건.")
+        print(f"\nx {len(spec.errors)} L3 integrity error(s).")
         return 1
     if verdict == "FAIL":
-        print("\n❌ 하드 분리 검사 실패 — 스펙을 쓰지 않습니다.")
+        print("\nx a hard separation check failed -- not writing the spec.")
         return 1
     p = spec.write(ROOT / "specs" / f"{run_id}.json")
     if args.spec or args.report:
         if args.spec:
-            print(f"\nL3 스펙: {p.relative_to(ROOT)}")
+            print(f"\nL3 spec: {p.relative_to(ROOT)}")
         return 0
 
     outdir = ROOT / "runs" / run_id
@@ -418,8 +456,9 @@ def emit(sys_, n, init, kink_angle, args) -> int:
     verdict_txt = RUN.render_verdict(v)
     print(verdict_txt)
 
-    # ★★ result.txt — 완료 마커 (CLAUDE.md: 안 쓰면 status가 런을 0개로 세고, 미완료
-    #   정리 스크립트가 완료 런을 지운다). 케이스 스크립트의 책임.
+    # ** result.txt -- the completion marker. Without it, `status` counts the run as
+    #   zero and an "incomplete cleanup" pass deletes a completed run. This is the
+    #   case script's responsibility, not the engine's.
     if v["status"] != "skipped":
         obs_lines = []
         try:
@@ -427,12 +466,12 @@ def emit(sys_, n, init, kink_angle, args) -> int:
             for o in mj.get("observables", []):
                 m = o.get("measured")
                 p_ = o.get("predicted")
-                tail = f"   (예측 {p_:.6g})" if isinstance(p_, (int, float)) else ""
+                tail = f"   (predicted {p_:.6g})" if isinstance(p_, (int, float)) else ""
                 obs_lines.append(f"  {o['name']:<28} {m:.6g}{tail}" if m is not None
                                  else f"  {o['name']:<28} —")
         except Exception as e:
-            obs_lines.append(f"  (metrics.json 을 읽지 못함: {e})")
-        result = "\n".join(["=" * 84, f"결과 — {run_id}", "=" * 84,
+            obs_lines.append(f"  (could not read metrics.json: {e})")
+        result = "\n".join(["=" * 84, f"RESULT -- {run_id}", "=" * 84,
                             *obs_lines, "=" * 84, verdict_txt])
         (outdir / "result.txt").write_text(report + "\n" + result)
         make_plots(sys_, lg, n, init, kink_angle, outdir)
@@ -440,9 +479,9 @@ def emit(sys_, n, init, kink_angle, args) -> int:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# L4 — HOOMD 빌더. 트랩·구동이 없어 chain-bend-2d-dlvo 보다 훨씬 단순하다 —
-# 유령입자·CustomUpdater·force.Custom 전부 불필요. 실제 비드 N개 + Table(DLVO) +
-# WCA(코어) + Brownian(전 입자) 뿐이다.
+# L4 -- the HOOMD builder. With no trap and no driving this is far simpler than
+# chain-bend-2d-dlvo: no ghost particle, no CustomUpdater, no force.Custom. Just N
+# real beads + Table (DLVO) + WCA (core) + Brownian over all particles.
 # ════════════════════════════════════════════════════════════════════════
 @RUN.builder("chain-relax-2d-dlvo")
 def build(spec, outdir=None) -> RUN.Build:
@@ -462,7 +501,7 @@ def build(spec, outdir=None) -> RUN.Build:
     ell_star = 1.0 + h_min_star
     r_cut_star = 1.0 + float(P["cutoff_h_star"])
     r_min_star = 1.0 + 1e-6
-    box_star = 4.0 * max(1, n - 1) * ell_star           # 여유 큰 박스 — 자기 주기이미지 회피용
+    box_star = 4.0 * max(1, n - 1) * ell_star           # a generous box -- purely to avoid the self periodic image
 
     pos0 = kink_positions(n, ell_star, kink_angle)
     sim = SIM.make_sim(SIM.frame_2d(pos0, box_star), seed=seed)
@@ -475,15 +514,16 @@ def build(spec, outdir=None) -> RUN.Build:
     wca = md.pair.LJ(nlist=cell, default_r_cut=SIGMA_CORE_STAR * 2 ** (1 / 6), mode="shift")
     wca.params[("A", "A")] = dict(epsilon=1.0, sigma=SIGMA_CORE_STAR)
 
-    integ, bd = SIM.attach_brownian(sim, dt, [tab, wca])           # 마찰항 없음 — BD 그대로
+    integ, bd = SIM.attach_brownian(sim, dt, [tab, wca])           # no friction term -- plain BD
     SIM.add_trajectory_writer(sim, (Path(outdir) / "traj_A.gsd") if outdir else None,
                               max(1, n_prod // 200))
     L = box_star
 
     def unwrapped_xy():
-        # ★ `sim.state.get_snapshot()` 은 (force.Custom 의 cpu_local_snapshot 과 달리)
-        #   이미 tag 순서로 모아서 준다 — tag 재색인이 필요 없다(soft_r3_2d.py 의
-        #   xy() 와 같은 패턴). tag 인덱싱은 로컬 스냅샷 전용(bd-hoomd 함정 설명).
+        # * `sim.state.get_snapshot()` already gathers in tag order (unlike
+        #   force.Custom's cpu_local_snapshot) -- no tag re-indexing is needed (the
+        #   same pattern as xy() in soft_r3_2d.py). Tag indexing is for local
+        #   snapshots only (see the bd-hoomd trap).
         snap = sim.state.get_snapshot()
         pos = np.array(snap.particles.position, dtype=float)[:, :2]
         img = np.array(snap.particles.image, dtype=float)[:, :2]
@@ -513,46 +553,53 @@ def build(spec, outdir=None) -> RUN.Build:
         dl_var_sem = ST.block_sem(np.array([float(np.mean((bl - ell_star) ** 2))
                                             for bl in cols["bond_len"]])) if n_s else float("nan")
         k_bond_star = float(P["k_bond_star"])
-        dl_var_pred = float(P["dl_var_boltz"])         # ★ 비조화 볼츠만 적분값 — 아래 참조
+        dl_var_pred = float(P["dl_var_boltz"])         # * the anharmonic Boltzmann integral -- see below
 
         obs = []
-        # ── implementation_check — 결합 신장(radial) 등분배 골든테스트 ──────────
-        # ★★ 예측은 조화 근사(kT*/k_bond*)가 **아니다** — 스모크런에서 실측해보니
-        #   조화 근사가 진값을 4.6배 과소평가했다(우물이 바깥쪽으로 무른 비대칭 —
-        #   soft-r3 의 Einstein 케이지 근사와 같은 함정). 대신 build_ledger() 의
-        #   `bond_variance_boltzmann()` 이 우물 전체(장벽 안쪽 basin)를 수치적분한
-        #   값을 쓴다 — 여전히 **이 케이스가 세우는 같은 모델(DLVO+WCA)에서 그대로
-        #   나오는 예측**이라 implementation_check 이 맞다(조화라고 가정하지 않았을
-        #   뿐, 이 퍼텐셜 자체의 정확한 결과). DLVO 표 퍼텐셜을 이 케이스로 이식한 게
-        #   맞는지 확인하는 역할(chain-bend-2d-dlvo 는 트랩+구동이 섞여 이 자유도를
-        #   격리해서 잰 적이 없다).
+        # -- implementation_check -- the radial (bond-stretch) equipartition golden test
+        # ** The prediction is **not** the harmonic approximation (kT*/k_bond*). A
+        #   smoke run measured the harmonic approximation underestimating the true
+        #   value by 4.6x (the well is asymmetric and softer on the outside -- the same
+        #   trap as soft-r3's Einstein cage approximation). Instead it uses the value
+        #   `bond_variance_boltzmann()` in build_ledger() obtains by numerically
+        #   integrating over the whole well (the basin inside the barrier) -- still
+        #   **a prediction that follows directly from the same model this case builds
+        #   (DLVO+WCA)**, so implementation_check is the right role: it simply does not
+        #   assume harmonicity, and is the exact result for this potential. Its job is
+        #   to confirm that the DLVO table potential was ported into this case
+        #   correctly (chain-bend-2d-dlvo mixed in a trap and driving, so it never
+        #   measured this degree of freedom in isolation).
         obs.append(MET.observable(
-            "결합 신장 등분배 ⟨δℓ*²⟩", dl_var, dl_var_pred, "d²",
+            "bond-stretch equipartition <dl*^2>", dl_var, dl_var_pred, "d²",
             "boltzmann_integral", role="implementation_check", scope="module", tol_pct=8.0,
             sigma=dl_var_sem if dl_var_sem > 0 else None,
-            note=f"예측 = 우물(basin) 비조화 볼츠만 적분(정확). 참고: 조화근사 "
-                 f"kT*/k_bond*={1.0 / k_bond_star:.3e} 는 이 값의 "
-                 f"1/{dl_var_pred * k_bond_star:.2f} 뿐 — 조화근사를 예측으로 쓰면 "
-                 f"안 된다(체제 판정용으로만)"))
-        # ── measurement — 굽힘(각) 자유도. G1 은 '선형강성=0'만 말하고 크기는 "
-        #    예측하지 않는다(고차항 지배) — 사전 예측이 없어 measurement.
+            note=f"prediction = the anharmonic Boltzmann integral over the basin (exact). "
+                 f"For reference, the harmonic approximation "
+                 f"kT*/k_bond*={1.0 / k_bond_star:.3e} is only "
+                 f"1/{dl_var_pred * k_bond_star:.2f} of this value -- the harmonic "
+                 f"approximation must not be used as the prediction (regime indicator only)"))
+        # -- measurement -- the bending (angular) degrees of freedom. G1 says only
+        #    that the linear stiffness is 0; it does not predict the magnitude (higher
+        #    order terms dominate). No prior prediction, so measurement.
         obs.append(MET.observable(
-            "굽힘각 열요동 ⟨dθ²⟩", dtheta_var, None, "rad²", "none",
+            "bending-angle thermal fluctuation <dtheta^2>", dtheta_var, None, "rad²", "none",
             role="measurement",
-            note="G1(선형강성=0)의 직접 결과 — 요동 폭 자체는 예측이 없다(2차 이상 "
-                 "항·배제부피가 지배). κ_θ,eff=1/⟨dθ²⟩ 로 등분배를 가정하면 "
+            note="a direct consequence of G1 (linear stiffness = 0) -- the fluctuation width "
+                 "itself has no prediction (second-order and higher terms plus excluded "
+                 "volume dominate). Assuming equipartition via kappa_theta,eff=1/<dtheta^2> gives "
                  f"{(1.0 / dtheta_var if dtheta_var > 0 else float('nan')):.3g} kT/rad² — "
-                 "참고용 숫자일 뿐 조화 모드라는 뜻은 아니다"))
+                 "a reference number only -- it does not mean the mode is harmonic"))
 
         min_sep = float(np.min(cols["min_sep"]))
         nnn_min = float(np.min(cols["nnn_gap"]))
         post_checks = [
-            C.Check("geometry", "표 하한 여유 r_table_min/min_sep",
+            C.Check("geometry", "table lower-bound margin r_table_min/min_sep",
                   (1.0 + 1e-6) / min_sep, 1.0, "<=",
-                  f"pair.Table 함정 11: r<r_min 이면 힘이 0. 측정 최소 결합길이 {min_sep:.4f}"),
-            C.Check("geometry", "NNN 간극 최소(런 전체) vs 컷오프", nnn_min, CUTOFF_H_STAR, ">=",
-                  "런 도중 2결합 건너 비드가 DLVO 컷오프 안으로 들어온 적이 있는지 "
-                  "(들어오면 '삼각형형' 국소 접힘 후보 — 실패 아니라 관찰 대상)",
+                  f"pair.Table trap 11: the force is 0 for r<r_min. Measured minimum bond length {min_sep:.4f}"),
+            C.Check("geometry", "min NNN gap (whole run) vs cutoff", nnn_min, CUTOFF_H_STAR, ">=",
+                  "did a two-bonds-away bead ever come inside the DLVO cutoff during "
+                  "the run (if so, a candidate for 'trianglelike' local folding -- an "
+                  "observation, not a failure)",
                   hard=False),
         ]
 
@@ -575,8 +622,9 @@ def build(spec, outdir=None) -> RUN.Build:
     if init == "kink":
         phases = [RUN.Phase("release", n_prod, sample_every=sample_every, collect=True,
                             expect_steady=False,
-                            note="방출 순간부터 기록 — 굽음이 변하는 것이 물리(관측 "
-                                 "대상), 표류 검사를 걸면 발견을 경고로 부른다 (규칙 7')")]
+                            note="recorded from the moment of release -- the bow changing IS the physics "
+                                 "(it is the observable), and running a drift check here would "
+                                 "call a discovery a warning (rule 7')")]
 
     return RUN.Build(
         sim=sim, forces=[tab, wca], n_particles=n,
@@ -590,19 +638,19 @@ def build(spec, outdir=None) -> RUN.Build:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 시각화 — 결과는 그래프로 보여준다 (CLAUDE.md)
+# visualization -- results are shown as graphs (CLAUDE.md)
 # ════════════════════════════════════════════════════════════════════════
 def make_plots(sys_, lg, n, init, kink_angle, outdir):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    matplotlib.rcParams["font.family"] = ["DejaVu Sans"]     # ★ 라벨은 영어 (CLAUDE.md)
+    matplotlib.rcParams["font.family"] = ["DejaVu Sans"]     # * labels in English (CLAUDE.md)
     matplotlib.rcParams["axes.unicode_minus"] = False
 
     res = np.load(outdir / "observables.npz")
     m = json.loads((outdir / "metrics.json").read_text())
     D = lg.derived
-    dt_over_tau_bond = lg.ratio("times", "dt", "tau_bond")     # ★ 이 계의 자연 시간축
+    dt_over_tau_bond = lg.ratio("times", "dt", "tau_bond")     # * this system's natural time axis
     t = np.arange(len(res["bow_rms"])) * (m["numerics"].get("sample_every", 1)) * dt_over_tau_bond
 
     fig, ax = plt.subplots(2, 3, figsize=(16, 9))
@@ -648,12 +696,15 @@ def make_plots(sys_, lg, n, init, kink_angle, outdir):
                 title="Bond safety / non-adjacent folding")
     ax[1, 1].legend(fontsize=8); ax[1, 1].grid(alpha=.3)
 
-    # ★ 굽힘(각) 자유도 — G1 이 예측이 없다고 말하는 바로 그 관측량. 사전 예측이
-    # 없으므로 여기엔 대조선을 긋지 않는다(measurement) — 대신 참고용으로 결합
-    # 신장의 golden-test σ(harmonic)와 시각적으로 비교할 수 있게 같은 각도 스케일로
-    # 보여준다: 굽힘의 요동 폭이 신장의 요동 폭보다 압도적으로 크다면(래디안 vs
-    # 무차원 길이라 직접 비교는 불가하지만) 그 자체가 "선형강성이 없다"는 정성적
-    # 신호다 — 하한이 없다는 것은 계에서 정의되지 않은 척도로 잡히지 않는다는 뜻.
+    # * The bending (angular) degrees of freedom -- exactly the observable G1 says it
+    # has no prediction for. With no prior prediction, no reference line is drawn here
+    # (it is a measurement). Instead, for reference, it is shown on the same angular
+    # scale so it can be compared visually against the bond stretch's golden-test
+    # sigma (harmonic): if the bending fluctuation width is overwhelmingly larger than
+    # the stretch fluctuation width (a direct comparison is impossible -- radians vs a
+    # dimensionless length), that is itself a qualitative signal that there is no
+    # linear stiffness -- having no lower bound means it is not held by any scale the
+    # system defines.
     if "dtheta_flat" in res and res["dtheta_flat"].size:
         ax[0, 2].hist(res["dtheta_flat"], bins=60, density=True, color="tab:orange", alpha=.6)
     ax[0, 2].axvline(0, color="gray", lw=.5)
@@ -697,18 +748,18 @@ def main() -> int:
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--spec", action="store_true")
     ap.add_argument("--run", action="store_true")
-    ap.add_argument("--n", type=int, default=None, help="비드 수 (기본: system.yaml, n=9)")
-    ap.add_argument("--kink-angle", type=float, default=0.30, help="rad (--init kink 전용)")
+    ap.add_argument("--n", type=int, default=None, help="number of beads (default: system.yaml, n=9)")
+    ap.add_argument("--kink-angle", type=float, default=0.30, help="rad (--init kink only)")
     ap.add_argument("--tobs", type=float, default=None,
-                    help="관측창 (τ_bond 배수). 기본: straight=2e4, kink=3e3")
-    ap.add_argument("--cycles", type=float, default=None)   # 미사용 — 인터페이스 대칭용
+                    help="observation window (multiples of tau_bond). Default: straight=2e4, kink=3e3")
+    ap.add_argument("--cycles", type=float, default=None)   # unused -- kept for interface symmetry
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--dt-scale", type=float, default=1.0)
     ap.add_argument("--samples", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--eq-scale", type=float, default=200.0,
-                    help="(--init straight) 평형화 = 이 값 × τ_bond/dt")
-    ap.add_argument("--smoke", action="store_true", help="빠른 정합성 확인용 — 스텝 대폭 축소")
+                    help="(--init straight) equilibration = this value x tau_bond/dt")
+    ap.add_argument("--smoke", action="store_true", help="for a quick sanity check -- steps heavily reduced")
     args = ap.parse_args()
 
     sys_ = load_system(ROOT / "intake/chain-relax-2d-dlvo/system.yaml")
