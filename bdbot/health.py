@@ -1,27 +1,40 @@
-"""L4 — 수치 건전성 판정기.
+"""L4 -- the numerical-health judge.
 
-**물리 검증기가 아닙니다.** 사용자 지시(2026-08-04, 마스터플랜 §0.2-B):
+**Not a physics verifier.** By instruction:
 
-    런 후의 과학적·물리적 검증은 비중을 낮춘다 — 계마다 다르고, 보고된 계가
-    아닐 수 있다. 런 후에는 **수치해석적 오류만** 본다: 발산 · NaN/Inf ·
-    이상한 값으로의 수렴.
+    de-emphasize post-run scientific and physical verification -- it differs per
+    system, and the system may not be the one that was reported. After a run, look
+    at **numerical errors only**: divergence, NaN/Inf, convergence to a strange
+    value.
 
-원칙 9.1도 같은 결론입니다 — 조합 결과에 기존 이론을 갖다 대지 않습니다.
-그래서 여기에는 해석해도 문헌값도 없습니다. **시계열의 수치적 성질만** 봅니다.
+Rule 7 reaches the same conclusion -- do not apply a standard theory to a
+combined result. So there is no analytic solution and no literature value here.
+**Only the numerical properties of the time series.**
 
-세 부분:
+Three parts:
 
-  ① `Guard`          실행 중 감시. NaN/Inf/폭주를 만나면 **즉시 중단**한다.
-  ② `judge(...)`     실행 후 시계열 판정. 발산·정지·붕괴.
-  ③ `step_health()`  ⭐️ **L3 로 되먹임**. L3가 예측한 `dt/τ_fast` 를 L4가 측정한다.
-                     어긋나면 스케일 원장에 **빠진 시간척도**가 있다는 뜻이다.
+  1. `Guard`          in-run monitoring. On NaN/Inf/runaway, **abort immediately.**
+  2. `judge(...)`     post-run time-series verdict. Divergence, stalling, collapse.
+  3. `step_health()`  * **feedback into L3.** L4 measures the `dt/tau_fast` that L3
+                      predicted. A discrepancy means the scale ledger has **a
+                      missing timescale.**
 
-③ 이 이 모듈의 핵심입니다. 무차원 규약(σ=kT=γ=1)에서 한 스텝의 결정론적 변위는
+Part 3 is the core of this module. In the dimensionless convention
+(sigma=kT=gamma=1), the deterministic displacement of one step is
 
     drift_per_step / σ  =  F* dt* / (γ* σ)  =  dt / τ_fast
 
-이므로, **측정한 스텝 변위가 곧 `dt/τ_fast` 입니다.** L3의 예측값(원장에 있는
-시간척도로 계산한 것)과 비교하면 원장의 완전성을 사후에 검사할 수 있습니다.
+so **the measured step displacement IS `dt/tau_fast`.** Comparing it against L3's
+prediction (computed from the timescales in the ledger) checks the ledger's
+completeness after the fact.
+
+WARNING: part 3 **never ran across all 81 runs** because of a name mismatch --
+`run.Guard` computed `dt*|F|max` into `l4` while the health tool looked for
+`numerics["step_rms_sigma"]`, found nothing, printed "not measured" and returned
+HEALTHY anyway. `82/82 HEALTHY` read like coverage. Silence is not success: the
+count of unmeasured runs is printed separately now, and a HEALTHY verdict means
+"no divergence, no stall, no collapse" and explicitly **not** "dt is small
+enough".
 """
 from __future__ import annotations
 
@@ -30,22 +43,22 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-# 실패 분류 (마스터플랜 §10.1 중 수치 관련만)
+# Failure classes (the numerical ones only)
 NUMERIC_MODES = ("NUM_NONFINITE", "NUM_DIVERGE", "NUM_FROZEN", "NUM_COLLAPSE",
                  "NUM_STEP_TOO_COARSE", "LEDGER_INCOMPLETE")
 
-STEP_HARD = 1e-2        # dt/τ_fast 하드 한계 (bd-physics §4 와 같은 값)
-LEDGER_TOL = 3.0        # L3 예측 대비 측정이 이 배수를 넘으면 원장 의심
+STEP_HARD = 1e-2        # hard limit on dt/tau_fast (same value as bd-physics section 4)
+LEDGER_TOL = 3.0        # above this measured/predicted ratio, suspect the ledger
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ① 실행 중 감시
+# 1. in-run monitoring
 # ════════════════════════════════════════════════════════════════════════
 class Guard:
-    """`hoomd.custom.Action` 로 감싸 쓰는 런타임 감시자.
+    """A runtime monitor, wrapped in a `hoomd.custom.Action`.
 
-    HOOMD 를 임포트하지 않습니다 — 테스트 가능하도록 순수 함수로 두고,
-    `as_action()` 에서만 hoomd 를 끌어옵니다.
+    Does not import HOOMD -- kept as pure functions so it stays testable; hoomd is
+    pulled in only inside `as_action()`.
 
         g = Guard(box_L=32.0)
         sim.operations.writers.append(g.as_action(period=10_000, state=sim.state,
@@ -60,11 +73,11 @@ class Guard:
         self.history: list[tuple[int, float]] = []
 
     def check(self, timestep: int, positions: np.ndarray, pe) -> None:
-        """위반이면 RuntimeError. 조용히 넘어가지 않는다 (§2 원칙 5)."""
+        """RuntimeError on violation. Never passes silently."""
         self.n_checks += 1
         if not np.all(np.isfinite(positions)):
             n = int((~np.isfinite(positions)).sum())
-            raise RuntimeError(f"[NUM_NONFINITE] step {timestep}: 위치에 non-finite {n}개")
+            raise RuntimeError(f"[NUM_NONFINITE] step {timestep}: {n} non-finite position(s)")
         far = np.abs(positions).max()
         if far > 50 * self.box_L:
             raise RuntimeError(
@@ -78,8 +91,9 @@ class Guard:
                 self.pe0 = abs(pe)
             elif self.pe0 and abs(pe) > self.pe_blowup * self.pe0:
                 raise RuntimeError(
-                    f"[NUM_DIVERGE] step {timestep}: PE {pe:.3g} 가 초기 {self.pe0:.3g} 의 "
-                    f"{abs(pe)/self.pe0:.0f}배 (한계 {self.pe_blowup:.0f}배)")
+                    f"[NUM_DIVERGE] step {timestep}: PE {pe:.3g} is "
+                    f"{abs(pe)/self.pe0:.0f}x the initial {self.pe0:.3g} "
+                    f"(limit {self.pe_blowup:.0f}x)")
 
     def as_action(self, period: int, state, thermo=None):
         import hoomd
@@ -96,7 +110,7 @@ class Guard:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ② 실행 후 시계열 판정
+# 2. post-run time-series verdict
 # ════════════════════════════════════════════════════════════════════════
 @dataclass
 class Finding:
@@ -122,7 +136,9 @@ class HealthReport:
             self.failure_modes.append(mode)
 
     def render(self) -> str:
-        L = ["=" * 78, "L4 수치 건전성 판정  (물리 검증 아님 — 발산·NaN·이상수렴만)", "=" * 78]
+        L = ["=" * 78,
+             "L4 numerical health  (not physics verification -- divergence, NaN, "
+             "strange convergence only)", "=" * 78]
         for f in self.findings:
             L.append(f"  {'✓' if f.ok else '✗'} {f.name:<26} {f.detail}")
         L += ["", f"VERDICT: {self.verdict}"
@@ -132,108 +148,123 @@ class HealthReport:
 
 def judge_series(name: str, y, rep: HealthReport, *, positive: bool = False,
                  cumulative: bool = False, t=None) -> None:
-    """시계열 하나의 수치 건전성. **물리적 옳고 그름은 판정하지 않는다.**
+    """The numerical health of one time series. **It does not judge physical
+    correctness.**
 
-    `cumulative=True` 는 **자라는 것이 정상인 양** (MSD·MSAD 처럼 누적된 것) 입니다.
-    ★ 이걸 구분하지 않으면 오탐합니다. 실제로 물렸습니다 — `abp-rod` 두 런의 MSD 가
-      "뒤/앞 1010배"로 NUM_DIVERGE 판정됐는데, 그건 그냥 확산이었습니다.
-      합성 정상시계열로만 적대적 시험을 해서 못 잡았고 **실제 데이터가 잡았습니다.**
+    `cumulative=True` marks **a quantity for which growing is normal** (MSD, MSAD
+    and other accumulated quantities).
+    * Without that distinction it false-positives. This actually bit: the MSD of
+      two `abp-rod` runs was judged NUM_DIVERGE for being "1010x larger in the
+      second half" -- which was simply diffusion. Adversarial testing had used only
+      synthetic stationary series and missed it; **the real data caught it.**
 
-    누적량에는 대신 **초탄도 검사**를 겁니다: log-log 기울기 α (y ~ t^α).
-    어떤 과감쇠/관성 동역학도 α ≤ 2 (탄도)를 넘지 못하므로, α > 2.5 는 물리 가정과
-    무관하게 수치적 발산입니다.
+    For a cumulative quantity the check becomes a **super-ballistic** one instead:
+    the log-log slope alpha (y ~ t^alpha). No overdamped or inertial dynamics can
+    exceed alpha <= 2 (ballistic), so alpha > 2.5 is numerical divergence
+    regardless of the physical assumptions.
 
-    ★ `t` (실제 시간축)를 반드시 주세요. 인덱스를 시간으로 쓰면 **lag 가 로그 간격일 때
-      α 가 엉뚱하게 나옵니다.** 이것도 실제 데이터가 잡았습니다 — abp-rod 의 MSD 는
-      lag 가 로그 간격이라 인덱스 기준 α 가 2.5 를 넘어 발산으로 오판됐습니다.
-      `t=None` 이면 등간격으로 가정합니다.
+    * Always pass `t` (the real time axis). Using the index as time makes
+      **alpha nonsense when the lags are logarithmically spaced.** The real data
+      caught this too -- `abp-rod`'s MSD has log-spaced lags, so index-based alpha
+      exceeded 2.5 and was misread as divergence.
+      With `t=None`, uniform spacing is assumed.
     """
     y = np.asarray(y, dtype=float)
     if y.size < 8:
-        rep.add(True, None, f"{name}", f"표본 {y.size}개 — 판정 생략")
+        rep.add(True, None, f"{name}", f"{y.size} sample(s) -- verdict skipped")
         return
 
     if not np.all(np.isfinite(y)):
-        rep.add(False, "NUM_NONFINITE", f"{name} 유한성",
-                f"non-finite {int((~np.isfinite(y)).sum())}/{y.size}개")
+        rep.add(False, "NUM_NONFINITE", f"{name} finiteness",
+                f"{int((~np.isfinite(y)).sum())}/{y.size} non-finite")
         return
-    rep.add(True, None, f"{name} 유한성", f"{y.size}개 전부 유한")
+    rep.add(True, None, f"{name} finiteness", f"all {y.size} finite")
 
     m = float(np.mean(y))
     scale = abs(m) if m else float(np.max(np.abs(y)) or 1.0)
 
-    # 정지 — 적분기가 돌지 않았거나 완전히 얼어붙음
+    # stalling -- the integrator never ran, or it froze completely
     rel_std = float(np.std(y)) / scale
     if rel_std < 1e-12:
-        rep.add(False, "NUM_FROZEN", f"{name} 변동", f"상대 표준편차 {rel_std:.1e} — 상수")
+        rep.add(False, "NUM_FROZEN", f"{name} variation", f"relative s.d. {rel_std:.1e} -- constant")
     else:
-        rep.add(True, None, f"{name} 변동", f"상대 표준편차 {rel_std:.3g}")
+        rep.add(True, None, f"{name} variation", f"relative s.d. {rel_std:.3g}")
 
     q = max(2, y.size // 4)
     if cumulative:
-        # 누적량 — 자라는 게 정상. 대신 탄도 상한 α ≤ 2 를 넘는지 본다.
+        # cumulative -- growing is normal. Check the ballistic bound alpha <= 2 instead.
         tt = (np.arange(1, y.size + 1, dtype=float) if t is None
               else np.asarray(t, dtype=float))
-        axis = "인덱스(등간격 가정)" if t is None else "t"
+        axis = "index (uniform spacing assumed)" if t is None else "t"
         m_ = (np.abs(y) > 0) & (tt > 0) & np.isfinite(tt)
         if m_.sum() >= 8:
             alpha = float(np.polyfit(np.log(tt[m_]), np.log(np.abs(y[m_])), 1)[0])
-            rep.add(alpha <= 2.5, "NUM_DIVERGE", f"{name} 성장 지수",
-                    f"α = {alpha:.3f}  (y ~ t^α, 축={axis}; 탄도 상한 2, 한계 2.5)")
+            rep.add(alpha <= 2.5, "NUM_DIVERGE", f"{name} growth exponent",
+                    f"alpha = {alpha:.3f}  (y ~ t^alpha, axis={axis}; ballistic bound 2, limit 2.5)")
         else:
-            rep.add(True, None, f"{name} 성장 지수", "양수 표본 부족 — 생략")
+            rep.add(True, None, f"{name} growth exponent", "too few positive samples -- skipped")
     else:
-        # 정상상태량 — 뒤 1/4 이 앞 1/4 대비 폭증하면 발산
+        # stationary quantity -- divergence if the last quarter explodes vs the first
         a, b = np.abs(y[:q]).mean(), np.abs(y[-q:]).mean()
         growth = b / a if a else float("inf")
-        rep.add(growth <= 1e3, "NUM_DIVERGE", f"{name} 폭증",
-                f"뒤/앞 = {growth:.4g}배" + ("" if growth <= 1e3 else " (한계 1e3)"))
+        rep.add(growth <= 1e3, "NUM_DIVERGE", f"{name} blow-up",
+                f"last/first = {growth:.4g}x" + ("" if growth <= 1e3 else " (limit 1e3)"))
 
-    # 붕괴 — 양수여야 하는 양이 0으로 수렴 (누적량은 처음이 0이라 해당 없음)
+    # collapse -- a quantity that must be positive converging to 0 (not applicable
+    # to a cumulative quantity, which starts at 0)
     if positive and not cumulative:
         tail = float(np.abs(y[-q:]).mean())
         if tail < 1e-12 * scale:
-            rep.add(False, "NUM_COLLAPSE", f"{name} 붕괴", f"뒤 1/4 평균 {tail:.1e} ≈ 0")
+            rep.add(False, "NUM_COLLAPSE", f"{name} collapse", f"last-quarter mean {tail:.1e} ~ 0")
         else:
-            rep.add(True, None, f"{name} 붕괴", f"뒤 1/4 평균 {tail:.4g}")
+            rep.add(True, None, f"{name} collapse", f"last-quarter mean {tail:.4g}")
 
 
 # ════════════════════════════════════════════════════════════════════════
-# ③ ⭐️ L3 되먹임 — 예측한 dt/τ_fast 를 측정한다
+# 3. * feedback into L3 -- measure the predicted dt/tau_fast
 # ════════════════════════════════════════════════════════════════════════
 def step_health(step_disp_rms: float | None, dt_star: float, dim: int,
                 predicted_dt_over_tau: float | None, rep: HealthReport,
                 *, drift_direct: float | None = None) -> None:
-    """한 스텝 변위에서 `dt/τ_fast` 를 **측정**하고 L3 예측과 대조한다.
+    """**Measure** `dt/tau_fast` from the one-step displacement and compare against
+    the L3 prediction.
 
-    측정 경로가 **두 개**입니다. 있으면 ⓐ를 씁니다 — ⓑ보다 엄격하게 낫습니다.
+    There are **two** measurement routes. Use (a) when it exists -- it is strictly
+    better than (b).
 
-    ⓐ **힘 기반** (`drift_direct`, `bdbot.run.Guard` 가 런타임에 측정):
+    (a) **force-based** (`drift_direct`, measured at runtime by `bdbot.run.Guard`):
 
         drift = dt* · |F*|max / γ*  =  dt/τ_fast        (γ*=σ=1)
 
-      열잡음이 섞이지 않으므로 **뺄 것이 없습니다.** 그리고 런 전체의 **최악값**이라
-      안정성 판정에 맞습니다.
+      No thermal noise is mixed in, so **there is nothing to subtract.** And it is
+      the **worst value over the whole run**, which is what a stability verdict
+      wants -- measured, the peak force was 1062.9 against 244.2 kT/sigma for the
+      last sample, a factor of 4.4.
 
-    ⓑ **위치 차분** (`step_disp_rms`, 스냅샷 두 장에서):
+    (b) **position difference** (`step_disp_rms`, from two snapshots):
 
         Δr = (F*/γ*)·dt*  +  √(2 D* dt*)·ξ ,    D* = 1
         drift = √(max(0, ⟨Δr²⟩ − 2·dim·dt*))
 
-      열적 성분을 제곱에서 빼야 하는데, 표류 ≪ 열잡음이면 **비슷한 두 수의 차**라
-      신뢰할 수 없습니다 (그래서 아래에서 "열적 지배 — 대조 무의미" 로 빠집니다).
-      `run.execute` 를 쓰지 않는 예전 런의 하위호환 경로입니다.
+      The thermal component has to be subtracted in quadrature, and when
+      drift << thermal noise that is **a difference of two similar numbers** and
+      cannot be trusted (which is why it falls through to "thermally dominated --
+      comparison meaningless" below). Measured: when the drift is 0.5% of the
+      thermal noise, finite sampling **clips the drift to zero.**
+      This is the backward-compatible route for older runs that did not use
+      `run.execute`.
 
-    `predicted_dt_over_tau` 는 L3 가 **원장의 시간척도로 계산한** 값이다.
-    측정이 예측보다 크게 크면 **원장에 없는 더 빠른 시간척도가 있다** — 스케일 표가
-    불완전하다는 뜻이고, 이건 L4 가 앞단(L3)에 돌려줄 수 있는 유일한 신호다.
+    `predicted_dt_over_tau` is what L3 **computed from the timescales in the
+    ledger.** A measurement much larger than the prediction means **there is a
+    faster timescale that is not in the ledger** -- the scale table is incomplete,
+    and this is the only signal L4 can hand back to the front end (L3).
     """
     if drift_direct is not None:
         drift = float(drift_direct)
         rep.measured["dt_over_tau_fast_measured"] = drift
         rep.measured["step_method"] = "force"
-        detail = (f"dt/τ_fast = {drift:.3e}  (한계 {STEP_HARD:.0e}, "
-                  f"힘 기반 dt·|F|max — 런 전체 최악값)")
+        detail = (f"dt/tau_fast = {drift:.3e}  (limit {STEP_HARD:.0e}, "
+                  f"force-based dt*|F|max -- worst value over the whole run)")
     else:
         thermal2 = 2.0 * dim * dt_star
         meas2 = float(step_disp_rms) ** 2
@@ -242,43 +273,54 @@ def step_health(step_disp_rms: float | None, dt_star: float, dim: int,
         rep.measured["thermal_rms_sigma"] = math.sqrt(thermal2)
         rep.measured["dt_over_tau_fast_measured"] = drift
         rep.measured["step_method"] = "position"
-        detail = (f"dt/τ_fast = {drift:.3e}  (한계 {STEP_HARD:.0e}, "
-                  f"열적분 {math.sqrt(thermal2):.3e} 제외)")
+        detail = (f"dt/tau_fast = {drift:.3e}  (limit {STEP_HARD:.0e}, "
+                  f"thermal part {math.sqrt(thermal2):.3e} subtracted)")
 
-    rep.add(drift <= STEP_HARD, "NUM_STEP_TOO_COARSE", "스텝 변위 (측정)", detail)
+    rep.add(drift <= STEP_HARD, "NUM_STEP_TOO_COARSE", "step displacement (measured)", detail)
 
     if predicted_dt_over_tau is None:
-        rep.add(True, None, "L3 원장 대조", "L3 예측값 없음 — 대조 생략")
+        rep.add(True, None, "L3 ledger comparison", "no L3 prediction -- comparison skipped")
         return
     rep.measured["dt_over_tau_fast_predicted"] = float(predicted_dt_over_tau)
     if drift <= 0 or predicted_dt_over_tau <= 0:
-        rep.add(True, None, "L3 원장 대조", "표류가 0 — 열적 지배, 대조 무의미")
+        rep.add(True, None, "L3 ledger comparison",
+                "drift is 0 -- thermally dominated, comparison meaningless")
         return
     ratio = drift / predicted_dt_over_tau
     rep.measured["ledger_ratio"] = ratio
-    rep.add(ratio <= LEDGER_TOL, "LEDGER_INCOMPLETE", "L3 원장 완전성",
-            f"측정/예측 = {ratio:.2f}× "
-            + (f"— 원장에 없는 더 빠른 시간척도 의심 (한계 {LEDGER_TOL:.0f}×)"
-               if ratio > LEDGER_TOL else "— 원장이 최속 척도를 담고 있음"))
+    rep.add(ratio <= LEDGER_TOL, "LEDGER_INCOMPLETE", "L3 ledger completeness",
+            f"measured/predicted = {ratio:.2f}x "
+            + (f"-- suspect a faster timescale missing from the ledger "
+               f"(limit {LEDGER_TOL:.0f}x)"
+               if ratio > LEDGER_TOL else "-- the ledger holds the fastest scale"))
 
-    # ── 반대 방향: 설계가 과보수적이면 **비용**이다 (실패가 아님, 정보) ──────
-    # 원장 검사는 ratio ≫ 1 (빠진 척도)만 봅니다. ratio ≪ 1 은 건전하지만
-    # "dt 를 필요 이상으로 작게 잡았다" = 벽시계를 그만큼 더 쓴 것입니다.
-    # 이 프로젝트에서 비용은 반복해서 문제였습니다 (스윕 25일 → 1.16일).
-    # ⚠️ 단정하지 않습니다: ① 가드는 GUARD_EVERY 스텝마다만 보므로 표본 사이의 최댓값을
-    #    놓칠 수 있고 ② L3 의 r_min 은 **설계 최악 접근거리**여서 이 런이 거기까지
-    #    가지 않았을 수 있습니다. 그래서 "확인해 볼 여지"로만 보고합니다.
+    # -- the other direction: an over-conservative design is a **cost** (not a
+    #    failure -- information).
+    # The ledger check only looks at ratio >> 1 (a missing scale). ratio << 1 is
+    # healthy, but it means "dt was set smaller than necessary" = that much extra
+    # wall clock. Cost has been a recurring problem in this project (a sweep went
+    # from 25 days to 1.16 days).
+    # WARNING: do not state this as a conclusion. (1) the guard only samples every
+    #    GUARD_EVERY steps, so it can miss the maximum between samples, and (2) L3's
+    #    r_min is the **design worst-case approach distance**, which this run may
+    #    never have reached. So it is reported only as "worth checking".
     if ratio < 1.0 / LEDGER_TOL and ratio > 0:
         rep.measured["dt_headroom"] = 1.0 / ratio
-        rep.add(True, None, "dt 여유 (비용)",
-                f"측정이 예측의 {ratio:.3f}× — 실제 만난 최대 힘 기준으로는 dt 를 "
-                f"약 {1.0/ratio:.0f}배까지 키울 여지가 있습니다 (벽시계 ÷{1.0/ratio:.0f}). "
-                f"단정 금지: 가드 표본 사이의 최댓값을 놓쳤거나, L3 의 설계 최악 "
-                f"접근거리까지 이 런이 가지 않았을 수 있습니다 — 수렴 확인으로 검증하세요")
+        rep.add(True, None, "dt headroom (cost)",
+                f"measured is {ratio:.3f}x the prediction -- judged by the largest "
+                f"force actually encountered there is room to raise dt by about "
+                f"{1.0/ratio:.0f}x (wall clock / {1.0/ratio:.0f}). "
+                f"Do not state this as a conclusion: the maximum between guard "
+                f"samples may have been missed, or this run may never have reached "
+                f"L3's design worst-case approach distance -- verify with a "
+                f"convergence check")
 
 
 def measure_step_displacement(positions_t0, positions_t1, L: float, dim: int) -> float:
-    """연속한 두 스냅샷에서 한 스텝 변위의 rms (σ 단위). 최소 이미지 적용 (함정 1·7)."""
+    """rms of the one-step displacement from two consecutive snapshots (in sigma).
+
+    Minimum image applied (traps 1 and 7).
+    """
     d = np.asarray(positions_t1, float) - np.asarray(positions_t0, float)
     d[:, :2] -= L * np.round(d[:, :2] / L)
     if dim == 3:
@@ -287,13 +329,14 @@ def measure_step_displacement(positions_t0, positions_t1, L: float, dim: int) ->
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 스펙에서 L3 예측 뽑기
+# extracting the L3 prediction from a spec
 # ════════════════════════════════════════════════════════════════════════
 def predicted_dt_over_tau(spec) -> float | None:
-    """`LoadedSpec` 의 적분 해상 검사에서 L3가 예측한 `dt/τ_fast` 를 꺼낸다.
+    """Pull L3's predicted `dt/tau_fast` out of a `LoadedSpec`'s
+    integration-resolution checks.
 
-    검사 이름은 케이스마다 다르므로 `kind == 'integration'` 중 **가장 큰 값**을 씁니다
-    (가장 빠른 시간척도가 가장 큰 비를 만든다).
+    Check names differ per case, so take the **largest value** among
+    `kind == 'integration'` (the fastest timescale produces the largest ratio).
     """
     vals = [c.value for c in getattr(spec, "checks", [])
             if getattr(c, "kind", "") == "integration" and isinstance(c.value, (int, float))]

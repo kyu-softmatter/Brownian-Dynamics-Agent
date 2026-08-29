@@ -1,17 +1,24 @@
-"""지식베이스 — 두 갈래를 함께 읽는다.
+"""The knowledge base -- reads both branches together.
 
-    runs/*/record.json    런 경험 (tools/postmortem.py 가 만든다)
-    kb/entries/*.json     ★ 런이 없는 지식 — 스케치 해석·문헌 증류·도구 교훈
+    runs/*/record.json          run experience (written by tools/postmortem.py)
+    knowledge/entries/*.json    * knowledge with no run -- sketch readings,
+                                literature distillations, tooling lessons
 
-마스터플랜 §7은 SQLite+FTS5를 계획하지만, 런 100개 미만에서는 과잉이다.
-**데이터 형식만 먼저 고정**하고 아파지면 DB로 옮긴다 (§7.0).
+A SQLite + FTS5 store is the plan, but it is overkill below 100 runs.
+**Fix the data format first** and move to a DB when it hurts.
 
-★ `kb/entries/` 가 왜 필요한가 (2026-08-04 추가):
-  런에서 나온 교훈만 저장하고 있었다. 그런데 **앞단(스케치 → 물리계)에서 나오는 지식도
-  재사용 가능하고 잊으면 손해다.** 예: "R=5µm 관례를 다른 스케치에 승계했더니 abp-rod에서
-  τ_R과 160배 어긋났다", "논문 추출은 논문 자체 수치를 재현해 검증한다",
-  "정규식으로 YAML을 패치하면 조용히 엉뚱한 노드를 고친다".
-  이런 것들은 런이 없어서 record.json 에 넣을 자리가 없었다.
+* Why `entries/` is needed: only lessons that came out of runs were being stored.
+  But **knowledge produced by the front end (sketch -> physical system) is reusable
+  too, and forgetting it is a loss.** For example: "inheriting the R=5um convention
+  into another sketch disagreed with abp-rod's tau_R by 160x"; "a paper extraction
+  is verified by reproducing the paper's own numbers"; "patching YAML with a regex
+  silently edits the wrong node."
+  Those have no run, so there was no slot for them in record.json.
+
+WARNING: this is one of **two unmerged knowledge schemas.** `knowledge/wiki/` is
+human-written Markdown read by the `bd-knowledge` skill; this store is
+tool-written JSON read by this file. A lesson filed in one is invisible to a
+reader of the other -- query both. See docs/03-knowledge-base.md.
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY tools/kb.py list
@@ -31,14 +38,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
-ENTRY_DIR = ROOT / "kb" / "entries"
+# 2026-08-29 (merge fix): this pointed at `kb/entries`, which the merge renamed
+# to `knowledge/entries`. The result was not an error -- `kb.py list` simply
+# reported "run-less knowledge 0" for 126 existing entries. A silently empty
+# read is the same failure mode as an unwired checker.
+ENTRY_DIR = ROOT / "knowledge" / "entries"
 SCHEMA_ENTRY = "bdbot.kb_entry/0.1"
-# 런이 아닌 지식의 출처 종류 (마스터플랜 §5.2 Source.kind 와 정렬)
+# Source kinds for non-run knowledge
 ORIGINS = ("intake", "paper", "tooling", "method", "handbook", "user_input")
 
 
 def load_all():
-    """런 기록 + 런 없는 엔트리를 같은 모양으로 합쳐 돌려준다."""
+    """Return run records and run-less entries merged into the same shape."""
     out = []
     for f in sorted((ROOT / "runs").glob("*/record.json")):
         try:
@@ -46,19 +57,22 @@ def load_all():
             r.setdefault("origin", "our_run")
             out.append(r)
         except Exception as e:
-            print(f"  (건너뜀 {f}: {e})", file=sys.stderr)
+            print(f"  (skipped {f}: {e})", file=sys.stderr)
     for f in sorted(ENTRY_DIR.glob("*.json")):
         try:
             out.append(json.loads(f.read_text()))
         except Exception as e:
-            print(f"  (건너뜀 {f}: {e})", file=sys.stderr)
+            print(f"  (skipped {f}: {e})", file=sys.stderr)
     return out
 
 
 def add_entry(claim, kind, origin, source, tags, coords, not_verified) -> Path:
-    """런 없는 지식 엔트리를 파일 하나로 남긴다. record.json 과 같은 필드 이름을 쓴다."""
+    """Write one run-less knowledge entry as a single file.
+
+    Uses the same field names as record.json.
+    """
     if origin not in ORIGINS:
-        raise SystemExit(f"origin 은 {ORIGINS} 중 하나여야 합니다 (받은 값: {origin})")
+        raise SystemExit(f"origin must be one of {ORIGINS} (got: {origin})")
     ENTRY_DIR.mkdir(parents=True, exist_ok=True)
     slug = "".join(c if c.isalnum() or c in "-_" else "-" for c in claim.lower())[:48]
     slug = "-".join(x for x in slug.split("-") if x) or "entry"
@@ -69,7 +83,7 @@ def add_entry(claim, kind, origin, source, tags, coords, not_verified) -> Path:
         n += 1
     rec = {
         "schema": SCHEMA_ENTRY,
-        "run_id": None,                 # 런이 없다 — 그게 이 엔트리의 존재 이유
+        "run_id": None,                 # there is no run -- that is why this entry exists
         "origin": origin,
         "case": None,
         "outcome": None,
@@ -84,7 +98,7 @@ def add_entry(claim, kind, origin, source, tags, coords, not_verified) -> Path:
 
 
 def match_coord(rec, expr):
-    """'키=lo:hi' 또는 '키=값' (10% 허용). 키는 부분 일치."""
+    """'key=lo:hi' or 'key=value' (10% tolerance). The key matches partially."""
     key, rng = expr.split("=", 1)
     key = key.strip()
     hits = [(k, v) for k, v in rec.get("dimensionless", {}).items() if key in k]
@@ -106,18 +120,18 @@ def main():
     q.add_argument("--tags", default="")
     q.add_argument("--coord", action="append", default=[])
     q.add_argument("--outcome", default="")
-    q.add_argument("--kind", default="", help="교훈 종류 (pitfall/method_note/...)")
-    q.add_argument("--origin", default="", help=f"출처 종류 {ORIGINS + ('our_run',)}")
+    q.add_argument("--kind", default="", help="lesson kind (pitfall/method_note/...)")
+    q.add_argument("--origin", default="", help=f"source kind {ORIGINS + ('our_run',)}")
     sub.add_parser("lessons").add_argument("--origin", default="")
-    a_ = sub.add_parser("add", help="런 없는 지식 엔트리 추가 (스케치 해석·문헌·도구 교훈)")
+    a_ = sub.add_parser("add", help="add a run-less knowledge entry (sketch reading, literature, tooling lesson)")
     a_.add_argument("--claim", required=True)
     a_.add_argument("--kind", default="method_note",
                     help="parameter | phase_boundary | scaling | method_note | pitfall")
     a_.add_argument("--origin", required=True, help=f"{ORIGINS}")
-    a_.add_argument("--source", default="", help="어디서 나왔는가 (파일#앵커 · 논문 locator)")
+    a_.add_argument("--source", default="", help="where it came from (file#anchor, or a paper locator)")
     a_.add_argument("--tags", default="")
     a_.add_argument("--coord", action="append", default=[],
-                    help="무차원 좌표 '이름=값' (검색용)")
+                    help="dimensionless coordinates 'name=value' (for search)")
     a_.add_argument("--not-verified", action="append", default=[])
     a = ap.parse_args()
 
@@ -134,21 +148,21 @@ def main():
 
     recs = load_all()
     if not recs:
-        print("기록이 없습니다. tools/postmortem.py (런) 또는 kb.py add (런 없는 지식) 를 쓰세요.")
+        print("no records. Use tools/postmortem.py (for a run) or kb.py add (for run-less knowledge).")
         return 1
 
     def rid(r):
         return r.get("run_id") or f"[{r.get('origin', '?')}] {r.get('source') or '—'}"
 
     if a.cmd == "list":
-        print(f"{'출처':<44}{'origin':<11}{'outcome':<10}{'tags'}")
+        print(f"{'source':<44}{'origin':<11}{'outcome':<10}{'tags'}")
         print("-" * 104)
         for r in sorted(recs, key=lambda x: (x.get("origin") != "our_run", rid(x))):
             print(f"{rid(r)[:43]:<44}{r.get('origin', '?'):<11}"
                   f"{str(r.get('outcome') or '—'):<10}"
                   f"{','.join((r.get('system_tags') or [])[:4])}")
         n_run = sum(1 for r in recs if r.get("origin") == "our_run")
-        print(f"\n총 {len(recs)}건  (런 {n_run} · 런 없는 지식 {len(recs) - n_run})")
+        print(f"\n{len(recs)} total  (runs {n_run} . run-less knowledge {len(recs) - n_run})")
         return 0
 
     if a.cmd == "lessons":
@@ -164,7 +178,7 @@ def main():
                 print(f"      ← {rid(r)}"
                       + (f" ({r['outcome']})" if r.get("outcome") else
                          f" · origin={r.get('origin')}"))
-        print(f"\n총 {n}건")
+        print(f"\n{n} total")
         return 0
 
     sel = recs
@@ -187,27 +201,27 @@ def main():
         if r.get("system_tags"):
             print(f"  tags: {', '.join(r['system_tags'])}")
         if r.get("dimensionless"):
-            print("  무차원수:")
+            print("  dimensionless groups:")
             for k, v in r["dimensionless"].items():
                 print(f"    {k:<36} {v:.4g}")
         if r.get("observables"):
-            print("  관측량 (측정 vs 예측):")
+            print("  observables (measured vs predicted):")
             for o in r["observables"]:
                 pv = o.get("predicted")
                 if pv is None:
-                    print(f"    {o['name']:<16} {o['measured']:>13.6g} {o['unit']:<8} (예측 없음)")
+                    print(f"    {o['name']:<16} {o['measured']:>13.6g} {o['unit']:<8} (no prediction)")
                 else:
                     print(f"    {o['name']:<16} {o['measured']:>13.6g} vs {pv:>13.6g} "
                           f"{o['unit']:<8} {o['err_pct']:+7.2f}%")
         if r.get("lessons"):
-            print("  교훈:")
+            print("  lessons:")
             for l_ in r["lessons"]:
                 print(f"    [{l_['kind']}] {l_['claim']}")
         if r.get("not_verified"):
-            print("  미검증:")
+            print("  not verified:")
             for nv in r["not_verified"]:
                 print(f"    · {nv}")
-    print(f"\n{len(sel)}/{len(recs)} 건 일치")
+    print(f"\n{len(sel)}/{len(recs)} matched")
     return 0
 
 

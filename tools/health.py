@@ -1,13 +1,15 @@
-"""L4 판정기를 완료된 런에 적용한다 (사후) — `bdbot.health` 의 CLI 어댑터.
+"""Apply the L4 judge to a completed run (post hoc) -- the CLI adapter for
+`bdbot.health`.
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
-    $PY tools/health.py runs/<run_id>        # 한 건
-    $PY tools/health.py --all                # 전부 훑기
-    $PY tools/health.py --gate specs/x.json  # 실행 **전** 게이트만
+    $PY tools/health.py runs/<run_id>        # one run
+    $PY tools/health.py --all                # sweep everything
+    $PY tools/health.py --gate specs/x.json  # the **pre-run** gate only
 
-`metrics.json` 의 `equilibration.series_key` 를 1순위로 보고, 없으면 `observables.npz`
-안의 1차원 시계열을 자동으로 고릅니다. **물리적 옳고 그름은 판정하지 않습니다** —
-발산·NaN·정지·붕괴, 그리고 L3 원장과의 대조뿐입니다.
+Looks first at `metrics.json`'s `equilibration.series_key`, and failing that picks
+a 1-D time series out of `observables.npz` automatically. **It does not judge
+physical correctness** -- divergence, NaN, stalling, collapse, and the comparison
+against the L3 ledger, and nothing else.
 """
 from __future__ import annotations
 
@@ -24,12 +26,14 @@ from bdbot import nondim as ND         # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# 평형·건전성 지표로 쓸 만한 1차원 시계열. 값이 항상 양수여야 하는 것은 positive=True.
-# (positive, cumulative, 표시이름).  cumulative = 자라는 게 정상인 누적량
+# 1-D series usable as an equilibrium or health indicator. positive=True when the
+# value must always be positive.
+# (positive, cumulative, display name).  cumulative = an accumulated quantity for
+# which growing is normal
 SERIES_HINTS = {
     "pe":               (False, False, "⟨U⟩/N"),
     "psi6":             (True,  False, "ψ₆"),
-    "min_sep":          (True,  False, "최소 간격"),
+    "min_sep":          (True,  False, "min separation"),
     "x2":               (True,  False, "⟨x²⟩"),
     "cos_theta_series": (False, False, "⟨cos θ⟩"),
     "msd":              (True,  True,  "MSD"),
@@ -46,7 +50,8 @@ def pick_series(npz_path: Path, metrics: dict) -> list[tuple[str, np.ndarray, bo
         keys = list(z.files)
         eq = (metrics.get("equilibration") or {}).get("series_key")
         ordered = ([eq] if eq in keys else []) + [k for k in keys if k != eq]
-        # 누적량의 성장 지수는 **실제 시간축**으로 재야 한다 (lag 가 로그 간격일 수 있음)
+        # the growth exponent of a cumulative quantity must be measured against the
+        # **real time axis** (the lags may be logarithmically spaced)
         tax = np.asarray(z["t"], float) if "t" in keys else None
         for k in ordered:
             if k in SKIP_PREFIX or any(k.startswith(p) for p in SKIP_PREFIX):
@@ -69,14 +74,16 @@ def judge_run(run: Path, verbose=True) -> H.HealthReport:
 
     series = pick_series(run / "observables.npz", metrics)
     if not series:
-        rep.add(True, None, "시계열", "판정 가능한 시계열 없음 — 생략")
+        rep.add(True, None, "time series", "no judgeable series -- skipped")
     for label, y, pos, cum, tt in series:
         H.judge_series(label, y, rep, positive=pos, cumulative=cum, t=tt)
 
-    # L3 대조 — 스펙이 있고 스텝 변위가 기록돼 있을 때만
+    # the L3 comparison -- only when a spec exists and a step displacement was recorded
     num = metrics.get("numerics", {})
-    # ⓐ 힘 기반(`run.Guard` 가 런타임에 측정, 런 전체 최악값) ⓑ 위치 차분(하위호환).
-    # ⓐ 를 우선합니다 — 열잡음을 뺄 필요가 없어 정확합니다 (health.step_health 참조).
+    # (a) force-based (measured at runtime by `run.Guard`, the worst value over the
+    #     whole run)  (b) position difference (backward compatible).
+    # Prefer (a) -- there is no thermal noise to subtract, so it is exact
+    # (see health.step_health).
     drift = num.get("step_drift_max_sigma")
     step_rms = num.get("step_rms_sigma")
     spec_path = _find_spec(metrics.get("run_id", run.name))
@@ -92,15 +99,19 @@ def judge_run(run: Path, verbose=True) -> H.HealthReport:
     elif step_rms is not None and num.get("dt_star"):
         H.step_health(step_rms, num["dt_star"], dim, pred, rep)
     else:
-        # ⚠️ 여기에 들어오면 **이 모듈의 핵심 검사가 돌지 않은 것**입니다.
-        #    HEALTHY 로 보이지만 스텝 해상은 검사되지 않았습니다 — 그걸 명시합니다.
-        #    ★ 소급 측정은 불가능합니다: ① run_id 가 콘텐츠 주소라 현재 코드로 재실행하면
-        #      **다른 id 의 새 런**이 생기고 이 런은 그대로 미측정으로 남습니다.
-        #      ② GSD 재생으로 힘만 다시 계산하는 우회는 **시간 의존 구동에서 무효**입니다
-        #      (트랩 앵커가 t=0 에 고정되어 실측 16배 과대 — scratch/probe_gsd_replay.py).
-        rep.add(True, None, "스텝 변위 (미측정)",
-                "이 런은 step_drift 측정이 배선된 2026-08-05 이전에 실행됐습니다 — "
-                "스텝 해상이 **검사되지 않았습니다**. 소급 측정은 불가능합니다(새 런만 가능)")
+        # WARNING: reaching here means **this module's core check did not run.**
+        #    It will look HEALTHY, but the step resolution was not checked -- say so
+        #    explicitly.
+        #    * Retroactive measurement is impossible: (1) run_id is content-addressed,
+        #      so re-running under the current code produces **a new run with a
+        #      different id** and this one stays unmeasured. (2) The workaround of
+        #      replaying the GSD to recompute forces is **invalid under
+        #      time-dependent driving** (the trap anchor is pinned at t=0, measured
+        #      16x overestimate -- verify/probe_gsd_replay.py).
+        rep.add(True, None, "step displacement (NOT MEASURED)",
+                "this run predates the step_drift measurement being wired (2026-08-05) "
+                "-- the step resolution was **not checked**. Retroactive measurement "
+                "is impossible (new runs only)")
         rep.measured["step_method"] = "none"
         if pred is not None:
             rep.measured["dt_over_tau_fast_predicted"] = pred
@@ -119,7 +130,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("run", nargs="?", type=Path)
     ap.add_argument("--all", action="store_true")
-    ap.add_argument("--gate", type=Path, help="실행 전 게이트만 (스펙 경로)")
+    ap.add_argument("--gate", type=Path, help="the pre-run gate only (a spec path)")
     a = ap.parse_args()
 
     if a.gate:
@@ -129,7 +140,7 @@ def main() -> int:
         print(f"gate — {spec.run_id}   (L3 verdict: {spec.verdict})")
         for p in probs:
             print(f"  ✗ {p}")
-        # 막지 않는 것도 반드시 보여줍니다 — 조용히 통과시키면 게이트가 무의미합니다.
+        # Always show what does not block -- a gate that passes silently is not a gate.
         for n in notes:
             print(f"  ⚠ {n}")
         print("  OK — cleared to run" if not probs else "  -> RUN REFUSED")
@@ -147,16 +158,16 @@ def main() -> int:
         if a.all:
             extra = ""
             if "ledger_ratio" in m:
-                extra = (f"  dt/τ 측정 {m['dt_over_tau_fast_measured']:.1e}"
-                         f" / 예측 {m['dt_over_tau_fast_predicted']:.1e}"
+                extra = (f"  dt/tau measured {m['dt_over_tau_fast_measured']:.1e}"
+                         f" / predicted {m['dt_over_tau_fast_predicted']:.1e}"
                          f" = {m['ledger_ratio']:.2f}×")
             elif "dt_over_tau_fast_measured" in m:
-                extra = f"  dt/τ 측정 {m['dt_over_tau_fast_measured']:.1e} (L3 예측 없음)"
+                extra = f"  dt/tau measured {m['dt_over_tau_fast_measured']:.1e} (no L3 prediction)"
             elif "dt_over_tau_fast_predicted" in m:
-                extra = (f"  L3예측 dt/τ={m['dt_over_tau_fast_predicted']:.1e}"
-                         f"  ⚠ 스텝 미검사")
+                extra = (f"  L3 predicted dt/tau={m['dt_over_tau_fast_predicted']:.1e}"
+                         f"  ! step NOT checked")
             else:
-                extra = "  ⚠ 스텝 미검사"
+                extra = "  ! step NOT checked"
             print(f"  {'✓' if rep.verdict == 'HEALTHY' else '✗'} {r.name[:44]:<46}"
                   f"{rep.verdict:<11}{','.join(rep.failure_modes)}{extra}")
         else:
@@ -165,25 +176,30 @@ def main() -> int:
     if a.all:
         n = len(runs)
         print(f"\n{n - bad}/{n} HEALTHY")
-        # ★ 커버리지를 **따로** 보고합니다. "81/81 HEALTHY" 만 찍으면 핵심 검사가 한 번도
-        #   돌지 않았는데 전부 통과한 것처럼 읽힙니다 — 침묵은 성공이 아닙니다.
-        print(f"스텝 해상 측정: {n - unmeasured}/{n} 런")
+        # * Report coverage **separately.** Printing only "81/81 HEALTHY" reads as
+        #   everything passing when the core check never ran once -- silence is not
+        #   success.
+        print(f"step resolution measured: {n - unmeasured}/{n} runs")
         if unmeasured:
-            print(f"  ⚠ 미측정 {unmeasured}런은 step_drift 측정이 배선된 2026-08-05 이전에 "
-                  f"실행된 **레거시**입니다.")
-            # ★ 2026-08-06 정정: "재실행하면 무조건 다른 id 가 된다"고 적어뒀는데 **틀렸습니다.**
-            #   trap-drag 를 원래 인자(--traverse 0.117647)로 재실행하니 run_id 가 레거시와
-            #   **정확히 일치**해 제자리에서 채워졌습니다(그리고 옛 데이터를 덮어썼습니다).
-            #   같은 인자를 주면 채워지고, 코드가 그 케이스의 스펙을 바꿨으면 새 id 가 됩니다.
-            print("    채우려면 **원래 CLI 인자 그대로** 재실행해야 합니다 — 그러면 run_id 가 "
-                  "일치해 제자리에서 채워집니다.")
-            print("    ⚠ 그때 옛 데이터(metrics·observables·GSD)는 덮여 사라집니다 "
-                  "(record.json 만 보존). 필요하면 먼저 백업하세요.")
-            print("    스펙이 바뀐 케이스는 새 id 가 생기고 레거시는 미측정으로 남습니다. "
-                  "GSD 재생 우회는")
-            print("    시간 의존 구동(이동 트랩·진동 구동)에서 무효입니다 (실측 16배 과대).")
-            print("    이 런들의 HEALTHY 는 '발산·정지·붕괴 없음'이고 'dt 가 충분히 작다'가 "
-                  "아닙니다.")
+            print(f"  ! the {unmeasured} unmeasured run(s) are **legacy** -- executed "
+                  f"before the step_drift measurement was wired (2026-08-05).")
+            # * Correction (2026-08-06): this used to say "re-running always gives a
+            #   different id", which was **wrong.** Re-running trap-drag with its
+            #   original arguments (--traverse 0.117647) produced a run_id that
+            #   **matched the legacy one exactly** and filled it in place (overwriting
+            #   the old data). Same arguments -> filled in place; if the code changed
+            #   that case's spec -> a new id.
+            print("    to fill them, re-run with **the original CLI arguments** -- then "
+                  "the run_id matches and it fills in place.")
+            print("    ! the old data (metrics, observables, GSD) is overwritten and "
+                  "lost when that happens (only record.json is preserved). Back it up "
+                  "first if needed.")
+            print("    a case whose spec changed gets a new id, and the legacy run stays "
+                  "unmeasured. The GSD-replay workaround is")
+            print("    invalid under time-dependent driving (a moving trap, oscillatory "
+                  "driving) -- measured 16x overestimate.")
+            print("    HEALTHY for these runs means 'no divergence, no stall, no "
+                  "collapse' and NOT 'dt is small enough'.")
     return 1 if bad else 0
 
 

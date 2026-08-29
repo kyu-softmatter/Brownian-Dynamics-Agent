@@ -1,25 +1,31 @@
-"""L2 `PhysicalSystem` — 차원 있는 물리계 (SI). 마스터플랜 원칙 3의 출발점.
+"""The L2 `PhysicalSystem` -- the dimensional physical system (SI). The starting
+point of rule 1 ("dimensions come first").
 
-1-A·1-B가 각자 `load_system()`을 갖고 있었습니다 — **두 번 나왔으므로** 공통화합니다.
-스키마는 두 `system.yaml`의 실사용에서 갈랐습니다:
+The first two cases had each grown their own `load_system()` -- **it appeared
+twice**, so it is shared. The schema was split out of how the two real
+`system.yaml` files were actually used:
 
-    2/2 (공통)  label · description · dimensions · particle · medium ·
+    in both      label . description . dimensions . particle . medium .
                 interactions · external · targets · numerics
-    1/2 (선택)  geometry · derived_scales · dimensionless ·
+    in one       geometry . derived_scales . dimensionless .
                 required_convergence_checks · not_verified
 
-**Provenanced 잎** (`value`+`unit`+`source`+`tier`)은 2/2에서 동일했습니다:
-`particle.{diameter,density,count}` · `medium.{temperature,viscosity}` + 케이스별 상호작용.
+The **Provenanced leaves** (`value` + `unit` + `source` + `tier`) were identical
+in both: `particle.{diameter,density,count}`, `medium.{temperature,viscosity}`,
+plus the per-case interactions.
 
-`derived_scales`는 **일부러 예외**입니다 — γ·D_t·τ_B 같은 유도값은 출처가 아니라
-**재계산으로** 검증됩니다 (`verify()`가 그걸 합니다).
+`derived_scales` is **a deliberate exception** -- derived values like gamma, D_t
+and tau_B are verified not by a source but **by recomputation** (`verify()` does
+that).
 
-강제하는 불변식 (마스터플랜 §5.4의 L2 버전):
-  ① `derived_from` — 이 물리계가 나온 `observation.yaml`. 없으면 거부.
-     (기존 두 파일은 이걸 **주석**에만 적어뒀습니다 — 기계가 못 읽습니다)
-  ② L0이 BLOCKED면 L2는 존재할 수 없다 — 미해소 물리 결측이 있는데 물리계를
-     확정했다면 어딘가에서 값을 지어낸 것입니다 (규칙 3).
-  ③ tier ≥ 2 (미검증)만으로 구성된 값이 있으면 사람 승인 필요 (§12.4).
+Invariants enforced here:
+  1. `derived_from` -- the `observation.yaml` this physical system came from.
+     Rejected if absent. (The two original files recorded this only in a
+     **comment**, which a machine cannot read.)
+  2. If L0 is BLOCKED, L2 cannot exist -- settling a physical system while an
+     unresolved physical gap remains means a value was invented somewhere
+     (rule 3).
+  3. A value composed only of tier >= 2 (unverified) needs human approval.
 """
 from __future__ import annotations
 
@@ -40,12 +46,15 @@ REQUIRED_TOP = ("label", "dimensions", "particle", "medium", "targets", "numeric
 OPTIONAL_TOP = ("description", "geometry", "interactions", "external", "derived_scales",
                 "dimensionless", "required_convergence_checks", "not_verified",
                 "derived_from")
-# 출처 없이 값만 있어도 되는 섹션 — 유도값이라 재계산으로 검증한다
+# Sections allowed to carry a value with no source -- they are derived, and are
+# verified by recomputation
 DERIVED_SECTIONS = ("derived_scales", "dimensionless", "friction")
-# 2/2 에서 같았던 Provenanced 경로
-# ★ 세 번째 케이스(abp-rod, 타원체)에서 필요해진 일반화: 구 공식이 안 맞는 형상이 있다.
-#   γ̄(Perrin, 2D 조화평균) = 7.21e-9 vs 3πηd_eq = 6.37e-9 — 13% 차이.
-#   구 재계산 검증을 그대로 돌리면 **정상인 스펙을 오류로 잡는다.**
+# Provenanced paths that were identical in both cases.
+# * A generalization forced by the third case (abp-rod, an ellipsoid): some shapes
+#   do not obey the sphere formulas.
+#   gamma_bar (Perrin, 2D harmonic mean) = 7.21e-9 vs 3*pi*eta*d_eq = 6.37e-9 --
+#   a 13% difference. Running the sphere recomputation check unchanged would
+#   **flag a correct spec as an error.**
 SPHERICAL_SHAPES = ("sphere", None)
 
 CORE_PROVENANCED = {
@@ -55,15 +64,15 @@ CORE_PROVENANCED = {
     "T": ("medium", "temperature"),
     "eta": ("medium", "viscosity"),
 }
-TIER_MEANING = {0: "직접입력/핸드북", 1: "문헌+검증 또는 확인된 관례",
-                2: "문헌 미검증", 3: "임의 가정"}
+TIER_MEANING = {0: "given / handbook", 1: "literature + verified, or a confirmed convention",
+                2: "literature, unverified", 3: "arbitrary assumption"}
 
 
 @dataclass
 class PhysicalSystem:
     path: Path
     raw: dict
-    core: dict = field(default_factory=dict)      # 이름 → Provenanced
+    core: dict = field(default_factory=dict)      # name -> Provenanced
     issues: list = field(default_factory=list)
 
     @property
@@ -76,7 +85,7 @@ class PhysicalSystem:
 
     @property
     def shape(self):
-        """`particle.shape` — 없으면 구로 본다 (1-A·1-B가 그랬다)."""
+        """`particle.shape` -- treated as a sphere when absent (as in the first two cases)."""
         return (self.raw.get("particle") or {}).get("shape")
 
     @property
@@ -88,12 +97,12 @@ class PhysicalSystem:
         return [i for i in self.issues if i.level == "error"]
 
     def node(self, *path, required: bool = True):
-        """케이스별 Provenanced 노드 접근. `sys_.node("external","stiffness")`."""
+        """Access a per-case Provenanced node. `sys_.node("external","stiffness")`."""
         cur = self.raw
         for k in path:
             if not isinstance(cur, dict) or k not in cur:
                 if required:
-                    raise KeyError(f"{'.'.join(map(str, path))} 없음 ({self.path})")
+                    raise KeyError(f"{'.'.join(map(str, path))} not found ({self.path})")
                 return None
             cur = cur[k]
         return load_node(cur)
@@ -107,7 +116,7 @@ class PhysicalSystem:
         return dict(sorted(out.items()))
 
     def _extra_provenanced(self) -> dict:
-        """core 밖의 Provenanced 잎 (케이스별 상호작용·기하 등)."""
+        """Provenanced leaves outside core (per-case interactions, geometry, ...)."""
         out: dict[str, Provenanced] = {}
         for path, node in _walk_provenanced(self.raw):
             top = path.split(".")[0].split("[")[0]
@@ -122,11 +131,13 @@ class PhysicalSystem:
         return out
 
     def bulk(self) -> dict | None:
-        """구 + 뉴턴 유체 기본 물성. 두 케이스가 똑같이 이 묶음을 씁니다.
+        """Basic properties of a sphere in a Newtonian fluid. Both of the first two
+        cases used exactly this bundle.
 
-        ★ 예외를 던지지 않습니다. 단위가 깨진 스펙에서 검사기가 크래시하면
-          "무엇이 틀렸는지" 대신 트레이스백이 나옵니다 — 적대적 테스트에서 실제로
-          그랬습니다 (`furlong^2` 를 넣었더니 DimensionalityError 로 죽음).
+        * Raises nothing. If the checker crashes on a spec with broken units, the
+          user gets a traceback instead of "what is wrong" -- which is exactly what
+          an adversarial test produced (feeding `furlong^2` killed it with a
+          DimensionalityError).
         """
         if not all(k in self.core for k in ("d", "T", "eta", "rho_p")):
             return None
@@ -138,7 +149,7 @@ class PhysicalSystem:
 
 
 def _walk_provenanced(d, pre=""):
-    """`value` + (`unit`|`source`|`tier`) 를 가진 잎을 (경로, 노드)로 열거."""
+    """Enumerate leaves carrying `value` plus (`unit`|`source`|`tier`) as (path, node)."""
     out = []
     if isinstance(d, dict):
         if "value" in d and any(k in d for k in ("unit", "source", "tier")):
@@ -158,7 +169,7 @@ def load(path) -> PhysicalSystem:
         p = p / "system.yaml"
     if not p.exists():
         s = PhysicalSystem(p, {})
-        s.issues.append(_intake.Issue("error", str(p), "system.yaml 이 없습니다."))
+        s.issues.append(_intake.Issue("error", str(p), "system.yaml is missing."))
         return s
     raw = yaml.safe_load(p.read_text()) or {}
     s = PhysicalSystem(p, raw)
@@ -174,7 +185,7 @@ def load(path) -> PhysicalSystem:
             try:
                 s.core[name] = load_node(cur)
             except Exception as e:
-                s.issues.append(_intake.Issue("error", ".".join(keys), f"파싱 실패: {e}"))
+                s.issues.append(_intake.Issue("error", ".".join(keys), f"parse failed: {e}"))
     s.issues += validate(s)
     return s
 
@@ -184,87 +195,93 @@ def validate(s: PhysicalSystem) -> list:
     raw = s.raw
     out: list = []
 
-    # ① 필수 섹션
+    # 1. required sections
     for k in REQUIRED_TOP:
         if k not in raw:
-            out.append(I("error", k, "필수 섹션 누락"))
+            out.append(I("error", k, "required section missing"))
     for name, keys in CORE_PROVENANCED.items():
         if name not in s.core:
-            out.append(I("error", ".".join(keys), f"필수 Provenanced 노드 누락 (2/2 공통)"))
+            out.append(I("error", ".".join(keys), "required Provenanced node missing (present in both reference cases)"))
 
-    # ② ★ 불변식: derived_from (§5.4의 L2 버전)
+    # 2. * invariant: derived_from
     df = raw.get("derived_from")
     if not df:
         out.append(I("error", "derived_from",
-                     "이 물리계가 어느 observation.yaml에서 나왔는지 없습니다. "
-                     "주석이 아니라 필드로 적어야 기계가 검증할 수 있습니다 (§5.4)."))
+                     "there is no record of which observation.yaml this physical "
+                     "system came from. It has to be a field, not a comment, for a "
+                     "machine to verify it."))
     else:
         ref = (s.path.parent / Path(str(df)).name)
         if not ref.exists():
-            out.append(I("error", "derived_from", f"참조 파일이 없습니다: {df}"))
+            out.append(I("error", "derived_from", f"referenced file does not exist: {df}"))
         else:
-            # ③ ★ L0이 BLOCKED면 L2는 존재할 수 없다
+            # 3. * if L0 is BLOCKED, L2 cannot exist
             obs = _intake.load(ref)
             if obs.errors:
                 out.append(I("error", "derived_from",
-                             f"근거 observation.yaml에 스키마 오류 {len(obs.errors)}건이 있습니다."))
+                             f"the source observation.yaml has {len(obs.errors)} schema error(s)."))
             if obs.open_missing:
                 names = ", ".join(m.get("symbol", "?") for m in obs.open_missing)
                 out.append(I("error", "derived_from",
-                             f"L0에 미해소 물리 결측이 있는데 물리계가 확정돼 있습니다: {names}. "
-                             "어딘가에서 값을 지어냈을 수 있습니다 (규칙 3)."))
+                             f"L0 has unresolved physical gaps but the physical system is "
+                             f"settled: {names}. A value may have been invented somewhere "
+                             f"(rule 3)."))
 
-    # ④ Provenanced 잎의 완전성 + 단위 파싱
+    # 4. completeness of the Provenanced leaves, plus unit parsing
     for path, node in _walk_provenanced(raw):
         top = path.split(".")[0].split("[")[0]
         if top in DERIVED_SECTIONS:
             continue
         for need in ("source", "tier"):
             if need not in node:
-                out.append(I("error", path, f"'{need}' 누락 (원칙 2: 모든 숫자는 출처를 갖는다)"))
+                out.append(I("error", path, f"'{need}' missing (rule 3: every number carries a source)"))
         if "unit" in node and node["unit"] is not None:
             try:
                 Q(1.0, str(node["unit"]))
             except Exception as e:
-                out.append(I("error", path, f"단위를 해석할 수 없습니다: {node['unit']} ({e})"))
+                out.append(I("error", path, f"cannot parse the unit: {node['unit']} ({e})"))
         t = node.get("tier")
         if t is not None and t not in TIER_MEANING:
-            out.append(I("error", path, f"tier 는 0~3 이어야 합니다 (지금 {t})"))
+            out.append(I("error", path, f"tier must be 0-3 (got {t})"))
 
-    # ⑤ 유도값 재계산 검증 (있으면)
+    # 5. recomputation check on the derived values (when present)
     out += verify(s)
 
-    # ⑥ tier 승인 게이트 (§12.4)
+    # 6. the tier approval gate
     low = [n for n, p in {**s.core, **s._extra_provenanced()}.items() if p.tier >= 2]
     if low:
-        out.append(I("warn", "tier", f"tier ≥ 2 (미검증) 값 {len(low)}건: {', '.join(low[:6])}"
-                                     f"{' …' if len(low) > 6 else ''} — 사람 승인 대상 (§12.4)"))
+        out.append(I("warn", "tier", f"{len(low)} value(s) at tier >= 2 (unverified): {', '.join(low[:6])}"
+                                     f"{' ...' if len(low) > 6 else ''} -- needs human approval"))
     return out
 
 
 def verify(s: PhysicalSystem, rtol: float = 1e-3) -> list:
-    """`derived_scales`에 적힌 값을 물성식으로 재계산해 대조 (출처 대신 재현으로 검증)."""
+    """Recompute the values written in `derived_scales` from the material formulas
+    and compare (verified by reproduction rather than by provenance).
+    """
     I = _intake.Issue
     ds = s.raw.get("derived_scales")
     if not ds:
         return []
     if not s.is_spherical:
-        # 구 공식(3πηd, kT/γ)이 성립하지 않는다 → 재계산 검증을 하지 않고, 대신
-        # **어디서 유도했는지**를 요구한다. Perrin 인자를 bdbot에 올리지는 않았다:
-        # 아직 한 케이스에서만 나왔다 (두 번 나오면 그때 — CLAUDE.md 추상화 규칙).
+        # The sphere formulas (3*pi*eta*d, kT/gamma) do not hold -> skip the
+        # recomputation check and instead require **where it was derived from.**
+        # The Perrin factors were not promoted into bdbot: they have appeared in
+        # only one case so far (the "twice" rule in CLAUDE.md).
         src = str(ds.get("source", ""))
         if not src:
             return [I("error", "derived_scales",
-                      f"형상이 '{s.shape}' 라서 구 공식으로 재계산할 수 없습니다. "
-                      "`derived_scales.source` 에 유도 스크립트를 적어 재현 가능하게 하세요.")]
+                      f"shape is '{s.shape}', so the sphere formulas cannot recompute it. "
+                      "Name the derivation script in `derived_scales.source` so it "
+                      "stays reproducible.")]
         return [I("info", "derived_scales",
-                  f"형상 '{s.shape}' — 구 공식 재계산 검증을 건너뜁니다. "
-                  f"근거: {src[:60]}")]
+                  f"shape '{s.shape}' -- skipping the sphere recomputation check. "
+                  f"basis: {src[:60]}")]
     b = s.bulk()
     if b is None:
         return [I("error", "derived_scales",
-                  "물성을 재계산할 수 없어 유도값을 대조하지 못했습니다 "
-                  "(위의 단위/노드 오류를 먼저 고치세요).")]
+                  "could not recompute the material properties, so the derived values "
+                  "were not compared (fix the unit/node errors above first).")]
     want = {"gamma": b["gamma"], "D_t": b["D_t"], "tau_B": b["tau_B"], "tau_p": b["tau_p"],
             "kT": b["kT"]}
     out = []
@@ -276,11 +293,11 @@ def verify(s: PhysicalSystem, rtol: float = 1e-3) -> list:
             rel = abs(float((got - expect).to(expect.units).magnitude)
                       / float(expect.magnitude))
         except Exception as e:
-            out.append(I("error", f"derived_scales.{k}", f"대조 실패: {e}"))
+            out.append(I("error", f"derived_scales.{k}", f"comparison failed: {e}"))
             continue
         if not math.isfinite(rel) or rel > rtol:
             out.append(I("error", f"derived_scales.{k}",
-                         f"재계산과 불일치: 적힌 값 {got:~.5gP} vs 계산 {expect.to(got.units):~.5gP} "
+                         f"disagrees with the recomputation: written {got:~.5gP} vs computed {expect.to(got.units):~.5gP} "
                          f"({100*rel:.3f}%)"))
     return out
 
@@ -297,16 +314,16 @@ def render_check(s: PhysicalSystem) -> str:
 
     n_err = len(s.errors)
     n_warn = len([i for i in s.issues if i.level == "warn"])
-    w(f"{s.label}   {s.dim}D   스키마: 오류 {n_err} · 경고 {n_warn}")
+    w(f"{s.label}   {s.dim}D   schema: {n_err} error(s) . {n_warn} warning(s)")
     if s.raw.get("derived_from"):
-        w(f"  근거(L0): {s.raw['derived_from']}")
+        w(f"  source (L0): {s.raw['derived_from']}")
     if s.issues:
         w("")
         for i in s.issues:
             w(str(i))
 
     w("")
-    w("물리계 (SI)")
+    w("PHYSICAL SYSTEM (SI)")
     for name, p in s.core.items():
         w(f"  {name:<8} = {str(f'{p.value:~.4gP}'):<18} [tier {p.tier}] {p.source[:40]}")
     extra = s._extra_provenanced()
@@ -316,31 +333,31 @@ def render_check(s: PhysicalSystem) -> str:
     b = s.bulk()
     if b is not None:
         w("")
-        w("유도 물성 (재계산)")
+        w("DERIVED PROPERTIES (recomputed)")
         w(f"  γ = {b['gamma']:~.4eP}   D_t = {b['D_t'].to('um^2/s'):~.4fP}   "
           f"τ_B = {b['tau_B']:~.4gP}   τ_p = {b['tau_p'].to('us'):~.3fP}")
 
     w("")
-    w("신뢰등급 분포 (§12.4)")
+    w("TIER DISTRIBUTION")
     for t, names in s.tiers().items():
-        w(f"  tier {t} ({TIER_MEANING[t]:<22}) {len(names):>2}건  {', '.join(names[:5])}"
+        w(f"  tier {t} ({TIER_MEANING[t]:<44}) {len(names):>2}  {', '.join(names[:5])}"
           f"{' …' if len(names) > 5 else ''}")
 
     nv = s.raw.get("not_verified")
     if nv:
         w("")
-        w("확인하지 않은 것 (원칙 7)")
+        w("NOT CONFIRMED (rule 3)")
         for x in nv:
             w(f"  · {str(x).splitlines()[0][:70]}")
 
     w("")
     w("=" * 78)
     if n_err:
-        w(f"VERDICT: FAIL — 오류 {n_err}건. L3(무차원화)로 넘어가지 않습니다.")
+        w(f"VERDICT: FAIL -- {n_err} error(s). Not advancing to L3 (non-dimensionalization).")
     else:
-        w("VERDICT: READY — L3(무차원화) 가능.")
+        w("VERDICT: READY -- L3 (non-dimensionalization) can proceed.")
         if n_warn:
-            w(f"         (경고 {n_warn}건 — tier 승인 대상 확인)")
+            w(f"         ({n_warn} warning(s) -- check the tier approvals)")
     w("=" * 78)
     return "\n".join(L)
 

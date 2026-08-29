@@ -1,14 +1,15 @@
-"""사후분석 — 완료된 런을 자동 진단하고 `record.json`(KB 엔트리)을 만든다.
+"""Post-mortem -- diagnose a completed run automatically and write
+`record.json` (a KB entry).
 
-마스터플랜 §10. 선언이 아니라 **측정**으로 성공/실패를 판정한다.
-LLM 없이 동작한다 — 판정은 수치 지표로만 한다.
+Success and failure are decided by **measurement**, not by declaration.
+Runs with no LLM -- every verdict comes from a numerical indicator.
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY tools/postmortem.py runs/<run_id>
-    $PY tools/postmortem.py runs/<run_id> --lesson "교훈" --kind pitfall
+    $PY tools/postmortem.py runs/<run_id> --lesson "the lesson" --kind pitfall
 
-`record.json` 은 나중에 SQLite KB(§7)가 들어올 때의 입력이다. 지금은 파일 하나면 충분하고,
-런이 100개를 넘거나 문헌이 들어오면 그때 DB로 옮긴다.
+`record.json` is the input for a future SQLite KB. One file per run is enough for
+now; move to a DB once runs exceed a hundred or the literature comes in.
 """
 from __future__ import annotations
 
@@ -23,13 +24,16 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = "bdbot.record/0.1"
 
-# 실패 분류 체계 (마스터플랜 §10.1)
+# The failure classification
 TAXONOMY = ["NUM_DIVERGE", "NUM_DRIFT", "EQ_INSUFFICIENT", "STAT_INSUFFICIENT",
             "FINITE_SIZE", "WRONG_REGIME", "RESOURCE", "SPEC_ERROR"]
 
 
 def _tau_int(y: np.ndarray, c: float = 5.0) -> float:
-    """적분 자기상관 시간 (스텝 단위, 자동 창 절단). n_eff = n/(2τ+1)."""
+    """Integrated autocorrelation time (in steps, automatic window truncation).
+
+    n_eff = n/(2*tau+1).
+    """
     y = np.asarray(y, dtype=float) - y.mean()
     n = len(y)
     if n < 8 or y.std() == 0:
@@ -39,7 +43,7 @@ def _tau_int(y: np.ndarray, c: float = 5.0) -> float:
     ac = np.fft.irfft(F * np.conj(F), n=nfft)[:n]
     ac /= ac[0]
     tau, k = 0.0, 1
-    while k < n:                                  # Sokal 자동 창
+    while k < n:                                  # Sokal automatic window
         tau += ac[k]
         if k >= c * (2 * tau + 1):
             break
@@ -48,16 +52,18 @@ def _tau_int(y: np.ndarray, c: float = 5.0) -> float:
 
 
 def _stationarity(series: np.ndarray, steps: np.ndarray) -> dict:
-    """정상성 두 지표: 전반/후반 z 검정 + 선형 추세 t 검정.
+    """Two stationarity indicators: a first-half/second-half z test plus a
+    linear-trend t test.
 
-    ★ 자기상관 보정 필수. 1-B에서 발견: 보정 없이 t 검정을 하면 전 구간 변화가
-      평균의 −0.026% 인 런이 t=−3.3 으로 '드리프트'로 잡혔다. 시계열 표본은
-      상관되어 있어 naive SE가 유효 표본 수를 과대평가한다
-      (skill bd-physics §5.1의 '오차막대는 블록 평균으로'와 같은 실수).
+    * Autocorrelation correction is mandatory. Found in the second case: without
+      it, a run whose total change was -0.026% of the mean was flagged as 'drift'
+      at t=-3.3. Time-series samples are correlated, so a naive SE overestimates
+      the effective sample count (the same mistake as 'error bars come from block
+      averaging' in skill bd-physics section 5.1).
     """
     n = len(series)
     tau = _tau_int(series)
-    infl = math.sqrt(2 * tau + 1)                 # SE 팽창 인자
+    infl = math.sqrt(2 * tau + 1)                 # SE inflation factor
     half = n // 2
     a, b = series[:half], series[half:]
     pooled = math.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b)) * infl
@@ -66,7 +72,7 @@ def _stationarity(series: np.ndarray, steps: np.ndarray) -> dict:
     slope, icept = np.polyfit(x, series, 1)
     resid = series - (slope * x + icept)
     se = resid.std(ddof=2) / math.sqrt(n) * infl
-    span = float(slope * (x.max() - x.min()))     # 전 구간 변화량
+    span = float(slope * (x.max() - x.min()))     # total change across the window
     mean = float(series.mean())
     return {"equilibrium_z": z, "trend_t": float(slope / se) if se > 0 else 0.0,
             "first_half": float(a.mean()), "second_half": float(b.mean()),
@@ -76,16 +82,20 @@ def _stationarity(series: np.ndarray, steps: np.ndarray) -> dict:
 
 
 def series_diagnostics(run: Path, m: dict) -> dict | None:
-    """케이스가 지정한 평형 지표 시계열로 정상성을 본다 (metrics.equilibration).
+    """Check stationarity on the equilibrium series the case named
+    (metrics.equilibration).
 
-    ★ 1-B에서 필요해졌다. 아래 궤적 기반 진단은 '앵커로부터의 변위'를 쓰는데
-      이건 트랩 계 전용이다. 유체는 확산하므로 변위가 무한히 자라 항상 EQ 실패가 된다.
-      구조계의 표준 평형 지표는 퍼텐셜 에너지 시계열이다.
+    * Became necessary in the second case. The trajectory-based diagnosis below
+      uses 'displacement from the anchor', which is trap-specific: a fluid
+      diffuses, so the displacement grows without bound and it always fails the
+      equilibrium check. The standard equilibrium indicator for a structural system
+      is the potential-energy series.
     """
     spec = m.get("equilibration")
     if not spec:
-        # 케이스가 명시하지 않았으면 퍼텐셜 에너지 시계열을 찾아본다.
-        # 구조계의 표준 평형 지표이고, 없으면 궤적 변위 폴백으로 넘어간다.
+        # If the case did not name one, look for a potential-energy series.
+        # That is the standard indicator for a structural system; failing that, fall
+        # through to the trajectory-displacement fallback.
         npz0 = run / "observables.npz"
         if not npz0.exists():
             return None
@@ -93,7 +103,7 @@ def series_diagnostics(run: Path, m: dict) -> dict | None:
             if "pe" not in z0:
                 return None
         spec = {"source": "observables.npz", "series_key": "pe",
-                "label": "⟨U⟩/N [kT] (기본 추정)"}
+                "label": "<U>/N [kT] (default guess)"}
     npz = run / spec.get("source", "observables.npz")
     if not npz.exists():
         return None
@@ -112,10 +122,12 @@ def series_diagnostics(run: Path, m: dict) -> dict | None:
 
 
 def equilibrium_diagnostics(run: Path, n_eq_steps: int) -> dict:
-    """궤적에서 평형·드리프트를 측정한다. traj_A.gsd 가 없으면 None 들로 채운다.
+    """Measure equilibrium and drift from the trajectory. Fills with Nones when
+    traj_A.gsd is absent.
 
-    ⚠️ 앵커(초기 위치)로부터의 변위를 쓰므로 **속박계(트랩) 전용**이다.
-       확산하는 계에는 series_diagnostics 를 쓴다.
+    WARNING: this uses displacement from the anchor (the initial position), so it
+       is **for bound (trap) systems only.** Use series_diagnostics for a diffusive
+       system.
     """
     traj = run / "traj_A.gsd"
     if not traj.exists():
@@ -124,18 +136,18 @@ def equilibrium_diagnostics(run: Path, n_eq_steps: int) -> dict:
 
     with gsd.hoomd.open(str(traj), mode="r") as t:
         steps = np.array([f.configuration.step for f in t])
-        anchors = np.array(t[0].particles.position)     # frame 0 = 초기 배치 = 앵커
+        anchors = np.array(t[0].particles.position)     # frame 0 = initial placement = the anchors
         L = float(t[0].configuration.box[0])
         dim = int(t[0].configuration.dimensions)
         r2 = np.empty(len(t))
         for i, f in enumerate(t):
             d = np.array(f.particles.position) - anchors
-            d[:, :2] -= L * np.round(d[:, :2] / L)      # 주기 축만 (bd-hoomd 함정 7·8)
+            d[:, :2] -= L * np.round(d[:, :2] / L)      # periodic axes only (bd-hoomd traps 7, 8)
             r2[i] = (d[:, :dim] ** 2).sum(axis=1).mean()
 
     prod = steps >= n_eq_steps
     if prod.sum() < 8:
-        return {"available": False, "reason": "프로덕션 프레임 부족"}
+        return {"available": False, "reason": "too few production frames"}
     r2p, sp = r2[prod], steps[prod].astype(float)
 
     half = len(r2p) // 2
@@ -151,7 +163,7 @@ def equilibrium_diagnostics(run: Path, n_eq_steps: int) -> dict:
 
     return {"available": True, "n_frames_production": int(prod.sum()),
             "initial_rms_displacement": float(math.sqrt(r2[0])),
-            "source": "traj_A.gsd:displacement_from_anchor", "label": "⟨Δr²⟩ (앵커 기준)",
+            "source": "traj_A.gsd:displacement_from_anchor", "label": "<dr^2> (from the anchor)",
             "equilibrium_z": z, "trend_t": t_stat,
             "r2_first_half": float(a.mean()), "r2_second_half": float(b.mean())}
 
@@ -159,112 +171,120 @@ def equilibrium_diagnostics(run: Path, n_eq_steps: int) -> dict:
 def diagnose(run: Path) -> dict:
     m = json.loads((run / "metrics.json").read_text())
     num = m["numerics"]
-    # 케이스가 평형 지표를 지정했으면 그걸 쓰고, 없으면 궤적 변위(속박계 전용)로 폴백
+    # Use the equilibrium indicator the case named; failing that, fall back to the
+    # trajectory displacement (bound systems only)
     diag = series_diagnostics(run, m) or equilibrium_diagnostics(run, num["n_eq"])
 
     findings, failure_modes, not_verified = [], [], []
 
-    # ① 평형
+    # 1. equilibrium
     if diag.get("available"):
         src = diag.get("label", "?")
         if abs(diag["equilibrium_z"]) < 3:
-            findings.append(f"평형 ✓ (전반/후반 z={diag['equilibrium_z']:+.2f}, 지표={src})")
+            findings.append(f"equilibrated OK (half/half z={diag['equilibrium_z']:+.2f}, indicator={src})")
         else:
             failure_modes.append("EQ_INSUFFICIENT")
-            findings.append(f"평형 ✗ z={diag['equilibrium_z']:+.2f} (지표={src})")
+            findings.append(f"NOT equilibrated z={diag['equilibrium_z']:+.2f} (indicator={src})")
         rel = diag.get("drift_span_rel_pct")
         neff = diag.get("n_eff")
-        extra = (f", 전구간 {rel:+.3f}%" if rel is not None else "")
+        extra = (f", total {rel:+.3f}%" if rel is not None else "")
         extra += (f", n_eff={neff:.0f}/{diag.get('n_frames_production', 0)}"
                   if neff is not None else "")
-        # 유의성만으로 판정하지 않는다: 크기가 0.5% 미만이면 물리적으로 무해하다고 본다
+        # Do not judge on significance alone: below 0.5% in magnitude it is treated
+        # as physically harmless
         significant = abs(diag["trend_t"]) >= 3
         material = rel is None or abs(rel) >= 0.5
         if not significant:
-            findings.append(f"드리프트 없음 ✓ (t={diag['trend_t']:+.2f}{extra})")
+            findings.append(f"no drift OK (t={diag['trend_t']:+.2f}{extra})")
         elif not material:
-            findings.append(f"드리프트 유의하나 미미 ⚠ (t={diag['trend_t']:+.2f}{extra})"
-                            f" — 크기 기준 0.5% 미만이므로 실패로 보지 않음")
+            findings.append(f"drift significant but negligible ! (t={diag['trend_t']:+.2f}{extra})"
+                            f" -- below 0.5% in magnitude, so not counted as a failure")
         else:
             failure_modes.append("NUM_DRIFT")
-            findings.append(f"드리프트 ✗ t={diag['trend_t']:+.2f}{extra}")
+            findings.append(f"DRIFTING t={diag['trend_t']:+.2f}{extra}")
     else:
         not_verified.append("equilibrium_from_trajectory")
 
-    # ② 분리 검사 — 하드/소프트를 구분한다 (bd-physics §4).
-    #    1-B에서 필요해졌다: 통계·유한크기 검사는 ⚠ 경고이지 실행 거부 사유가 아니다.
-    #    hard 키가 없는 옛 런은 전부 하드로 읽는다 (1-A 호환).
+    # 2. separation checks -- distinguish hard from soft (bd-physics section 4).
+    #    Became necessary in the second case: statistics and finite-size checks are
+    #    warnings, not grounds for refusing to run.
+    #    An older run with no `hard` key is read as all-hard (backward compatible).
     bad_hard = [c for c in m["checks"] if not c["ok"] and c.get("hard", True)]
     bad_soft = [c for c in m["checks"] if not c["ok"] and not c.get("hard", True)]
     if bad_hard:
         failure_modes.append("SPEC_ERROR")
-        findings += [f"분리 검사 실패(하드): {c['name']}" for c in bad_hard]
+        findings += [f"separation check FAILED (hard): {c['name']}" for c in bad_hard]
     if bad_soft:
-        findings += [f"분리 검사 경고: {c['name']} = {c['value']:.3g} (기준 {c['limit']:g})"
+        findings += [f"separation check warning: {c['name']} = {c['value']:.3g} (limit {c['limit']:g})"
                      for c in bad_soft]
-        not_verified.append("소프트 검사 미충족: " + ", ".join(c["name"] for c in bad_soft))
+        not_verified.append("soft checks unmet: " + ", ".join(c["name"] for c in bad_soft))
     if not bad_hard:
         tight = [c for c in m["checks"] if c["ok"] and c["margin"] < 5]
-        findings.append(f"분리 검사 {len(m['checks'])}종 중 하드 전부 통과 ✓"
-                        + (f" (여유 부족 {len(tight)}건)" if tight else ""))
+        findings.append(f"all hard checks passed OK of {len(m['checks'])} separation checks"
+                        + (f" ({len(tight)} thin margin(s))" if tight else ""))
 
-    # ③ 목표 달성 — 예측이 있는 관측량만 판정한다 (err_pct=None 은 예측 없음)
+    # 3. targets met -- judge only observables that have a prediction
+    #    (err_pct=None means no prediction)
     predicted = [o for o in m["observables"] if o.get("err_pct") is not None]
-    # predicted=0 인 관측량은 퍼센트 오차가 정의되지 않는다 — err_sigma(z-점수)로 따로 판정한다
-    # (bdbot/metrics.py `observable(sigma=...)`). 둘 다 없으면 진짜 "판정 불가".
+    # An observable with predicted=0 has no defined percentage error -- judge it
+    # separately by err_sigma (a z-score), see bdbot/metrics.py
+    # `observable(sigma=...)`. With neither, it is genuinely undecidable.
     sigma_judged = [o for o in m["observables"]
                     if o.get("err_sigma") is not None and o.get("err_pct") is None]
     n_nopred = len(m["observables"]) - len(predicted) - len(sigma_judged)
     if predicted:
         worst = max(predicted, key=lambda o: abs(o["err_pct"]))
         if all(abs(o["err_pct"]) < 5 for o in predicted):
-            findings.append(f"관측량 {len(predicted)}종 예측과 일치 ✓ "
-                            f"(최대 오차 {worst['err_pct']:+.2f}% @ {worst['name']})")
+            findings.append(f"{len(predicted)} observable(s) agree with prediction OK "
+                            f"(worst error {worst['err_pct']:+.2f}% @ {worst['name']})")
         else:
             failure_modes.append("WRONG_REGIME")
-            findings.append(f"관측량 불일치 ✗ 최대 {worst['err_pct']:+.2f}% @ {worst['name']}")
+            findings.append(f"observable MISMATCH worst {worst['err_pct']:+.2f}% @ {worst['name']}")
     if sigma_judged:
         worst_s = max(sigma_judged, key=lambda o: abs(o["err_sigma"]))
         tol_s = worst_s.get("tol_sigma") or 3.0
         if all(abs(o["err_sigma"]) < (o.get("tol_sigma") or 3.0) for o in sigma_judged):
-            findings.append(f"관측량 {len(sigma_judged)}종 0-예측과 통계적으로 일치 ✓ "
-                            f"(최대 {worst_s['err_sigma']:+.2f}σ @ {worst_s['name']}, "
-                            f"기준 {tol_s:g}σ)")
+            findings.append(f"{len(sigma_judged)} observable(s) statistically agree with a "
+                            f"zero prediction OK (worst {worst_s['err_sigma']:+.2f} sigma @ "
+                            f"{worst_s['name']}, limit {tol_s:g} sigma)")
         else:
             failure_modes.append("WRONG_REGIME")
-            findings.append(f"관측량 0-예측과 불일치 ✗ 최대 {worst_s['err_sigma']:+.2f}σ "
+            findings.append(f"observable MISMATCH against a zero prediction, worst "
+                            f"{worst_s['err_sigma']:+.2f} sigma "
                             f"@ {worst_s['name']}")
     if n_nopred:
-        not_verified.append(f"예측값 없는 관측량 {n_nopred}종 (측정만 기록, 판정 안 함)")
+        not_verified.append(f"{n_nopred} observable(s) with no prediction (recorded as "
+                            f"measurements, not judged)")
 
-    # ④ 통계 + 편향 일관성
+    # 4. statistics plus bias consistency
     sem = num.get("x2_sem_pct") or num.get("primary_sem_pct")
-    # 통계 목표는 계마다 다르다. 케이스가 선언하면 그걸 쓰고, 없으면 0.5%(1-A 기본).
+    # The statistical target differs per system. Use what the case declares; the
+    # default 0.5% comes from the first case and must not be assumed elsewhere.
     target = num.get("stat_target_pct", 0.5)
     if sem is not None:
         if sem < target:
-            findings.append(f"통계 충분 ✓ (±{sem:.3f}% < 목표 {target:g}%)")
+            findings.append(f"statistics sufficient OK (+/-{sem:.3f}% < target {target:g}%)")
         else:
             failure_modes.append("STAT_INSUFFICIENT")
-            findings.append(f"통계 부족 ✗ (±{sem:.3f}% ≥ 목표 {target:g}%)")
+            findings.append(f"statistics INSUFFICIENT (+/-{sem:.3f}% >= target {target:g}%)")
         bp = num.get("bias_predicted_pct")
         x2 = next((o for o in m["observables"] if "x²" in o["name"] or "x2" in o["name"]), None)
         if bp is not None and x2 is not None:
             d_ = abs(x2["err_pct"] - bp)
             ok = d_ < 3 * sem
-            findings.append(f"편향 법칙 {'✓' if ok else '✗'} 예측 {bp:+.3f}% vs "
-                            f"측정 {x2['err_pct']:+.3f}% ({d_/sem:.1f} SEM)")
+            findings.append(f"bias law {'OK' if ok else 'MISMATCH'} predicted {bp:+.3f}% vs "
+                            f"measured {x2['err_pct']:+.3f}% ({d_/sem:.1f} SEM)")
             if not ok:
                 failure_modes.append("NUM_DRIFT")
 
-    # ⑤ 직접 확인하지 않은 것 — 정직하게 남긴다
+    # 5. what was not directly confirmed -- recorded honestly
     conv = m.get("convergence_checked") or []
     if "dt" in conv:
-        findings.append("dt 수렴 직접 확인 ✓ " + str(m.get("convergence_notes", {}).get("dt", "")))
+        findings.append("dt convergence directly confirmed OK " + str(m.get("convergence_notes", {}).get("dt", "")))
     else:
-        not_verified.append("dt_convergence_direct  (dt/2 재실행 안 함)")
+        not_verified.append("dt_convergence_direct  (no dt/2 re-run)")
     if "r_cut" in conv:
-        findings.append("r_c 수렴 직접 확인 ✓ " + str(m.get("convergence_notes", {}).get("r_cut", "")))
+        findings.append("r_c convergence directly confirmed OK " + str(m.get("convergence_notes", {}).get("r_cut", "")))
 
     outcome = "success" if not failure_modes else (
         "partial" if len(failure_modes) == 1 else "failure")
@@ -280,7 +300,7 @@ def build_record(run: Path, d: dict, lessons: list) -> dict:
         "run_id": m["run_id"],
         "case": m["case"],
         "kind": "our_run",
-        "tier": 3,                       # 우리 시뮬레이션에서 귀납 (§5.2)
+        "tier": 3,                       # induced from our own simulation
         "system_tags": m["system_tags"],
         "reference_scales": m["reference_scales"],
         "physical": m["physical"],
@@ -301,12 +321,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("run", type=Path)
     ap.add_argument("--lesson", action="append", default=[],
-                    help='"주장::종류::좌표키=값,..." 형식 또는 그냥 주장')
+                    help='"claim::kind::coordkey=value,..." or just the claim')
     args = ap.parse_args()
 
     run = (ROOT / args.run) if not args.run.is_absolute() else args.run
     if not (run / "metrics.json").exists():
-        print(f"✗ {run}/metrics.json 이 없습니다. 케이스 스크립트를 최신본으로 재실행하세요.")
+        print(f"x {run}/metrics.json is missing. Re-run the case script from the current version.")
         return 1
 
     d = diagnose(run)
@@ -323,8 +343,9 @@ def main():
                 coords[k_.strip()] = float(v_)
         lessons.append({"claim": claim, "kind": kind, "coords": coords, "tier": 3})
 
-    # ★ 교훈은 누적한다. 덮어쓰면 안 된다 — 1-C에서 사후분석을 재실행하며 6건을 날렸다.
-    #   run_id 가 콘텐츠 주소라 같은 record 는 같은 스펙의 런이고, 이전 교훈이 그대로 유효하다.
+    # * Lessons accumulate. Never overwrite -- re-running the post-mortem once
+    #   destroyed 6 of them. run_id is content-addressed, so the same record means a
+    #   run of the same spec, and the previous lesson is still valid.
     prev_path = run / "record.json"
     if prev_path.exists():
         try:
@@ -334,23 +355,23 @@ def main():
         seen = {l.get("claim") for l in lessons}
         kept = [l for l in prev if l.get("claim") not in seen]
         if kept:
-            print(f"  (이전 교훈 {len(kept)}건 유지)")
+            print(f"  ({len(kept)} previous lesson(s) preserved)")
         lessons = kept + lessons
 
     rec = build_record(run, d, lessons)
     (run / "record.json").write_text(json.dumps(rec, indent=2, ensure_ascii=False))
 
     print("=" * 78)
-    print(f"사후분석 — {rec['run_id']}")
+    print(f"post-mortem -- {rec['run_id']}")
     print("=" * 78)
     for f_ in d["findings"]:
         print(f"  {f_}")
     if d["not_verified"]:
-        print("\n  직접 확인하지 않은 것:")
+        print("\n  not directly confirmed:")
         for nv in d["not_verified"]:
             print(f"    · {nv}")
     if lessons:
-        print("\n  교훈 (tier 3):")
+        print("\n  lessons (tier 3):")
         for l_ in lessons:
             c = f"  {l_['coords']}" if l_["coords"] else ""
             print(f"    [{l_['kind']}] {l_['claim']}{c}")
