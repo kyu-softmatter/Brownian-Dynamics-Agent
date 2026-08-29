@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/verify_1c_equivalence.py#ref_1b",
+  "lessons": [
+    {
+      "claim": "A regression test whose baseline was never committed is not a weak check, it is no check. verify/ref_1b/ is empty and git log --all over that path returns nothing, so verify_1c_equivalence.py has never been runnable on any clone; it died on a bare FileNotFoundError that reads like a script bug rather than an absent baseline. The tempting repair is the harmful one: regenerating the snapshot from current code makes it compare current-against-current, which passes unconditionally and converts a visibly broken check into a silently passing one. A baseline is only meaningful if it predates the refactor it guards. Either recover the pre-refactor artefact from outside the repo or retire the script; never manufacture agreement. Commit baselines, or the check is theatre.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

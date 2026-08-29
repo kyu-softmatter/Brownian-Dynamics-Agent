@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/verify_1c_equivalence.py#RENAMED",
+  "lessons": [
+    {
+      "claim": "Korean can be load-bearing as DATA, not just as matched prose. The RENAMED dict in verify_1c_equivalence.py maps old metrics.json keys to new ones, and the old keys are literal Korean strings inside a frozen archive: measured, 9 archived runs carry 81 such keys under 'dimensionless' and RENAMED resolves 75 of them. Translating those keys would stop them matching, so each field would be reported as DELETED -- 75 false violations. runs/ is non-reproducible so the keys cannot be migrated either. Before translating any string used as a dict key or a lookup into runs/ or specs/, count how many archived records it resolves against.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
