@@ -1,255 +1,298 @@
 ---
 name: bd-physics
 description: |
-  Brownian dynamics의 차원 우선 워크플로 — 단위 규약, 계마다 스케일 표를 작성하는 법,
-  무차원화, 스케일 분리 검사, 역변환. 물리계를 정의하거나, 파라미터를 제안하거나,
-  기준 스케일을 고르거나, 무차원수를 해석하거나, dt·박스크기·실행시간이 타당한지
-  판단할 때 읽어라. 스케치·문헌에서 파라미터를 뽑아 시뮬레이션으로 옮기는 모든 작업에 해당.
+  The dimensions-first workflow for Brownian dynamics — unit conventions, how to
+  write a scale table for each system, non-dimensionalization, scale-separation
+  checks, and inversion. Read this when defining a physical system, proposing
+  parameters, choosing a reference scale, interpreting a dimensionless group, or
+  judging whether a dt, a box size or a run time is reasonable. Applies to any
+  work that carries parameters from a sketch or the literature into a simulation.
 ---
 
-# 차원 우선 워크플로
+# The dimensions-first workflow
 
-> **이 문서는 케이스가 늘어나며 자랍니다.** 지금은 검증된 케이스 하나(조화 트랩)가 들어있고,
-> 새 계를 관통할 때마다 그 계의 스케일 표를 아래 §6에 추가합니다.
-> 일반 프레임워크를 먼저 만들지 않습니다 — 두 번 나온 것만 공통화합니다.
+> **This document grows as cases accumulate.** Each time a new system is driven
+> end to end, its scale table is added to section 6 below.
+> Do not build a general framework first — generalize only what has appeared
+> twice.
 
-## 0. 절대 순서
+## 0. The absolute order
 
 ```
-① 스케일 열거   계에 있는 모든 길이·시간·에너지를 SI로 빠짐없이 적는다
-② 기준 선택     그중 무엇을 기준 삼을지 고르고 근거를 남긴다
-③ 비로 유도     모든 무차원수를 "두 스케일의 비"로 만든다 (해석이 따라온다)
-④ 분리 검사     무시하려는 스케일이 정말 분리되어 있는지 확인한다
-⑤ 역변환        결과를 물리 단위로 되돌린다
+① enumerate scales   write down every length, time and energy in the system, in SI, exhaustively
+② choose references  pick which of them are the references, and record why
+③ derive as ratios   make every dimensionless group "a ratio of two scales" (the interpretation follows)
+④ separation check   confirm that the scale you intend to ignore really is separated
+⑤ invert             carry the result back into physical units
 ```
 
-**무차원수를 먼저 정하고 스케일을 나중에 유추하는 순서를 금지합니다.**
-무차원 값에서 출발해야 하면 **앵커**(입자 지름·온도·점도)를 반드시 명시하고,
-그 앵커가 임의로 정한 값임을 기록합니다.
+**Fixing the dimensionless groups first and inferring the scales afterwards is
+forbidden.** If you must start from a dimensionless value, state the **anchors**
+(particle diameter, temperature, viscosity) explicitly and record that those
+anchors were chosen arbitrarily.
 
-**②는 물리 판단입니다.** 지식이 쌓이기 전에는 사람과 함께 확인하세요.
+**Step ② is a physics judgment.** Confirm it with a human until the knowledge base
+has depth.
 
 ---
 
-## 1. 단위 규약
+## 1. Unit conventions
 
-기본 전략 `thermal` (열요동 지배 — 콜로이드, ABP, 트랩):
+The default strategy is `thermal` (thermal-fluctuation dominated — colloids, ABPs,
+traps):
 
-| 기준 | 선택 | HOOMD에서 |
+| Reference | Choice | In HOOMD |
 |---|---|---|
-| 길이 | 입자 지름 `d` | `σ = 1` |
-| 에너지 | `k_BT` | `kT = 1` |
-| 시간 | `τ_B = d²/D_t = 3πηd³/k_BT` | `γ = 1`, `τ_B = 1`, `D_t = 1` |
+| length | particle diameter `d` | `σ = 1` |
+| energy | `k_BT` | `kT = 1` |
+| time | `τ_B = d²/D_t = 3πηd³/k_BT` | `γ = 1`, `τ_B = 1`, `D_t = 1` |
 
-다른 전략이 필요할 수 있습니다 (아직 쓴 적 없음 — 필요해지면 그때 추가):
-`interaction`(`ε` 기준, 강한 결합) · `active`(`ℓ_p`,`τ_r` 기준, 초고 Pe) · `custom`(문헌 관례).
+Other strategies may become necessary (never used yet — add them when they are):
+`interaction` (referenced on `ε`, strong coupling) · `active` (on `ℓ_p`, `τ_r`,
+very high Pe) · `custom` (a literature convention).
 
-⚠️ **기준이 다르면 같은 계가 전혀 다른 무차원수를 갖습니다.** 문헌과 비교할 때
-상대가 어떤 기준을 썼는지 확인하세요.
+⚠️ **A different reference gives the same system entirely different dimensionless
+groups.** When comparing against the literature, check which reference they used.
 
-계산은 **`pint`로 단위를 붙여서** 합니다. 무차원화 단계에서만 단위를 벗깁니다.
+Do the arithmetic **with units attached, via `pint`**. Strip units only at the
+non-dimensionalization step.
 
-### 1.1 섞지 말아야 할 세 가지 결정 ⭐️
+### 1.1 Three decisions that must not be conflated ⭐️
 
-| 결정 | 계마다 바뀌나 | 무엇이 정하나 |
+| Decision | Varies per system? | What sets it |
 |---|---|---|
-| **단위계** (`σ`,`kT`,`τ_B`=1) | ❌ **고정** | 관례. 논문·문헌 비교 가능성 |
-| **`dt`** | ✅ **계마다** | 그 계에서 **가장 빠른** 관련 시간척도 |
-| **결과 보고 단위** | ✅ 관심에 따라 | 물리가 읽히는 척도 (사후 재척도) |
+| **the unit system** (`σ`, `kT`, `τ_B` = 1) | ❌ **fixed** | convention. Comparability with the literature |
+| **`dt`** | ✅ **per system** | the **fastest** relevant timescale in that system |
+| **reporting units** | ✅ by interest | the scale at which the physics reads (rescaled afterwards) |
 
-**단위계를 계마다 바꾸지 마세요.** 같은 계가 기준에 따라 전혀 다른 무차원수를 갖게 되어
-문헌 대조가 불가능해집니다. `thermal`(σ, kT, τ_B)로 고정합니다.
+**Do not change the unit system per system.** The same system would end up with
+entirely different dimensionless groups depending on the reference, making
+literature comparison impossible. Fix it at `thermal` (σ, kT, τ_B).
 
-**`dt`는 통일할 수 없습니다.** 무차원 `dt* = dt/τ_B`를 고정하면 계마다 4자릿수까지
-어긋납니다. 실제 값:
+**`dt` cannot be unified.** Fixing the dimensionless `dt* = dt/τ_B` puts systems
+up to four orders of magnitude apart. The actual values:
 
-| 계 | 가장 빠른 척도 / `τ_B` | `dt/τ_fast=1e-2`에 필요한 `dt*` |
+| System | fastest scale / `τ_B` | `dt*` needed for `dt/τ_fast=1e-2` |
 |---|---|---|
-| 조화 트랩 (`k*`=6.0e4) | `τ_k/τ_B` = 1.7e-5 | **1.7e-7** |
+| harmonic trap (`k*`=6.0e4) | `τ_k/τ_B` = 1.7e-5 | **1.7e-7** |
 | ABP (Pe=40) | `τ_v/τ_B` = 2.5e-2 | 2.5e-4 |
 
-`dt*`를 1500배 차이나게 써야 합니다. 트랩 값으로 통일하면 ABP가 1500배 낭비되고,
-ABP 값으로 통일하면 트랩은 `dt/τ_k = 6`이 되어 **한 스텝이 이완시간의 6배** — 완전히 깨집니다.
+`dt*` has to differ by 1500×. Unify on the trap value and the ABP wastes 1500×;
+unify on the ABP value and the trap gets `dt/τ_k = 6`, i.e. **one step is 6× the
+relaxation time** — completely broken.
 
-**보고는 재척도하세요.** 트랩 결과를 `t/τ_k`로 그리면 물리가 읽힙니다.
-단위계를 바꾸는 게 아니라 축을 바꾸는 것입니다.
+**Rescale for reporting.** Plotting a trap result against `t/τ_k` makes the
+physics read. That is changing the axis, not the unit system.
 
-### 1.2 `dt`를 얼마나 작게? — 편향으로 역산한다 ⭐️
+### 1.2 How small should `dt` be? — invert it from the bias ⭐️
 
-"충분히 작게"는 애매합니다. **선형계에서는 계통 편향을 정확히 계산할 수 있습니다.**
+"Small enough" is vague. **In a linear system the systematic bias can be computed
+exactly.**
 
-조화 트랩의 Euler–Maruyama 이산 정상분산:
+The Euler–Maruyama discrete stationary variance of a harmonic trap:
 ```
 x_{n+1} = x_n(1 − h) + √(2D·dt)·ξ ,   h ≡ dt/τ_k
 ⟹  ⟨x²⟩_discrete = (kT/k) / (1 − h/2)
-⟹  상대 편향 = 1/(1 − h/2) − 1  ≈  h/2
+⟹  relative bias = 1/(1 − h/2) − 1  ≈  h/2
 ```
 
-**즉 `dt/τ`의 절반이 곧 계통 편향입니다.** HOOMD Brownian이 이 법칙을 따름을 실측 확인
-(`scratch/dt_convergence.py`, N=2000, 표본 1000개):
+**So half of `dt/τ` *is* the systematic bias.** Measured and confirmed that HOOMD's
+Brownian follows this law (`verify/dt_convergence.py`, N=2000, 1000 samples):
 
-| `dt/τ_k` | 편향 측정 | 편향 이론 | 차이 |
+| `dt/τ_k` | bias, measured | bias, theory | difference |
 |---|---|---|---|
 | 0.10 | 5.262% | 5.263% | −0.002% |
 | 0.05 | 2.539% | 2.564% | −0.025% |
 | 0.02 | 1.079% | 1.010% | +0.069% |
 | 0.01 | 0.569% | 0.503% | +0.067% |
 
-(뒤 두 개의 +0.07%는 통계 오차 1 SEM 수준)
+(the +0.07% on the last two is at the level of 1 SEM of statistical error)
 
-**실용 표 — 원하는 정확도에서 `dt`를 역산하세요:**
+**A practical table — invert `dt` from the accuracy you want:**
 
-| 목표 정확도 | `dt/τ_fast` | 상대 비용 |
+| Target accuracy | `dt/τ_fast` | Relative cost |
 |---|---|---|
 | 5% | 1e-1 | 1× |
 | 1% | 2e-2 | 5× |
-| 0.5% | 1e-2 ← 하드 게이트 | 10× |
+| 0.5% | 1e-2 ← the hard gate | 10× |
 | 0.1% | 2e-3 | 50× |
 | 0.025% | 5e-4 | 200× |
 
-비용 ∝ `1/dt`. **§4의 하드 게이트 `1e-2`는 "0.5% 편향"을 뜻합니다.**
+Cost ∝ `1/dt`. **The hard gate of `1e-2` in section 4 means "0.5% bias."**
 
-⚠️ 이 닫힌 형태는 **선형계에만** 성립합니다. WCA·ABP 같은 비선형계는 해석식이 없으니
-**수렴 연구**(`dt` 절반으로 줄여 관측량이 안 움직이는지)를 하세요. 다만 O(dt) 스케일링은
-유지되므로 두 점 Richardson 외삽이 잘 듣습니다.
+⚠️ This closed form holds **only for a linear system.** Nonlinear systems such as
+WCA or ABP have no analytic expression, so do a **convergence study** (halve `dt`
+and check the observable does not move). The O(dt) scaling does survive, so
+two-point Richardson extrapolation works well.
 
+⚠️ And `dt` is not decided once. Whenever a knob can reorder the timescales,
+re-derive it — with a trap stiffness scaled by ~200 the trap becomes the *fastest*
+mode, and `dt` had not been recomputed.
 
 ---
 
-## 2. 물성 유도식 (구 기준)
+## 2. Derived material properties (for a sphere)
 
 ```
-γ    = 3πηd                     Stokes 항력
-D_t  = k_BT / γ                 Stokes–Einstein
-τ_B  = d² / D_t                 Brownian(확산) 시간
-m    = ρ_p (π/6) d³             입자 질량
-τ_p  = m / γ                    운동량 이완 (관성)
-v₀   = f_a / γ                  자기추진 속도
+γ    = 3πηd                     Stokes drag
+D_t  = k_BT / γ                 Stokes-Einstein
+τ_B  = d² / D_t                 Brownian (diffusion) time
+m    = ρ_p (π/6) d³             particle mass
+τ_p  = m / γ                    momentum relaxation (inertia)
+v₀   = f_a / γ                  self-propulsion speed
 ```
 
-**구에만 성립하는 것** — 다른 형상에 쓰지 마세요:
+**True for a sphere only** — do not use these for other shapes:
 ```
-D_r  = k_BT/(πηd³) = 3 D_t/d²   Stokes–Einstein–Debye (구)
+D_r  = k_BT/(πηd³) = 3 D_t/d²   Stokes-Einstein-Debye (sphere)
 ```
-타원체·막대는 Perrin friction factor가 필요합니다. 그리고 **BD에서는 병진 이방성이
-애초에 재현되지 않습니다** (HI 부재 — skill `bd-hoomd`의 하드 제약 참조).
+Ellipsoids and rods need Perrin friction factors. And **translational anisotropy
+is not reproducible in BD at all** (no HI — see the hard constraints in skill
+`bd-hoomd`).
 
-밀도:
+Density:
 ```
 2D:  φ = N π σ² / (4 L²)        3D:  φ = N π σ³ / (6 L³)
 ```
 
-### 2.1 `η` 와 `T` 의 출처 — 둘이 짝이어야 합니다 ⭐️
+### 2.1 The provenance of `η` and `T` — they must be a matched pair ⭐️
 
-`γ`·`D_t`·`τ_B` 가 전부 `η` 와 `T` 에 걸려 있는데, **물의 점도는 이론이 없습니다**
-(액체 점도 지식의 주요 출처는 실험 — [W] p.104). 공식으로 계산하려 하지 말고 표에서 읽으세요:
+`γ`, `D_t` and `τ_B` all hang on `η` and `T`, and **there is no theory for the
+viscosity of water** (the main source of liquid-viscosity knowledge is experiment
+— [W] p.104). Do not try to compute it from a formula; read it from a table:
 
-- 인용 가능한 표: [docs/books/welty_transport.md](../../../knowledge/source/books/welty_transport.md) §1
-  (Welty 5판 부록 I). 우리가 쓰는 `η = 0.851 mPa·s @300 K` 를 **+1.03%** 로 지지합니다.
-- ⚠️ **표에서 보간할 때는 log-선형**을 쓰세요. 300 K 에서 선형 보간은 **+2.91%** 로 어긋납니다
-  (20 K 간격에서 `η(T)` 의 곡률이 이미 유의미).
-- ⚠️⚠️ **물 점도의 온도 민감도는 `2.06 %/K`** 입니다. 우리 5개 케이스의 `T=300 K` 는 1-A 에서
-  **승계한 선택**이고(1-A 스케치에 온도 없음) tier 1 로 적혀 있습니다. 실제가 298 K 면 −4%,
-  293 K 면 −14% 이고 **`τ_B` 가 그대로 따라갑니다.** 새 케이스에서 온도가 스케치에 있으면
-  `η` 를 다시 읽으세요 — 승계하면 안 됩니다.
-- ⚠️ **`kT` 와 `η` 가 같은 `T` 를 쓰는지** 확인하세요. 어긋나면 `τ_B` 가 이중으로 틀립니다.
+- The citable table:
+  [welty_transport.md](../../../knowledge/source/books/welty_transport.md)
+  (Welty 5th ed., Appendix I). It supports our `η = 0.851 mPa·s @300 K` to
+  **+1.03%**.
+- ⚠️ **Interpolate the table log-linearly.** Linear interpolation at 300 K is off
+  by **+2.91%** (the curvature of `η(T)` is already significant over a 20 K
+  interval). **The interpolation method changes the answer.**
+- ⚠️⚠️ **Water's viscosity is `2.06 %/K` sensitive to temperature.** The
+  `T = 300 K` used across our cases is **an inherited choice** (the originating
+  sketch had no temperature) and it is recorded as tier 1. If the truth is 298 K
+  that is −4%, at 293 K it is −14%, and **`τ_B` follows directly.** If a new
+  case's sketch states a temperature, **re-read `η` — do not inherit.**
+- ⚠️ **Check that `kT` and `η` use the same `T`.** If they disagree, `τ_B` is
+  wrong twice over.
 
 ---
 
-## 3. 무차원수 = 두 스케일의 비
+## 3. A dimensionless group is a ratio of two scales
 
-숫자만 쓰지 말고 **어떤 두 스케일의 비인지** 함께 적으세요. 물리적 해석이 따라옵니다.
+Do not write only the number — write **which two scales it is the ratio of.**
+The physical interpretation follows.
 
-| 무차원수 | 비 | 표현 | 의미 |
+| Group | Ratio | Expression | Meaning |
 |---|---|---|---|
-| `φ` | 점유/전체 부피 | — | 밀집도 |
-| `Pe` | `τ_B / τ_v` | `v₀d/D_t = f_a d/k_BT` | 이류 vs 확산 |
-| `D_r*` | `τ_B / τ_r` | `D_r τ_B` (구 → 3) | 회전 vs 병진 확산 |
-| `ℓ_p/d` | `ℓ_p / d` | `Pe / D_r*` | 지속길이 = 입자 몇 개분 |
-| `ε*` | `ε / k_BT` | — | 결합 vs 열요동 |
-| `k*` | 트랩 강성 | `k d² / k_BT` | 트랩 vs 열요동 |
-| `dt*` | `dt / τ_B` | — | 수치 해상도 |
-| `L/d` | — | — | 박스 = 입자 몇 개분 |
-| `T*` | `T_obs / τ_B` | — | 관측창 |
-| `St` | `τ_p / τ_B` | `m/(γτ_B)` | 관성 vs 확산 |
-| `Re` | — | `ρ_f v₀ d / η` | 유체 관성 |
+| `φ` | occupied / total volume | — | packing |
+| `Pe` | `τ_B / τ_v` | `v₀d/D_t = f_a d/k_BT` | advection vs diffusion |
+| `D_r*` | `τ_B / τ_r` | `D_r τ_B` (sphere → 3) | rotational vs translational diffusion |
+| `ℓ_p/d` | `ℓ_p / d` | `Pe / D_r*` | persistence length, in particle diameters |
+| `ε*` | `ε / k_BT` | — | binding vs thermal fluctuation |
+| `k*` | trap stiffness | `k d² / k_BT` | trap vs thermal fluctuation |
+| `dt*` | `dt / τ_B` | — | numerical resolution |
+| `L/d` | — | — | box, in particle diameters |
+| `T*` | `T_obs / τ_B` | — | observation window |
+| `St` | `τ_p / τ_B` | `m/(γτ_B)` | inertia vs diffusion |
+| `Re` | — | `ρ_f v₀ d / η` | fluid inertia |
 
-### 3.1 ⭐️ `Pe` 는 이름이 둘입니다 — 그리고 전단 쪽은 분자가 `|E|` 입니다
+### 3.1 ⭐️ `Pe` names two different numbers — and the shear one has `|E|` on top
 
-위 표의 `Pe = v₀d/D_t` 는 **자기추진(이류) Peclet** 이고, 유변학에서 말하는 `Pe` 는 다른
-수입니다. **같은 이름을 쓰므로 스펙에 어느 쪽인지 반드시 적으세요** (무차원수를 숫자로만
-저장하면 "이름은 X 인데 값은 다른 것" 을 아무도 잡지 못한다 — KB `method` 항목).
+The `Pe = v₀d/D_t` in the table above is the **self-propulsion (advective)
+Peclet**, and the `Pe` of rheology is a different number. **They share a name, so
+always record which one the spec means** — storing a dimensionless group as a bare
+number means nobody can catch "the name is X but the value is something else."
 
-| 이름 | 정의 | 어디서 |
+| Name | Definition | Where |
 |---|---|---|
-| 이류 Peclet | `v₀d/D_t` | 자기추진·끌기 구동 (`abp-rod`, `trap-drag`) |
-| **배향 Peclet = Weissenberg** | **`|E| / D_r`** | 흐름이 배향분포를 얼마나 왜곡하나 ([L] p.106) |
+| advective Peclet | `v₀d/D_t` | self-propulsion, dragged driving |
+| **orientational Peclet = Weissenberg** | **`|E| / D_r`** | how much the flow distorts the orientation distribution ([L] p.106) |
 
-⚠️⚠️ **`|E| = √(2 E:E)` 이고 `|∇u|` 가 아닙니다** (실행 검증 — `scratch/verify_book_claims.py`):
+⚠️⚠️ **`|E| = √(2 E:E)`, not `|∇u|`** (execution-verified —
+`verify/verify_book_claims.py`):
 
-- **와도(vorticity)는 입자를 균일 회전시킬 뿐 등방 평형분포를 바꾸지 못합니다.** 배향을 정하는
-  것은 변형률 성분뿐입니다 ([L] p.106). **순수 회전류는 `|∇u|`≠0 인데 `Pe = 0`** 입니다.
-- `√(E:E)` 를 쓰면 **√2 = 1.414 배** 틀립니다. 단순전단에서 `√(2E:E) = γ̇` 가 되는 규약이 맞습니다.
-- **준구(`r−1 ≪ 1`)** 는 옳은 척도가 **`|E|(r−1)/D_r`** 입니다 — 그냥 `|E|/D_r` 로 쓰면 과대평가.
+- **Vorticity merely rotates the particle uniformly and cannot change an
+  isotropic equilibrium distribution.** Only the rate-of-strain component sets
+  the orientation ([L] p.106). **A pure rotational flow has `|∇u| ≠ 0` but
+  `Pe = 0`.**
+- Using `√(E:E)` is wrong by **√2 = 1.414×**. The convention that makes
+  `√(2E:E) = γ̇` in simple shear is the correct one.
+- For a **near-sphere (`r−1 ≪ 1`)** the correct scale is **`|E|(r−1)/D_r`** —
+  writing plain `|E|/D_r` overestimates it.
 
-**`Wi` 와 `De` 의 구분** ([L] (1.1)): 같은 비 `τ_relax/τ_flow` 인데 **정상 흐름이면 `Wi`,
-비정상(진동) 흐름이면 `De`** 로 부릅니다. SAOS 는 **둘 다** 필요합니다 — `Wi` 는 진폭이
-선형응답 안에 있는지, `De` 는 주파수가 이완시간 근처인지 ([L] p.181).
+**`Wi` versus `De`** ([L] (1.1)): the same ratio `τ_relax/τ_flow`, but it is
+called **`Wi` for steady flow and `De` for unsteady (oscillatory) flow.** SAOS
+needs **both** — `Wi` for whether the amplitude is inside linear response, `De`
+for whether the frequency is near the relaxation time ([L] p.181).
 
-**배향 이완시간은 `1/(6 D_r)`** 입니다 — `1/D_r` 도 `1/(2D_r)` 도 아닙니다. 희박 축대칭 입자
-현탁액의 손실 모듈러스가 `De/(36+De²)` 라 극이 `De = 6` 이고, `λ = 1/(6D_r)` 인 **단일 Maxwell
-모드와 정확히 같습니다**(편차 <1e-12, 실행 검증). ⚠️ **6 은 3D 의 `l=2`(응력) 모드 계수**이므로
-1차 모멘트나 2D 각도상관(`abp-rod` 의 `⟨cos Δθ⟩`)에 갖다 붙이면 틀립니다.
+**The orientational relaxation time is `1/(6 D_r)`** — not `1/D_r` and not
+`1/(2D_r)`. The loss modulus of a dilute axisymmetric suspension goes as
+`De/(36+De²)`, so the pole is at `De = 6`, and it is **exactly a single Maxwell
+mode with `λ = 1/(6D_r)`** (deviation <1e-12, execution-verified).
+⚠️ **The 6 is the 3D `l=2` (stress) mode coefficient**, so pasting it onto a
+first moment or onto a 2D angular correlation (`abp-rod`'s `⟨cos Δθ⟩`) is wrong.
 
-→ 상세 + 응력 텐서 · Kramers 형태 · 막대 준희박:
-[docs/books/leal_microstructural_rheology.md](../../../knowledge/source/books/leal_microstructural_rheology.md)
+→ Details plus the stress tensor, the Kramers form, and semi-dilute rods:
+[leal_microstructural_rheology.md](../../../knowledge/source/books/leal_microstructural_rheology.md)
 
 ---
 
-## 4. 스케일 분리 검사 — 전부 `10⁻²` 기준
+## 4. Scale-separation checks — all against `10⁻²`
 
-검사는 **두 종류**입니다. 섞지 마세요.
+There are **two kinds** of check. Do not conflate them.
 
-- **모델 타당성** — "BD(과감쇠)가 이 계에 맞는 모델인가?" dt와 무관.
-- **적분 해상** — "고른 모델을 충분히 잘게 적분하는가?" *적분 스텝은 가장 빠른 물리
-  시간척도의 1% 이하.*
+- **Model validity** — "is BD (overdamped) the right model for this system?"
+  Independent of dt.
+- **Integration resolution** — "is the chosen model being integrated finely
+  enough?" *The integration step must be at most 1% of the fastest physical
+  timescale.*
 
-| 종류 | 검사 | 조건 | 위반 시 |
+| Kind | Check | Condition | On violation |
 |---|---|---|---|
-| **모델** | 관성 무시 | `τ_p / τ_dyn ≤ 10⁻²` | ❌ 과감쇠 BD 무효 → Langevin 필요 |
-| **적분** | 이류 해상 | `dt / τ_v ≤ 10⁻²` | ❌ 한 스텝에 지름 1% 초과 이동 |
-| **적분** | 회전 해상 | `dt / τ_r ≤ 10⁻²` | ❌ 방향 동역학 붕괴 |
-| **적분** | 상호작용 해상 | `dt / τ_int ≤ 10⁻²` | ❌ 힘 적분 부정확 |
-| **적분** | 트랩 해상 | `dt / τ_k ≤ 10⁻²` | ❌ 트랩 이완 미해상 |
-| **모델** | 저 Reynolds | `Re ≤ 10⁻³` | ❌ 유체 관성 무시 불가 |
-| **기하** | 컷오프 | `r_c < L/2` | ❌ minimum image 위반 |
-| **기하** | 유한크기 | `ℓ_p, ξ ≤ L/4` | ⚠️ 인공효과 |
-| **통계** | 관측 충분 | `T_obs ≥ 10² · max(τ)` | ⚠️ 통계 부족 |
-| — | 여유 부족 | 하드 검사가 한계의 1/5 이내 | ⚠️ 파라미터 상향 여지 없음 |
+| **model** | inertia negligible | `τ_p / τ_dyn ≤ 10⁻²` | ❌ overdamped BD invalid → Langevin needed |
+| **integration** | advection resolved | `dt / τ_v ≤ 10⁻²` | ❌ moves more than 1% of a diameter per step |
+| **integration** | rotation resolved | `dt / τ_r ≤ 10⁻²` | ❌ orientational dynamics collapses |
+| **integration** | interaction resolved | `dt / τ_int ≤ 10⁻²` | ❌ inaccurate force integration |
+| **integration** | trap resolved | `dt / τ_k ≤ 10⁻²` | ❌ trap relaxation unresolved |
+| **model** | low Reynolds | `Re ≤ 10⁻³` | ❌ fluid inertia cannot be neglected |
+| **geometry** | cutoff | `r_c < L/2` | ❌ minimum image violated |
+| **geometry** | finite size | `ℓ_p, ξ ≤ L/4` | ⚠️ artefacts |
+| **statistics** | enough observation | `T_obs ≥ 10² · max(τ)` | ⚠️ insufficient statistics |
+| — | thin margin | a hard check is within 1/5 of its limit | ⚠️ no room to raise a parameter |
 
-`τ_dyn` = 이 계에서 **관심 있는 가장 빠른 물리 시간척도** (트랩이면 `τ_k`, ABP면 `τ_r` 등).
+`τ_dyn` = **the fastest physical timescale of interest** in this system (`τ_k` for
+a trap, `τ_r` for an ABP, and so on).
 
-> ⚠️ **`τ_p`와 `dt`를 비교하지 마세요.** BD는 관성을 아예 갖지 않습니다 —
-> HOOMD Brownian은 `dr/dt = (F_C + F_R)/γ`로 **질량이 식에 없습니다.**
-> 덜 분해할 관성이 없으므로 `dt ≫ τ_p`는 요구되지 않습니다.
-> 실증: `scratch/golden_trap.py`는 `τ_p/dt = 4000`(질량 1, γ=1, dt=2.5e-4)으로
-> 이 조건을 5자릿수 위반하면서 결과는 0.38% 정확했습니다.
+> ⚠️ **Do not compare `τ_p` against `dt`.** BD has no inertia at all — HOOMD's
+> Brownian is `dr/dt = (F_C + F_R)/γ`, and **mass does not appear in the
+> equation.** There is no inertia left to resolve, so `dt ≫ τ_p` is not required.
+> Demonstrated: `verify/golden_trap.py` violates that condition by five orders of
+> magnitude (`τ_p/dt = 4000`, mass 1, γ=1, dt=2.5e-4) and the result was accurate
+> to 0.38%.
 >
-> `τ_p`가 답하는 질문은 **"BD를 써도 되는 계인가"**입니다. `τ_p ≈ τ_dyn`이면
-> 실제 입자가 탄도적으로 움직이는데 BD는 그걸 만들 수 없고, **어떤 dt로도 고쳐지지 않습니다.**
-> Langevin으로 바꿔야 합니다.
+> The question `τ_p` answers is **"is BD an admissible model for this system?"**
+> If `τ_p ≈ τ_dyn`, the real particle moves ballistically and BD cannot produce
+> that, and **no choice of dt fixes it.** Switch to Langevin.
 
-**여유(margin)를 항상 함께 보고하세요.** 통과/실패만으로는 "Pe를 2배로 올리면
-어디가 먼저 걸리는지"를 알 수 없습니다.
+**Always report the margin alongside.** Pass/fail alone does not tell you "if I
+double Pe, which check binds first?"
 
-> ⚠️ 상한을 통과해도 **정확도는 보장되지 않습니다.** Brownian은 O(δt) 오차라서,
-> 논문급 결과에는 `dt` 절반 수렴 확인이 별도로 필요합니다.
+> ⚠️ Passing the upper bound **does not guarantee accuracy.** Brownian carries
+> O(δt) error, so a publication-grade result needs a separate `dt`-halved
+> convergence check.
+
+⚠️ **And a check that is never wired up cannot be wrong out loud.** In this
+project the step-resolution check silently never ran across 81 runs because of a
+name mismatch, and the pre-run gate rejected 80 of 83 specs with zero real
+failures — see [docs/02](../../../docs/02-verification.md#6--the-failure-mode-this-document-exists-to-prevent).
 
 ---
 
-## 5. 역변환
+## 5. Inversion
 
-시뮬레이션은 무차원, 문헌·실험 대조는 물리 단위. **둘 다 저장하세요.**
+The simulation is dimensionless; comparison against literature and experiment is
+in physical units. **Store both.**
 
 ```python
 D_eff = D_eff_star * sigma**2 / tau_B     # → µm²/s
@@ -260,44 +303,53 @@ P     = P_star * kT / sigma**dim          # → Pa
 
 ---
 
-## 5.1 관측량 추출 함정 (실측으로 발견)
+## 5.1 Observable-extraction traps (found by measurement)
 
-### ★ 변위의 자기상관에서 표본평균을 빼지 말 것
+### ★ Do not subtract the sample mean from a displacement autocorrelation
 
-앵커·트랩 중심으로부터의 **변위**는 참 평균이 정확히 0입니다.
-그런데 관행적으로 `x -= x.mean()`을 하면 `C(t)`가 `O(τ/T_obs)`만큼 **체계적으로 빨리
-감쇠**하고, 여기서 뽑은 `τ`가 작게 나옵니다. 조용히 틀리는 유형입니다.
+The **displacement** from an anchor or a trap centre has a true mean of exactly
+zero. Doing the habitual `x -= x.mean()` makes `C(t)` decay **systematically
+faster** by `O(τ/T_obs)`, and the `τ` extracted from it comes out small. This is
+the silently-wrong kind.
 
-실측 (`cases/trap_2d_5um.py`, `T_obs = 120 τ_k`):
+Measured (`cases/trap_2d_5um.py`, `T_obs = 120 τ_k`):
 
-| 처리 | 피팅된 τ 오차 |
+| Treatment | error in the fitted τ |
 |---|---|
-| 표본평균 뺌 | **−7.75%** ✗ |
-| 안 뺌 | **−0.26%** ✓ |
+| sample mean subtracted | **−7.75%** ✗ |
+| not subtracted | **−0.26%** ✓ |
 
 ```python
-x = trace.astype(np.float64)          # ← 평균 빼지 않음 (참 평균이 0)
+x = trace.astype(np.float64)          # <- no mean subtraction (the true mean is 0)
 F = np.fft.rfft(x, n=nfft, axis=0)
 ac = np.fft.irfft(F * np.conj(F), n=nfft, axis=0)[:n_t]
-ac /= np.arange(n_t, 0, -1)[:, None, None]     # 불편 추정 (겹치는 쌍 개수로 나눔)
+ac /= np.arange(n_t, 0, -1)[:, None, None]     # unbiased (divide by the overlapping-pair count)
 ```
 
-참 평균을 모르는 양(예: 절대 위치)이라면 빼야 합니다. **변위는 아닙니다.**
+For a quantity whose true mean is unknown (an absolute position, say) you must
+subtract it. **A displacement is not such a quantity.**
 
-### `τ` 추출은 log-선형보다 지수 curve_fit
+### Extract `τ` with an exponential curve_fit, not a log-linear one
 
-`log C(t)`에 직선을 맞추면 꼬리의 잡음이 과대 가중됩니다.
-`[0, ~3τ]` 구간에서 `A·exp(−t/τ)`로 직접 피팅하세요.
+Fitting a straight line to `log C(t)` over-weights the noise in the tail.
+Fit `A·exp(−t/τ)` directly over `[0, ~3τ]`.
 
-### `⟨x²⟩` 오차막대는 블록 평균으로
+### Error bars on `⟨x²⟩` come from block averaging
 
-시계열 표본은 `2τ` 이내에서 상관되어 있습니다. naive SEM은 오차를 과소평가합니다.
-표본을 ~20블록으로 나눠 블록 평균의 표준오차를 쓰세요.
+Time-series samples are correlated within `2τ`. A naive SEM underestimates the
+error. Split the samples into ~20 blocks and use the standard error of the block
+means.
 
-### PSD 정규화
+⚠️ **And block SEM itself underestimates when the system produces discrete
+stochastic events.** Measured across a velocity sweep, the block SEM was
+**1.09–2.28×** too small depending on the observable and the velocity — and two
+conclusions were reversed once a 9-seed ensemble replaced single runs. Sizing the
+ensemble to the events, not to a policy minimum, is the fix.
 
-단측 밀도로 `∫₀^∞ S(f) df = ⟨x²⟩`가 되게 잡습니다 (`scipy.signal.welch(..., 'density')`).
-OU 과정의 해석해:
+### PSD normalization
+
+Use the one-sided density so that `∫₀^∞ S(f) df = ⟨x²⟩`
+(`scipy.signal.welch(..., 'density')`). The analytic solution for an OU process:
 ```
 S(f) = 4⟨x²⟩τ / (1 + (f/f_c)²),     f_c = 1/(2πτ) = k/(2πγ)
 S(0) = 4⟨x²⟩τ = 4γk_BT/k²
@@ -305,454 +357,562 @@ S(0) = 4⟨x²⟩τ = 4γk_BT/k²
 
 ---
 
-## 6. 케이스별 스케일 표 (검증된 것만)
+## 6. Per-case scale tables (verified ones only)
 
-### 6.1 조화 트랩 안 단일 입자 — `trap-*` ✅ 검증 완료
+### 6.1 A single particle in a harmonic trap — `trap-*` ✅ verified
 
-가장 단순하고 **해석해가 있어서** 골든 테스트로 씁니다.
+The simplest case, and **it has an analytic solution**, so it serves as the
+golden test.
 
-**스케일**
-| 종류 | 이름 | 정의 |
+**Scales**
+| Kind | Name | Definition |
 |---|---|---|
-| 길이 | `d` | 입자 지름 (기준) |
-| | `ℓ_k = √(k_BT/k)` | 트랩 안 열적 요동 폭 |
-| | `L` | 박스 |
-| 시간 | `τ_p = m/γ` | 관성 (버려야 함) |
-| | `dt` | 적분 스텝 |
-| | `τ_k = γ/k` | **트랩 이완 — 이 계의 지배 시간척도** |
-| | `τ_B = d²/D_t` | 확산 |
-| | `T_obs` | 관측창 |
-| 에너지 | `k_BT` | 기준 |
-| | `k d²` | 트랩 강성 (지름만큼 당길 때의 일) |
+| length | `d` | particle diameter (the reference) |
+| | `ℓ_k = √(k_BT/k)` | thermal fluctuation width inside the trap |
+| | `L` | box |
+| time | `τ_p = m/γ` | inertia (to be discarded) |
+| | `dt` | integration step |
+| | `τ_k = γ/k` | **trap relaxation — the governing timescale of this system** |
+| | `τ_B = d²/D_t` | diffusion |
+| | `T_obs` | observation window |
+| energy | `k_BT` | the reference |
+| | `k d²` | trap stiffness (the work to pull by one diameter) |
 
-**무차원수**: `k* = k d²/k_BT` · `ℓ_k/d = 1/√k*` · `dt/τ_k` · `τ_k/τ_B = 1/k*`
+**Dimensionless groups**: `k* = k d²/k_BT` · `ℓ_k/d = 1/√k*` · `dt/τ_k` ·
+`τ_k/τ_B = 1/k*`
 
-**검사**: 적분 `dt/τ_k ≤ 1e-2` · 모델 `τ_p/τ_k ≤ 1e-2` · 기하 `ℓ_k < L/2`
-(트랩이 약할수록 함정 1에 취약)
+**Checks**: integration `dt/τ_k ≤ 1e-2` · model `τ_p/τ_k ≤ 1e-2` · geometry
+`ℓ_k < L/2` (the weaker the trap, the more vulnerable to trap 1)
 
-**해석해 (골든 테스트)**
+**Analytic solution (the golden test)**
 ```
-자유도당  ⟨x²⟩ = k_BT / k          이완시간  τ = γ/k
-2D 전체   ⟨r²⟩ = 2 k_BT / k        분포      P(x) ∝ exp(-k x²/2k_BT)
+per degree of freedom  ⟨x²⟩ = k_BT / k       relaxation time  τ = γ/k
+2D total               ⟨r²⟩ = 2 k_BT / k     distribution     P(x) ∝ exp(-k x²/2k_BT)
 ```
 
-**실측 검증** (`scratch/golden_trap.py`, N=400, 340k 스텝):
-| k | ⟨x²⟩ 측정 | 예측 | 오차 |
+**Measured verification** (`verify/golden_trap.py`, N=400, 340k steps):
+| k | ⟨x²⟩ measured | predicted | error |
 |---|---|---|---|
 | 2 | 0.50188 ± 0.0016 | 0.5 | +0.38% |
 | 5 | 0.20112 ± 0.0006 | 0.2 | +0.56% |
 | 10 | 0.09998 ± 0.0003 | 0.1 | −0.02% |
 | 20 | 0.04993 ± 0.0001 | 0.05 | −0.14% |
 
-`⟨x²⟩·k`가 k 10배 범위에서 1.0으로 일정 (변동계수 **0.28%**).
+`⟨x²⟩·k` stays at 1.0 across a 10× range in k (coefficient of variation
+**0.28%**).
 
-**전체 관통 결과** (`cases/trap_2d_5um.py`, N=1000, 2000 τ_k, 100만 스텝, 약 3분)
-물리계 YAML(SI) → 스케일 표 → 분리 검사 → 무차원화 → HOOMD 실행 → 물리 단위 역변환:
+**End-to-end result** (`cases/trap_2d_5um.py`, N=1000, 2000 τ_k, 1M steps, about
+3 minutes). Physical-system YAML (SI) → scale table → separation checks →
+non-dimensionalization → HOOMD run → inversion to physical units:
 
-| 관측량 | 측정 | 해석해 | 오차 |
+| Observable | Measured | Analytic | Error |
 |---|---|---|---|
 | `⟨x²⟩` | 4.14293e-4 µm² | 4.14195e-4 µm² | **+0.02%** |
 | `σ = √⟨x²⟩` | 20.3542 nm | 20.3518 nm | **+0.01%** |
-| `τ` (C(t) 피팅) | 4.00022 ms | 4.01024 ms | **−0.25%** |
-| `f_c` (PSD 피팅) | 40.1516 Hz | 39.6871 Hz | **+1.17%** |
-| `S(0)` (PSD 피팅) | 6.62187e-6 µm²/Hz | 6.64409e-6 µm²/Hz | **−0.33%** |
+| `τ` (from the C(t) fit) | 4.00022 ms | 4.01024 ms | **−0.25%** |
+| `f_c` (from the PSD fit) | 40.1516 Hz | 39.6871 Hz | **+1.17%** |
+| `S(0)` (from the PSD fit) | 6.62187e-6 µm²/Hz | 6.64409e-6 µm²/Hz | **−0.33%** |
 
-통계 오차 ±0.091%, 예상 계통 편향 +0.100% (`dt/τ_k = 2e-3`) — 측정 +0.02%는 1 SEM 이내.
+Statistical error ±0.091%, expected systematic bias +0.100% (`dt/τ_k = 2e-3`) —
+the measured +0.02% is within 1 SEM.
 
-플롯에서 확인된 것:
-- `P(x)`가 **6자릿수(±5σ)까지** Gaussian
-- `C(t)`가 2자릿수 이상 단일 지수. 긴 지연에서 살짝 아래로 — 불편 추정량의 꼬리 잡음
-- PSD가 `f > ~8 f_c`에서 Lorentzian 위로 뜸 — **이산 표본화의 aliasing** (예상된 것,
-  Nyquist 위 성분이 접혀 들어옴). `f_c` 피팅에는 영향 없음
+Confirmed from the plots:
+- `P(x)` is Gaussian **over six decades (±5σ)**
+- `C(t)` is a single exponential over more than two decades. Slightly below at
+  long lag — tail noise of the unbiased estimator
+- The PSD rises above the Lorentzian for `f > ~8 f_c` — **aliasing from discrete
+  sampling** (expected; components above Nyquist fold back in). No effect on the
+  `f_c` fit
 
-**이 케이스에서 배운 것**
-- 약한 트랩(`k*` 작음)이 함정 1(최소 이미지)에 가장 취약합니다. **검증은 약한 조건으로.**
-- `dt = τ_k/2000`, 평형화 `20τ_k`, 생산 `150τ_k`로 오차 0.6% 이내가 나옵니다.
-- ⭐️ **세 가지 결정을 섞지 말 것** (여기서 혼동했다가 정리함 — §1.1 참조):
-  단위계 기준은 `τ_B`로 **고정**, `dt`는 `τ_k`로 **정하고**, 결과 보고는 `τ_k` 단위로 **재척도**.
-- **`τ_B`가 무의미한 계가 있다.** 여기서 `τ_B = 242 s`인데 트랩이 `4 ms`에 붙잡아
-  자유확산이 실현되지 않습니다. 단위계 기준으로는 여전히 `τ_B`를 쓰되(고정),
-  물리 판단은 전부 `τ_k`로 합니다.
-- 변위 자기상관에서 표본평균을 빼면 안 됩니다 → §5.1
-- ⭐️ **`τ_p` 검사를 `dt`가 아니라 `τ_dyn`과 비교해야 한다는 것을 여기서 발견했습니다.**
-  실제 케이스(d=5µm 물, k=10pN/µm)에서 `τ_p=3.26µs`, 권장 `dt=2.0µs`라 옛 기준
-  `τ_p/dt ≤ 1e-2`를 만족하는 dt가 **아예 존재하지 않았습니다**
-  (`100τ_p ≤ dt ≤ 0.01τ_k` ⟹ `τ_p/τ_k ≤ 1e-4`인데 실제 8.1e-4).
-  올바른 기준 `τ_p/τ_k = 8.1e-4 ≤ 1e-2`로는 여유 12배로 통과합니다.
+**What this case taught**
+- A weak trap (small `k*`) is the most vulnerable to trap 1 (minimum image).
+  **Verify in the weak condition.**
+- `dt = τ_k/2000`, equilibration `20τ_k`, production `150τ_k` gives errors within
+  0.6%.
+- ⭐️ **Do not conflate the three decisions** (they were confused here and then
+  sorted out — see section 1.1): the unit system stays **fixed** on `τ_B`, `dt` is
+  **set** by `τ_k`, and the reporting is **rescaled** into units of `τ_k`.
+- **Some systems make `τ_B` meaningless.** Here `τ_B = 242 s` while the trap
+  catches the particle in `4 ms`, so free diffusion is never realized. Keep `τ_B`
+  as the unit-system reference (fixed), but make every physical judgment in
+  `τ_k`.
+- Do not subtract the sample mean from a displacement autocorrelation →
+  section 5.1
+- ⭐️ **This case is where we found that the `τ_p` check must compare against
+  `τ_dyn`, not against `dt`.** In the real case (d=5µm in water, k=10pN/µm),
+  `τ_p=3.26µs` and the recommended `dt=2.0µs`, so **no dt existed at all** that
+  satisfied the old criterion `τ_p/dt ≤ 1e-2`
+  (`100τ_p ≤ dt ≤ 0.01τ_k` ⟹ `τ_p/τ_k ≤ 1e-4`, whereas the truth is 8.1e-4).
+  Under the correct criterion `τ_p/τ_k = 8.1e-4 ≤ 1e-2` it passes with 12× margin.
 
-**실제 물리계 수치** (d=5µm 실리카, 물@300K, k=10pN/µm — `scratch/trap_scales.py`):
-| 양 | 값 | 비고 |
+**The real physical numbers** (d=5µm silica, water@300K, k=10pN/µm —
+`verify/trap_scales.py`):
+| Quantity | Value | Note |
 |---|---|---|
 | `γ` | 4.01e-8 kg/s | |
 | `D_t` | 0.103 µm²/s | |
-| `τ_p` | 3.26 µs | 모델 검사용 |
-| **`τ_k`** | **4.01 ms** | **지배 시간척도** |
-| `τ_B` | 242 s | 트랩 때문에 실현 안 됨 |
-| `ℓ_k` | 20.35 nm | **`d`와 무관** |
-| `k*` | 6.04e4 | 매우 뻣뻣 |
+| `τ_p` | 3.26 µs | for the model check |
+| **`τ_k`** | **4.01 ms** | **the governing timescale** |
+| `τ_B` | 242 s | never realized, because of the trap |
+| `ℓ_k` | 20.35 nm | **independent of `d`** |
+| `k*` | 6.04e4 | very stiff |
 
-`ℓ_k/d = 4.1e-3` — 입자가 자기 크기의 1/250만 움직입니다. 광집게로는 정상입니다.
+`ℓ_k/d = 4.1e-3` — the particle moves only 1/250 of its own size. Normal for
+optical tweezers.
 
-### 6.2 소프트 반발 페어 + 배제부피 코어 — `soft-r3-*` ✅ 검증 완료
+### 6.2 Soft repulsive pair plus an excluded-volume core — `soft-r3-*` ✅ verified
 
-`U/kT = A(d/r)³ + WCA(σ=d, ε=kT)`, 2D 주기, φ 고정. 해석해 없음.
+`U/kT = A(d/r)³ + WCA(σ=d, ε=kT)`, 2D periodic, fixed φ. No analytic solution.
 
-**예상이 틀린 것부터**: `τ_int = d²γ/ε` (마스터플랜 §6.1의 일반식)은 **쓸 수 없습니다.**
-소프트 퍼텐셜은 `r`마다 강성이 달라서 `τ_int`가 상수가 아닙니다.
+**Start with what was expected and wrong**: the general form `τ_int = d²γ/ε`
+**cannot be used.** A soft potential has a different stiffness at every `r`, so
+`τ_int` is not a constant.
 
-**스케일**
-| 종류 | 이름 | 정의 | 비고 |
+**Scales**
+| Kind | Name | Definition | Note |
 |---|---|---|---|
-| 길이 | `d` | 입자 지름 (기준) | |
-| | `r_min` | **최근접 접근거리** ★ | dt가 여기서 나온다 |
-| | `a_mean = ρ^(-1/2)` | 평균 간격 | `φ = (π/4)(d/a)²` |
-| | `a_NN = √(2/√3)·a_mean` | **육방 최근접거리** | = 1.07457 a_mean. `a_mean`이 아니다 |
-| | `r_c` | 컷오프 | **a_mean의 배수**로 잡는다 (아래) |
-| | `L = a_mean√N` | 박스 | |
-| 시간 | `τ_p = m/γ` | 관성 (모델 검사) | |
-| | `τ_int(r) = γ/U''(r)` | **국소 상호작용 이완** ★ | 트랩의 `τ_k=γ/k`와 같은 구조 |
-| | `τ_B = d²/D_t` | 확산 = **지배 시간척도** | 1-A와 달리 여기선 실제로 지배적 |
-| 에너지 | `k_BT` | 기준 | |
-| | `Γ = U(a_mean)/kT` | **결합세기** ★★ | 진짜 제어 파라미터 |
-| | `A` | `r⁻³` 진폭 | 스케치에 적힌 값 |
-| | `U(d) = (A+ε)kT` | 접촉 결합 | ⚠️ **`A·kT`가 아니다** (아래) |
+| length | `d` | particle diameter (the reference) | |
+| | `r_min` | **closest approach distance** ★ | dt comes from here |
+| | `a_mean = ρ^(-1/2)` | mean spacing | `φ = (π/4)(d/a)²` |
+| | `a_NN = √(2/√3)·a_mean` | **hexagonal nearest-neighbour distance** | = 1.07457 a_mean. Not `a_mean` |
+| | `r_c` | cutoff | set it as **a multiple of a_mean** (below) |
+| | `L = a_mean√N` | box | |
+| time | `τ_p = m/γ` | inertia (model check) | |
+| | `τ_int(r) = γ/U''(r)` | **local interaction relaxation** ★ | same structure as a trap's `τ_k=γ/k` |
+| | `τ_B = d²/D_t` | diffusion = **the governing timescale** | unlike case 6.1, here it really does govern |
+| energy | `k_BT` | the reference | |
+| | `Γ = U(a_mean)/kT` | **coupling strength** ★★ | the real control parameter |
+| | `A` | the `r⁻³` amplitude | the value written on the sketch |
+| | `U(d) = (A+ε)kT` | contact binding | ⚠️ **not `A·kT`** (below) |
 
-> ⚠️ **`A ≠ U(d)/kT`.** `r=d`에서 WCA 코어가 정확히 `ε`을 냅니다 (`4ε(1−1)+ε`), 그래서
-> `U(d) = (A+ε)kT` 입니다. `A=100`이면 101 — 1% 어긋납니다. 원장에 이 항목을 "= A kT"로
-> 적어둔 것을 L3 무결성 검사가 잡았습니다 (§6.4). `Γ`는 영향 없습니다:
-> `a_mean = 1.498d > 2^(1/6)d` 라 WCA 컷오프 밖이고 `Γ = A(d/a)³` 가 정확합니다.
+> ⚠️ **`A ≠ U(d)/kT`.** At `r=d` the WCA core contributes exactly `ε`
+> (`4ε(1−1)+ε`), so `U(d) = (A+ε)kT`. With `A=100` that is 101 — off by 1%. The
+> ledger had this entry written as "= A kT" and the L3 integrity check caught it
+> (section 6.4). `Γ` is unaffected: `a_mean = 1.498d > 2^(1/6)d` is outside the
+> WCA cutoff, so `Γ = A(d/a)³` is exact.
 
-**무차원수**: `Γ = A(d/a_mean)³` · `φ` · `a_mean/d` · `L/d` · `r_c/a_mean` · `dt/τ_int(r_min)`
+**Dimensionless groups**: `Γ = A(d/a_mean)³` · `φ` · `a_mean/d` · `L/d` ·
+`r_c/a_mean` · `dt/τ_int(r_min)`
 
-> ⭐️ **`A` 단독은 제어 파라미터가 아니다.** 구조를 정하는 것은 `Γ = A(d/a_mean)³` 입니다.
-> 같은 `A=100`이 `a=1.2d`면 Γ=57.9, `a=4.3d`면 Γ=1.26 — 결정 대 유체입니다.
-> 밀도가 없으면 진폭 스윕은 **정의되지 않습니다.**
+> ⭐️ **`A` alone is not the control parameter.** What sets the structure is
+> `Γ = A(d/a_mean)³`. The same `A=100` gives Γ=57.9 at `a=1.2d` and Γ=1.26 at
+> `a=4.3d` — crystal versus fluid. Without a density, an amplitude sweep is
+> **undefined.**
 
-#### `r_min` 을 정하는 법 (dt가 여기 달려 있다)
+#### How to set `r_min` (dt hangs on it)
 
-두 기준 중 **작은 쪽**을 씁니다.
-
-```
-(a) 쌍 기준    U(r) = u_max·kT 인 r.  u_max = ln(결합 표본 수) ≈ 12  (10⁶ 표본)
-(b) 진동 기준  a_NN − 3σ_bond ,  σ_bond = √2·√(kT/k_cage) ,  k_cage = 3[U''(a_NN)+U'(a_NN)/a_NN]
-               ★ Lindemann σ_bond/a_NN > 0.15 면 케이지가 녹았으므로 (b)를 쓰지 않는다
-```
-그리고 `dt = 10⁻²·τ_int(r_min)`.
-
-**세 번 틀렸고 실측으로 고쳤습니다** (같은 실수 반복 금지):
-1. `u_max = 5`로 잡았더니 측정 최소거리가 예측보다 **4.3σ 안쪽**. 결합 표본이 10⁶개면
-   Boltzmann 꼬리가 `βU ≈ ln(10⁶) ≈ 14`까지 갑니다 → `u_max = 12`.
-2. 케이지를 `a_mean`에서 평가했습니다. **육방 최근접거리는 `a_NN = 1.0746 a_mean`**이고
-   `U''∝r⁻⁵`라 41% 차이가 납니다.
-3. `σ_bond = √(kT/k_cage)`로 썼습니다. 그건 **성분당** rms(`u₁`)이고, 결합길이 요동은
-   `√2·u₁`입니다. Lindemann 판정과 `r_min`이 둘 다 어긋납니다.
-   (1과 3이 서로 상쇄해 `r_min`은 우연히 비슷했습니다 — 우연에 기대지 마세요.)
-
-⚠️ **약결합에서는 dt를 `r⁻³`가 아니라 WCA 코어가 정합니다.** 실측: Γ=0.03이 Γ=30보다
-**12.8배 비쌌습니다**(`dt/τ_B` 2.83e-6 vs 3.62e-5). 물리적으로 가장 심심한 점이
-수치적으로 가장 어렵습니다. 강결합은 케이지에 갇혀 접근 자체가 제한됩니다.
-
-#### 컷오프 — 절대 kT 기준은 성립하지 않습니다 ⭐️
-
-2D에서 `r⁻³` 꼬리 에너지는 `1/r_c`로만 줄어듭니다:
-`r_c` 밖 에너지 / 최근접이웃 에너지 = `2πa/(3r_c)` → `r_c=5a`에서도 **42%**.
-절대 기준(`U(r_c) ≤ 0.01 kT`)으로 잡으면 최소이미지와 충돌합니다:
+Take the **smaller** of two criteria.
 
 ```
-r_c = (A/u_c)^(1/3) d  와  r_c < L/2 = (√N/2)a  를 함께 풀면
-      Γ_max = N^(3/2)·u_c / 8        ← A와 무관
-      N=100, u_c=0.01 → Γ_max = 1.25 (약상관 유체까지만)
+(a) pair criterion    the r where U(r) = u_max·kT.  u_max = ln(number of pair samples) ~ 12  (10^6 samples)
+(b) vibration crit.   a_NN - 3σ_bond ,  σ_bond = √2·√(kT/k_cage) ,  k_cage = 3[U''(a_NN)+U'(a_NN)/a_NN]
+                      * if the Lindemann ratio σ_bond/a_NN > 0.15 the cage has melted, so do not use (b)
 ```
-→ **컷오프는 `a_mean`의 배수로 잡고 수렴을 확인**합니다. 실측 (`r_c` 5a→7a, Γ=29.7):
+Then `dt = 10⁻²·τ_int(r_min)`.
 
-| 양 | 변화 |
+**This was wrong three times and fixed by measurement** (do not repeat them):
+1. Setting `u_max = 5` put the measured minimum distance **4.3σ inside** the
+   prediction. With 10⁶ pair samples the Boltzmann tail reaches
+   `βU ≈ ln(10⁶) ≈ 14` → use `u_max = 12`.
+2. The cage was evaluated at `a_mean`. **The hexagonal nearest-neighbour distance
+   is `a_NN = 1.0746 a_mean`**, and since `U'' ∝ r⁻⁵` that is a 41% difference.
+3. `σ_bond` was written as `√(kT/k_cage)`. That is the **per-component** rms
+   (`u₁`); the bond-length fluctuation is `√2·u₁`. Both the Lindemann verdict and
+   `r_min` come out wrong.
+   (Errors 1 and 3 partially cancelled, so `r_min` happened to look close — do
+   not rely on a coincidence.)
+
+⚠️ **In weak coupling, dt is set by the WCA core, not by `r⁻³`.** Measured: Γ=0.03
+was **12.8× more expensive** than Γ=30 (`dt/τ_B` 2.83e-6 vs 3.62e-5). The
+physically dullest point is the numerically hardest. Strong coupling is caged, so
+close approach is itself restricted.
+
+#### The cutoff — an absolute kT criterion does not work ⭐️
+
+In 2D the `r⁻³` tail energy falls off only as `1/r_c`:
+energy outside `r_c` / nearest-neighbour energy = `2πa/(3r_c)` → still **42%** at
+`r_c=5a`. Setting it by an absolute criterion (`U(r_c) ≤ 0.01 kT`) collides with
+minimum image:
+
+```
+solving r_c = (A/u_c)^(1/3) d  together with  r_c < L/2 = (√N/2)a  gives
+      Γ_max = N^(3/2)·u_c / 8        <- independent of A
+      N=100, u_c=0.01 -> Γ_max = 1.25 (weakly correlated fluid only)
+```
+→ **Set the cutoff as a multiple of `a_mean` and check convergence.** Measured
+(`r_c` 5a→7a, Γ=29.7):
+
+| Quantity | Change |
 |---|---|
-| ψ₆ · NN 거리 · 6배위 비율 | **0.15% 이내 불변** |
-| 절대 `⟨U⟩/N` | **+7.5%** |
+| ψ₆ · NN distance · 6-coordinated fraction | **unchanged within 0.15%** |
+| absolute `⟨U⟩/N` | **+7.5%** |
 
-**구조는 수렴하고 열역학량은 안 합니다.** 먼 장에서 오는 힘은 대칭으로 상쇄되지만
-에너지는 누적됩니다. 압력·에너지를 보고할 거면 꼬리보정이 필요합니다.
+**The structure converges and the thermodynamics does not.** Forces from the far
+field cancel by symmetry, but the energy accumulates. If pressure or energy is
+being reported, a tail correction is needed.
 
-#### 검증 방법 — 해석해가 없을 때 (1-A와 가장 다른 점)
+#### Verification strategy when there is no analytic solution (the biggest
+difference from case 6.1)
 
-| 검증 | 결과 | 무엇을 잡아내는가 |
+| Check | Result | What it catches |
 |---|---|---|
-| 2입자 직접 대조 (`scratch/verify_pair_table.py`) | **0.000%** | 퍼텐셜/표 구현 |
-| 에너지 일관성 `⟨U⟩/N` vs `(ρ/2)∫U g(r) 2πr dr` | **+0.00~+0.67%** (7런) | g(r) 측정 + 힘 합의 정합 |
-| 육방 NN 거리 vs `√(2/√3)·a_mean` | **+0.45%** | 결정 구조 (파라미터 없는 예측) |
-| 희박극한 `g(r)` vs `e^{-βU}` | RMS **6.30%** ✗ | — |
-| 희박극한 `g(r)` vs `e^{-βU}[1+ρ∫f f]` | RMS **2.43%** ✓ | 상태방정식 |
+| direct two-particle comparison (`verify/verify_pair_table.py`) | **0.000%** | the potential / table implementation |
+| energy consistency `⟨U⟩/N` vs `(ρ/2)∫U g(r) 2πr dr` | **+0.00 to +0.67%** (7 runs) | consistency of the measured g(r) with the force sum |
+| hexagonal NN distance vs `√(2/√3)·a_mean` | **+0.45%** | the crystal structure (a parameter-free prediction) |
+| dilute-limit `g(r)` vs `e^{-βU}` | RMS **6.30%** ✗ | — |
+| dilute-limit `g(r)` vs `e^{-βU}[1+ρ∫f f]` | RMS **2.43%** ✓ | the equation of state |
 
-⚠️ **희박 `g(r)`를 `e^{-βU}`와 바로 대조하지 마세요.** φ=0.01·A=10에서도 O(ρ) 클러스터항이
-+5~14%를 만듭니다. 반발계는 `f<0`이라 `∫f f>0` → **`g > e^{-βU}`**(부호까지 맞음).
-"퍼텐셜 구현이 맞나"는 2입자 대조로, "통계역학이 맞나"는 1차항까지 넣어서 봅니다.
+⚠️ **Do not compare a dilute `g(r)` directly against `e^{-βU}`.** Even at
+φ=0.01, A=10 the O(ρ) cluster term contributes +5 to +14%. A repulsive system has
+`f<0` so `∫f f>0` → **`g > e^{-βU}`** (the sign comes out right too).
+"Is the potential implemented correctly" is answered by the two-particle
+comparison; "is the statistical mechanics right" needs the first-order term
+included.
 
-#### 실측 결과 (d=5µm 물@300K, φ=0.35, N=400, `r_c`=5a, T_obs=100 τ_B)
+#### Measured results (d=5µm, water@300K, φ=0.35, N=400, `r_c`=5a, T_obs=100 τ_B)
 
-| A | Γ | ψ₆ | 6배위 | NN/d | σ_NN/NN | 상태 | dt/τ_B | 벽시계 |
+| A | Γ | ψ₆ | 6-coord | NN/d | σ_NN/NN | State | dt/τ_B | wall clock |
 |---|---|---|---|---|---|---|---|---|
-| 0.1 | 0.030 | 0.435 | 0.42 | 1.681 | 0.279 | 유체 | 2.83e-6 | 138분 |
-| 1 | 0.298 | 0.435 | 0.43 | 1.680 | 0.259 | 유체 | 3.14e-6 | 128분 |
-| 10 | 2.97 | 0.458 | 0.53 | 1.661 | 0.182 | 유체 | 1.37e-5 | 44분 |
-| 100 | 29.7 | **0.885** | **0.987** | 1.617 | 0.066 | **육방 결정** | 3.62e-5 | 20분 |
+| 0.1 | 0.030 | 0.435 | 0.42 | 1.681 | 0.279 | fluid | 2.83e-6 | 138 min |
+| 1 | 0.298 | 0.435 | 0.43 | 1.680 | 0.259 | fluid | 3.14e-6 | 128 min |
+| 10 | 2.97 | 0.458 | 0.53 | 1.661 | 0.182 | fluid | 1.37e-5 | 44 min |
+| 100 | 29.7 | **0.885** | **0.987** | 1.617 | 0.066 | **hexagonal crystal** | 3.62e-5 | 20 min |
 
-- **결정 전이는 Γ 3~30 사이.** (문헌 대조 안 함 — KB 문헌 0편)
-- **Γ=0.03과 Γ=0.30은 구별되지 않습니다** (ψ₆ 둘 다 0.4347). 4자릿수 A 스윕이
-  φ=0.35에서 만드는 상태는 3개뿐입니다 — 약결합 쪽은 그냥 WCA 유체입니다.
-- Einstein 케이지 예측 `σ_bond/a_NN`=0.056 vs 측정 0.066 (+18%). 비조화성 때문이며
-  **정량 예측이 아니라 체제 판정용**으로만 씁니다 (2D는 절대 `u_rms`가 로그 발산).
+- **The crystallization transition lies between Γ 3 and 30.** (Not compared
+  against the literature at the time — the KB had zero papers then. A later
+  campaign did compare it, and found that a truncation error had biased an
+  exponent by 2.9σ and that a run labelled "hexatic" was in fact a crystal.)
+- **Γ=0.03 and Γ=0.30 are indistinguishable** (ψ₆ is 0.4347 for both). A
+  four-decade sweep in A produces only three states at φ=0.35 — the weak-coupling
+  end is simply a WCA fluid.
+- Einstein cage prediction `σ_bond/a_NN`=0.056 vs measured 0.066 (+18%). This is
+  anharmonicity, so it is used **only as a regime indicator, not as a quantitative
+  prediction** (in 2D the absolute `u_rms` diverges logarithmically). ★ The same
+  trap recurs: a naive harmonic prediction for bond-stretch variance in a DLVO
+  well was off by **4.57×** until the whole basin was Boltzmann-integrated.
 
-### 6.2b 육방 격자 + 이동 트랩 — `trap-drag-2d-hex300` 🔶 L3까지 (런 없음)
+### 6.2b Hexagonal lattice plus a moving trap — `trap-drag-2d-hex300` 🔶 L3 only
 
-`soft-r3`(6.2) 위에 `trap`(6.1)을 하나 얹은 계. **강성이 두 개**라는 것이 새로운 점입니다.
-스펙: `specs/trap-drag-2d-hex300__51d4dc10b794.json` · 스크립트 `cases/trap_drag_2d.py`
+`soft-r3` (6.2) with one `trap` (6.1) laid on top. What is new is that **there are
+two stiffnesses.** Script: `cases/trap_drag_2d.py`
 
-**이 계가 처음 가져온 것**
+**What this system brought for the first time**
 
-| 항목 | 내용 |
+| Item | Content |
 |---|---|
-| 강성 2개 경쟁 | `τ_k = γ/k_t` = 4.01 ms vs `τ_int = γ/U''(r_min)` = 876 ms → **트랩이 218배 빠르다** |
-| `dt` 결정 | 둘 중 **빠른 쪽**. `dt = 10⁻²·τ_k` = 40.1 µs. 페어 해상은 여유 218× |
-| 이류 시간척도 | `τ_v = d/v_x` = 10 s — 움직이는 경계조건. `dt/τ_v` 검사가 새로 생김 |
-| 항적 치유 | 주기박스라 탐침이 **자기 항적으로 돌아온다**. `v·τ_int/L_x` = 3.2e-3 (여유 313×) |
-| 박스 | ★ **정합 육방이라 정사각이 아니다** — 아래 참조 |
+| two competing stiffnesses | `τ_k = γ/k_t` = 4.01 ms vs `τ_int = γ/U''(r_min)` = 876 ms → **the trap is 218× faster** |
+| `dt` decision | the **faster** of the two. `dt = 10⁻²·τ_k` = 40.1 µs. Pair resolution has 218× margin |
+| advective timescale | `τ_v = d/v_x` = 10 s — a moving boundary condition. A new `dt/τ_v` check appears |
+| wake healing | periodic box, so the probe **returns into its own wake**. `v·τ_int/L_x` = 3.2e-3 (313× margin) |
+| box | ★ **commensurate hexagonal, therefore not square** |
 
-**⭐️ 이 계의 진짜 게이트는 분리 검사가 아니라 통계입니다.** 하드 검사 7종이 전부
-통과하는데 계획대로 돌리면 원하는 값이 안 나옵니다:
-
-```
-Δr_ss = γv/k_t = 2.005 nm     ← 신호 (탐침의 맨 Stokes 지연)
-ℓ_k   = √(kT/k_t) = 20.35 nm  ← 잡음 (트랩 안 열요동)
-SNR = 0.0985                   신호가 잡음의 1/10
-```
-한 번 횡단(`T_obs = L_x/v_x` = 274 s)의 독립표본은 `T_obs/2τ_k` = 34,119개이므로
-`⟨F_drag⟩` 정밀도 = `1/(SNR√n)` = **5.5%** (목표 2%). 2%에 닿으려면 **8회 횡단**입니다.
-게다가 격자 주기는 **17회**뿐이라 stick-slip 변조가 있으면 그쪽이 먼저 걸립니다.
-→ 설계 의도는 **격자 306개의 변형장**을 1차 관측량으로 쓰는 것입니다 (통계가 N배).
-
-> ⚠️ **`Δr_ss = γv/k_t` 는 탐침의 맨 Stokes 지연입니다** — 격자가 없어도 나오는 값입니다.
-> 마이크로레올로지의 신호는 그 **위에 얹히는 초과분**이고, 예측이 없습니다 (`measurement`).
-> SNR 을 "신호 대 잡음"으로 부를 때 분자가 무엇인지 헷갈리지 마세요.
-
-> ⭐️ **트랩이 페어를 압도합니다** (`k*` = 6.04e4 vs `Γ` = 29.7). 탐침은 사실상 트랩에
-> 고정된 **일정 속도 경계조건**이지 "힘을 주고 반응을 보는" 탐침이 아닙니다.
-
-#### ⭐️ 정합 육방 격자 — 박스 종횡비는 고르는 것이 아니라 **정합이 정합니다**
-
-스케치가 "start from hexagonal equilibrium" 이므로 초기 격자가 주기박스와 정합해야 합니다.
-비정합이면 이음매에 결함이 주입되고, 이 계의 관측량(격자 변형장·ψ₆)이 바로 거기에 민감합니다.
+**⭐️ This system's real gate is not the separation checks but the statistics.**
+All seven hard checks pass, and running it as planned does not produce the value
+you want:
 
 ```
-L_x = n_x · a_NN              (행 방향 = 최근접 방향)
-L_y = n_y · (√3/2) · a_NN     (행 간격)
-N   = n_x · n_y ,  n_y 짝수    ← 엇갈린 행의 주기가 2행이다
-φ 는 항등적으로 보존된다:  φ = πd²/(4 a_mean²),  L_x L_y = N a_mean²
+Δr_ss = γv/k_t = 2.005 nm     <- signal (the probe's bare Stokes lag)
+ℓ_k   = √(kT/k_t) = 20.35 nm  <- noise (thermal fluctuation inside the trap)
+SNR = 0.0985                   the signal is 1/10 of the noise
+```
+One traverse (`T_obs = L_x/v_x` = 274 s) gives `T_obs/2τ_k` = 34,119 independent
+samples, so the precision on `⟨F_drag⟩` is `1/(SNR√n)` = **5.5%** against a 2%
+target. Reaching 2% takes **8 traverses.** And the lattice period recurs only
+**17 times**, so if there is stick-slip modulation that binds first.
+→ The design intent is to use **the strain field of all 306 lattice sites** as the
+primary observable (N× the statistics).
+
+> ⚠️ **`Δr_ss = γv/k_t` is the probe's bare Stokes lag** — the value you get with
+> no lattice at all. The microrheological signal is the **excess on top of it**,
+> and there is no prediction for it (`measurement`). Do not lose track of what the
+> numerator is when calling something "signal to noise".
+
+> ⭐️ **The trap overwhelms the pair interaction** (`k*` = 6.04e4 vs `Γ` = 29.7).
+> The probe is effectively a **constant-velocity boundary condition** pinned by the
+> trap, not a probe that "applies a force and watches the response."
+
+> ⚠️ **Two of this case's published conclusions were later reversed**, and not by
+> a code change: a 7-velocity × 9-seed re-run showed the defect count is *not*
+> v-independent (it peaks non-monotonically) and the recovery fraction is not
+> monotonic. The cause was a single run plus a block SEM that underestimated the
+> spread by 1.09–2.28×. See [docs/04](../../../docs/04-cases.md#trap-drag-2d-hex300--single-run-error-bars-were-wrong-in-both-directions).
+
+#### ⭐️ A commensurate hexagonal lattice — the box aspect ratio is not chosen, **commensurability sets it**
+
+The sketch says "start from hexagonal equilibrium", so the initial lattice must be
+commensurate with the periodic box. Incommensurate, and defects are injected at
+the seam — and this system's observables (the lattice strain field, ψ₆) are
+precisely sensitive to that.
+
+```
+L_x = n_x · a_NN              (row direction = nearest-neighbour direction)
+L_y = n_y · (√3/2) · a_NN     (row spacing)
+N   = n_x · n_y ,  n_y even    <- the staggered rows have a 2-row period
+φ is preserved identically:  φ = πd²/(4 a_mean²),  L_x L_y = N a_mean²
 ```
 
-**`L = a_mean√N` (정사각)은 정합이 아닙니다.** φ 는 맞지만 격자가 이음매에서 안 맞습니다.
+**`L = a_mean√N` (square) is not commensurate.** φ comes out right but the lattice
+does not match at the seam.
 
-| 후보 | N | ΔN | 종횡비 | 격자 주기 n_x |
+| Candidate | N | ΔN | aspect ratio | lattice periods n_x |
 |---|---|---|---|---|
-| **17×18** ← 채택 | 306 | +2.0% | 1.091 | **17** |
+| **17×18** ← adopted | 306 | +2.0% | 1.091 | **17** |
 | 16×18 | 288 | −4.0% | 1.026 | 16 |
 | 15×20 | 300 | 0% | 0.866 | 15 |
 
-⚠️ **끌기 방향을 최근접(행) 방향으로 잡으세요.** 그러면 퍼텐셜의 공간 주기가 `a_NN` 이고
-횡단당 주기 수 = `n_x` 입니다. 행에 **수직**으로 끌면 주기가 2행 = `√3 a_NN` 이 되어
-같은 박스에서 주기 수가 오히려 줄어듭니다 (17회 → 10회).
+⚠️ **Drag along the nearest-neighbour (row) direction.** Then the potential's
+spatial period is `a_NN` and the number of periods per traverse is `n_x`. Drag
+**perpendicular** to the rows and the period becomes 2 rows = `√3 a_NN`, so the
+same box gives *fewer* periods (17 → 10).
 
-> ⚠️ **φ 를 격자에서 재계산해 대조하는 검사는 돌지 않습니다** — `L_x`·`L_y` 를 φ 에서
-> 유도하므로 항등적으로 통과합니다. 실제로 의미 있는 대조는 **L2가 적어둔 `box_length_*`
-> 와의 대조**입니다 (`physical.verify` 가 유도값을 재계산하는 것과 같은 태도).
-> 처음에 전자를 넣었다가 적대적 검사에서 잡혔습니다.
+> ⚠️ **A check that recomputes φ from the lattice and compares does not run** —
+> `L_x` and `L_y` are derived from φ, so it passes identically. The comparison that
+> actually means something is **against the `box_length_*` recorded by L2** (the
+> same attitude as recomputing derived values). The former was written first and
+> an adversarial check caught it.
 
-### 6.2c 3점 굽힘 사슬 + 진동 구동 — `chain-bend-2d-oscill` 🔶 L3까지 (런 없음)
+### 6.2c Three-point bending chain plus oscillatory driving — `chain-bend-2d-oscill` 🔶 L3 only
 
-콜로이드 비드 사슬의 `G'(ω)`·`G''(ω)`. 물리는 문헌에서 왔습니다
-([P1] Pantina & Furst PRL 94 138301 / [P2] Langmuir 24 1141).
-스펙: `specs/chain-bend-2d-oscill__w*__*.json` (ω 7점) · 스크립트 `cases/chain_bend_2d.py`
+`G'(ω)` and `G''(ω)` of a colloidal bead chain. The physics came from the
+literature ([P1] Pantina & Furst PRL 94 138301 / [P2] Langmuir 24 1141).
+Script: `cases/chain_bend_2d.py`
 
-**★ 결합이 페어 퍼텐셜이 아닙니다** — 접착 접촉(JKR) + 접선 굽힘 강성:
+**★ The bond is not a pair potential** — adhesive contact (JKR) plus tangential
+bending stiffness:
 ```
-EI = κ₀ a³/3        κ_θ = EI/ℓ  (ℓ = d)          ← angle.Harmonic 의 k
-κ_end    = 24 EI/L³   ← 논문 정의 (끝 힘 기준). 논문과 대조할 값
-κ_center = 48 EI/L³   ← 구동 트랩이 느끼는 값
-δ_max = M_c L²/(12 EI)  ← M<M_c 선형 탄성 한계 진폭
+EI = κ₀ a³/3        κ_θ = EI/ℓ  (ℓ = d)          <- the k of angle.Harmonic
+κ_end    = 24 EI/L³   <- the paper's definition (end-force basis). The value to compare against
+κ_center = 48 EI/L³   <- what the driving trap feels
+δ_max = M_c L²/(12 EI)  <- the linear-elastic amplitude limit, M<M_c
 ```
-⚠️ **힘 정의를 섞으면 논문값과 정확히 2배 어긋납니다** (`scratch/chain_bend_from_papers.py`).
-⚠️ 이산↔연속 매핑 오차는 **n에 따라 다릅니다**: n=25 에서 −0.35%, n=51 에서 −0.08%.
+⚠️ **Mixing the force definitions puts you off the published value by exactly
+2×.**
+⚠️ The discrete-to-continuum mapping error **depends on n**: −0.35% at n=25,
+−0.08% at n=51.
 
-**⭐️ `dt` 를 정하는 것이 관측 대상이 아닙니다** — 이 프로젝트에서 처음입니다.
+**⭐️ The mode that sets `dt` is not the one being observed** — a first in this
+project.
 
-| | 값 | 역할 |
+| | Value | Role |
 |---|---|---|
-| `τ_fast = γ/λ_max` | 0.279 µs | **dt를 정한다.** 강성 행렬 최대 고유값 |
-| `τ_chain = γ/κ_center` | 1.27 ms | **재려는 것.** G'(ω) 대역 |
-| 비 | **2.2e-4** | 4570배 — 비용이 관측 대역과 무관하게 결정된다 |
+| `τ_fast = γ/λ_max` | 0.279 µs | **sets dt.** Largest eigenvalue of the stiffness matrix |
+| `τ_chain = γ/κ_center` | 1.27 ms | **what we want to measure.** The G'(ω) band |
+| ratio | **2.2e-4** | 4570× — the cost is fixed independently of the band of interest |
 
-→ 최저 ω(85 rad/s, 100주기)에서 **2.65e9 스텝**. `κ_θ = 1.39e6 kT` 라 사슬이 열적으로
-완전히 뻣뻣한 것이 원인입니다. 선택지: (a) 감수 (b) κ₀를 낮춘다(계면활성제, [P2] Fig.4)
-(c) 높은 ω만 재고 낮은 ω는 준정적 극한으로 대체. 비용 ∝ 1/ω 이라 낮은 ω가 지배합니다.
+→ At the lowest ω (85 rad/s, 100 cycles) that is **2.65e9 steps**. The cause is
+that `κ_θ = 1.39e6 kT`, so the chain is thermally completely rigid. Options:
+(a) accept it (b) lower κ₀ (surfactant, [P2] Fig. 4) (c) measure only high ω and
+replace low ω with the quasi-static limit. Cost ∝ 1/ω, so the low-ω end dominates.
 
-**λ_max 는 두 블록의 큰 쪽입니다 — 더하지 마세요.** 직선 사슬에서 신축(x)과 굽힘(y)은
-선형 차수에서 **분리**됩니다. 합치면 `λ_max` 를 18% 과대평가해 dt 만 작아집니다.
+⚠️ **And the governing timescale here was itself derived wrong at first.** Using
+`τ_chain = γ/κ_center` rather than `τ_max = γ/λ_min` was off by **9.18×**, which
+propagated into De, the equilibration length and the SNR. Setting `dt` from
+`λ_max` **without also looking at `λ_min`** is the trap — both come free from the
+same eigendecomposition, and it is `λ_min` that governs.
+
+**`λ_max` is the larger of the two blocks — do not add them.** In a straight chain
+the stretching (x) and bending (y) blocks **decouple** at linear order. Adding
+them overestimates `λ_max` by 18% and only shrinks dt.
 ```
-굽힘 4.231e-2 N/m  (= 15.86 κ_θ/ℓ², n=25)   ★ 이쪽이 빠르다
-신축 7.639e-3 N/m  (= 4 k_b)
+bending    4.231e-2 N/m  (= 15.86 κ_θ/ℓ², n=25)   * this one is faster
+stretching 7.639e-3 N/m  (= 4 k_b)
 ```
 
-**⭐️ 최속 모드가 과감쇠가 아닙니다** — `τ_p/τ_fast = 0.60` (기준 1e-2를 60배 위반).
-BD는 그 모드를 과감쇠로 다루므로 **그 대역의 동역학은 틀리고, 어떤 dt로도 고쳐지지
-않습니다** (§4 — 관성이 BD에 아예 없습니다). 관측 대역(`τ_chain`)과 4570배 떨어져 있어
-`G'(ω)` 에는 영향이 없을 것으로 보이지만 **확인하지 않았습니다.**
-판정에 쓰는 모델 검사는 **관심** 최속 척도 기준 `τ_p/τ_chain` = 1.3e-4 (여유 76×)입니다.
+**⭐️ The fastest mode is not overdamped** — `τ_p/τ_fast = 0.60`, violating the
+1e-2 criterion by 60×. BD treats that mode as overdamped, so **the dynamics in
+that band is wrong and no choice of dt fixes it** (section 4 — BD has no inertia
+at all). It sits 4570× away from the band of interest (`τ_chain`), so it likely
+does not affect `G'(ω)`.
 
-**진폭이 양쪽에서 조입니다** (다른 케이스에 없던 모양):
+✅ **And that was then measured**: comparing `OverdampedViscous` against
+`Langevin(kT=0)` at all 7 frequencies bounded the difference at **0.159%**. BD is
+admissible here. ★ The thermal comparison (Brownian vs Langevin at kT=1)
+**lacked the power to exclude even a 47% effect**, because `|ŷ|/ℓ_k < 1` — which
+is why an integrator assumption must be tested with a `kT=0` deterministic
+difference.
+
+The model check used for the verdict is against the **fastest scale of
+interest**: `τ_p/τ_chain` = 1.3e-4 (76× margin).
+
+**The amplitude is squeezed from both sides** (a shape no other case had):
 ```
 ℓ_k (20.4 nm)  ≪  a (200 nm)  <  δ_max (429 nm)
-   아래: 열요동에 묻힌다              위: 결합이 미끄러져 조화 angle 이 무효 ([P2])
-   SNR = 9.83                        선형 여유 2.1× ← 이 계에서 가장 빡빡한 하드 검사
+   below: buried in thermal noise      above: the bond slips and a harmonic angle is invalid ([P2])
+   SNR = 9.83                          linear margin 2.1x <- the tightest hard check in this system
 ```
 
-**주기경계가 없습니다** → `declare_absent("box", 이유)`. 기하 한계 역할을 하는 것은
-박스가 아니라 `δ_max` 입니다. 없는 스케일은 비워야지 지어내면 안 됩니다 (규칙 3).
+**There are no periodic boundaries** → `declare_absent("box", reason)`. What plays
+the role of the geometric limit is not the box but `δ_max`. A scale that does not
+exist must be left empty, not invented (rule 3).
 
-### 6.3 두 케이스 대조 — 무엇이 정말 두 번 나왔는가 (Phase 1-B DoD)
+### 6.3 Comparing two cases — what really appeared twice
 
-| | 1-A `trap-2d-5um` | 1-B `soft-r3-2d` | 공통? |
+| | `trap-2d-5um` | `soft-r3-2d` | Common? |
 |---|---|---|---|
-| 기준 스케일 | `d`, `kT`, `τ_B` (thermal) | 같음 | ✅ **두 번 나옴** |
-| 물성 유도 | `γ=3πηd`, `D_t=kT/γ` | 같음 | ✅ **두 번** |
-| `τ_p` 용도 | 모델 타당성만 (dt와 비교 안 함) | 같음 | ✅ **두 번** |
-| `dt` 결정 | `10⁻²·τ_k`, `τ_k=γ/k` | `10⁻²·τ_int(r_min)`, `τ_int=γ/U''` | ✅ **두 번** — 둘 다 `γ/(국소 강성)` |
-| 검사 분류 | 모델/적분/기하/통계 | 같음 | ✅ **두 번** |
-| 하드 vs 소프트 | 전부 통과해서 구분 불필요 | 통계 검사가 걸림 → 구분 필요 | ⭐️ 1-B에서 발견 |
-| `τ_B`의 역할 | 기준일 뿐, 지배는 `τ_k`(4ms vs 242s) | 기준 **이자** 지배 | 같은 `d`, 같은 `τ_B`, 정반대 의미 |
-| 평형 지표 | 앵커 변위 `⟨Δr²⟩` (속박계) | `⟨U⟩/N` (확산계) | ❌ **케이스마다 다름** |
-| 검증 근거 | 해석해 4종 | 극한·일관성·수렴 5종 | ❌ **다름** |
-| 지배 길이 | `ℓ_k=√(kT/k)`, `d`와 무관 | `a_mean`, `d`에 종속 | ❌ 다름 |
-| 기하 검사 | 항상 통과 (`ℓ_k`=20nm) | **진짜 게이트** (Γ 상한을 만듦) | ❌ 다름 |
+| reference scales | `d`, `kT`, `τ_B` (thermal) | same | ✅ **appeared twice** |
+| derived properties | `γ=3πηd`, `D_t=kT/γ` | same | ✅ **twice** |
+| use of `τ_p` | model validity only (never compared to dt) | same | ✅ **twice** |
+| `dt` decision | `10⁻²·τ_k`, `τ_k=γ/k` | `10⁻²·τ_int(r_min)`, `τ_int=γ/U''` | ✅ **twice** — both are `γ/(local stiffness)` |
+| check categories | model / integration / geometry / statistics | same | ✅ **twice** |
+| hard vs soft | all passed, so no distinction needed | a statistics check binds → distinction needed | ⭐️ discovered in the second case |
+| role of `τ_B` | only the reference; `τ_k` governs (4ms vs 242s) | reference **and** governing | same `d`, same `τ_B`, opposite meanings |
+| equilibrium indicator | anchor displacement `⟨Δr²⟩` (bound system) | `⟨U⟩/N` (diffusive system) | ❌ **differs per case** |
+| verification basis | 4 analytic solutions | 5 limits, consistency and convergence checks | ❌ **differs** |
+| governing length | `ℓ_k=√(kT/k)`, independent of `d` | `a_mean`, tied to `d` | ❌ differs |
+| geometry check | always passes (`ℓ_k`=20nm) | **a real gate** (it sets the Γ ceiling) | ❌ differs |
 
-**✅ 1-C에서 공통화한 것** (두 번 나온 것만) → `bdbot/` 패키지:
+**✅ What was promoted into `bdbot/`** (only what appeared twice):
 
-| 모듈 | 내용 |
+| Module | Content |
 |---|---|
-| `units` | 단일 pint 레지스트리 (섞이면 pint가 거부) |
-| `provenance` | `Provenanced`(값+출처+tier) |
+| `units` | one pint registry (mixing registries makes pint refuse) |
+| `provenance` | `Provenanced` (value + source + tier) |
 | `materials` | `γ=3πηd` · `D_t=kT/γ` · `τ_B=d²/D_t` · `m` · `τ_p` |
-| `scales` | `ScaleLedger`(길이/시간/에너지 + 기준 + 근거) · `thermal_reference` |
-| `checks` | `Check(kind,name,value,limit,op,note,hard)` · `verdict` · **`dt = 10⁻²·γ/(국소 강성)`** |
-| `report` | `DimensionlessReport` 렌더러 (INPUT/DERIVED/RUN PLAN은 케이스가 준다) |
-| `runid` | 콘텐츠 주소 지정 + 재실행 방지 |
-| `metrics` | `metrics.json` 스키마 (postmortem의 유일한 입력) |
-| `stats` | 블록평균 · 자기상관 보정 · 불편 자기상관 |
-| `sim` | 2D 프레임 · BD 적분기 · GSD · 시드 · 최소이미지 · WCA |
+| `scales` | `ScaleLedger` (length/time/energy + reference + basis) · `thermal_reference` |
+| `checks` | `Check(kind,name,value,limit,op,note,hard)` · `verdict` · **`dt = 10⁻²·γ/(local stiffness)`** |
+| `report` | the `DimensionlessReport` renderer (the case supplies the input, derived and run-plan blocks) |
+| `runid` | content addressing plus re-run prevention |
+| `metrics` | the `metrics.json` schema (the sole input to the post-mortem) |
+| `stats` | block averaging · autocorrelation correction · unbiased autocorrelation |
+| `sim` | 2D frame · BD integrator · GSD · seeds · minimum image · WCA |
 
-⭐️ **가장 중요한 발견**: 두 케이스의 `dt` 결정이 **같은 공식**이었습니다 —
-트랩은 `γ/k`, 소프트 페어는 `γ/U''(r_min)`. 둘 다 `γ/(국소 강성)`이고,
-`dt = 10⁻²·τ` 입니다. 이름만 달랐습니다(`τ_k`, `τ_int`).
+⭐️ **The most important finding**: the two cases' `dt` decisions were **the same
+formula** — `γ/k` for the trap, `γ/U''(r_min)` for the soft pair. Both are
+`γ/(local stiffness)` with `dt = 10⁻²·τ`. Only the names differed (`τ_k`,
+`τ_int`).
 
-**공통화하지 않은 것** (케이스마다 달랐음): 평형 지표(케이스가 `metrics.equilibration`으로
-선언) · 관측량 · 검증 전략 · 지배 시간척도 선택 · 초기 배치 · 표본 수집 루프.
+**What was *not* promoted** (it differed per case): the equilibrium indicator (the
+case declares it) · observables · verification strategy · choice of the governing
+timescale · initial placement · the sampling loop.
 
-**동등성 확인** (`scratch/verify_1c_equivalence.py`): `run_id` 8개 전부 보존,
-1-A 재실행 metrics 77필드 동일·위반 0. 리팩터 후에는 반드시 이걸 돌리세요.
-
----
-
-## 6.4 L3 산출물 `NondimSpec` — 무차원화를 **검사 가능하게** 만든 것 ⭐️ (2026-08-04)
-
-`bdbot/nondim.py`. L2(SI)와 L4(실행) 사이의 **유일한 계약**이고 `specs/<run_id>.json`
-하나로 저장됩니다. 세 케이스가 각자 `spec = {...}` 를 손으로 만들고 있었고 스키마가
-서로 달랐습니다 (공통 키가 `N`·`n_eq`·`n_prod` 3개뿐). 실측한 결함 4건:
-
-| 결함 | 증상 | 고친 방법 |
-|---|---|---|
-| ⭐️ `run_id`가 물리계를 안 덮음 | 1-B 스펙에 물리계가 **없어서** `d` 5µm→0.5µm·`η` 62배로 바꿔도 (τ_B 16.1배 차이) run_id가 동일 → 완료된 다른 계의 런으로 오인, **예전 결과가 새 계의 결과로 보고** | 해시 대상 = `{system(physics_only), params, numerics}` |
-| 스펙만으로 역변환 불가 | σ·τ·kT의 SI 값이 없음 (§5 위반) | `back_transform` 에 3앵커를 SI 부동소수로 |
-| 무차원수를 검사 못 함 | "이름은 `dt/τ_int`인데 값은 딴 것"을 아무도 못 잡음 | `Group(num=(cat,기호), den=(cat,기호))` → 원장에서 **재계산 대조** |
-| 원장에서 빠진 스케일 | 1-B가 `dt`·`T_obs`를 원장 밖에 둬서 시간척도 정렬에 안 보임 | 필수 **역할** 4종 강제 (`box`·`dt`·`observation`·`inertia`) |
-
-**두 층을 가르세요** — 이름이 비슷해서 헷갈립니다:
-
-| 층 | 무엇을 묻나 | 어디 |
-|---|---|---|
-| `checks` (§4) | 이 계에 BD가 타당하고 충분히 잘게 적분하는가 — **물리** | `verdict()` |
-| `validate()` | 무차원화를 제대로 했는가 — 원장 완전성·비의 정합성·역변환 가능성 | `NondimSpec.validate()` |
-
-**원장은 기호와 설명을 분리합니다.** 예전 키는 `"d        입자 지름 (기준)"` 처럼 한 덩어리라
-기계가 쓸 수 없었습니다. 이제 `lg.add_time("dt", dt, "적분 스텝", role="dt")` 이고
-`lg.get("times","dt")` 로 접근합니다. 필수 항목은 **기호가 아니라 역할**로 강제합니다 —
-타원체 케이스의 기준 길이는 `d`가 아니라 `d_eq` 입니다.
-
-없는 스케일은 `declare_absent(role, 이유)` 로 **명시적으로** 비웁니다 (규칙 3과 같은 태도).
-
-**자족성의 판정**: `bdbot.cli nondim show <run_id>` 가 스펙**만** 보고 리포트를 다시
-그립니다. 다 그려지면 자족적이고, 안 그려지면 스펙에 뭔가 빠진 것입니다. L4는 이 경로만
-씁니다 (케이스 스크립트를 임포트하지 않습니다).
-
-**적대적 검사** `scratch/verify_nondim_guards.py` (33/33) — 일부러 망가뜨려 시험합니다:
-비를 ×1.41 / ×(1+1e-6) 어긋나게, 필수 역할 제거, 없는 기호 참조, 물리계 변경, 스펙 손수정,
-`dt*`=0, 차원 안 맞는 비. 부동소수 오차(1e-12)는 통과해야 합니다 (거짓 양성 방지).
-회귀 테스트는 `scratch/verify_l3_spec_gaps.py`.
-
-⚠️ **`metrics.json` 의 `dimensionless` 키는 기호입니다** (`"k*"`, `"dt/tau_int"`).
-예전에는 리포트 표시문자열을 키로 썼는데, postmortem의 유일한 입력에 그런 키는 질의가
-안 됩니다. 사람용은 `groups_dict()`, 기계용은 `metrics_dict()`.
+**Equivalence check** (`verify/verify_1c_equivalence.py`): all 8 `run_id`s
+preserved, and re-running the first case gave 77 identical metric fields with
+zero violations. Always run this after a refactor.
 
 ---
 
-## 7. 새 케이스를 시작할 때 — 절차
+## 6.4 The L3 artefact `NondimSpec` — what made non-dimensionalization **checkable** ⭐️
 
-1. 스케치/문헌에서 **차원 있는 값**을 모은다. 없는 건 `null`. 지어내지 않는다.
-2. §6의 기존 케이스를 보고 **어떤 스케일이 추가로 생기는지** 적는다.
-3. 스케일 표를 초안으로 만들어 **사람과 함께 확인한다.** ← 생략 금지
-4. 기준을 고르고 **근거를 적는다.** 지배 시간척도가 `τ_B`가 아닐 수 있다 (§6.1 참조).
-5. 무차원화 → 분리 검사(여유 포함) → 실행 → 역변환.
-6. 해석해나 문헌값이 있으면 대조한다. 없으면 극한(희박/저Pe 등)에서 알려진 결과로 검증한다.
-7. **배운 것을 §6에 추가한다.** 특히 "이 계에서만 나오는 스케일"과 "실패한 조건".
+`bdbot/nondim.py`. The **only contract** between L2 (SI) and L4 (execution),
+stored as a single `specs/<run_id>.json`. Three cases had each been hand-building
+their own `spec = {...}` with mutually different schemas (only three keys in
+common). Four measured defects:
+
+| Defect | Symptom | Fix |
+|---|---|---|
+| ⭐️ `run_id` did not cover the physical system | one spec contained **no physical system at all**, so changing `d` 5µm→0.5µm and `η` by 62× (a 16.1× change in τ_B) left the run_id identical → mistaken for a completed run of a different system, and **an old result was reported as the new system's result** | hash target = `{system(physics_only), params, numerics}` |
+| the spec alone could not be inverted | no SI values for σ, τ, kT (violating section 5) | put the three anchors into `back_transform` as SI floats |
+| dimensionless groups could not be checked | nobody could catch "the name is `dt/τ_int` but the value is something else" | `Group(num=(cat,symbol), den=(cat,symbol))` → **recomputed and compared** against the ledger |
+| a scale missing from the ledger | one case put `dt` and `T_obs` outside the ledger, so they were invisible in the timescale ordering | enforce four required **roles** (`box`, `dt`, `observation`, `inertia`) |
+
+**Separate the two layers** — the names are similar enough to confuse:
+
+| Layer | What it asks | Where |
+|---|---|---|
+| `checks` (section 4) | is BD valid for this system, and is it integrated finely enough — **physics** | `verdict()` |
+| `validate()` | was the non-dimensionalization done correctly — ledger completeness, ratio consistency, invertibility | `NondimSpec.validate()` |
+
+**The ledger separates the symbol from the description.** The old keys were a
+single blob like `"d        particle diameter (reference)"`, which a machine
+cannot use. Now it is `lg.add_time("dt", dt, "integration step", role="dt")`,
+accessed via `lg.get("times","dt")`. Required entries are enforced **by role, not
+by symbol** — for an ellipsoid case the reference length is `d_eq`, not `d`.
+
+A scale that does not exist is emptied **explicitly** with
+`declare_absent(role, reason)` (the same attitude as rule 3).
+
+**How self-sufficiency is decided**: `bdbot.cli nondim show <run_id>` redraws the
+report from **the spec alone.** If it all draws, the spec is self-sufficient; if
+not, something is missing from it. L4 uses only this path (it does not import case
+scripts).
+
+**Adversarial checks** `verify/verify_nondim_guards.py` (33/33) — deliberately
+broken to test: shift a ratio by ×1.41 and by ×(1+1e-6), remove a required role,
+reference a nonexistent symbol, change the physical system, hand-edit the spec,
+set `dt*`=0, use a dimensionally inconsistent ratio. Floating-point error (1e-12)
+must pass (to prevent false positives). The regression test is
+`verify/verify_l3_spec_gaps.py`.
+
+⚠️ **The `dimensionless` keys in `metrics.json` are symbols** (`"k*"`,
+`"dt/tau_int"`). They used to be the report's display strings, and such keys
+cannot be queried in what is the post-mortem's only input. Use `groups_dict()`
+for humans and `metrics_dict()` for machines.
 
 ---
 
-## 7.5 검증의 두 종류를 가르세요 ⭐️⭐️ (2026-08-04)
+## 7. Starting a new case — the procedure
 
-**이 계들을 계산하는 이유는 기존 가설과 다를 수 있기 때문입니다.** 그런데 판정을
-"예측과 다르면 FAIL"로 짜면 **발견을 실패로 부릅니다.**
+1. Collect the **dimensional values** from the sketch or the literature. Absent
+   means `null`. Do not invent.
+2. Look at the existing cases in section 6 and write down **which scales this
+   system adds.**
+3. Draft the scale table and **confirm it with a human.** ← do not skip
+4. Choose the references and **record the basis.** The governing timescale may not
+   be `τ_B` (see section 6.1).
+5. Non-dimensionalize → separation checks (with margins) → run → invert.
+6. Compare against an analytic solution or a published value if one exists.
+   Otherwise verify against a known result in a limit (dilute, low Pe, …).
+7. **Add what you learned to section 6.** Especially "the scale unique to this
+   system" and "the condition that failed."
 
-| 역할 | 예측이 어디서 오나 | 불일치의 뜻 |
+---
+
+## 7.5 Separate the two kinds of verification ⭐️⭐️
+
+**The reason to compute these systems is that they may differ from the standard
+picture.** So writing the verdict as "differs from the prediction, therefore
+FAIL" means **calling a discovery a failure.**
+
+| Role | Where the prediction comes from | A mismatch means |
 |---|---|---|
-| `implementation_check` | **내가 구현한 모델에서 해석적으로 유도됨** | **버그** → FAIL |
-| `hypothesis` | 시뮬레이션이 **부과하지 않은** 가정 (연속체·희박극한·유효매질·문헌 모델) | **결과** — FAIL 아님 |
-| `measurement` | 예측 없음 | — |
+| `implementation_check` | **analytically derived from the model I implemented** | **a bug** → FAIL |
+| `hypothesis` | an assumption the simulation does **not** impose (continuum, dilute limit, effective medium, a literature model) | **a result** — not a FAIL |
+| `measurement` | no prediction | — |
 
-`bdbot.metrics.observable(..., role=...)` 로 선언하고 `bdbot.metrics.judge()` 가 역할별로
-다르게 판정합니다. 기본값은 가장 보수적인 `measurement` 입니다.
+Declare it with `bdbot.metrics.observable(..., role=...)`, and
+`bdbot.metrics.judge()` judges each role differently. The default is the most
+conservative, `measurement`.
 
-### 실제 사례 — `abp-rod` 는 검증 케이스였고 발견 케이스가 아니었습니다
+### A real case — `abp-rod` was a validation case, not a discovery case
 
-다섯 예측이 전부 `1/τ_eff = D_r + 1/τ_tumble`, `D_eff = D̄ + v²τ_eff/2` 처럼
-**내가 넣은 모델에서 따라 나오는 것**이었습니다. 0.66% 이내 일치는 코드가 맞다는 뜻이고,
-물리에 대해서는 아무것도 시험하지 않았습니다 — 거의 순환입니다.
+All five of its predictions — `1/τ_eff = D_r + 1/τ_tumble`,
+`D_eff = D̄ + v²τ_eff/2` and so on — **followed from the model I had put in.**
+Agreement to within 0.66% means the code is right and tests nothing about the
+physics. It is very nearly circular.
 
-**케이스를 설계할 때 두 목록을 따로 적으세요:**
+**When designing a case, write down two separate lists:**
 ```
-시뮬레이션이 부과하는 가정   과감쇠 BD · 등방 병진마찰 · 독립 회전확산 · 포아송 텀블 · 희박
-이론이 추가하는 가정         (비어 있음)   ← 여기가 비면 발견이 없다
+assumptions the simulation imposes   overdamped BD . isotropic translational friction .
+                                     independent rotational diffusion . Poisson tumbling . dilute
+assumptions the theory adds          (empty)   <- if this is empty there is no discovery
 ```
-`abp-rod` 를 발견 케이스로 만들려면 시뮬레이션이 부과하지 않는 것을 넣어야 합니다:
-유한 밀도(상호작용) · 가둠(벽·채널). **병진 이방성은 BD로 불가**(HI 부재).
+Making `abp-rod` a discovery case requires adding something the simulation does
+not impose: finite density (interactions), or confinement (walls, channels).
+**Translational anisotropy is impossible in BD** (no HI).
 
-대조로, 이미 돌린 것 중 `hypothesis`/`measurement` 였던 것:
-- `soft-r3` 의 **녹음 전이 Γ 3~30** — 예측이 없었습니다. 시뮬레이션이 답입니다.
-- `soft-r3` 의 에너지 일관성·육방 NN 거리 — `implementation_check` 였습니다.
-- `trap-2d-5um` 의 `⟨x²⟩=kT/k` — `implementation_check` (그래서 골든 테스트로 적합).
+By contrast, among what has already run, the `hypothesis`/`measurement` items:
+- `soft-r3`'s **melting transition at Γ 3–30** — there was no prediction. The
+  simulation is the answer.
+- `soft-r3`'s energy consistency and hexagonal NN distance — those were
+  `implementation_check`.
+- `trap-2d-5um`'s `⟨x²⟩=kT/k` — `implementation_check` (which is what makes it a
+  good golden test).
+- `chain-bend-2d-dlvo`'s `K′ = 0` — a genuine `hypothesis`, derived from the
+  paper's own argument rather than from our implementation, and reporting the
+  agreement **was** the result.
 
 ---
 
-## 8. 하지 말 것
+## 8. Do not
 
-- 무차원 값을 먼저 정하고 물리계를 나중에 유추하기
-- 구형 Stokes 관계(`D_r = 3D_t/d²`)를 비구형에 적용하기
-- 스케치·문헌에 없는 물성값을 지어내기 (모르면 모른다고 하고 앵커임을 표시)
-- 분리 검사를 통과했다고 정확도가 보장된다고 말하기 (수렴 확인은 별도)
-- 강한 조건에서만 검증하고 통과로 판정하기 (§6.1의 교훈)
+- Fix dimensionless values first and infer the physical system afterwards
+- Apply the spherical Stokes relation (`D_r = 3D_t/d²`) to a non-spherical particle
+- Invent a material property that is not in the sketch or the literature (if you
+  do not know, say so, and mark it as an anchor)
+- Say accuracy is guaranteed because the separation checks passed (convergence is
+  a separate check)
+- Verify only in the strong condition and call it a pass (the lesson of
+  section 6.1)
+- Trust a check you have not wired up and watched fire — a step-resolution check
+  silently never ran across 81 runs, and a pre-run gate rejected 80 of 83 specs
+  with zero real failures

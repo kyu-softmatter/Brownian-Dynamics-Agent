@@ -1,247 +1,296 @@
 ---
 name: bd-intake
 description: |
-  스케치·손메모·화이트보드 사진·논문에서 물리계를 읽어내는 해석 프로토콜.
-  전사 우선 · 모호성 명시 · 결측은 null. 이미지를 읽어 observation.yaml 을 만들거나
-  고칠 때, 스케치에서 파라미터를 뽑을 때, 무엇이 빠졌는지 판정할 때 읽어라.
-  스케치 5장을 실제로 읽어본 결과에서 나온 규칙들이다 — 지어내기 억제가 목적.
+  The interpretation protocol for reading a physical system out of a sketch, a
+  handwritten note, a whiteboard photo or a paper. Transcribe first, state the
+  ambiguity, leave what is absent as null. Read this when creating or amending an
+  observation.yaml from an image, when extracting parameters from a sketch, or
+  when deciding what is missing. These rules came out of actually reading five
+  sketches — the purpose is to suppress invention.
 ---
 
-# 인테이크 프로토콜 (L0)
+# The intake protocol (L0)
 
-> 이 문서의 규칙은 **스케치 5장을 실제로 읽어보고** 나온 것입니다. 5장 중 3장이
-> 파라미터 하나 때문에 막혔고, 그걸 **정확히 하나로 특정하는 것**이 인테이크의 성과였습니다.
-> 검사는 `$PY -m bdbot.cli intake check <folder>` 가 기계적으로 합니다 (`bdbot/intake.py`).
+> The rules in this document came from **actually reading five sketches**. Three
+> of the five were blocked by a single parameter, and **pinning that down to
+> exactly one thing** was what intake achieved. The checking is mechanical:
+> `$PY -m bdbot.cli intake check <folder>` (`bdbot/intake.py`).
 
-## 0. 절대 순서
+## 0. The absolute order
 
 ```
-① 전사      보이는 그대로 옮겨 적는다. 해석하지 않는다.
-② 구조화    엔티티·수치·목표로 나눈다. 스케치에 있는 것만.
-③ 모호 명시  확신 못 한 것을 전부 적는다. 영향과 기울어진 쪽까지.
-④ 미판독 명시 못 읽은 부분을 적는다. "없음"이라고 쓰려면 근거가 있어야 한다.
-⑤ 결측 명시  스케치에 없어서 채워야 하는 값. **지어내지 않는다.**
+① transcribe        write down exactly what is visible. Do not interpret.
+② structure         split into entities, values, goals. Only what is in the sketch.
+③ state ambiguity   record everything you are not certain of, with its impact and your lean.
+④ state unread      record what you could not read. Writing "none" requires a basis.
+⑤ state missing     values absent from the sketch that have to be supplied. **Do not invent them.**
 ```
 
-**①을 건너뛰지 마세요.** 전사 없이 해석부터 하면 스케치에 없는 것을 읽습니다.
-실제로 그런 일이 있었습니다 — `chain-bend` 폴더명 때문에 마스터플랜이 그 케이스를
-"본드 + **굽힘 강성** + 구동"으로 적어놨는데, 전사해보니 **스케치에 굽힘이 없었습니다.**
-폴더명·기대·계획서가 아니라 종이에 있는 것만 옮깁니다.
+**Do not skip ①.** Interpreting before transcribing makes you read things that
+are not in the sketch. This actually happened: because of a folder name, the
+master plan had a case recorded as "bonds + **bending stiffness** + driving", and
+transcription showed **there was no bending in the sketch at all.** Transcribe
+what is on the paper, not what is in the folder name, the expectation, or the
+plan.
 
-## 1. 전사 규칙
+## 1. Transcription rules
 
-- 레이아웃을 표시하세요: `[좌측 그림]`, `[우측 글]`, `[하단]`
-- 수식은 보이는 대로. `U(r) = ½ k_t r²` 를 `U = 0.5*k*r**2` 로 "정리"하지 마세요
-- 지운 글씨·덧칠도 적으세요 — 취소된 정의일 수 있습니다
-  (`trap-drag`에 줄로 지운 `"Δr … = optical center"` 가 있었습니다)
-- 못 읽은 글자는 `[판독 불가]` 로 표시하고 `unread_regions` 에도 넣으세요
-- 그림에서 **개수를 세세요** — 단, 센 개수를 N 으로 쓸지는 **개수에 따라 다릅니다**:
+- Mark the layout: `[left figure]`, `[right text]`, `[bottom]`
+- Equations as they appear. Do not "tidy" `U(r) = ½ k_t r²` into `U = 0.5*k*r**2`
+- Record struck-through and overwritten text too — it may be a cancelled
+  definition (one sketch had `"Δr … = optical center"` struck out with a line)
+- Mark an illegible character as `[illegible]` and add it to `unread_regions`
+- **Count the particles in the figure** — but whether the count becomes `N`
+  **depends on the count**:
 
-  | 그림의 입자 수 | 그려진 개수의 지위 |
+  | Particles in the figure | Status of the drawn count |
   |---|---|
-  | **10개 미만** | **그게 실제 N 이다.** 정확히 세라 — "원 여러 개"가 아니라 "원 8개" |
-  | **10개 이상** | **도식으로 본다.** N 은 관측량에서 따로 제안한다 |
+  | **fewer than 10** | **that is the real `N`.** Count exactly — "8 circles", not "several circles" |
+  | **10 or more** | **treat it as schematic.** `N` is proposed separately, from the observable |
 
-  문턱 10 은 딱 떨어지는 값이 아니라 **어림**입니다 (사용자 확인 2026-08-06).
-  근거: 사람이 종이에 계를 **하나씩 세어 그릴** 수 있는 규모가 대체로 한 자릿수이고,
-  그보다 많이 그리면 "이런 식으로 많이"라는 뜻으로 그리기 시작합니다.
+  The threshold of 10 is a **rule of thumb**, not a sharp value (confirmed with
+  the user 2026-08-06). The basis: the scale at which a person can draw a system
+  **one particle at a time** is roughly single digits, and past that they start
+  drawing "lots, like this".
 
-  ⚠️ **10개 이상이어도 세는 것은 여전히 값이 있습니다** — N 으로 쓰지 않을 뿐입니다.
-  센 개수와 **연결 구조**는 생성 프로토콜이 무엇을 만들어야 하는지의 **기준선**이 됩니다.
-  실제 사례(`network`): 원 21개를 세보니 위상이 **트리(고리 0개)** 였고, 목표가 `G'(ω)`
-  인데 트리에는 응력을 나르는 닫힌 경로가 없어 **목표가 정의되지 않는다**는 것이
-  드러났습니다 — 이게 "도식이다" 판정의 근거가 됐고, 압축으로 고리를 만들어야 한다는
-  요구로 이어졌습니다. 세지 않았으면 못 봤을 것입니다.
+  ⚠️ **Counting is still worth doing above 10** — it just does not become `N`.
+  The count and the **connectivity** become the **baseline for what the
+  generation protocol has to build.** A real case: counting 21 circles showed
+  the topology was a **tree (zero loops)**, and since the goal was `G′(ω)` and a
+  tree has no closed path to carry stress, **the goal was undefined** — which is
+  what justified the "schematic" call and led to the requirement that compression
+  create loops. Without counting, none of that would have been visible.
 
-  **센 개수는 `stated_quantities` 에(사실), 제안한 N 은 `missing_required` 의
-  `kind: choice` 로(내 판단) 갑니다** — 둘을 섞지 마세요.
+  **The count goes in `stated_quantities` (a fact); the proposed `N` goes in
+  `missing_required` as `kind: choice` (my judgment)** — do not mix them.
 
-  판정 기준은 개수만이 아닙니다: **목표 관측량이 그 N 으로 정의되는가**도 봅니다.
-  `G'(ω)`·응력 텐서·rdf 처럼 **벌크·앙상블 양**을 요구하면 개수가 적어도 도식이고,
-  반대로 목표가 그 개체 자체의 응답(사슬 하나의 `K'`, 트랩 하나의 PSD)이면
-  많아도 그려진 개수가 실제 N 입니다. **개수와 관측량이 엇갈리면 관측량이 이깁니다.**
+  The criterion is not only the count: also ask **whether the target observable
+  is even defined at that `N`.** If it demands a **bulk or ensemble** quantity —
+  `G′(ω)`, the stress tensor, an rdf — the figure is schematic even with few
+  particles; conversely if the goal is that object's own response (one chain's
+  `K′`, one trap's PSD), the drawn count is the real `N` however many there are.
+  **When the count and the observable disagree, the observable wins.**
 
-  N 을 제안할 때 근거는 **관측량에서** 옵니다 (감으로 "많이"가 아닙니다):
-  통계 오차 `∝1/√N` 로 목표 정밀도 · 상관길이의 몇 배가 박스에 들어가야 하는가 ·
-  침투(percolation)·고리(loop)가 성립하는 최소 크기 · 그리고 **비용**
-  (이 프로젝트는 스윕이 25일→1.16일로 갈렸습니다). 상한도 같이 적으세요.
+  When proposing `N`, the basis comes **from the observable**, not from a feel for
+  "lots": statistical error `∝1/√N` against the target precision · how many
+  correlation lengths must fit in the box · the minimum size at which percolation
+  or loops exist · and **cost** (a sweep in this project went from 25 days to
+  1.16 days). State the upper bound too.
 
-## 2. 무엇이 `ambiguity` 인가
+## 2. What counts as an `ambiguity`
 
-**두 가지 이상으로 읽힐 수 있고, 그 선택이 결과를 바꾸면** 모호점입니다. 각 항목에:
+Something is ambiguous if **it can be read more than one way and the choice
+changes the result.** Each entry gets:
 
-| 키 | 무엇 |
+| Key | What |
 |---|---|
-| `id` | `A1`, `B2` … 케이스 접두어 + 번호 |
-| `issue` | 무엇이 모호한가 (한 문장) |
-| `impact` | **이 선택이 결과를 어떻게 바꾸는가.** 숫자로 쓰세요 |
-| `lean` | 내가 기울어진 쪽 + 근거. 없으면 `null` |
-| `resolution` | **`null` 로 둡니다.** 사람이 채우는 자리 |
+| `id` | `A1`, `B2` … case prefix plus number |
+| `issue` | what is ambiguous (one sentence) |
+| `impact` | **how this choice changes the result.** Write it as a number |
+| `lean` | which way you lean, plus the basis. `null` if none |
+| `resolution` | **leave it `null`.** That is the human's slot |
 
-`impact` 가 이 항목의 값입니다. "모호하다"만 적으면 사람이 판단할 수 없습니다.
-좋은 예: *"d=1µm면 ℓ_p/d=2.5로 활성이 MSD에 보이고, d=5µm면 0.5로 거의 안 보인다"*
+`impact` is what makes the entry worth anything. Writing only "this is ambiguous"
+gives a person nothing to decide with. A good one: *"at d=1µm, ℓ_p/d=2.5 so
+activity is visible in the MSD; at d=5µm it is 0.5 and nearly invisible."*
 
-**`impact` 는 관측량별로 쪼개세요.** "영향 있음/없음"이 아니라 어느 관측량에 얼마인지.
-그래야 **확인을 기다리는 동안 할 수 있는 일**이 정해집니다.
+**Split `impact` per observable.** Not "affected / unaffected" but which
+observable, by how much. That is what determines **what work can proceed while
+the confirmation is pending.**
 
-> `trap-2d-5um` A1: `R=5µm` 이 반지름인지 지름인지 모호 → `⟨x²⟩=kT/k` 는 `d` 에 무관하므로
-> **영향 0**, `τ_k` 만 정확히 2배. 덕분에 확인 전에 골든 테스트 설계를 끝냈습니다.
+> `trap-2d-5um` A1: whether `R=5µm` is a radius or a diameter was ambiguous →
+> `⟨x²⟩=kT/k` is independent of `d`, so **impact zero**, and only `τ_k` changes by
+> exactly 2×. That is why the golden-test design was finished before the
+> confirmation arrived.
 
-⚠️ **`lean` 에 근거를 여러 개 댔다고 확신하지 마세요.** 위 A1에서 근거 3개를 댔고
-그중 하나("트랩 영역으로 읽으면 30,000 kT라 무의미")는 실제로 한 선택지를 배제했지만,
-남은 둘(반지름 vs 지름)은 가르지 못했습니다. **배제 논증이 강할수록 남은 선택지 사이의
-구분이 약해도 확신하게 됩니다.** 결론은 지름이었고 `lean` 은 틀렸습니다.
+⚠️ **Do not gain confidence from having listed several bases in `lean`.** In that
+A1, three bases were given; one of them ("read as the trap region it would be
+30,000 kT, which is meaningless") really did exclude one option, but the
+remaining two (radius vs diameter) were not separated at all. **The stronger the
+exclusion argument, the more confident you become even when the remaining options
+are barely distinguished.** The answer was diameter, and `lean` was wrong.
 
-⚠️ **모호점 0건은 의심하세요.** 손으로 그린 스케치에서 그런 경우는 드뭅니다.
-검사기가 경고를 냅니다.
+⚠️ **Be suspicious of zero ambiguities.** That is rare in a hand-drawn sketch.
+The checker warns.
 
-### 2.1 `stated_goals` 가 비어 있으면 그것도 블로커입니다 ⭐️
+### 2.1 An empty `stated_goals` is also a blocker ⭐️
 
-**무엇을 측정할지 모르면 `T_obs` 도 표본 간격도 성공 기준도 정할 수 없습니다.**
+**Not knowing what will be measured means you cannot set `T_obs`, the sample
+interval, or the success criterion.**
 
-| 케이스 | 스케치의 목표 |
+| Case | Goal in the sketch |
 |---|---|
 | `abp-rod-2d-run-flip` | "measure MSD, MSAD" ✓ |
-| `trap-2d-5um` | **없음** — 사람에게 물어서 확정 |
+| `trap-2d-5um` | **absent** — settled by asking the user |
 
-trap 에서 PSD 를 보기로 정하고 나서야 `T_obs = 2000 τ_k`(1/T ≪ f_c 확보)와
-표본 간격 `τ_k/10`(f_Nyq ≫ f_c)이 결정됐습니다. 목표를 몰랐다면 다르게 잡았을 것이고,
-다 돌린 뒤에 PSD 가 안 나온다는 걸 알았을 겁니다.
+Only after deciding to look at the PSD did `T_obs = 2000 τ_k` (securing
+`1/T ≪ f_c`) and the sample interval `τ_k/10` (`f_Nyq ≫ f_c`) get determined. Not
+knowing the goal, they would have been chosen differently, and the PSD would have
+turned out unobtainable after the whole thing had run.
 
-`stated_goals: []` 이면 `choice` 로 넘기지 말고 **사람에게 물어보세요.**
+If `stated_goals: []`, do not push it into `choice` — **ask the user.**
 
-## 3. 결측 — `physical` 과 `choice` 를 가르세요 ⭐️
+## 3. Missing values — separate `physical` from `choice` ⭐️
 
-`missing_required` 의 각 항목에 `kind` 를 붙입니다:
+Each `missing_required` entry gets a `kind`:
 
-| `kind` | 무엇 | L2를 막는가 |
+| `kind` | What | Does it block L2? |
 |---|---|---|
-| `physical` (기본) | 계의 성질. 사람이 주거나 KB에서 찾아야 한다 | ❌ **막는다** |
-| `choice` | 시뮬레이션 선택 — 박스 크기, 관측 창, 표본 수 | 막지 않는다 |
+| `physical` (default) | a property of the system. A human must supply it, or it must be found in the KB | ❌ **it blocks** |
+| `choice` | a simulation choice — box size, observation window, sample count | does not block |
 
-**이 구분을 안 하면 판정이 틀립니다.** 도구를 만들고 5개 파일에 처음 돌렸을 때
-이미 완주한 `trap-2d-5um`·`soft-r3` 가 BLOCKED 로 나왔습니다 — 원인은 `L`(박스)과
-`T_obs`(관측 창)가 물리적 미지값과 같은 목록에 섞여 있던 것이었습니다.
+**Without this distinction the verdict is wrong.** When the tool was first run
+over five files, `trap-2d-5um` and `soft-r3` — both already completed end to end
+— came back BLOCKED. The cause was that `L` (box) and `T_obs` (observation
+window) sat in the same list as genuinely unknown physics.
 
-`kind` 를 안 적으면 `physical` 로 봅니다 (보수적).
+An unstated `kind` is treated as `physical` (conservative).
 
-**`physical` 안에서도 한 번 더 가르면 확인 비용이 줍니다** — 결과에 들어가는 값인가,
-검사에만 쓰이는 값인가:
+**Splitting `physical` once more reduces the confirmation cost** — does the value
+enter the result, or is it used only by a check?
 
-| 예 | 쓰이는 곳 | tier 3 이어도 안전한가 |
+| Example | Where it is used | Safe at tier 3? |
 |---|---|---|
-| `eta` (점도) | `γ → τ_k, D_t` — **결과를 직접 정함** | ❌ 확인 필요 |
-| `rho_p` (밀도) | `τ_p` — **모델 타당성 검사 전용** | ✅ BD 결과에 영향 0 |
+| `eta` (viscosity) | `γ → τ_k, D_t` — **directly sets the result** | ❌ needs confirmation |
+| `rho_p` (density) | `τ_p` — **model-validity check only** | ✅ zero effect on a BD result |
 
-`trap-2d-5um` 의 `rho_p` 는 실리카로 임의 가정(tier 3)했지만, BD 는 질량을 쓰지 않으므로
-결과가 바뀌지 않습니다. `note` 에 "…검사에만 사용, 결과에 영향 없음"을 적어두면
-사람이 확인 우선순위를 바로 정할 수 있습니다.
+`trap-2d-5um`'s `rho_p` was arbitrarily assumed as silica (tier 3), but BD does
+not use mass, so the result does not change. Writing "…used only by a check, no
+effect on the result" into `note` lets a person set their confirmation priority
+immediately.
 
-### 가정으로 채울 때
+### When filling with an assumption
 
 ```yaml
 - symbol: eta
   kind: physical
-  what: "용매 점도"
+  what: "solvent viscosity"
   assumed_value: 0.851
   assumed_unit: mPa*s
-  confidence: 1          # ★ assumed_value 가 있으면 필수. 없으면 검사기가 거부
-  note: "물@300K 핸드북. 매질은 스케치 미기재. 1-A에서 '물' 확인 → 승계"
+  confidence: 1          # ★ mandatory whenever assumed_value is present; the checker rejects otherwise
+  note: "water@300K handbook. Medium not stated in this sketch. Confirmed as water in case 1-A -> inherited"
   resolution: null
 ```
 
-**`confidence` 없는 `assumed_value` 는 출처 없는 값입니다** (CLAUDE.md 규칙 3 위반).
-검사기가 오류로 잡습니다.
+**An `assumed_value` without a `confidence` is a value with no provenance**
+(violating rule 3 in CLAUDE.md). The checker raises it as an error.
 
-tier: `0` 직접입력/핸드북 · `1` 문헌+검증 또는 **확인된 관례 승계** · `2` 문헌 미검증 · `3` 임의 가정
+tier: `0` directly given or handbook · `1` literature plus verification, or **an
+inherited convention that was confirmed** · `2` literature, unverified · `3`
+arbitrary assumption
 
-### 채울 수 없으면 `null` 로 두고 `what` 을 쓰세요
+⚠️ **Tier 1 by inheritance is the dangerous case, and it bit this project.**
+`T = 300 K` is recorded as tier 1 in every case and is in fact a *choice*
+inherited from a sketch with no temperature. Water's viscosity is 2.06 %/K
+sensitive, so at 298 K `η` is off by −4 % and at 293 K by −14 %, and every
+timescale follows. Inheriting is legitimate; recording it as if it were measured
+is not.
+
+### If you cannot fill it, leave `null` and write `what`
 
 ```yaml
 - symbol: U_ij
-  what: "사슬 결합 퍼텐셜 — G'(ω)의 탄성이 여기서 나온다. 스케치에서 빈칸 (C1)"
+  what: "chain bond potential — the elasticity in G'(omega) comes from here. Blank in the sketch (C1)"
   assumed_value: null
   resolution: null
 ```
 
-`what` 이 없으면 사람에게 **무엇이 왜 필요한지** 알려줄 수 없습니다. 검사기가 경고합니다.
+Without `what` you cannot tell a person **what is needed and why**. The checker
+warns.
 
-## 4. 같은 노트의 다른 스케치에서 값을 승계할 때
+## 4. Inheriting a value from another sketch in the same notebook
 
-5장이 같은 노트에 연달아 그려져 있었고 **4장이 매질·온도를 안 적었습니다.**
-1-A에서 사용자가 "물, 300 K"를 확인했으므로 그 관례를 이었습니다 — 하지만:
+The five sketches were drawn consecutively in one notebook, and **four of them did
+not state the medium or the temperature.** The user confirmed "water, 300 K" for
+case 1-A, so that convention was carried forward — but:
 
-- `tier: 1` 로 표시 (직접 확인이 아니라 **관례 승계**)
-- `note` 에 "이 스케치엔 미기재, N-A에서 확인된 값 승계" 를 명시
-- 승계가 **틀릴 수 있음**을 기억하세요. `abp-rod` 는 `R=5µm` 관례를 적용하면
-  스케치의 `τ_R=0.5s` 와 160배 어긋납니다 (그 케이스만 입자가 다를 가능성)
+- mark it `tier: 1` (not direct confirmation but **inherited convention**)
+- state in `note`: "not stated in this sketch, inheriting the value confirmed in
+  case N-A"
+- remember the inheritance **can be wrong.** Applying the `R=5µm` convention to
+  `abp-rod` disagrees with that sketch's own `τ_R=0.5s` by 160× (so that one case
+  probably has different particles)
 
-## 5. 스케치의 값을 그대로 믿지 말고 자기일관성을 보세요 ⭐️
+## 5. Do not simply trust the sketch's values — check self-consistency ⭐️
 
-읽은 값들끼리 물리식으로 엮이면 **교차 검증이 됩니다.**
+When the values you read are linked by a physical relation, that **is a
+cross-check.**
 
-`abp-rod` 실제 사례: `τ_R = 0.5 s` 를 회전확산 시간으로 읽고 `τ_r = πηd³/kT` 를 역산하면
-`d = 0.918 µm` 가 나옵니다. 다른 스케치의 `R = 5 µm` 관례를 적용하면 Stokes 예측이
-`80.7 s` 로 **160배** 어긋납니다. → 이 케이스는 ~1 µm 입자이고, `τ_R` 은 회전확산
-시간이라는 결론이 나옵니다. **모호점 두 개(D1 크기, D2 τ_R 의미)가 서로를 풀었습니다.**
+A real case: reading `τ_R = 0.5 s` as a rotational diffusion time and inverting
+`τ_r = πηd³/kT` gives `d = 0.918 µm`. Applying another sketch's `R = 5 µm`
+convention makes the Stokes prediction `80.7 s` — off by **160×**. ⇒ the
+conclusion is that this case has ~1 µm particles and that `τ_R` is the rotational
+diffusion time. **Two ambiguities (D1 size, D2 the meaning of `τ_R`) resolved each
+other.**
 
-이런 역산은 `ambiguity.evidence` 에 적으세요. 추론이므로 `resolution` 은 여전히 `null`.
+Record such an inversion in `ambiguity.evidence`. It is an inference, so
+`resolution` still stays `null`.
 
-## 6. 차원 일관성을 먼저 확인하세요
+## 6. Check dimensional consistency first
 
-`soft-r3` 의 `U_ij/kT = A/r³` — `A` 가 무차원인지 `µm³` 차원인지에 따라 물리가 125배
-갈렸습니다 (`d=5µm` 기준). 스케치에 단위가 없는 계수를 보면:
+`soft-r3`'s `U_ij/kT = A/r³` — whether `A` is dimensionless or carries `µm³`
+split the physics by 125× (at `d=5µm`). When you see a coefficient with no unit
+in the sketch:
 
-1. 차원적으로 성립하는 읽기를 **전부** 나열한다
-2. 각 읽기에서 무차원수를 계산한다
-3. **스케치의 목표와 모순되지 않는 읽기**를 고른다 (그리고 추론임을 명시한다)
+1. List **every** dimensionally consistent reading
+2. Compute the dimensionless groups under each reading
+3. Choose the reading that **does not contradict the sketch's stated goal** (and
+   state that this is an inference)
 
-`soft-r3` 에서는 `A`가 `µm³` 이면 스윕 전 구간이 `kT` 아래라 스케치가 요구한
-rdf·voronoi 구조가 **아무것도 안 나옵니다** → 무차원 해석만 목표와 일관됩니다.
+In `soft-r3`, if `A` carried `µm³` the entire sweep would sit below `kT`, so
+**nothing** the sketch asked for — rdf, Voronoi structure — would appear. Only the
+dimensionless reading is consistent with the goal.
 
-## 7. 하지 말 것
+## 7. Do not
 
-- 폴더명·계획서·기대에 있는 것을 스케치에서 읽었다고 적기
-- 전사를 건너뛰고 해석부터 하기
-- 스케치에 없는 물성값을 근거 없이 채우기 (`confidence` 없는 `assumed_value`)
-- `resolution` 을 내가 채우기 (사람 확인 #1의 자리입니다)
-- 모호점을 "나중에 정하면 됨"으로 넘기기 — `impact` 를 숫자로 쓰면 우선순위가 보입니다
-- `ambiguities: []` / `unread_regions: []` 키를 **아예 빼기** (검사기가 거부합니다)
+- Record something from a folder name, a plan or an expectation as if it were read
+  from the sketch
+- Skip transcription and start interpreting
+- Fill a material property absent from the sketch with no basis (an
+  `assumed_value` without a `confidence`)
+- Fill `resolution` yourself (that is the slot for the first human confirmation)
+- Defer an ambiguity as "we can decide later" — writing `impact` as a number is
+  what makes the priority visible
+- **Omit** the `ambiguities: []` / `unread_regions: []` keys entirely (the checker
+  rejects that)
 
-## 8. 절차
+## 8. Procedure
 
 ```bash
 PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
 
-$PY -m bdbot.cli intake init  intake/<case>     # 템플릿 생성
-#   → 이미지를 Read 로 보고 ① ~ ⑤ 를 채운다
-$PY -m bdbot.cli intake check intake/<case>     # 스키마 + 준비도 판정
-#   → FAIL: 스키마 오류. 고친다
-#   → BLOCKED: 스키마는 온전, 물리 결측 미해소 → **사람에게 물어본다**
-#   → READY: system.yaml (L2) 작성 가능
-$PY -m bdbot.cli system check  intake/<case>    # L2 검사 (tier·derived_from·유도값 재계산)
+$PY -m bdbot.cli intake init  intake/<case>     # generate the template
+#   -> read the image and fill in steps 1 through 5
+$PY -m bdbot.cli intake check intake/<case>     # schema plus readiness verdict
+#   -> FAIL:    a schema error. Fix it
+#   -> BLOCKED: schema intact, unresolved physical gap -> **ask the user**
+#   -> READY:   the L2 system file can be written
+$PY -m bdbot.cli system check  intake/<case>    # L2 checks (tier, derived_from, recomputation)
 ```
 
-`BLOCKED` 는 실패가 아닙니다. **무엇이 없는지 정확히 하나로 특정했다**는 뜻이고,
-그게 인테이크가 할 일의 끝입니다. 지어내서 READY로 만들지 마세요.
+`BLOCKED` is not a failure. It means **you pinned down exactly what is missing**,
+and that is where intake's job ends. Do not invent something to force it to
+READY.
 
-### 8.1 `READY` 직후 — 스케일 표를 그려 되먹이세요 ⭐️
+### 8.1 Right after `READY` — draw the scale table and feed it back ⭐️
 
-**인테이크만으로는 안 보이는 것이 있습니다.** 스케일 표를 그려야 드러납니다.
+**There are things intake alone cannot see.** Only the scale table reveals them.
 
-`trap-2d-5um` 은 인테이크 단계에서 아무 문제가 없어 보였습니다 (값 3개가 전부 tier 0).
-스케일 표를 그리고 나서야:
+`trap-2d-5um` looked entirely clean at intake (all three values tier 0). Only
+after drawing the scale table:
 
 ```
 tau_p = 3.26 µs   tau_k = 4.01 ms  ★   tau_B = 242 s
 ```
 
-`τ_B` 가 242초인데 트랩이 4 ms 에 붙잡으므로 **자유확산이 실현되지 않습니다.**
-이게 `dt` 선택·관측창·보고 단위를 전부 바꿨습니다 (`τ_B` 기준으로 잡았으면 한 스텝이
-이완시간의 6배가 됩니다 — skill `bd-physics` §1.1).
+`τ_B` is 242 seconds while the trap catches the particle in 4 ms, so **free
+diffusion is never realized.** That changed the `dt` choice, the observation
+window and the reporting units (had `τ_B` been used as the reference, one step
+would have been 6× the relaxation time — skill `bd-physics`).
 
-그러니 `observation → system` 사이에 **되먹임 한 단계**가 있습니다:
+So there is **one feedback step** between the observation and the system file:
 
-1. 스케일 표를 그린다 (`bd-physics` §0 ①)
-2. **지배 시간척도가 무엇인지 본다** — `τ_B` 가 아닐 수 있다
-3. 그 결과가 `observation` 의 `choice` 항목(`T_obs`, 표본 간격, `L`)을 바꾸면 되돌아가 고친다
+1. Draw the scale table
+2. **See what the governing timescale actually is** — it may not be `τ_B`
+3. If that changes any `choice` entry in the observation (`T_obs`, the sample
+   interval, `L`), go back and fix it
