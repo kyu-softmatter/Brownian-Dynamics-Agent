@@ -293,7 +293,11 @@ print("=" * 84)
 print("PART 3 — every pre-edit module-level name still resolves")
 print("=" * 84)
 
-BASELINE_REV = "34bc0fe"          # the tree as it was before this refactor began
+#  The commit this script exists to verify, and its parent. Pinned rather than
+#  derived from a range: `34bc0fe..HEAD` drifts as other sessions commit, and it
+#  already pulls in three files that are not part of this merge.
+MERGE_COMMIT = "6a4eca2"          # "Merge the bdbot/simbot duplicates onto single sources of truth"
+BASELINE_REV = f"{MERGE_COMMIT}^"  # == 3d71193; the tree immediately before the merge
 #  Names that were only ever a module's own imports, never part of its API. They
 #  legitimately disappear when a module becomes a re-export shim.
 INCIDENTAL = {"dataclass", "field", "math", "np", "annotations", "hashlib", "json",
@@ -313,24 +317,60 @@ def _public_names(src: str, label: str) -> set:
     return {x for x in names if not x.startswith("__")}
 
 
-#  ⚠⚠ `git diff --name-only HEAD`, **not** `git diff --name-only`. ⚠⚠
-#   The bare form lists UNSTAGED changes only. This script was written with it, and
-#   the moment the 25 paths of this refactor got staged, Part 3 silently audited
-#   **zero files** and the script still printed PASS -- measured 2026-08-29.
-#   That is precisely the failure family this session wrote into
-#   `docs/05-pitfalls.md`: *the check cannot distinguish the case it is testing from
-#   the case where it did not run.* Found only because another session staged the
-#   work and the empty output was noticed by eye, which is not a mechanism.
-#   Hence the explicit emptiness check below -- an audit with nothing to audit is a
-#   FAIL, never a pass.
-edited = [f for f in subprocess.run(
-    ["git", "diff", "--name-only", "HEAD"], capture_output=True, text=True,
-    cwd=REPO).stdout.split() if f.endswith(".py") and not f.startswith("tests/")]
+#  ⚠⚠ Scope selection has bitten this file twice. Read before changing it. ⚠⚠
+#
+#   ① It was written with bare `git diff --name-only`, which lists **UNSTAGED**
+#      changes only. The moment the 25 paths of this refactor got staged, Part 3
+#      audited **zero files** and the script still printed PASS -- measured
+#      2026-08-29, ~2 minutes before the commit. The trigger for going blind was
+#      *being ready to commit*. That is the failure family in
+#      `docs/05-pitfalls.md`: *the check cannot distinguish the case it is testing
+#      from the case where it did not run.*
+#   ② Fixing ① to `git diff --name-only HEAD` then made the script FAIL on a clean
+#      clone, because a fresh checkout has nothing uncommitted -- correct as a
+#      refusal-to-pass, wrong as a default experience for anyone who clones.
+#
+#   ③ Scoping the dirty case by "whatever is uncommitted" was wrong too, and
+#      measured wrong within a minute: this is a **shared worktree**, and the
+#      working tree held nine `verify/*.py` files another session was mid-translation
+#      on. The audit picked them up, and since `verify/*.py` are *scripts*, importing
+#      them **executed them** -- one went looking for a `.gsd` that does not exist and
+#      another called into a case module. An audit must never run code it was not
+#      pointed at.
+#
+#   So the file list is **always the pinned pair** -- the files this merge touched,
+#   and nothing else. The working tree still supplies the *content* that gets
+#   imported, so an uncommitted fix on top of the merge is what actually gets
+#   checked. Empty list -> FAIL.
+#   Never use a `BASELINE..HEAD` range either: other sessions commit here, and that
+#   range already picks up three files from a translation pass.
+def _scope() -> tuple[list, str]:
+    out = subprocess.run(["git", "diff", "--name-only", BASELINE_REV, MERGE_COMMIT],
+                         capture_output=True, text=True, cwd=REPO)
+    if out.returncode != 0:
+        return [], (f"could not read {BASELINE_REV}..{MERGE_COMMIT} — a shallow "
+                    f"clone cannot verify a historical refactor "
+                    f"(`git fetch --unshallow`)")
+    files = [f for f in out.stdout.split()
+             if f.endswith(".py") and not f.startswith("tests/")
+             # never import self -- that would recurse
+             and f != "verify/verify_merge_equivalence.py"]
+    dirty = subprocess.run(["git", "diff", "--name-only", "HEAD", "--", *files],
+                           capture_output=True, text=True, cwd=REPO).stdout.split() if files else []
+    note = f"the {len(files)} module(s) {MERGE_COMMIT} touched"
+    if dirty:
+        note += f"; {len(dirty)} with uncommitted edits on top ({', '.join(dirty)})"
+    return files, note
+
+
+edited, scope_note = _scope()
+print(f"  scope: {scope_note}")
 
 if not edited:
-    print("  ✗ no .py changes found against HEAD — this audit covered NOTHING.")
-    print("    Either the work is already committed (then run it against the")
-    print("    parent commit instead), or the diff command is wrong.")
+    print("  ✗ this audit covered NOTHING — refusing to report PASS.")
+    print(f"    {scope_note}")
+    print("    A name audit with an empty work-set cannot tell 'all clean' from")
+    print("    'never ran'. Check that MERGE_COMMIT is reachable.")
     fails.append("part 3 audited zero files (silently-empty check)")
 for f in edited:
     old_src = subprocess.run(["git", "show", f"{BASELINE_REV}:{f}"],

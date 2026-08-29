@@ -149,11 +149,26 @@ someone is ready to commit it. Measured on 2026-08-29: the refactor audit in
 covered **zero files and printed `PASS`**, and it was noticed only because a human
 happened to see the empty output. That is not a mechanism.
 
-Fixed by scoping to `HEAD` *and* making the empty set a failure. One consequence
-is worth knowing before it alarms someone: **that script now fails on a clean
-checkout**, because a clean checkout genuinely is the nothing-to-audit case. To
-audit after committing, point it at the parent — `git diff --name-only HEAD~1` —
-rather than reading the failure as a broken landing.
+It took three attempts to scope correctly, and each wrong answer was found by
+running it rather than by reading it:
+
+| scope | what went wrong |
+|---|---|
+| `git diff --name-only` | unstaged only — audited nothing once its subject was staged |
+| `git diff --name-only HEAD` | **failed on a clean clone**, since a fresh checkout has nothing uncommitted |
+| "whatever is uncommitted" | in a shared worktree this picked up nine `verify/*.py` files another session was mid-translation on — and because those are *scripts*, importing them **ran** them. One went looking for a `.gsd` that does not exist |
+
+The third is the worst of the three. A check that fails on clone is merely wrong;
+a check that executes code it was never pointed at has side effects on work that
+isn't its business.
+
+**Rule: scope a checker to a pinned pair of commits — never to a range, and never
+to the working tree.** A range like `BASELINE..HEAD` drifts as other sessions
+commit; measured here, it already annexed three files belonging to an unrelated
+translation pass. Take the *file list* from the pinned pair and the *content* from
+the working tree, so an uncommitted fix on top still gets checked. Empty list is a
+failure in every mode. In a tree with concurrent sessions, "what changed" is not a
+question about you.
 
 ### The index is shared state with no audit trail
 
