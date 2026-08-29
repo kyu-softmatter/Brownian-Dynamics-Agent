@@ -1149,7 +1149,6 @@ def main() -> int:
     print(RUN.render_verdict(v))
     if v["status"] == RUN.OK:
         print(f"plot: {make_plots(outdir, loaded).relative_to(ROOT)}")
-
     return 0 if v["status"] in (RUN.OK, "skipped") else 1
 
 
