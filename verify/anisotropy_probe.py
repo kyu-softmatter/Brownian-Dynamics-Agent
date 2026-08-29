@@ -1,11 +1,12 @@
-"""(1) gamma_r 축별 이방성은 실제로 동작하는가?
-   (2) 자유배수(free-draining) 비드 사슬은 이방성 병진 마찰을 주는가?
+"""(1) Does per-axis anisotropy in gamma_r actually work?
+   (2) Does a free-draining bead chain give anisotropic translational friction?
 """
 import numpy as np, gsd.hoomd, hoomd, hoomd.md as md
 
-# ── (1) 회전 항력 gamma_r 축별 동작 확인 ────────────────────────────────
+# ── (1) check that per-axis rotational drag gamma_r works ───────────────
 print("=" * 84)
-print("(1) gamma_r 축별 이방성 — 일정 토크에 대한 각속도 (Langevin, kT=0 → 결정론)")
+print("(1) per-axis anisotropy of gamma_r -- angular velocity under constant torque "
+      "(Langevin, kT=0 -> deterministic)")
 print("=" * 84)
 
 def spin(gamma_r, torque_axis, steps=2000, dt=1e-3):
@@ -26,7 +27,7 @@ def spin(gamma_r, torque_axis, steps=2000, dt=1e-3):
     const.constant_force["R"] = (0, 0, 0)
     const.constant_torque["R"] = tuple(float(x) for x in torque_axis)
 
-    # kT=0 인 Brownian → 잡음 없음, dq/dt = τ/γ_r
+    # Brownian with kT=0 -> no noise, dq/dt = torque/gamma_r
     bd = md.methods.Brownian(filter=hoomd.filter.All(), kT=0.0,
                              default_gamma=1.0, default_gamma_r=tuple(gamma_r))
     integ = md.Integrator(dt=dt, methods=[bd], forces=[const],
@@ -34,21 +35,25 @@ def spin(gamma_r, torque_axis, steps=2000, dt=1e-3):
     sim.operations.integrator = integ
     sim.run(steps)
     q = np.array(sim.state.get_snapshot().particles.orientation[0], dtype=float)
-    # 회전각 = 2*arccos(w)
+    # rotation angle = 2*arccos(w)
     return 2 * np.arccos(np.clip(abs(q[0]), -1, 1))
 
-for gr, label in [((1.0, 1.0, 1.0), "등방 (1,1,1)"),
-                  ((1.0, 1.0, 5.0), "z축 5배 (1,1,5)")]:
+for gr, label in [((1.0, 1.0, 1.0), "isotropic (1,1,1)"),
+                  ((1.0, 1.0, 5.0), "z axis 5x (1,1,5)")]:
     ax = spin(gr, (1.0, 0, 0))
     az = spin(gr, (0, 0, 1.0))
     print(f"  gamma_r={gr:} [{label}]")
-    print(f"     τ∥x → 회전각 {ax:.5f} rad     τ∥z → 회전각 {az:.5f} rad     비 z/x = {az/ax if ax else 0:.4f}")
-print("  → z성분을 5배로 하면 z축 회전이 1/5로 느려져야 함 (비 ≈ 0.2)")
+    print(f"     torque||x -> angle {ax:.5f} rad     "
+          f"torque||z -> angle {az:.5f} rad     "
+          f"ratio z/x = {az/ax if ax else 0:.4f}")
+print("  -> making the z component 5x should slow z-axis rotation to 1/5 "
+      "(ratio ~ 0.2)")
 
-# ── (2) 자유배수 비드 사슬: 이방성이 나오는가? ──────────────────────────
+# ── (2) free-draining bead chain: does anisotropy appear? ───────────────
 print()
 print("=" * 84)
-print("(2) 자유배수 비드 막대 (강체 아님, 각 비드가 독립 항력) — 이방성 나오는가?")
+print("(2) free-draining bead rod (not rigid; each bead has independent drag) -- "
+      "does anisotropy appear?")
 print("=" * 84)
 
 def bead_rod_gamma(force_dir, n_beads=5, k_bond=2000.0, steps=4000, dt=1e-4):
@@ -75,7 +80,7 @@ def bead_rod_gamma(force_dir, n_beads=5, k_bond=2000.0, steps=4000, dt=1e-4):
     bond = md.bond.Harmonic(); bond.params["b"] = dict(k=k_bond, r0=1.0)
     ang = md.angle.Harmonic(); ang.params["a"] = dict(k=k_bond, t0=np.pi)
     const = md.force.Constant(filter=hoomd.filter.All())
-    # 막대 전체에 총 힘 F가 걸리도록 비드당 F/n
+    # F/n per bead, so the total force on the whole rod is F
     const.constant_force["A"] = tuple(float(x) / n_beads for x in force_dir)
     const.constant_torque["A"] = (0, 0, 0)
     ov = md.methods.OverdampedViscous(filter=hoomd.filter.All(), default_gamma=1.0)
@@ -85,13 +90,14 @@ def bead_rod_gamma(force_dir, n_beads=5, k_bond=2000.0, steps=4000, dt=1e-4):
     sim.run(steps)
     com1 = np.array(sim.state.get_snapshot().particles.position).mean(axis=0)
     v = float(np.dot(com1 - com0, np.array(force_dir, float)) / (steps * dt))
-    return 1.0 / v if abs(v) > 1e-14 else float("inf")   # F_total=1 이므로 γ=1/v
+    return 1.0 / v if abs(v) > 1e-14 else float("inf")   # F_total=1, so gamma=1/v
 
 gp = bead_rod_gamma((1.0, 0, 0))
 gt = bead_rod_gamma((0, 1.0, 0))
 print(f"  γ∥ = {gp:.5f}   γ⊥ = {gt:.5f}   γ⊥/γ∥ = {gt/gp:.6f}")
-print(f"  (비드 5개 × γ_bead=1 → 총 γ = 5 예상)")
+print(f"  (5 beads x gamma_bead=1 -> total gamma = 5 expected)")
 print()
-print("  → 자유배수에서는 각 비드가 독립적으로 Stokes 항력을 받으므로")
-print("    총 항력 = N·γ_bead 로 방향에 무관. 이방성은 '유체역학적 상호작용(HI)'의 효과이고,")
-print("    HI가 없는 BD에서는 기하만으로 이방성이 생기지 않는다.")
+print("  -> in free draining each bead feels Stokes drag independently, so")
+print("    the total drag = N*gamma_bead, independent of direction. Anisotropy is an "
+      "effect of hydrodynamic interaction (HI),")
+print("    and in BD without HI, geometry alone does not produce anisotropy.")

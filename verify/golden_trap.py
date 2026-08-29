@@ -1,10 +1,13 @@
-"""조화 트랩 골든 검증 — 최소 이미지 규약 적용본.
+"""Golden check for the harmonic trap -- the version with the minimum-image
+convention applied.
 
-앞선 시도에서 k가 작을수록(트랩이 약할수록) <x²>가 폭증했다. 원인은 주기경계:
-입자가 박스를 넘어 wrap되면 고정 앵커까지의 거리가 L만큼 점프하고, 트랩이
-거대한 잘못된 방향의 복원력을 준다. 변위에 최소 이미지를 적용하면 해소된다.
+In an earlier attempt <x^2> blew up as k got smaller (as the trap got weaker). The
+cause was the periodic boundary: when a particle wraps across the box, its distance
+to the fixed anchor jumps by L, and the trap applies an enormous restoring force in
+the wrong direction. Applying the minimum image to the displacement resolves it.
 
-→ 이 함정은 external.* 모듈 전체에 해당한다 (마스터플랜 §11 함정 목록에 추가).
+-> This trap applies to every external.* module (added to the trap list in
+   masterplan §11).
 """
 import math, tempfile
 from pathlib import Path
@@ -26,13 +29,16 @@ def lattice_frame(N, L):
 
 
 class HarmonicTrap(md.force.Custom):
-    """입자별 앵커로 끌어당기는 조화 트랩. 변위에 최소 이미지 적용."""
+    """Harmonic trap pulling each particle to its own anchor.
+
+    The minimum image is applied to the displacement.
+    """
 
     def __init__(self, k, anchors, box_L):
         super().__init__(aniso=False)
         self.k = float(k)
         self.anchors = np.asarray(anchors, dtype=float)
-        self.L = np.array([box_L, box_L, np.inf])      # z는 2D라 무한대(래핑 없음)
+        self.L = np.array([box_L, box_L, np.inf])      # z is infinite because this is 2D (no wrapping)
 
     def set_forces(self, timestep):
         with self._state.cpu_local_snapshot as snap, \
@@ -40,7 +46,7 @@ class HarmonicTrap(md.force.Custom):
             tags = np.array(snap.particles.tag, copy=True)
             pos = np.array(snap.particles.position, copy=True)
             d = pos - self.anchors[tags]
-            d -= self.L * np.round(d / self.L)          # ← 최소 이미지
+            d -= self.L * np.round(d / self.L)          # <- minimum image
             arr.force[:] = -self.k * d
             arr.potential_energy[:] = 0.5 * self.k * (d ** 2).sum(axis=1)
 
@@ -53,7 +59,8 @@ class HarmonicTrap(md.force.Custom):
 
 kT, gamma, N, L = 1.0, 1.0, 400, 60.0
 print("=" * 84)
-print("조화 트랩 골든 검증 (최소 이미지 적용):  <x²> = kT/k,   τ_relax = γ/k")
+print("Harmonic trap golden check (minimum image applied):  "
+      "<x^2> = kT/k,   tau_relax = gamma/k")
 print(f"kT={kT}  γ={gamma}  N={N}  L={L}   [2D]")
 print("=" * 84)
 
@@ -88,15 +95,17 @@ for k in (2.0, 5.0, 10.0, 20.0):
     ok = abs(err) < 5
     rows.append((k, tau, dt, mx, my, mean, sem, pred, err, ok))
     print(f"  k={k:5.1f}  τ={tau:.4f}  dt={dt:.2e}  steps={n_eq + n_samp * gap:>7,}")
-    print(f"     <x²>={mx:.5f}  <y²>={my:.5f}   평균={mean:.5f} ± {sem:.5f}")
-    print(f"     예측={pred:.5f}   오차 {err:+6.2f}%   {'✓ PASS' if ok else '✗ FAIL'}")
+    print(f"     <x^2>={mx:.5f}  <y^2>={my:.5f}   mean={mean:.5f} ± {sem:.5f}")
+    print(f"     predicted={pred:.5f}   error {err:+6.2f}%   "
+          f"{'✓ PASS' if ok else '✗ FAIL'}")
 
 print("=" * 84)
 n_ok = sum(r[-1] for r in rows)
 print(f"{n_ok}/{len(rows)} PASS")
 
-# 스케일링 검증: <x²>·k 가 k에 무관하게 kT여야 함
+# Scaling check: <x^2>*k must equal kT independently of k
 prod = np.array([r[5] * r[0] for r in rows])
-print(f"\n<x²>·k = {np.array2string(prod, precision=4)}   (전부 kT={kT}이어야 함)")
-print(f"변동계수 {100 * prod.std() / prod.mean():.2f}%  "
-      f"→ {'✓ 스케일링 성립' if prod.std() / prod.mean() < 0.05 else '✗ 스케일링 깨짐'}")
+print(f"\n<x^2>*k = {np.array2string(prod, precision=4)}   "
+      f"(all must equal kT={kT})")
+print(f"coefficient of variation {100 * prod.std() / prod.mean():.2f}%  "
+      f"-> {'✓ scaling holds' if prod.std() / prod.mean() < 0.05 else '✗ scaling broken'}")

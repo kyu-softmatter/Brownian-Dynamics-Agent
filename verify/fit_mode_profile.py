@@ -1,15 +1,20 @@
-"""JKR 사슬의 비드별 A·sin(ωt+φ) 피팅 → 중심거리별 진폭·위상 프로파일.
+"""Per-bead A*sin(omega*t+phi) fit for the JKR chain -> amplitude and phase profile
+versus distance from the centre.
 
-각 비드의 y(t) 를 구동 주파수에서 락인해 복소 위상자 ŷ_i 를 얻고, A_i=|ŷ_i|,
-φ_i=arg(ŷ_i) 를 중심(구동 비드)으로부터의 거리 s=|i−mid| 에 대해 정리한다.
+Each bead's y(t) is lock-in detected at the drive frequency to get the complex phasor
+y_hat_i; then A_i=|y_hat_i| and phi_i=arg(y_hat_i) are tabulated against the distance
+s=|i-mid| from the centre (the driven bead).
 
-★ **해석적 예측이 있다** — 선형응답:  (iωγI + A_bend + T) ŷ = k_t·a·e_mid
-  이 계는 굽힘행렬 A_bend 와 트랩 T 가 전부 알려져 있으므로 ŷ 를 정확히 풀 수 있다.
-  측정과 대조하면 구현·물리가 맞는지 **비드마다** 검증된다 (지금까지는 구동 비드
-  하나만 봤다 — |ŷ_mid| 가 예측과 +1.3%).
+★ **There is an analytic prediction** -- linear response:
+  (i*omega*gamma*I + A_bend + T) y_hat = k_t*a*e_mid
+  In this system the bending matrix A_bend and the traps T are fully known, so y_hat
+  can be solved exactly. Comparing with the measurement verifies the implementation
+  and the physics **bead by bead** (so far only the driven bead had been checked --
+  |y_hat_mid| was +1.3% against prediction).
 
-  위상은 구동 비드 기준으로 잡는다 (φ_mid ≡ 0). 절대 위상은 ZOH·표본 지연에
-  오염되지만 **차이는 상쇠**된다 (bd-hoomd 함정 17 과 같은 논리).
+  Phases are referenced to the driven bead (phi_mid == 0). Absolute phase is
+  contaminated by the ZOH and by sampling delay, but **the difference cancels**
+  (same logic as bd-hoomd trap 17).
 
     $PY scratch/fit_mode_profile.py
 """
@@ -31,7 +36,10 @@ PAT = "runs/chain-bend-2d-dlvo__n9-w3000-a1470-jkr-kt100__*"
 
 
 def phasors_from_npz(d):
-    """observables.npz 의 전 표본에서 비드별 위상자. GSD 보다 표본이 촘촘하다."""
+    """Per-bead phasor from every sample in observables.npz.
+
+    Denser sampling than GSD.
+    """
     z = np.load(Path(d) / "observables.npz", allow_pickle=True)
     keys = set(z.files)
     if "shape_y" not in keys:
@@ -70,12 +78,13 @@ for d in sorted(glob.glob(PAT)):
         h, _ = LI.agg(blocks)
         ph.append(h)
     rows.append(np.array(ph))
-    print(f"  {Path(d).name[-12:]}  seed={s['numerics']['seed']}  표본원={src} ({len(t)})")
+    print(f"  {Path(d).name[-12:]}  seed={s['numerics']['seed']}  sample source={src} ({len(t)})")
 
 Z = np.array(rows)                      # (n_seeds, n)
 n = Z.shape[1]
 mid = trapped_indices(n)[1]
-# 구동 비드 기준 상대 위상자 (절대 위상의 ZOH·표본 지연을 상쇠)
+# Phasors relative to the driven bead (cancels the ZOH and sampling delay in the
+# absolute phase)
 Zrel = Z / Z[:, [mid]]
 
 A = np.abs(Z)
@@ -84,7 +93,7 @@ phi = np.angle(Zrel)
 phi_m = np.angle(Zrel.mean(0))
 phi_e = np.abs(Zrel).std(0, ddof=1) / np.sqrt(len(Zrel)) / np.abs(Zrel.mean(0)).clip(1e-30)
 
-# ── 해석적 선형응답 예측 ──
+# ── analytic linear-response prediction ──
 P = spec0["params"]
 kth, k_t = float(P["kappa_theta_star"]), float(P["k_t_star"])
 ell = 1.0 + float(P["h_min_star"])
@@ -100,10 +109,11 @@ phipred = np.angle(ypred / ypred[mid])
 s_idx = np.arange(n) - mid
 print()
 print("=" * 88)
-print(f"JKR 비드별 A·sin(ωt+φ) 피팅  (시드 {len(Z)}개, n={n}, 구동=비드 {mid})")
+print(f"JKR per-bead A*sin(omega*t+phi) fit  ({len(Z)} seeds, n={n}, "
+      f"driven = bead {mid})")
 print("=" * 88)
-print(f"{'비드':>4} {'s=i-mid':>8} {'A 측정 [d]':>18} {'A 예측':>10} {'차이%':>8} "
-      f"{'φ 측정 [°]':>13} {'φ 예측':>9} {'차이°':>7}")
+print(f"{'bead':>4} {'s=i-mid':>8} {'A meas [d]':>18} {'A pred':>10} {'diff%':>8} "
+      f"{'phi meas [deg]':>13} {'phi pred':>9} {'diff':>7}")
 for i in range(n):
     dA = 100 * (A_m[i] - Apred[i]) / Apred[i]
     dphi = np.degrees(np.angle(np.exp(1j * (phi_m[i] - phipred[i]))))
@@ -114,4 +124,4 @@ np.savez("/private/tmp/claude-501/-Users-kyuhwan-Desktop-simulation-auto/"
          "7f5025d1-46c3-455c-a0ba-f595731412cc/scratchpad/mode_profile.npz",
          A_m=A_m, A_e=A_e, phi_m=phi_m, phi_e=phi_e,
          Apred=Apred, phipred=phipred, s_idx=s_idx, mid=mid, n=n)
-print("\n저장: mode_profile.npz")
+print("\nsaved: mode_profile.npz")

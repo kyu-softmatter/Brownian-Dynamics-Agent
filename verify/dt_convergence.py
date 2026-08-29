@@ -1,13 +1,15 @@
-"""dt 수렴 연구 — "dt/τ를 얼마나 작게?"에 대한 정량적 답.
+"""dt convergence study -- a quantitative answer to "how small must dt/tau be?".
 
-조화 트랩은 선형계라 Euler-Maruyama의 이산 정상분산을 해석적으로 구할 수 있다:
+The harmonic trap is a linear system, so the discrete stationary variance of
+Euler-Maruyama can be obtained analytically:
 
     x_{n+1} = x_n (1 - h) + sqrt(2 D dt) ξ,      h ≡ dt/τ_k
-    정상상태:  <x²> = (kT/k) / (1 - h/2)
-    ⟹ 상대 편향 = 1/(1 - h/2) - 1 ≈ h/2
+    stationary:  <x^2> = (kT/k) / (1 - h/2)
+    => relative bias = 1/(1 - h/2) - 1 ~ h/2
 
-즉 **dt/τ 의 절반이 곧 계통 편향**이다. 이게 "dt/τ ≤ 1e-2" 규칙의 정체.
-HOOMD의 Brownian이 실제로 이 법칙을 따르는지 확인한다.
+In other words **half of dt/tau IS the systematic bias**. That is what the
+"dt/tau <= 1e-2" rule actually is. This checks whether HOOMD's Brownian really
+follows that law.
 """
 import math
 import numpy as np
@@ -47,7 +49,7 @@ class Trap(md.force.Custom):
 
 
 def run(h):
-    """h = dt/tau_k 에서 <x²> 측정."""
+    """Measure <x^2> at h = dt/tau_k."""
     dt = h * TAU_K
     L = 200.0
     n = int(math.ceil(math.sqrt(N)))
@@ -70,8 +72,8 @@ def run(h):
     integ.integrate_rotational_dof = False
     sim.operations.integrator = integ
 
-    gap = max(1, int(round(2 * TAU_K / dt)))       # 표본 간격 2 τ_k
-    sim.run(int(20 * TAU_K / dt))                  # 평형화 20 τ_k
+    gap = max(1, int(round(2 * TAU_K / dt)))       # sample interval 2 tau_k
+    sim.run(int(20 * TAU_K / dt))                  # equilibrate for 20 tau_k
     s = []
     for _ in range(N_SAMPLES):
         sim.run(gap)
@@ -81,11 +83,12 @@ def run(h):
 
 
 print("=" * 88)
-print(f"dt 수렴 연구 — 조화 트랩,  kT={KT} γ={GAMMA} k={K}  →  τ_k={TAU_K}  <x²>_exact={PRED}")
-print(f"N={N} 입자, 표본 {N_SAMPLES}개 (간격 2τ_k)")
+print(f"dt convergence study -- harmonic trap,  kT={KT} gamma={GAMMA} k={K}  ->  "
+      f"tau_k={TAU_K}  <x^2>_exact={PRED}")
+print(f"N={N} particles, {N_SAMPLES} samples (interval 2 tau_k)")
 print("=" * 88)
-print(f"{'dt/τ_k':>8} {'dt':>10} {'<x²> 측정':>14} {'±SEM':>9} "
-      f"{'편향 측정':>10} {'편향 이론':>10} {'차이':>9}  {'스텝':>9}")
+print(f"{'dt/tau_k':>8} {'dt':>10} {'<x^2> meas':>14} {'±SEM':>9} "
+      f"{'bias meas':>10} {'bias theory':>10} {'diff':>9}  {'steps':>9}")
 print("-" * 88)
 
 rows = []
@@ -100,10 +103,10 @@ for h in (0.1, 0.05, 0.02, 0.01):
 print("-" * 88)
 meas = np.array([r[1] for r in rows])
 theo = np.array([r[2] for r in rows])
-print(f"\n측정/이론 비: {np.array2string(meas/theo, precision=3)}")
+print(f"\nmeasured/theory ratio: {np.array2string(meas/theo, precision=3)}")
 ok = np.allclose(meas, theo, rtol=0.25)
-print(f"{'✓ Euler-Maruyama 편향 법칙 확인 — 편향 ≈ (dt/τ)/2' if ok else '✗ 법칙과 불일치'}")
+print(f"{'✓ Euler-Maruyama bias law confirmed -- bias ~ (dt/tau)/2' if ok else '✗ does not match the law'}")
 print()
-print("실용 규칙 (이 표에서 직접 읽음):")
+print("Practical rule (read straight off this table):")
 for h, want in [(0.1, None), (0.02, None), (0.01, None), (0.002, None), (0.0005, None)]:
-    print(f"   dt/τ = {h:<7.4g} → 계통 편향 ≈ {100*(1/(1-h/2)-1):.3f}%")
+    print(f"   dt/tau = {h:<7.4g} -> systematic bias ~ {100*(1/(1-h/2)-1):.3f}%")
