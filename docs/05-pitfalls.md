@@ -84,6 +84,33 @@ called `gate()`. Full account in
 **Rule: `N/N HEALTHY` is not coverage.** Print the count of *unmeasured* runs
 separately, and state what the verdict does and does not cover.
 
+### A check whose success is indistinguishable from its own failure
+
+The family below is about checks that go blind. This one is worse: it inverts.
+
+`grep -c` exits **1** when the count is zero. For a translation sweep, zero
+matches *is* the success condition — so wiring it into an `&&` chain produces a
+harness that acts on failure and refuses to act on success. Measured:
+
+| file state | the check says | `grep -c` exit | `… && git commit` |
+|---|---|---|---|
+| no Korean left | **passed** | 1 | **stops — the commit never runs** |
+| Korean still there | **failed** | 0 | continues — **the commit runs** |
+
+This happened on 2026-08-29. The chain printed a plausible `0`, the commit step
+silently never executed, and the next command pushed an unrelated session's HEAD.
+The count was correct and clearly displayed; nothing downstream could act on it.
+
+**Rule: never put `grep -c` in an `&&` chain.** Use `[ "$(grep -c PAT f)" -eq 0 ]`,
+or `! grep -q PAT f`. And **confirm a commit happened by reading `git log`** rather
+than inferring it from surrounding output that still looks like success.
+
+★ Note where the defect sat: not in the check, but in **the harness around it**.
+Same for the two below — `chk_doc` computed the right value and asserted on the
+wrong proposition; the refactor audit resolved the right names and was scoped so
+it saw none of them. A correct measurement wired to something that cannot act on
+the answer is the recurring shape, and it is invisible to the measurement itself.
+
 ### Output that looks like a finding
 
 The unwired-checker failure above has a family. Each member produces something
@@ -186,6 +213,21 @@ provenance claim in a commit message that the mtime could not actually support.
 `HEAD`, commit with explicit pathspecs so a stray staged entry cannot ride along,
 and if it matters who changed something, ask the other sessions rather than
 measuring the filesystem.
+
+The same day produced a second version of this from the other direction: a broken
+`&&` chain (above) fell through to a `git push`, which published **another
+session's HEAD commit** — its own committed work, so nothing was corrupted, but
+not the pushing session's to publish. Both incidents share a cause that has
+nothing to do with the files anyone edited:
+
+> **Working-tree files are per-session. The index and the refs are not.**
+
+Edits can be partitioned by agreement — *you take `docs/`, I take `verify/`* — and
+that works. Staging, committing, and pushing cannot be partitioned that way,
+because they act on state every session shares and none can attribute afterwards.
+So: pass explicit pathspecs to `commit` and not just to `add`; read `git log`
+before and after; and treat `push` as publishing whatever HEAD is, not whatever
+you just wrote.
 
 ### `result.txt` is written by the case script, not by the engine
 
