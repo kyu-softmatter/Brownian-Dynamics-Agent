@@ -36,9 +36,26 @@ PASS: list[str] = []
 FAIL: list[str] = []
 
 
-def chk(kind: str, name: str, got, want, rtol=1e-3, note=""):
-    """수치 대조."""
-    ok = abs(got - want) <= rtol * max(abs(want), 1e-300)
+def chk(kind: str, name: str, got, want, rtol=1e-3, note="", atol=0.0):
+    """수치 대조.
+
+    ⚠️ `want == 0` 에 `rtol` 만 주는 것은 **함정**입니다 (b4 가 2026-08-29 에 지적).
+    허용오차가 `rtol * max(|want|, 1e-300)` 이라 `want=0, rtol=1.0` 은 "100% 허용"
+    처럼 읽히면서 실제로는 **1e-300, 가능한 가장 엄격한 값**이 됩니다. 의도(느슨)와
+    동작(최엄격)이 정반대이고, 지금 통과하는 이유가 값이 **비트 단위로 정확히 0**
+    이어서일 뿐이면 대칭이 깨지는 순간 FAIL 로 뒤집히면서 메시지는 `want=0 rtol=1`
+    이라 통과해야 할 것처럼 보입니다.
+
+    그래서 이 조합을 **조용히 처리하지 않고 거부**합니다. 0 과 비교하려면 물리적
+    스케일을 가진 `atol` 을 명시하세요 (예: `atol=1e-12*n*kT`).
+    ★ 계약을 이렇게 고치자 b4 가 찾은 3곳 외에 **네 번째 호출부**가 스스로 드러났습니다.
+    """
+    if want == 0.0 and atol == 0.0:
+        FAIL.append(f"[{kind}] {name}: want=0 에 atol 이 없다 — rtol 은 0 에 대해 "
+                    f"무의미하다(허용오차가 1e-300 으로 붕괴). 물리 스케일을 가진 "
+                    f"atol 을 주세요")
+        return False
+    ok = abs(got - want) <= max(rtol * abs(want), atol)
     rec = f"[{kind}] {name}: got={got:.6g} want={want:.6g} rel={abs(got-want)/max(abs(want),1e-300):.2e}"
     if note:
         rec += f"  ({note})"
@@ -86,6 +103,22 @@ def _read_iapws_water_rows() -> dict[float, float]:
 # ⚠️ 계산이 맞는 것과 **인용될 문서가 맞는 것은 다른 명제**다. 증류본이
 # 인용되는 산출물이므로, 계산값과 인쇄값을 잇는 단정이 없으면 전사 오류가
 # 조용히 살아남는다 (이 프로젝트의 서명 실패 유형: 배선되지 않은 검사기).
+def anchor_num(name: str, cell: int) -> str:
+    """`<!--@name-->` 로 끝나는 표 행에서 **cell 번째 칸의 숫자**를 잡는 정규식.
+
+    산문이 아니라 앵커에 거는 이유: 증류본은 **번역 대상**입니다. 한국어 라벨
+    (`log-선형` 등)에 정규식을 걸면 번역이 검사를 깨뜨립니다 — 0 매치가 FAIL 이라
+    조용하지는 않지만, 언어를 고치는 일이 검사를 깨는 것 자체가 잘못된 결합입니다
+    (b4 가 2026-08-29 에 파일 간 결합으로 지적). `<!--@...-->` 는 렌더링에 안 보이고
+    번역 대상도 아니라 이 결합이 사라집니다.
+
+    `cell` 은 **1-based 칸 번호**(`|` 로 구분). 부호·단위는 무시하고 첫 숫자를 잡습니다.
+    """
+    skip = r"(?:[^|\n]*\|){%d}" % (cell - 1)
+    return (r"\|" + skip + r"[^|\n]*?(\d+\.\d+)[^|\n]*\|(?:[^|\n]*\|)*?\s*<!--@"
+            + name + r"-->")
+
+
 def chk_doc(book: str, pattern: str, want: float, unit_scale: float = 1.0,
             rtol: float = 5e-4, note: str = ""):
     """증류본에서 정규식으로 숫자를 꺼내 계산값과 대조한다.
@@ -165,12 +198,12 @@ def s1_water_viscosity():
 
     # ★ 증류본에 **인쇄된** 두 값이 위 계산과 일치하는가. 이 두 줄이 없어서
     #   0.8580 (실제 0.8598) 이 56/56 을 통과했다.
-    chk_doc("welty_transport.md", r"log-선형[^|]*\|\s*\*\*([\d.]+) mPa·s\*\*",
+    chk_doc("welty_transport.md", anchor_num("eta300_log", 2),
             mu_log * 1e3, note="log-선형 보간값")
-    chk_doc("welty_transport.md", r"\|\s*선형\s*\|\s*([\d.]+) mPa·s",
+    chk_doc("welty_transport.md", anchor_num("eta300_lin", 2),
             mu_lin * 1e3, note="선형 보간값")
     # 인쇄된 백분율도 같은 계산에서 나와야 한다 (0.8580 은 +0.82% 라 +1.03% 와 모순)
-    chk_doc("welty_transport.md", r"log-선형[^|]*\|[^|]*\|\s*\*\*\+([\d.]+)%\*\*",
+    chk_doc("welty_transport.md", anchor_num("eta300_log", 3),
             d_log * 100, rtol=6e-3, note="log-선형 상대차 %")
 
     # ★ §1.2 가 공표하는 T-민감도 오차를 IAPWS 표에서 재계산해 대조한다.
@@ -208,8 +241,7 @@ def s1_water_viscosity():
             FAIL.append(f"[DOC] §1.2 {celsius}°C 행 대조 불가 — IAPWS 직접 행이 없다")
             continue
         want = abs((OURS_ETA - IAPWS[T_real]) / IAPWS[T_real] * 100)
-        chk_doc("welty_transport.md",
-                r"\*\*" + f"{T_real:.2f}" + r" K\*\*[^|]*\|[^|]*\|\s*\*\*−([\d.]+)%\*\*",
+        chk_doc("welty_transport.md", anchor_num(f"err_{celsius}C", 3),
                 want, rtol=2e-2, note=f"§1.2 의 {celsius}°C ({T_real} K) 행")
 
     # 온도 민감도: %/K. 값 하나만 인용하고 T 를 안 적으면 이만큼 틀릴 수 있다.
@@ -289,7 +321,11 @@ def s4_doi_edwards():
 # ════════════════════════════════════════════════════════════════════════
 def s5_jeffery_and_E():
     G = lambda r: (r**2 - 1) / (r**2 + 1)
-    chk("DERIV", "[L] (2.34) G(r=1) = 0  (구는 변형률에 반응 안 함)", G(1.0), 0.0, rtol=1e-12)
+    # atol: G 는 무차원 O(1) 량(0~1)이라 "배정도로 0" = 1e-15.
+    # ★ 이 자리는 b4 가 찾은 3곳에 없었습니다 — `chk` 가 want=0+atol 없음을 거부하게
+    #   만들자 API 가 스스로 네 번째를 찾아냈습니다. 호출부를 손으로 훑는 것보다
+    #   계약을 고치는 쪽이 남는 것을 찾습니다.
+    chk("DERIV", "[L] (2.34) G(r=1) = 0  (구는 변형률에 반응 안 함)", G(1.0), 0.0, atol=1e-15)
     chk("DERIV", "[L] (2.34) G(r->inf) -> 1", G(1e8), 1.0, rtol=1e-12)
     chk_true("DERIV", "G(r) 는 r 에 대해 단조증가", bool(np.all(np.diff(G(np.linspace(1, 100, 500))) > 0)))
 
@@ -359,8 +395,21 @@ def s7_dumbbell():
         relax = -(1.0 / lam) * (RR - (kT / w0) * np.eye(3))
         return gradu @ RR + RR @ gradu.T + relax
 
-    def integrate(gradu, t_end, RR0, dt=None):
-        """모멘트식을 강성 대응 적분기로 적분 (닫힌 해를 쓰지 않는 독립 확인)."""
+    def integrate(gradu, t_end, RR0):
+        """모멘트식을 강성 대응 적분기로 적분 (닫힌 해를 쓰지 않는 독립 확인).
+
+        ⚠️ 예전 시그니처에 `dt=None` 이 있었고 **본문에서 쓰이지 않았습니다**
+        (b4 가 2026-08-29 에 지적). 호출부가 `dt=min(lam/20000, 1e-4/gdot)` 을 넘겨
+        강성 케이스의 스텝을 조이는 것처럼 읽혔지만 조용히 무시됐습니다.
+
+        ★ 고치는 방향이 "실제로 지키게 하는 것" 이 **아닙니다** — 실측하니 그 값을
+        `max_step` 으로 지키면 `gdot=100` 에서 **6천만 스텝**(dt=1e-6, t_end=60)을
+        요구해 스크립트가 2분 타임아웃에 걸립니다. 즉 넘기던 값이 애초에 성립하지
+        않았고, **파라미터가 죽어 있던 것이 이 스크립트가 돌던 유일한 이유**였습니다.
+        LSODA 는 음함수·적응형이라 강성은 `rtol` 이 처리하고 스텝 상한은 불필요합니다.
+        그래서 파라미터와 인자를 **지웠습니다** — 죽은 손잡이는 살리는 것보다 없애는
+        것이 정직합니다.
+        """
         from scipy.integrate import solve_ivp
 
         sol = solve_ivp(
@@ -376,8 +425,8 @@ def s7_dumbbell():
     # (a) 평형에서 Kramers 응력이 정확히 0 (부호·전인자 규약의 골든 테스트)
     T_eq = n * (w0 * RR_eq - kT * np.eye(3))
     chk("DERIV", "[L] (11.15b) 평형에서 Kramers 응력 = 0",
-        float(np.max(np.abs(T_eq))), 0.0, rtol=1.0,
-        note=f"max|T|={np.max(np.abs(T_eq)):.2e} — 정확히 0 이어야 한다")
+        float(np.max(np.abs(T_eq))), 0.0, atol=1e-12 * n * kT,
+        note=f"max|T|={np.max(np.abs(T_eq)):.2e}, 스케일 n*kT={n*kT:.2e}")
     chk_true("DERIV", "평형 Kramers 응력이 기계정밀도로 0",
              float(np.max(np.abs(T_eq))) < 1e-14)
 
@@ -390,7 +439,8 @@ def s7_dumbbell():
         chk("DERIV", f"[L] (11.20) T12 = eta_p*gdot  (Wi={Wi:g})", T[0, 1], eta_p * gdot, rtol=2e-4)
         chk("DERIV", f"[L] (11.21) N1 = 2 eta_p lam gdot^2  (Wi={Wi:g})",
             T[0, 0] - T[1, 1], 2 * eta_p * lam * gdot**2, rtol=2e-4)
-        chk("DERIV", f"[L] (11.21) N2 = 0  (Wi={Wi:g})", T[1, 1] - T[2, 2], 0.0, rtol=1.0,
+        chk("DERIV", f"[L] (11.21) N2 = 0  (Wi={Wi:g})", T[1, 1] - T[2, 2], 0.0,
+            atol=1e-12 * n * kT,
             note=f"|N2|={abs(T[1,1]-T[2,2]):.2e}")
         # (11.24) tr<RR> = b^2 (1 + (2/3) Wi^2)
         chk("DERIV", f"[L] (11.24) tr<RR> = b^2(1+2/3 Wi^2)  (Wi={Wi:g})",
@@ -400,7 +450,7 @@ def s7_dumbbell():
     etas = []
     for gdot in (0.01, 0.1, 1.0, 10.0, 100.0):
         gradu = np.array([[0.0, gdot, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
-        RR = integrate(gradu, 60 * lam, RR_eq, dt=min(lam / 20000.0, 1e-4 / gdot))
+        RR = integrate(gradu, 60 * lam, RR_eq)
         etas.append(n * (w0 * RR[0, 1]) / gdot)
     spread = (max(etas) - min(etas)) / eta_p
     chk_true("DERIV", f"Oldroyd-B: eta_p 가 gdot 4자리에 걸쳐 불변 (산포 {spread:.2e})",
