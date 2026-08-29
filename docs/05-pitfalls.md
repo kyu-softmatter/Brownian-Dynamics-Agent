@@ -84,6 +84,61 @@ called `gate()`. Full account in
 **Rule: `N/N HEALTHY` is not coverage.** Print the count of *unmeasured* runs
 separately, and state what the verdict does and does not cover.
 
+### Output that looks like a finding
+
+The unwired-checker failure above has a family. Each member produces something
+that *reads* as a result while carrying no information, and the tell is always
+the same: **the check cannot distinguish the case it is testing from the case
+where it did not run.**
+
+| Shape | What it cannot tell apart | Found |
+|---|---|---|
+| a doc-scraper whose regex stops matching | `0 matches` from `passed` | 2026-08-29 — a transcription typo (`0.8580` for `0.8598`) passed 56/56 because nothing tied the computed value to the printed one |
+| `chk(want=0.0, rtol=1.0)` | a 100 % tolerance from the strictest possible | the bound is `rtol × max(|want|, 1e-300)`, so `want = 0` collapses it to `1e-300` whatever `rtol` says. Passed only because the quantities were bit-exactly zero |
+| a refactor audit reading AST definitions | **moved** from **deleted** | flagged 5 files, of which 4 were `def`s that had legitimately become re-export `import`s — the merge working as designed |
+| an interpolation quoted without its method | `+1.03 %` from `+2.91 %` | log-linear vs linear on the same 20 K table |
+
+**Rule: make the ambiguous call impossible rather than auditing the call sites.**
+`chk` now *fails* when `want == 0` and no `atol` is given, because a relative
+tolerance on zero is not a loose bound, it is an incoherent request. Doing that
+surfaced a fourth call site that enumerating the known three had missed. The same
+move worked twice more the same day — an accessor that names the cause instead of
+raising `KeyError` found five sites, and resolving module names *at runtime*
+instead of parsing the AST told moved from deleted. Three independent instances,
+one lesson: **fix the contract and it finds what a sweep does not.**
+
+### When a copied constant is legitimate
+
+The rule against duplicated tables has one real exception, and it is worth
+stating precisely, because a de-duplication pass spawns duplicates while it runs
+— which happened in both directions on 2026-08-29, including a **fourth** copy of
+the water-viscosity table added *inside the verifier written to fix a
+table-divergence bug*, and a copy inside the test written to assert there was
+only one copy.
+
+A copy is legitimate only if all three hold:
+
+1. it is **labelled frozen**, with the commit it snapshots;
+2. it is **read by nothing but the comparison**; and
+3. it is **wrong-by-construction the moment someone updates it.**
+
+That third clause is the whole point: you cannot prove a move changed nothing by
+importing the thing you moved. If a physical value legitimately changes, the
+comparison *should* fail and the change should be argued, not absorbed.
+
+### Search-delimited edits need an asserted end marker
+
+A mechanical replacement that locates its **start** by matching text and its
+**end** by searching for the next plausible line will, when the end search
+overruns, delete everything in between and leave valid syntax behind. Measured:
+one such edit replaced **41 lines instead of 2**, removing a reader function
+whole. `ast.parse` caught that one because the result happened not to parse; the
+dangerous version is the one that does.
+
+**Rule: assert `count == 1` on the exact text being replaced, and assert the end
+marker as well as the start.** A start-only match will happily eat the rest of
+the file.
+
 ### `result.txt` is written by the case script, not by the engine
 
 Consequences, all of which actually happened: `bdbot.cli status` counts the run
