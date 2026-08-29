@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "duplication",
+    "hashing",
+    "run_id",
+    "ensure_ascii",
+    "merge"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py#spec_hash",
+  "lessons": [
+    {
+      "claim": "Two spec-hash functions that look interchangeable are not: bdbot.runid.spec_hash takes json.dumps' default ensure_ascii=True while simbot.io.sha256_payload passes ensure_ascii=False. Measured: identical on every ASCII payload, different on any payload with a non-ASCII key or value ({'점도': 8.51e-4} -> 6b178a2bd90d vs df013e47cf6b). In a repo with 1533 Korean strings in the spec payload this was one non-stripped field from surfacing; what holds it safe is physics_only() stripping the prose-carrying DOC_KEYS first. Left unmerged because 263 run directories are named by the bdbot one, and pinned by a test so it cannot be cleaned up. Lesson: when de-duplicating, test the pair on adversarial input before declaring them equivalent -- agreement on the typical input is not equivalence.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

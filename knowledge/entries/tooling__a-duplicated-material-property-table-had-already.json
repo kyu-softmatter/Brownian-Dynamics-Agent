@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "duplication",
+    "water",
+    "viscosity",
+    "provenance",
+    "merge"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/constants.py#module-docstring",
+  "lessons": [
+    {
+      "claim": "A duplicated material-property table had already diverged silently: bdbot.materials said eta(300K)=0.851 mPa*s (welty_transport.md sec 1.1, and what the 8 bdbot cases ran, hashed into their run_ids) while simbot.units said 0.85566 (IAPWS 5K table linear interp, and what the S2 prediction documents sealed) -- 0.545 percent, i.e. 0.545 percent in gamma, in D, and in every derived timescale. Neither is a mistake; they have different provenances. Do NOT reconcile a two-provenance disagreement in code (rules/verify-against-literature.md forbids averaging); merge the mechanism, keep both anchors labelled, and expose a function that computes the gap. Proportion first: |d(ln eta)/dT| = 2.06-2.36 percent per K and T=300K is tier 1 but was never measured, so 300->298 K is 4.40 percent -- eight times the gap being argued about.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

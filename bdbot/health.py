@@ -52,6 +52,172 @@ LEDGER_TOL = 3.0        # above this measured/predicted ratio, suspect the ledge
 
 
 # ════════════════════════════════════════════════════════════════════════
+# 0. guard primitives -- **the single source of truth**
+# ════════════════════════════════════════════════════════════════════════
+#  ★ Merged from `simbot/guards.py` 2026-08-29. Both packages had runtime guards
+#    and neither was a superset: `bdbot` had the minimum image in its displacement
+#    measure and the force-vs-thermal split, `simbot` had the configurational
+#    thermometer, the bond-length check and the does-it-fluctuate assertion.
+#    Union, hosted here because this is the L4 layer the engine calls; the
+#    `simbot.guards` names still resolve (re-export).
+#
+#  The organising principle, which is `simbot/guards.py`'s and worth keeping
+#  verbatim: **a guard has to watch a quantity that CAN drift systematically.**
+#  HOOMD `Brownian`'s kinetic temperature is redrawn from the target distribution
+#  every step, so systematic drift in it is impossible -- it cannot be a guard.
+#  The configurational temperature takes that seat.
+#  Basis: knowledge/wiki/findings/hoomd-brownian-scheme-and-noise.md
+def configurational_temperature(forces, laplacian_U_total: float) -> float:
+    """`kT_conf = <|grad U|^2> / <laplacian U>` (Rugh / Butler configurational temp).
+
+    Uses positions and forces only -- no velocities -- which is what makes it valid
+    in BD.
+
+    Arguments
+      forces              (N,3) or (N,d). `F = -grad U`, so `|F|^2 = |grad U|^2`
+      laplacian_U_total   ensemble mean of `sum_i laplacian_i U` over all
+                          particles. Analytic per potential, so the caller
+                          supplies it. Harmonic trap `U = k r^2/2` on `d` active
+                          axes: `d*k` per particle
+
+    Returns `kT_conf`, which must match the input `kT`.
+
+    ⚠ **In a pure harmonic trap this is algebraically identical to the
+      `<x^2> = kT/k` check** -- it is not new information there. It becomes an
+      independent check once pair interactions exist, because then `grad U` also
+      picks up the neighbours.
+    """
+    if laplacian_U_total <= 0:
+        raise ValueError(f"laplacian_U_total must be > 0, got {laplacian_U_total}")
+    return float(np.mean(np.sum(np.asarray(forces, dtype=np.float64) ** 2, axis=1))
+                 / laplacian_U_total)
+
+
+@dataclass
+class DisplacementReport:
+    max_over_sigma: float
+    rms_over_sigma: float
+    max_over_rms: float
+    n_exceeding: int
+    passed: bool
+    note: str = ""
+
+
+def check_step_displacements(dr, sigma: float, max_frac: float = 0.10) -> DisplacementReport:
+    """Does any particle move more than `max_frac` of `sigma` in one step?
+
+    ⚠ **Do not assume the displacement distribution is Gaussian.** HOOMD
+      `Brownian`'s noise is uniform, so `max/sigma_step = sqrt(3) = 1.732` per
+      component is a *structural* upper bound (a Gaussian has none). An "anomalous
+      beyond n sigma" rule therefore means something different in this engine --
+      **judge on absolute displacement.**
+      Basis: knowledge/wiki/findings/hoomd-brownian-scheme-and-noise.md
+    """
+    dr = np.asarray(dr, dtype=np.float64)
+    mag = np.linalg.norm(dr, axis=1)
+    rms = float(np.sqrt(np.mean(mag**2)))
+    mx = float(mag.max()) if mag.size else 0.0
+    n_bad = int(np.count_nonzero(mag > max_frac * sigma))
+    note = ""
+    if n_bad:
+        note = (f"{n_bad} particle(s) moved more than {max_frac:.3g} sigma in one step "
+                f"(max {mx/sigma:.4g} sigma) -- suspect dt too large, or initial overlap")
+    return DisplacementReport(
+        max_over_sigma=mx / sigma, rms_over_sigma=rms / sigma,
+        max_over_rms=(mx / rms if rms > 0 else float("nan")),
+        n_exceeding=n_bad, passed=(n_bad == 0), note=note,
+    )
+
+
+def check_finite(**arrays) -> tuple[bool, list[str]]:
+    """NaN/Inf check. Returns the offending array names and counts.
+
+    Both `Guard` and `run.StepGuard` route their non-finite branch through this, so
+    the definition of "non-finite" exists once.
+    """
+    fails = []
+    for name, a in arrays.items():
+        a = np.asarray(a)
+        n_bad = int(np.count_nonzero(~np.isfinite(a)))
+        if n_bad:
+            fails.append(f"{name}: {n_bad} non-finite value(s)")
+    return (not fails), fails
+
+
+def check_inside_box(positions, box_lengths, dims: int = 3,
+                     tol: float = 1e-9) -> tuple[bool, int]:
+    """Are the particles inside the box (wall leakage)? Always passes under PBC,
+    because the coordinates are wrapped."""
+    pos = np.asarray(positions, dtype=np.float64)[:, :dims]
+    half = np.asarray(box_lengths, dtype=np.float64)[:dims] / 2.0
+    outside = np.any(np.abs(pos) > half + tol, axis=1)
+    n = int(np.count_nonzero(outside))
+    return (n == 0), n
+
+
+def check_bond_lengths(positions, bonds, target: float, tol: float = 0.05,
+                       dims: int = 3) -> tuple[bool, dict]:
+    """Are the bond lengths still near their target?
+
+    **`check_finite` alone cannot catch a bonded system blowing up.** Pairing
+    `constrain.Distance` with `Brownian` takes the bond length from `1.0` to
+    `5.8e7` -- all finite, so `check_finite` passes. And measuring `kappa` on the
+    exploded chain can still return a plausible-looking `s^-3`.
+    Basis: findings/dead-end-distance-constraint-with-brownian.md
+
+    Arguments
+      bonds    (n_bonds, 2) particle indices
+      target   target bond length (dimensionless)
+      tol      allowed relative error. Do not set this loose in a bending
+               measurement -- stretch must not contaminate bend.
+
+    Returns `(ok, detail)`; the detail carries max/mean relative deviation and the
+    worst bond's index.
+    """
+    pos = np.asarray(positions, dtype=np.float64)[:, :dims]
+    b = np.asarray(bonds, dtype=int)
+    d = np.linalg.norm(pos[b[:, 1]] - pos[b[:, 0]], axis=1)
+    rel = np.abs(d - target) / target
+    imax = int(np.argmax(rel))
+    info = {
+        "max_rel_dev": float(rel[imax]),
+        "mean_rel_dev": float(rel.mean()),
+        "worst_bond": imax,
+        "worst_length": float(d[imax]),
+        "target": float(target),
+        "tol": float(tol),
+        "n_violating": int(np.count_nonzero(rel > tol)),
+    }
+    return bool(rel.max() <= tol), info
+
+
+def assert_statistic_fluctuates(samples, name: str = "statistic",
+                                min_rel_std: float = 1e-12) -> None:
+    """Check that a statistic taken over independent samples actually fluctuates.
+
+    A "measurement" that does not fluctuate is not a measurement -- it is an
+    **arithmetic identity.** This happened for real on 2026-07-28: subtracting the
+    mean from the displacements and then measuring the cross-correlation gives
+    `cross/auto = -1/(n-1)` identically, and the standard deviation over 200
+    repetitions was `6.7e-20`. The result looked plausible and nearly passed.
+    Basis: knowledge/wiki/findings/hoomd-brownian-scheme-and-noise.md section 3
+
+    Raises `AssertionError` when the relative standard deviation is below
+    `min_rel_std`.
+    """
+    s = np.asarray(samples, dtype=np.float64)
+    if s.size < 2:
+        raise ValueError("need >= 2 samples")
+    scale = max(abs(float(np.mean(s))), 1e-300)
+    rel = float(np.std(s, ddof=1)) / scale
+    if rel < min_rel_std:
+        raise AssertionError(
+            f"{name}: relative std {rel:.3e} < {min_rel_std:.3e} -- the statistic "
+            f"does not fluctuate. It is probably an arithmetic identity, not a "
+            f"measurement.")
+
+
+# ════════════════════════════════════════════════════════════════════════
 # 1. in-run monitoring
 # ════════════════════════════════════════════════════════════════════════
 class Guard:
@@ -75,8 +241,9 @@ class Guard:
     def check(self, timestep: int, positions: np.ndarray, pe) -> None:
         """RuntimeError on violation. Never passes silently."""
         self.n_checks += 1
-        if not np.all(np.isfinite(positions)):
-            n = int((~np.isfinite(positions)).sum())
+        ok, fails = check_finite(position=positions)      # one definition, section 0
+        if not ok:
+            n = int((~np.isfinite(np.asarray(positions))).sum())
             raise RuntimeError(f"[NUM_NONFINITE] step {timestep}: {n} non-finite position(s)")
         far = np.abs(positions).max()
         if far > 50 * self.box_L:
@@ -319,12 +486,13 @@ def step_health(step_disp_rms: float | None, dt_star: float, dim: int,
 def measure_step_displacement(positions_t0, positions_t1, L: float, dim: int) -> float:
     """rms of the one-step displacement from two consecutive snapshots (in sigma).
 
-    Minimum image applied (traps 1 and 7).
+    Minimum image applied (traps 1 and 7) via `bdbot.sim.minimum_image` -- one
+    definition, shared with `bdbot.traps` (merged 2026-08-29).
     """
-    d = np.asarray(positions_t1, float) - np.asarray(positions_t0, float)
-    d[:, :2] -= L * np.round(d[:, :2] / L)
-    if dim == 3:
-        d[:, 2] -= L * np.round(d[:, 2] / L)
+    from .sim import minimum_image           # deferred: sim is numpy-only but this
+                                            # keeps health importable on its own
+    d = minimum_image(np.asarray(positions_t1, float) - np.asarray(positions_t0, float),
+                      L, dims=dim)
     return float(np.sqrt((d[:, :dim] ** 2).sum(axis=1).mean()))
 
 
@@ -407,4 +575,8 @@ def _ok(c) -> bool:
 
 __all__ = ["Guard", "HealthReport", "judge_series", "step_health",
            "measure_step_displacement", "predicted_dt_over_tau", "gate", "gate_notes",
-           "NUMERIC_MODES", "STEP_HARD", "LEDGER_TOL"]
+           "NUMERIC_MODES", "STEP_HARD", "LEDGER_TOL",
+           # section 0 -- shared with simbot.guards
+           "configurational_temperature", "DisplacementReport",
+           "check_step_displacements", "check_finite", "check_inside_box",
+           "check_bond_lengths", "assert_statistic_fluctuates"]

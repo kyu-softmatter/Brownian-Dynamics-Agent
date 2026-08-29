@@ -14,44 +14,22 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-# --- 상수 (SI 2019 정의값) ---------------------------------------------------
-K_B = 1.380649e-23  # J/K, 정확값
-
-# --- 물 물성 (IAPWS). 출처: knowledge/wiki/concepts/water-298k.md ------------
-_WATER_ETA_TABLE_SI = {  # T[K] -> eta[Pa*s]
-    293.15: 1.0016e-3,
-    298.15: 0.8900e-3,
-    303.15: 0.7972e-3,
-    308.15: 0.7191e-3,
-}
-_WATER_RHO_TABLE_SI = {293.15: 998.21, 298.15: 997.05, 303.15: 995.65, 308.15: 994.03}
-
-
-def _interp(table: dict[float, float], T_si: float) -> tuple[float, bool]:
-    """표에서 선형 보간. (값, 외삽했는가)를 돌려준다."""
-    ts = sorted(table)
-    if T_si in table:
-        return table[T_si], False
-    if T_si < ts[0] or T_si > ts[-1]:
-        # 외삽 — 호출자가 provenance를 낮춰야 한다
-        lo, hi = (ts[0], ts[1]) if T_si < ts[0] else (ts[-2], ts[-1])
-        f = (T_si - lo) / (hi - lo)
-        return table[lo] + f * (table[hi] - table[lo]), True
-    for lo, hi in zip(ts, ts[1:]):
-        if lo <= T_si <= hi:
-            f = (T_si - lo) / (hi - lo)
-            return table[lo] + f * (table[hi] - table[lo]), False
-    raise AssertionError("unreachable")
-
-
-def water_viscosity_si(T_si: float) -> tuple[float, bool]:
-    """물의 점도 [Pa*s]. (값, 외삽여부). 293-308 K 밖은 외삽이므로 신뢰도를 낮출 것."""
-    return _interp(_WATER_ETA_TABLE_SI, T_si)
-
-
-def water_density_si(T_si: float) -> tuple[float, bool]:
-    """물의 밀도 [kg/m^3]. (값, 외삽여부)."""
-    return _interp(_WATER_RHO_TABLE_SI, T_si)
+# --- constants and water properties: the single source of truth is `bdbot.constants` ---
+#  ★ Merged 2026-08-29. This table also existed in `bdbot.materials.WATER_VISCOSITY`,
+#    and the two copies **had already diverged** -- 0.851 vs 0.85566 mPa*s at 300 K,
+#    a 0.545 % gap. 0.545 % in `eta` is 0.545 % in `gamma`, in `D`, and in **every
+#    timescale derived from them.**
+#    Values, interpolation and the extrapolation flag are unchanged and must stay
+#    bit-identical: the sealed S2 documents contain 8.5566e-4. The only thing that
+#    changed is that the definition now exists once.
+#  ⚠ Importing `bdbot` is not expensive here: `bdbot/__init__` is lazy (PEP 562), so
+#    `bdbot.constants` pulls in neither pint nor numpy (0.01 s, measured).
+#    **The dependency runs one way only, `simbot -> bdbot`.** Reversed, `bdbot.cli`
+#    would start pulling in matplotlib.
+from bdbot.constants import (K_B, WATER_ETA_SI as _WATER_ETA_TABLE_SI,
+                             WATER_RHO_SI as _WATER_RHO_TABLE_SI,
+                             interp_table as _interp,
+                             water_density_si, water_viscosity_si)
 
 
 # --- 기본 관계식 ------------------------------------------------------------

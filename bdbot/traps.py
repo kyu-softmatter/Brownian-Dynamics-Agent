@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from .sim import period_array, wrap_minimum_image
+
 
 def _md():
     import hoomd.md as md
@@ -65,10 +67,15 @@ def make_trap(k, anchors, box, *, dt_star: float = 0.0, dims: int = 2,
             n = len(a)
             self.k = (np.full(n, float(k)) if np.isscalar(k)
                       else np.asarray(k, dtype=float).reshape(n))
-            b = (box, box) if np.isscalar(box) else tuple(box)
             # * trap 7: a non-periodic axis is left at 0 so the mask excludes it
-            #   (never inf)
-            self.period = np.array([float(b[0] or 0.0), float(b[1] or 0.0), 0.0])
+            #   (never inf). The convention lives in `bdbot.sim.period_array` --
+            #   one definition for traps, health and sim (merged 2026-08-29).
+            #   ★ This used to hardcode `period[2] = 0`, which silently disabled
+            #     z-wrapping for a 3D trap. `period_array(..., dims)` now decides.
+            b = (box, box) if np.isscalar(box) else tuple(box)
+            self.period = period_array([b[0] or 0.0, b[1] or 0.0,
+                                        *(list(b[2:3]) if len(b) > 2 else [])],
+                                       dims=dims)
             self.dt_star = float(dt_star)
             self.velocity = None if velocity is None else np.asarray(velocity, dtype=float)
             self.drive = drive
@@ -83,10 +90,8 @@ def make_trap(k, anchors, box, *, dt_star: float = 0.0, dims: int = 2,
             return c
 
         def _delta(self, pos, tags, t):
-            d = pos - self.centers(t)[tags]
-            m = self.period > 0                       # wrap periodic axes only (traps 1, 7)
-            d[:, m] -= self.period[m] * np.round(d[:, m] / self.period[m])
-            return d
+            # wrap periodic axes only (traps 1, 7) -- shared with bdbot.sim
+            return wrap_minimum_image(pos - self.centers(t)[tags], self.period)
 
         def set_forces(self, timestep):
             t = timestep * self.dt_star

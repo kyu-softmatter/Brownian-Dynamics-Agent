@@ -9,8 +9,9 @@ verdict.**
 ## What lives here and what stays in the case
 
 Here (L4, system-independent):
-  * `Guard`     runtime monitoring -- non-finite PE/force, PE blow-up, an
-                over-large single-step displacement
+  * `StepGuard` runtime monitoring -- non-finite PE/force, PE blow-up, an
+                over-large single-step displacement (`Guard` is an alias;
+                `bdbot.health.Guard` is a *different* class -- see there)
   * `judge`     post-run verdict -- nan / diverged / frozen / drifting / ok
   * `execute`   run-directory lifecycle, equilibration + production loops, sample
                 collection, emitting metrics
@@ -53,6 +54,7 @@ import numpy as np
 from . import metrics as MET
 from . import runid as RID
 from . import stats as ST
+from .health import check_finite
 
 SCHEMA = "bdbot.run/0.1"
 
@@ -145,7 +147,7 @@ class Diverged(RuntimeError):
 
 
 @dataclass
-class Guard:
+class StepGuard:
     """Every `10^4` steps, check for non-finite values, blow-up and over-large
     displacement.
 
@@ -154,6 +156,21 @@ class Guard:
     10% of a diameter in one step already makes the integration untrustworthy.
     WARNING: the thermal displacement `sqrt(2 dt)` is deliberately excluded -- that
        is physics, and what is being judged is the **force term.**
+
+    ★ Renamed from `Guard` on 2026-08-29 because there were **two classes called
+      `Guard`** in this package and they watch different things:
+
+        bdbot.health.Guard   positions and PE -- box escape, relative PE blow-up.
+                             Takes `box_L`; attachable as a hoomd action
+        bdbot.run.StepGuard  PE/N and the force arrays -- absolute PE bound,
+                             non-finite forces, force-driven step displacement.
+                             Takes `dt_star`; driven by `execute()`
+
+      Same-name-different-job is exactly the confusion that already cost this
+      project once: `run.Guard` wrote `dt*|F|max` into `l4` while the health tool
+      looked for `numerics["step_rms_sigma"]`, found nothing, and reported
+      `82/82 HEALTHY` (see `bdbot/health.py`'s module docstring).
+      `Guard = StepGuard` is kept below as an alias so nothing breaks.
     """
 
     dt_star: float
@@ -169,7 +186,10 @@ class Guard:
     step_disp_seen: float = 0.0
 
     def check(self, step: int, pe_per_n: float, forces) -> None:
-        if not math.isfinite(pe_per_n):
+        # ★ non-finite is defined once, in `bdbot.health.check_finite` (section 0).
+        #   The messages stay distinct because the two guards report different
+        #   quantities -- only the predicate is shared.
+        if not check_finite(pe_per_n=[pe_per_n])[0]:
             raise Diverged(NAN, step, f"PE/N is non-finite ({pe_per_n!r})")
         if abs(pe_per_n) > self.pe_abs_max:
             raise Diverged(DIVERGED, step,
@@ -179,7 +199,7 @@ class Guard:
             arr = np.asarray(f.forces, dtype=float)
             if arr.size == 0:
                 continue
-            if not np.all(np.isfinite(arr)):
+            if not check_finite(force=arr)[0]:
                 raise Diverged(NAN, step, f"non-finite value in {type(f).__name__}'s force array")
             fmax = max(fmax, float(np.abs(arr).max()))
         disp = self.dt_star * fmax
@@ -278,7 +298,7 @@ def execute(spec, build_fn, outdir, *, force: bool = False, progress: bool = Tru
 
     b = build_fn(spec, outdir)          # * pass outdir, so the GSD path never enters the spec
     dt_star = float(spec.numerics["dt_star"])
-    guard = Guard(dt_star=dt_star, n_particles=b.n_particles)
+    guard = StepGuard(dt_star=dt_star, n_particles=b.n_particles)
     t0 = time.time()
     status, trip = OK, None
 
@@ -459,5 +479,9 @@ def render_verdict(v: dict) -> str:
     return "\n".join(L)
 
 
-__all__ = ["SCHEMA", "OK", "DIVERGED", "NAN", "FROZEN", "Build", "Guard", "Diverged",
+#  Backward-compatible alias: `run.Guard` was the name for 8 cases' worth of
+#  history. Prefer `StepGuard` in new code.
+Guard = StepGuard
+
+__all__ = ["SCHEMA", "OK", "DIVERGED", "NAN", "FROZEN", "Build", "StepGuard", "Guard", "Diverged",
            "builder", "get_builder", "BUILDERS", "judge", "execute", "render_verdict"]

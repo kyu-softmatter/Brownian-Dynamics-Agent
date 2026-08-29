@@ -66,10 +66,19 @@ def sha256_file(path: str | Path) -> str:
 
 
 def sha256_payload(obj) -> str:
-    """dict/list 를 정렬 직렬화해서 해시. spec_hash 등 구조체 해시용.
+    """Hash a dict/list by sorted serialization. For structure hashes such as spec_hash.
 
-    `sort_keys=True` 가 필수다 — 키 순서가 바뀌었을 뿐인데 다른 계로 보이면
-    캐시가 무효화되고 "같은 런"을 판정할 수 없다.
+    `sort_keys=True` is mandatory -- if a mere change of key order makes it look
+    like a different system, the cache is invalidated and "the same run" becomes
+    undecidable.
+
+    ⚠ **NOT interchangeable with `bdbot.runid.spec_hash`,** which does the same job
+      for the `runs/` content-addressing path. The single difference is
+      `ensure_ascii`: this one passes `False` (raw UTF-8), `spec_hash` takes json's
+      default `True` (`\\uXXXX` escapes). Measured 2026-08-29: identical on every
+      ASCII payload, **different on any payload with a non-ASCII key or value.**
+      Deliberately not unified -- 263 run directories are named by the other one.
+      `tests/test_cross_package_equivalence.py` pins it.
     """
     return sha256_text(json.dumps(obj, sort_keys=True, ensure_ascii=False,
                                   default=str))

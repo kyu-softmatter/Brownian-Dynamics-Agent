@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "provenance",
+    "viscosity",
+    "temperature",
+    "units",
+    "reporting",
+    "multi-session"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/constants.py#four-label-rule",
+  "lessons": [
+    {
+      "claim": "A physical number published without saying what it is relative to is not checkable, and every party can be internally consistent while disagreeing. Measured 2026-08-29: three sessions produced three different water-viscosity sensitivities from one question. Root cause was FOUR implicit labels, not one: (1) which table -- IAPWS 5 K vs a handbook 20 K table; (2) which interpolation -- linear vs log-linear, worth 1.9 points on a 20 K table; (3) which baseline and direction -- (eta(T)-base)/base vs (0.851-eta)/eta; (4) which temperature convention -- 25 C is 298.15 K, NOT 298.00. Under-specifying any one spans -4.38 to -6.41 percent at a single temperature, larger than the 0.545 percent anchor gap that started the argument. Five distinct errors were caught across three rounds (a transcribed 0.8580 that contradicted its own printed +1.03 percent; a 2.36 percent-per-K figure read as belonging to the wrong table; a linear/log mixup; and the 298.00 slip made INDEPENDENTLY BY TWO SESSIONS, one of them in the same message where it diagnosed the other's). Rules that followed: state all four labels with any sensitivity; prefer the table with a DIRECT ROW at the temperature asked about, because there the interpolation axis does not exist -- a structural argument, not a preference; never type a Kelvin literal, derive it from Celsius through one constant (bdbot.constants.celsius); and a data-shape precondition must REPORT its diagnosis, never raise a bare KeyError or bare assert -- silently passing is worse than crashing, and crashing is worse than reporting, because a fork that dies discards every other result and buries the diagnostic recorded one line earlier.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -127,21 +127,48 @@ def wca(nlist, epsilon: float = 1.0, sigma: float = 1.0, types=("A", "A")):
     return lj
 
 
+# ── minimum image: ONE definition ────────────────────────────────────────────
+#  ★ Merged 2026-08-29. This existed in **three** places: here, inlined in
+#    `bdbot/traps.py::_delta`, and inlined in
+#    `bdbot/health.py::measure_step_displacement`. Three copies of the single
+#    correction whose absence measured **+1856 %** is not a formatting issue.
+#    ⚠ And the copies were not identical: `traps.py` hardcoded `period[2] = 0`, so
+#      a **3D** trap would not have wrapped z while these two do. No 3D trap
+#      exists yet (`cases/network_3d.py` does not use `traps`), so nothing
+#      produced a wrong number -- but the divergence was already there.
+#      `period_array(L, dims=3)` now gives one answer for all three callers.
+def period_array(L, dims: int = 2):
+    """The periodic-length vector `(3,)`. **`0` means "do not wrap this axis".**
+
+    `L` is a scalar or `(Lx, Ly)` (a rectangular box, as required by a
+    commensurate hexagonal lattice). In 2D, z gets `0`.
+    * Setting a non-periodic axis's period to `inf` gives
+      `inf*round(0/inf) = nan` (trap 7). `0` plus the `period > 0` mask is the
+      convention that avoids it -- do not "simplify" this to `inf`.
+    """
+    Lx, Ly = (L, L) if np.isscalar(L) else (L[0], L[1])
+    Lz = (float(L[2]) if (not np.isscalar(L) and len(L) > 2)
+          else (float(Lx) if dims == 3 else 0.0))
+    return np.array([float(Lx), float(Ly), Lz])
+
+
+def wrap_minimum_image(delta, period):
+    """Minimum image against a **precomputed** `period` vector, in place.
+
+    Separate from `minimum_image` because `bdbot.traps` calls this every step and
+    should not rebuild the period array each time.
+    """
+    m = period > 0
+    delta[:, m] -= period[m] * np.round(delta[:, m] / period[m])
+    return delta
+
+
 def minimum_image(delta, L, dims: int = 2):
     """Apply minimum image to the periodic axes only (traps 1 and 7).
     `delta` is (N,3); in 2D, z is left alone.
-
-    `L` is a scalar or `(Lx, Ly)` (a rectangular box, as required by a
-    commensurate hexagonal lattice).
-    * Setting a non-periodic axis's period to `inf` gives
-      `inf*round(0/inf) = nan` (trap 7).
     """
-    d = np.asarray(delta, dtype=float).copy()
-    Lx, Ly = (L, L) if np.isscalar(L) else (L[0], L[1])
-    period = np.array([float(Lx), float(Ly), float(Lx) if dims == 3 else 0.0])
-    m = period > 0
-    d[:, m] -= period[m] * np.round(d[:, m] / period[m])
-    return d
+    return wrap_minimum_image(np.asarray(delta, dtype=float).copy(),
+                              period_array(L, dims))
 
 
 def progress(i, total, t_elapsed, extra: str = "") -> str:
@@ -150,4 +177,5 @@ def progress(i, total, t_elapsed, extra: str = "") -> str:
 
 
 __all__ = ["resolve_seed", "frame_2d", "make_sim", "attach_brownian", "add_trajectory_writer",
-           "flush_writers", "wca", "minimum_image", "progress", "HOOMD_SEED_MAX"]
+           "flush_writers", "wca", "period_array", "wrap_minimum_image", "minimum_image",
+           "progress", "HOOMD_SEED_MAX"]

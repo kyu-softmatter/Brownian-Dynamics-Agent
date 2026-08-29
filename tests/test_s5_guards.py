@@ -67,7 +67,7 @@ def test_displacement_guard_fires_on_explosion():
     r = check_step_displacements(dr, sigma=1.0, max_frac=0.10)
     assert not r.passed
     assert r.n_exceeding == 1
-    assert "dt 과대" in r.note
+    assert "dt too large" in r.note        # message text moved with the impl to bdbot.health
     assert r.max_over_sigma == pytest.approx(0.5)
 
 
@@ -121,7 +121,7 @@ def test_fluctuation_check_catches_arithmetic_identity():
     """
     n = 1000
     identity_values = np.full(300, -1.0 / (n - 1))     # 요동하지 않는 "측정값"
-    with pytest.raises(AssertionError, match="산술 항등식"):
+    with pytest.raises(AssertionError, match="arithmetic identity"):
         assert_statistic_fluctuates(identity_values, "cross/auto")
 
 

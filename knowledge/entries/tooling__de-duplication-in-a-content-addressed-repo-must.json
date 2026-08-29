@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "duplication",
+    "refactor",
+    "merge",
+    "verification"
+  ],
+  "dimensionless": {},
+  "source": "verify/verify_merge_equivalence.py",
+  "lessons": [
+    {
+      "claim": "De-duplication in a content-addressed repo must be proven numerically inert, not argued. Rewriting bias_from_dt from 50*r to 100*(r/2) is the same real number but not obviously the same float; a 200k-draw probe found zero disagreements, and only then was it safe. Two errors were caught this way that reading would not have found: (1) a first pass compared the rewritten function against a hand-typed literal instead of the old formula on the same pint-derived ratio, producing a false failure; (2) the docstring claimed the linearized/exact dt gap equals b/(1+b) when it is exactly b -- off by b^2, invisible in any output. Pair every merge with a checker AND deliberately re-fork the merge to confirm the checker fires.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

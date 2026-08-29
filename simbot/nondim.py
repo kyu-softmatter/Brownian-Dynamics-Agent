@@ -116,51 +116,27 @@ class DtChoice:
 
 
 # =============================================================================
-# 게이트 식 — **단위 무관.** 여기가 유일한 정의다
+# 게이트 식 — **단위 무관.** 정본은 `bdbot.dt` 다
 # =============================================================================
 #  ★ 스크립트가 임계값과 식을 다시 쓰면 두 곳이 갈라진다. 2026-07-28 에 실제로
 #    `scripts/chain_bend.py` 가 `0.03`·`0.005` 를 손으로 박아 두고 있었고, 그 사이
 #    정책 파일의 문턱이 바뀌어도 스크립트는 따라오지 않는 상태였다.
 #    SI 로 부르면 SI 상한, 축약단위로 부르면 축약 상한이 나온다 — 인자만 맞추면 된다.
 #
+#  ★★ 2026-08-29: "this is the only definition" **was a false sentence.**
+#     `bdbot.checks` held its own version of the same job, and worse, **on a
+#     different criterion** -- displacement here, timescale ratio (`dt = 1e-2*tau`)
+#     there. `.claude/rules/overdamped-stability.md` forbids the latter explicitly
+#     ("displacement goes as the **square root** of Δt, so when the dimensionality
+#     changes the same Δt/τ_D gives a different displacement"). The equations
+#     therefore moved into `bdbot/dt.py` and this module only re-exports them.
+#     No value changed -- the function bodies moved verbatim.
+#     To see both criteria side by side: `bdbot.dt.compare_criteria`.
+#
 #  정확도 게이트(thermal·force·active)와 **안정성 게이트**(stability)는 다른 것을 지킨다:
 #  정확도는 위반해도 답이 나오고, 안정성은 위반하면 답이 없다. 합칠 수 없다.
-def dt_max_thermal(delta_sigma: float, sigma: float, D0: float) -> float:
-    """확산 변위: `√(2 D₀ Δt) ≤ δ σ` (성분별)."""
-    return (delta_sigma * sigma) ** 2 / (2.0 * D0)
-
-
-def dt_max_force(delta_sigma: float, sigma: float, gamma: float,
-                 max_force: float | None) -> float | None:
-    """힘 변위: `(max|F|/γ) Δt ≤ δ σ`.
-
-    `max_force` 가 없거나 `0` 이면 **`None`** 이다 — 곧은 사슬은 힘이 정확히 0인
-    정류점이라 이 게이트가 무력해진다. `∞` 로 뭉개지 말고 그 사실이 표에 드러나야 한다.
-    """
-    if not max_force or max_force <= 0.0:
-        return None
-    return delta_sigma * sigma * gamma / max_force
-
-
-def dt_max_active(delta_sigma: float, sigma: float,
-                  v0: float | None) -> float | None:
-    """이류 변위: `v₀ Δt ≤ δ σ`."""
-    if not v0 or v0 <= 0.0:
-        return None
-    return delta_sigma * sigma / v0
-
-
-def dt_max_stability(safety: float, gamma: float,
-                     lambda_max: float | None) -> float | None:
-    """강성 안정성: `Δt ≤ s · 2γ/λ_max` (과감쇠 명시적 오일러의 선형 안정 한계).
-
-    실측 임계값은 이 하한의 `1.22–2.80` 배이므로 게이트로 쓸 수 있다. `s = 0.2` 는
-    최악(`1.22`) 대비 `6–14` 배 여유다.
-    근거: `knowledge/wiki/findings/dt-gate-needs-a-stability-term-for-stiff-bonds.md`
-    """
-    if not lambda_max or lambda_max <= 0.0:
-        return None
-    return safety * 2.0 * gamma / lambda_max
+from bdbot.dt import (dt_max_active, dt_max_force, dt_max_stability,  # noqa: E402
+                      dt_max_thermal)
 
 
 def choose_dt(spec: SystemSpec, *, derived: dict | None = None,

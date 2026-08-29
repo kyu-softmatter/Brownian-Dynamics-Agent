@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "duplication",
+    "refactor",
+    "verification",
+    "merge"
+  ],
+  "dimensionless": {},
+  "source": "verify/verify_merge_equivalence.py#_OLD_ETA",
+  "lessons": [
+    {
+      "claim": "A de-duplication pass spawns duplicates while it runs, and both directions happened on 2026-08-29: a peer session fixing a table-divergence bug added a FOURTH copy of the water viscosity table inside its verifier, and a test written to assert that two packages share one table copied three handbook rows into its own body. The distinction that makes a copy legitimate is not intent, it is whether the copy is (a) labelled as a frozen pre-merge snapshot, (b) read by nothing but the comparison, and (c) wrong-by-construction if anyone updates it -- a bit-identity verifier MUST hold its own copy, since you cannot prove a move changed nothing by importing the thing you moved. Everything else should read the single source. Before finishing a dedup pass, grep the tree for the literals you just centralised, including in the tests and verifiers you added during the pass.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

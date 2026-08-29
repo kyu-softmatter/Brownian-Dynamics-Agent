@@ -21,7 +21,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-GATE = 1e-2          # threshold for every separation check. dt/tau=1e-2 <=> 0.5% bias
+from . import dt as _dt
+
+GATE = _dt.GATE      # threshold for every separation check. dt/tau=1e-2 <=> 0.5% bias
+                     # ★ defined in bdbot.dt -- this is a re-export, not a copy
 MARGIN_WARN = 5.0    # below this margin, warn "no room to raise a parameter"
 SOFT_KINDS = frozenset({"statistics", "finite-size"})
 # * Floating-point boundary tolerance. Prevents a check whose limit is set
@@ -87,7 +90,18 @@ def verdict(checks) -> tuple[str, list, list, list]:
     return v, hard_fail, soft_fail, tight
 
 
-# -- dt selection: two cases independently arrived at "1% of gamma/(local stiffness)" --
+# ── dt selection: the pint face of `bdbot.dt` ────────────────────────────────
+#  ★ The equations live in [bdbot/dt.py](dt.py) and nowhere else. They used to
+#    exist here AND in `simbot.nondim` AND inlined in `campaigns/chain_bend.py`,
+#    with **two different criteria** (timescale ratio here, displacement there).
+#    `.claude/rules/overdamped-stability.md` says the displacement one is right,
+#    so treat everything below as the secondary criterion and reach for
+#    `bdbot.dt.compare_criteria` before trusting it on a new system.
+#  ⚠ These wrappers exist because `bdbot` speaks pint and the kernel is
+#    unit-agnostic floats. They deliberately do NOT change any number: 8 cases and
+#    263 runs hash their `dt`, so `dt_from_bias` still uses the **linearized**
+#    inverse even though `bdbot.dt.dt_star_for_em_bias` is exact. The gap is
+#    exactly `b` (measured) and `bdbot.dt.em_bias_form_gap` computes it.
 def relaxation_time(gamma, stiffness):
     """tau = gamma/k. For a trap k is the trap stiffness; for a soft pair k = U''(r_min).
 
@@ -99,9 +113,14 @@ def relaxation_time(gamma, stiffness):
 
 def dt_from_gate(tau, gate: float = GATE):
     """dt = gate*tau, matched to the hard gate. gate=1e-2 is 0.5% bias in a
-    linear system.
+    linear system (exactly 0.5025%, `bdbot.dt.em_variance_bias`).
+
+    WARNING: only safe when `tau` really is the fastest mode. A `dt` picked from a
+      slow timescale does not diverge -- it simply cannot see the fast one
+      (`tau_D/tau_trap = 2.4e5`, measured). Use `bdbot.dt.compare_criteria` to see
+      what the displacement gate would have given.
     """
-    return gate * tau
+    return _dt.dt_from_gate(tau, gate)
 
 
 def dt_from_bias(tau, bias: float):
@@ -110,13 +129,18 @@ def dt_from_bias(tau, bias: float):
 
     WARNING: the closed form holds **only for a linear system.** A nonlinear
     system needs a dt-halved convergence check.
+    * The **linearized** inverse, on purpose -- see the block comment above.
+      `bdbot.dt.dt_star_for_em_bias` is the exact one for new work.
     """
-    return 2 * bias * tau
+    return _dt.dt_star_for_em_bias_linearized(bias) * tau
 
 
 def bias_from_dt(dt, tau) -> float:
-    """Expected systematic bias [%] from dt (linear system)."""
-    return 50.0 * float((dt / tau).to("dimensionless").magnitude)
+    """Expected systematic bias [%] from dt (linear system). Linearized; the exact
+    form is `bdbot.dt.em_variance_bias`; at a target bias `b` the two inverses
+    differ by exactly `b`."""
+    return 100.0 * _dt.em_variance_bias_linearized(
+        float((dt / tau).to("dimensionless").magnitude))
 
 
 __all__ = ["Check", "GATE", "MARGIN_WARN", "SOFT_KINDS", "soft", "verdict",

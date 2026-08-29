@@ -100,26 +100,34 @@ def harmonic_trap(
 # =============================================================================
 # 수치 스킴의 계통 오차 — 예측 가능하므로 예측한다
 # =============================================================================
-def euler_maruyama_trap_variance_bias(dt_star: float) -> float:
-    """Euler-Maruyama로 조화 트랩을 적분할 때의 <x^2> 계통 편향 (상대값).
-
-    스킴:      x_{n+1} = x_n (1 - dt*) + sqrt(2 dt*) xi     (tau_trap 단위, D*=1)
-    정상분산:  Var* = 2 dt* / (2 dt* - dt*^2) = 1/(1 - dt*/2)
-    정확값:    Var* = 1
-    ⇒ 상대편향 = dt*/2 / (1 - dt*/2)  ≈ dt*/2
-
-    이 값은 **알려진 오차**다. S7에서 측정 <x^2>가 이만큼 높게 나오는 것이 정상이고,
-    그렇지 않으면 다른 문제가 있다는 신호다.
-    """
-    if not 0 < dt_star < 2:
-        raise ValueError(f"dt_star must be in (0,2) for stability; got {dt_star}")
-    return 1.0 / (1.0 - dt_star / 2.0) - 1.0
-
-
-def dt_star_for_trap_bias(target_rel_bias: float) -> float:
-    """목표 계통 편향을 만족하는 dt* (tau_trap 단위). 위 식의 역함수."""
-    b = target_rel_bias
-    return 2.0 * b / (1.0 + b)
+# --- Euler-Maruyama variance bias: the single source of truth is `bdbot.dt` ---
+#  ★ Merged 2026-08-29. The same physics existed in two places:
+#      simbot.estimators.euler_maruyama_trap_variance_bias   1/(1-dt*/2)-1   exact
+#      bdbot.checks.bias_from_dt                             dt*/2           1st order
+#    At dt* = 1e-2 that is 0.5025 % vs 0.5000 % -- **they agree** to the precision
+#    each one states. So this was never the kind of duplicate that surfaces as a
+#    wrong answer; it is the kind that drifts apart silently the day one side gets
+#    "improved". The equations therefore live once, in `bdbot/dt.py`, under two
+#    explicitly different names (`em_variance_bias` vs `em_variance_bias_linearized`).
+#    ⚠ `bdbot.checks` **keeps the first-order form on purpose.**
+#      `cases/trap_2d_5um.py:77` picks its `dt` from it and `run_id` is the hash of
+#      the spec content, so switching to the exact form would break the hashes of
+#      runs that already exist. Who ran which:
+#        exact       -> the S2 trap prediction documents and `campaigns/trap_batch.py`
+#                       (via `choose_dt(..., target_em_bias=...)` below)
+#        linearized  -> `cases/trap_2d_5um.py`, and `bias_from_dt` reporting in
+#                       `trap_drag_2d`, `soft_r3_2d`
+#      The gap is exactly `b` (measured); `bdbot.dt.em_bias_form_gap` computes it.
+#
+#  This value is a **known error**, not a defect: in S7 the measured <x^2> is
+#  supposed to come out this much high, and its absence signals something else wrong.
+#
+#  Scheme:  x_{n+1} = x_n (1 - dt*) + sqrt(2 dt*) xi     (units of tau_trap, D* = 1)
+#  Steady:  Var* = 2 dt* / (2 dt* - dt*^2) = 1/(1 - dt*/2)
+#  Exact:   Var* = 1
+#  =>       relative bias = (dt*/2)/(1 - dt*/2)  ~ dt*/2
+from bdbot.dt import (em_variance_bias as euler_maruyama_trap_variance_bias,  # noqa: E402
+                      dt_star_for_em_bias as dt_star_for_trap_bias)
 
 
 # =============================================================================
