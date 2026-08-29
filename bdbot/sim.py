@@ -1,13 +1,17 @@
-"""HOOMD BD 실행 골격 — 두 케이스가 똑같이 쓴 부분만.
+"""The HOOMD BD execution skeleton -- only the parts both of the first two cases
+used identically.
 
-공통: 2D 프레임 만들기 · Simulation · Brownian + Integrator · GSD Tier A 라이터 · 시드 처리
-**케이스마다 다른 것**: 힘(forces), 초기 배치, 표본 수집 루프 → 케이스에 남깁니다.
+Common: building a 2D frame, Simulation, Brownian + Integrator, the GSD Tier A
+writer, seed handling.
+**What differs per case**: the forces, the initial placement, the sampling loop ->
+those stay in the case.
 
-여기 있는 규약은 전부 skill `bd-hoomd`에서 실측 검증된 것입니다:
-  함정 3  `integrate_rotational_dof = False`
-  함정 5  BD는 과감쇠 — `thermalize_particle_momenta()` 불필요, 속도에 의미 없음
-  함정 9  2D는 `Lz=0` + `dimensions=2` 둘 다
-  함정 12 시드가 16비트로 잘림
+Every convention here was verified by measurement in skill `bd-hoomd`:
+  trap 3   `integrate_rotational_dof = False`
+  trap 5   BD is overdamped -- `thermalize_particle_momenta()` is unnecessary and
+           velocity has no meaning
+  trap 9   2D needs `Lz=0` **and** `dimensions=2`
+  trap 12  the seed is truncated to 16 bits
 """
 from __future__ import annotations
 
@@ -17,23 +21,25 @@ HOOMD_SEED_MAX = 65535
 
 
 def resolve_seed(seed: int) -> tuple[int, int]:
-    """(numpy 시드, HOOMD 시드). HOOMD는 16비트로 잘라 쓰므로 미리 잘라 넘깁니다.
+    """(numpy seed, HOOMD seed). HOOMD truncates to 16 bits, so truncate up front.
 
-    ★ 함정 12: `seed=20260803` 을 주면 HOOMD가 경고와 함께 `10179`로 자릅니다.
-      65536만큼 다른 두 시드는 **같은 궤적**이 됩니다. numpy(초기배치)는 전체 시드를
-      쓰므로 둘을 분리해 넘깁니다.
+    * trap 12: passing `seed=20260803` makes HOOMD truncate it to `10179` with a
+      warning. Two seeds differing by 65536 produce **the same trajectory.** numpy
+      (used for the initial placement) takes the full seed, so the two are passed
+      separately.
     """
     return int(seed), int(seed) & HOOMD_SEED_MAX
 
 
 def frame_2d(positions, L, types=("A",), typeid=None, orientation=False,
              bonds=None, angles=None):
-    """2D 주기 프레임. `positions`는 (N,2) 또는 (N,3).
+    """A 2D periodic frame. `positions` is (N,2) or (N,3).
 
-    `L` 은 스칼라(정사각) 또는 `(Lx, Ly)` 입니다 — ★ `trap-drag` 의 정합 육방 격자가
-    직사각 박스를 요구하면서 필요해졌습니다 (정합이 종횡비를 정합니다).
+    `L` is a scalar (square) or `(Lx, Ly)` -- * this became necessary when
+    `trap-drag`'s commensurate hexagonal lattice required a rectangular box
+    (commensurability sets the aspect ratio, it is not chosen).
 
-    `bonds`/`angles` 는 (M,2)/(M,3) 인덱스 배열 — 사슬 케이스가 씁니다.
+    `bonds`/`angles` are (M,2)/(M,3) index arrays -- used by the chain cases.
     """
     import gsd.hoomd
 
@@ -61,7 +67,7 @@ def frame_2d(positions, L, types=("A",), typeid=None, orientation=False,
         fr.angles.types = ["bend"]
         fr.angles.typeid = [0] * len(a)
         fr.angles.group = a
-    fr.configuration.box = [Lx, Ly, 0, 0, 0, 0]   # Lz=0 → 2D (함정 9)
+    fr.configuration.box = [Lx, Ly, 0, 0, 0, 0]   # Lz=0 -> 2D (trap 9)
     fr.configuration.dimensions = 2
     return fr
 
@@ -76,22 +82,23 @@ def make_sim(frame, seed: int, notice_level: int = 0):
 
 
 def attach_brownian(sim, dt_star: float, forces, kT: float = 1.0, gamma: float = 1.0):
-    """무차원 BD 적분기를 붙이고 (integrator, method)를 반환.
+    """Attach the dimensionless BD integrator and return (integrator, method).
 
-    `kT=1, gamma=1` 은 thermal 규약의 결과입니다 (σ=d, E=kT, τ=τ_B → γ=1, D_t=1).
+    `kT=1, gamma=1` follows from the thermal convention
+    (sigma=d, E=kT, tau=tau_B -> gamma=1, D_t=1).
     """
     import hoomd
     import hoomd.md as md
 
     bd = md.methods.Brownian(filter=hoomd.filter.All(), kT=kT, default_gamma=gamma)
     integ = md.Integrator(dt=dt_star, methods=[bd], forces=list(forces))
-    integ.integrate_rotational_dof = False          # 함정 3
+    integ.integrate_rotational_dof = False          # trap 3
     sim.operations.integrator = integ
     return integ, bd
 
 
 def add_trajectory_writer(sim, path, period: int):
-    """Tier A 궤적 (마스터플랜 §9). `path=None` 이면 아무것도 안 붙입니다."""
+    """The Tier A trajectory. With `path=None`, nothing is attached."""
     import hoomd
 
     if path is None:
@@ -110,7 +117,9 @@ def flush_writers(sim) -> None:
 
 
 def wca(nlist, epsilon: float = 1.0, sigma: float = 1.0, types=("A", "A")):
-    """WCA = 컷오프 `2^(1/6)σ` + shift 인 LJ (함정 4: WCA 전용 클래스는 없음)."""
+    """WCA = LJ with cutoff `2^(1/6)*sigma` and shift (trap 4: there is no
+    dedicated WCA class).
+    """
     import hoomd.md as md
 
     lj = md.pair.LJ(nlist=nlist, default_r_cut=2 ** (1 / 6) * sigma, mode="shift")
@@ -119,10 +128,13 @@ def wca(nlist, epsilon: float = 1.0, sigma: float = 1.0, types=("A", "A")):
 
 
 def minimum_image(delta, L, dims: int = 2):
-    """주기 축만 최소 이미지 적용 (함정 1·7). `delta` (N,3), 2D면 z는 건드리지 않음.
+    """Apply minimum image to the periodic axes only (traps 1 and 7).
+    `delta` is (N,3); in 2D, z is left alone.
 
-    `L` 은 스칼라 또는 `(Lx, Ly)` (직사각 박스 — 정합 육방 격자가 요구).
-    ★ 비주기 축의 주기를 `inf`로 두면 `inf*round(0/inf) = nan` 이 됩니다 (함정 7).
+    `L` is a scalar or `(Lx, Ly)` (a rectangular box, as required by a
+    commensurate hexagonal lattice).
+    * Setting a non-periodic axis's period to `inf` gives
+      `inf*round(0/inf) = nan` (trap 7).
     """
     d = np.asarray(delta, dtype=float).copy()
     Lx, Ly = (L, L) if np.isscalar(L) else (L[0], L[1])

@@ -1,15 +1,19 @@
-"""소프트 반발 페어 퍼텐셜의 수치 — `U`, `U''`, 최근접 접근거리 (skill `bd-physics` §6.2).
+"""The numerics of a soft repulsive pair potential -- `U`, `U''`, and the closest
+approach distance (skill `bd-physics` section 6.2).
 
-**두 번 나와서 올렸습니다** (CLAUDE.md 추상화 규칙). 1-B `soft-r3-2d-A-sweep` 가 유일한
-사용자였는데 `trap-drag-2d-hex300` 이 같은 페어 퍼텐셜(`A(d/r)³ + WCA`)에 같은 밀도로
-같은 육방 격자를 만들면서 `r_min → τ_int → dt` 경로를 그대로 씁니다.
+**Promoted after appearing twice** (the abstraction rule in CLAUDE.md).
+`soft-r3-2d-A-sweep` was the only user until `trap-drag-2d-hex300` built the same
+hexagonal lattice at the same density with the same pair potential
+(`A(d/r)^3 + WCA`) and reused the `r_min -> tau_int -> dt` path verbatim.
 
-여기 있는 함수 3개는 **`dt` 를 정하는 물리**입니다. 값이 조용히 틀리면 적분이 조용히
-틀립니다. 1-B에서 세 번 고쳤고 (`approach_distance` 도크스트링 참조), 그 교정이 한 곳에만
-있어야 두 케이스가 갈라지지 않습니다.
+The three functions here are **the physics that sets `dt`.** If a value is
+silently wrong, the integration is silently wrong. It was fixed three times (see
+the `approach_distance` docstring), and that correction has to live in exactly one
+place or the two cases diverge.
 
-⚠️ **`bdbot.interactions` 와 다른 층입니다.** 그쪽은 "무엇을 고를까"의 카탈로그(텍스트
-   메타데이터)이고, 여기는 고른 것의 수치입니다.
+WARNING: **this is a different layer from `bdbot.interactions`.** That one is the
+   catalogue of "what should I choose" (text metadata); this one is the numerics
+   of what was chosen.
 """
 from __future__ import annotations
 
@@ -17,17 +21,23 @@ import math
 
 import numpy as np
 
-R_WCA = 2 ** (1 / 6)                 # WCA 컷오프 (σ 단위) — LJ 최소점
-# 2D 육방격자: 입자당 면적 = (√3/2) a_NN²  ⟹  a_mean ≡ ρ^(-1/2) = √(√3/2)·a_NN
-# ★ 최근접이웃 거리는 a_mean 이 아니다. 1-B에서 a_mean으로 잡았다가 스모크 측정에서 교정.
+R_WCA = 2 ** (1 / 6)                 # WCA cutoff (in sigma) -- the LJ minimum
+# 2D hexagonal lattice: area per particle = (sqrt(3)/2) a_NN^2
+#   =>  a_mean == rho^(-1/2) = sqrt(sqrt(3)/2) * a_NN
+# * The nearest-neighbour distance is NOT a_mean. It was first taken as a_mean and
+#   corrected by a smoke measurement -- and since U'' goes as r^-5, that is a 41%
+#   difference.
 HEX_NN = math.sqrt(2 / math.sqrt(3))          # a_NN / a_mean = 1.07457
 
 
 def U_star(rs, A, eps=1.0):
-    """무차원 퍼텐셜 U/kT, 길이는 d 단위. WCA 코어 + A/r³ (컷오프 시프트는 별도).
+    """Dimensionless potential U/kT, lengths in units of d. A WCA core plus A/r^3
+    (the cutoff shift is applied separately).
 
-    ⚠️ `U_star(1.0, A)` 는 `A` 가 **아니라** `A + eps` 입니다 — r=d 에서 WCA 코어가
-       정확히 ε 을 냅니다 (4ε(1−1)+ε). A=100 이면 101 로 1% 어긋납니다.
+    WARNING: `U_star(1.0, A)` is **not** `A` but `A + eps` -- at r=d the WCA core
+       contributes exactly epsilon (4*eps*(1-1)+eps). With A=100 that is 101, off
+       by 1%. The ledger had this written as "= A kT" and the L3 integrity check
+       caught it.
     """
     rs = np.asarray(rs, dtype=float)
     w = np.where(rs < R_WCA, 4 * eps * (rs**-12.0 - rs**-6.0) + eps, 0.0)
@@ -35,28 +45,35 @@ def U_star(rs, A, eps=1.0):
 
 
 def U2_star(rs, A, eps=1.0):
-    """U''(r) [kT/d²] — 국소 강성. τ_int = γ/U'' 의 분모."""
+    """U''(r) [kT/d^2] -- the local stiffness. The denominator of tau_int = gamma/U''."""
     rs = np.asarray(rs, dtype=float)
     w = np.where(rs < R_WCA, 4 * eps * (156 * rs**-14.0 - 42 * rs**-8.0), 0.0)
     return w + 12 * A / rs**5
 
 
 def approach_distance(A, a_star, eps=1.0, u_max=12.0, lindemann=0.15):
-    """최근접 접근거리 r_min* [d]. 두 기준 중 작은 쪽. dt는 여기서 나온다.
+    """Closest approach distance r_min* [d]. The smaller of two criteria. dt comes
+    from here.
 
-    (a) 쌍 기준   U(r) = u_max kT.
-        u_max=12 인 이유: 결합 표본이 ~10⁶개(400 표본 × 400 입자 × 6 이웃)라
-        Boltzmann 꼬리의 극단값이 βU ≈ ln(10⁶) ≈ 14 근처까지 간다.
-        u_max=5로 잡았더니 스모크 측정 최소거리가 그보다 훨씬 안쪽이었다.
-    (b) 진동 기준 a_NN − 3 σ_bond   (케이지가 살아 있을 때만 유효)
-        ★ 이웃거리는 a_mean 이 아니라 a_NN = 1.07457 a_mean (육방).
-        ★ 결합길이 요동 σ_bond = √2 · u₁ (u₁ = 성분당 rms). √2를 빠뜨리기 쉽다.
-        판정에 쓰는 Lindemann 지표는 σ_bond/a_NN (2D에서 유한한 것은 상대 요동).
+    (a) pair criterion       the r where U(r) = u_max*kT.
+        Why u_max=12: there are ~10^6 pair samples (400 samples x 400 particles x
+        6 neighbours), so the extreme of the Boltzmann tail reaches
+        beta*U ~ ln(10^6) ~ 14. Setting u_max=5 put the smoke-measured minimum
+        distance far inside the prediction.
+    (b) vibration criterion  a_NN - 3*sigma_bond   (valid only while the cage lives)
+        * the neighbour distance is a_NN = 1.07457*a_mean (hexagonal), not a_mean.
+        * the bond-length fluctuation is sigma_bond = sqrt(2)*u1 (u1 = per-component
+          rms). The sqrt(2) is easy to drop.
+        The Lindemann indicator used for the verdict is sigma_bond/a_NN (in 2D it is
+        the *relative* fluctuation that is finite).
 
-    반환: (r_min*, 어느 기준, Lindemann σ_bond/a_NN, 상태 추정)
+    Errors (a) and (b) partially cancelled, so r_min happened to look close -- do
+    not rely on that coincidence.
+
+    Returns: (r_min*, which criterion, Lindemann sigma_bond/a_NN, state estimate)
     """
     lo, hi = 0.4, 60.0
-    for _ in range(200):                       # 이분법
+    for _ in range(200):                       # bisection
         mid = 0.5 * (lo + hi)
         if float(U_star(mid, A, eps)) > u_max:
             lo = mid
@@ -65,19 +82,19 @@ def approach_distance(A, a_star, eps=1.0, u_max=12.0, lindemann=0.15):
     r_pair = 0.5 * (lo + hi)
 
     a_nn = HEX_NN * a_star
-    k1 = 3 * (float(U2_star(a_nn, A, eps)) + (-3 * A / a_nn**4) / a_nn)   # 성분당 케이지 강성
+    k1 = 3 * (float(U2_star(a_nn, A, eps)) + (-3 * A / a_nn**4) / a_nn)   # per-component cage stiffness
     if k1 <= 0:
-        return r_pair, "쌍", float("nan"), "유체"
+        return r_pair, "pair", float("nan"), "fluid"
     sigma_bond = math.sqrt(2.0 / k1)
     lind = sigma_bond / a_nn
     r_cage = a_nn - 3 * sigma_bond
     if lind < lindemann and r_cage < r_pair:
-        return r_cage, "진동", lind, "결정"
-    return r_pair, "쌍", lind, ("결정" if lind < lindemann else "유체")
+        return r_cage, "vibration", lind, "crystal"
+    return r_pair, "pair", lind, ("crystal" if lind < lindemann else "fluid")
 
 
 def a_mean_star(phi: float) -> float:
-    """평균 간격 a_mean/d = √(π/4φ)  (2D, φ = Nπd²/4L²)."""
+    """Mean spacing a_mean/d = sqrt(pi/(4*phi))  (2D, phi = N*pi*d^2/(4*L^2))."""
     return math.sqrt(math.pi / (4 * phi))
 
 

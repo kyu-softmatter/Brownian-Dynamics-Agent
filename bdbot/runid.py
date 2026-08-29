@@ -1,9 +1,11 @@
-"""콘텐츠 주소 지정 run_id + 런 디렉토리 준비 (마스터플랜 §14).
+"""Content-addressed run_id plus run-directory preparation.
 
-같은 스펙 → 같은 `run_id` → **재실행하지 않습니다.** 두 케이스가 똑같이 이 규약을 썼습니다.
+Same spec -> same `run_id` -> **do not re-run.** Both of the first two cases had
+adopted this convention independently.
 
-`nhex`를 인자로 둔 이유: 1-A는 12자, 1-B는 10자를 쓰고 있었습니다. 기존 런 디렉토리와
-`run_id`를 그대로 유지해야 하므로(재현성) 통일하지 않고 케이스가 선언합니다.
+Why `nhex` is an argument: one case used 12 hex characters and the other 10. The
+existing run directories and their `run_id`s have to stay valid (reproducibility),
+so rather than unify it, the case declares it.
 """
 from __future__ import annotations
 
@@ -11,14 +13,23 @@ import hashlib
 import json
 from pathlib import Path
 
-PRESERVE = {"record.json"}     # 재실행해도 지우지 않는 파일
+PRESERVE = {"record.json"}     # files not deleted even on a re-run
 
-# ★ run_id 해시에서 빼는 키 — 문서·출처·유도값.
-#   실제로 물렸습니다: `derived_from` 필드를 system.yaml 에 추가했더니 1-A의 run_id가
-#   70b9394e7310 → dc67e4e2b825 로 바뀌었습니다. 스펙에 YAML 전체를 넣어 해시했기 때문입니다.
-#   **주석 한 줄을 고쳐서 런이 무효화되면 콘텐츠 주소는 쓸모가 없습니다.**
-#   run_id 는 "무엇을 시뮬레이션했는가"만 추적해야 합니다.
-#   (1-B는 물리 필드를 직접 나열해 이 문제가 없었습니다 — 그쪽이 옳은 설계였습니다)
+# * Keys excluded from the run_id hash -- documentation, provenance, derived values.
+#   This actually bit: adding a `derived_from` field to a system file changed one
+#   case's run_id from 70b9394e7310 to dc67e4e2b825, because the whole YAML had
+#   been put into the spec and hashed.
+#   **If editing one comment line invalidates a run, content addressing is
+#   useless.** A run_id must track only "what was simulated".
+#   (The other case had listed the physics fields explicitly and did not have this
+#   problem -- that was the correct design.)
+#
+#   WARNING: the reverse direction is equally dangerous and also happened. One
+#   spec contained no physical system at all, so changing d from 5um to 0.5um and
+#   eta by 62x -- a 16.1x change in tau_B -- left the run_id *identical*, and an
+#   old result got reported as the new system's result. The hash must cover
+#   everything that fixes the physics and nothing that documents it. Both
+#   directions are guarded by verify/verify_l3_spec_gaps.py.
 DOC_KEYS = frozenset({
     "description", "derived_from", "not_verified", "required_convergence_checks",
     "derived_scales", "dimensionless", "source", "note", "source_note",
@@ -28,7 +39,10 @@ DOC_KEYS = frozenset({
 
 
 def physics_only(node):
-    """문서·출처·유도 필드를 재귀적으로 제거. 남는 것은 물리를 정하는 값뿐입니다."""
+    """Recursively strip documentation, provenance and derived fields.
+
+    What remains is only what fixes the physics.
+    """
     if isinstance(node, dict):
         return {k: physics_only(v) for k, v in node.items() if k not in DOC_KEYS}
     if isinstance(node, list):
@@ -37,7 +51,10 @@ def physics_only(node):
 
 
 def spec_hash(spec: dict, nhex: int = 12) -> str:
-    """스펙의 정렬된 JSON을 sha256 → 앞 nhex자. 순서·공백에 무관하게 결정적."""
+    """sha256 of the spec's sorted JSON -> the first nhex characters.
+
+    Deterministic regardless of key order or whitespace.
+    """
     blob = json.dumps(spec, sort_keys=True, default=str).encode()
     return hashlib.sha256(blob).hexdigest()[:nhex]
 
@@ -48,19 +65,32 @@ def content_run_id(label: str, spec: dict, tag: str | None = None, nhex: int = 1
 
 
 def prepare_outdir(outdir: Path, force: bool = False) -> tuple[bool, str]:
-    """(실행할 것인가, 안내 메시지). 완료된 런이 있으면 False.
+    """(should we run, message). False when a completed run already exists.
 
-    `result.txt` 존재 = 완료로 봅니다 (부분 산출물이 남은 디렉토리는 지우고 다시 씁니다).
+    The presence of `result.txt` counts as complete (a directory holding only
+    partial artefacts is cleared and rewritten).
+
+    WARNING: `result.txt` is written by the *case script*, not by `bdbot.run`. A
+    case that never added that line reports zero runs here and in
+    `bdbot.cli status` while its `metrics.json` files sit on disk -- and the
+    convention once caused a "clean up incomplete runs" pass to delete 6
+    completed runs.
     """
     if (outdir / "result.txt").exists() and not force:
         prev = (outdir / "result.txt").read_text()
-        tail = prev.split("결과 —")[-1] if "결과 —" in prev else prev[-1200:]
-        return False, f"\n이미 완료된 런입니다: runs/{outdir.name}/  (--force 로 재실행)\n{tail}"
+        # Accept both markers: 167 result.txt files in the archive were written
+        # before the case scripts were translated (2026-08-29), and runs/ is not
+        # rewritten because it is the content-addressed evidence ledger.
+        marker = next((m for m in ("result —", "결과 —") if m in prev), None)
+        tail = prev.split(marker)[-1] if marker else prev[-1200:]
+        return False, (f"\nthis run is already complete: runs/{outdir.name}/  "
+                       f"(--force to re-run)\n{tail}")
     if outdir.exists():
         for f in outdir.iterdir():
-            # ★ record.json 은 남긴다. 교훈(KB 엔트리)은 런 산출물보다 오래 살아야 한다.
-            #   run_id 가 콘텐츠 주소이므로 같은 디렉토리면 같은 스펙이고, 이전 교훈이 그대로 유효하다.
-            #   (1-C에서 --force 재실행으로 교훈 6건을 날린 뒤 넣은 방어)
+            # * Keep record.json. A lesson (a KB entry) must outlive the run
+            #   artefacts. run_id is content-addressed, so the same directory means
+            #   the same spec, and the previous lesson is still valid.
+            #   (Added after a --force re-run destroyed 6 lessons.)
             if f.is_file() and f.name not in PRESERVE:
                 f.unlink()
     outdir.mkdir(parents=True, exist_ok=True)
@@ -72,7 +102,7 @@ def write_spec(outdir: Path, spec: dict) -> None:
 
 
 def list_artifacts(outdir: Path, root: Path) -> list[str]:
-    lines = [f"\n산출물: {outdir.relative_to(root)}/"]
+    lines = [f"\nartefacts: {outdir.relative_to(root)}/"]
     for f in sorted(outdir.iterdir()):
         lines.append(f"   {f.name:<22} {f.stat().st_size / 1024:8.1f} KB")
     return lines

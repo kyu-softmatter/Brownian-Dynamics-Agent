@@ -1,11 +1,21 @@
-"""시계열 통계 — **표본은 상관되어 있다**는 사실 하나에서 나온 도구들.
+"""Time-series statistics -- tools that all follow from one fact: **samples are
+correlated.**
 
-이 프로젝트에서 같은 실수를 두 번 했습니다:
-  1-A: `⟨x²⟩` 오차막대를 naive SEM으로 → 과소평가. 블록 평균으로 고침.
-  1-B: 드리프트 t 검정을 naive SE로 → 전 구간 변화 −0.026%인 런이 t=−3.3 (오탐).
-       Sokal 자동창으로 `n_eff`를 구해 SE를 팽창시켜 고침.
+The same mistake was made twice in this project:
+  case 1: the `<x^2>` error bar used a naive SEM -> underestimated. Fixed with
+          block averaging.
+  case 2: the drift t-test used a naive SE -> a run whose total change was
+          -0.026% came out at t=-3.3 (a false positive). Fixed by obtaining
+          `n_eff` from a Sokal automatic window and inflating the SE.
 
-`tools/postmortem.py`와 케이스 스크립트가 같은 구현을 쓰도록 여기로 모았습니다.
+WARNING: block averaging is itself not the end of it. Measured across a velocity
+sweep, the block SEM underestimated the true realization-to-realization spread by
+**1.09-2.28x** depending on the observable and the velocity -- and two published
+conclusions were reversed once a 9-seed ensemble replaced single runs. In a system
+that produces discrete stochastic events, size the ensemble to the events.
+
+Collected here so that `tools/postmortem.py` and the case scripts use the same
+implementation.
 """
 from __future__ import annotations
 
@@ -15,7 +25,9 @@ import numpy as np
 
 
 def block_sem(x, n_blocks: int = 20) -> float:
-    """블록 평균의 표준오차. 상관된 시계열의 정직한 오차막대."""
+    """Standard error of the block means. The honest error bar for a correlated
+    time series.
+    """
     x = np.asarray(x, dtype=float)
     if len(x) < n_blocks * 2:
         n_blocks = max(2, len(x) // 2)
@@ -25,7 +37,10 @@ def block_sem(x, n_blocks: int = 20) -> float:
 
 
 def tau_int(y, c: float = 5.0) -> float:
-    """적분 자기상관 시간 (표본 단위, Sokal 자동창). `n_eff = n/(2τ+1)`."""
+    """Integrated autocorrelation time (in samples, Sokal automatic window).
+
+    `n_eff = n/(2*tau+1)`.
+    """
     y = np.asarray(y, dtype=float)
     n = len(y)
     if n < 8 or y.std() == 0:
@@ -49,12 +64,17 @@ def n_eff(y, c: float = 5.0) -> float:
 
 
 def autocorr_unbiased(trace):
-    """FFT 자기상관, 겹치는 쌍 개수로 정규화. `trace` (n_t, ...) → (n_t,)
+    """FFT autocorrelation, normalized by the overlapping-pair count.
 
-    ★ **표본평균을 빼지 않습니다.** 앵커/트랩 중심으로부터의 변위는 참 평균이 정확히 0이고,
-      표본평균을 빼면 `C(t)`가 `O(τ/T_obs)`만큼 체계적으로 빨리 감쇠합니다
-      (1-A 실측: 피팅된 τ가 −7.75% vs 안 빼면 −0.26%). skill `bd-physics` §5.1.
-      참 평균을 모르는 양이라면 빼야 합니다 — 변위는 아닙니다.
+    `trace` (n_t, ...) -> (n_t,)
+
+    * **The sample mean is NOT subtracted.** The displacement from an anchor or a
+      trap centre has a true mean of exactly zero, and subtracting the sample mean
+      makes `C(t)` decay systematically faster by `O(tau/T_obs)` (measured: the
+      fitted tau came out -7.75% versus -0.26% without subtracting). See skill
+      `bd-physics` section 5.1.
+      For a quantity whose true mean is unknown you must subtract it -- a
+      displacement is not such a quantity.
     """
     x = np.asarray(trace, dtype=np.float64)
     n_t = x.shape[0]
@@ -67,10 +87,11 @@ def autocorr_unbiased(trace):
 
 
 def stationarity(series, steps=None) -> dict:
-    """전반/후반 z + 선형 추세 t. 자기상관 보정 포함, 드리프트 **크기**도 함께 보고.
+    """First-half/second-half z plus a linear-trend t, autocorrelation-corrected,
+    reporting the drift **magnitude** alongside.
 
-    유의성만으로 판정하면 잘 수렴한 긴 런이 오탐됩니다 — 크기(`drift_span_rel_pct`)를
-    함께 봐야 합니다.
+    Judging on significance alone false-positives a long, well-converged run --
+    the magnitude (`drift_span_rel_pct`) has to be read with it.
     """
     y = np.asarray(series, dtype=float)
     n = len(y)

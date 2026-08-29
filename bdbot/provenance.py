@@ -1,8 +1,15 @@
-"""출처 추적 — 마스터플랜 원칙 2 "모든 숫자는 출처를 갖는다".
+"""Provenance tracking -- "every number carries a source" (CLAUDE.md rule 3).
 
-1-A·1-B가 똑같이 `Provenanced` + YAML 노드 파서를 갖고 있었습니다.
+The first two cases had each grown a `Provenanced` plus a YAML node parser.
 
-tier: 0=직접입력/핸드북 · 1=문헌+검증 또는 확인된 관례 · 2=문헌 미검증 · 3=임의 가정
+tier: 0 = directly given or handbook . 1 = literature plus verification, or a
+      confirmed convention . 2 = literature, unverified . 3 = arbitrary assumption
+
+WARNING: tier 1 by inheritance is the dangerous case. `T = 300 K` is recorded as
+tier 1 across every case here and is in fact a *choice* inherited from a sketch
+with no temperature -- worth -4% to -14% on every timescale, because water's
+viscosity is 2.06 %/K sensitive. Inheriting is legitimate; recording it as if it
+were measured is not.
 """
 from __future__ import annotations
 
@@ -13,7 +20,7 @@ from .units import Q
 
 @dataclass
 class Provenanced:
-    """값 + 출처 + 신뢰등급. 값만 떠다니게 두지 않습니다."""
+    """Value + source + confidence tier. A bare value is never left floating."""
 
     value: object
     source: str
@@ -27,12 +34,14 @@ class Provenanced:
 
 
 def load_node(node: dict) -> Provenanced:
-    """`{value, unit, source, tier}` YAML 노드 → `Provenanced[Quantity]`."""
+    """A `{value, unit, source, tier}` YAML node -> `Provenanced[Quantity]`."""
     return Provenanced(Q(node["value"], node["unit"]), node["source"], int(node["tier"]))
 
 
 def tier_summary(items) -> dict:
-    """tier별 개수. 검증기가 "tier 2 이하만으로 구성된 스펙"을 잡을 때 씁니다."""
+    """Counts per tier. Used by the validator to catch a spec built only from
+    tier 2 and below.
+    """
     out: dict[int, int] = {}
     for p in items:
         out[p.tier] = out.get(p.tier, 0) + 1
