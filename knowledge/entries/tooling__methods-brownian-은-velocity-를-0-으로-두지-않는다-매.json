@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "brownian",
+    "friction",
+    "dpd",
+    "silent_bug"
+  ],
+  "dimensionless": {
+    "v2_over_3kT": 0.924
+  },
+  "source": "scratch/verify_pair_friction.py#T6",
+  "lessons": [
+    {
+      "claim": "★★ methods.Brownian 은 velocity 를 0 으로 두지 않는다 — 매 스텝 Maxwell-Boltzmann 에서 새로 뽑아 채운다 (실측 <v^2>=2.771 vs 3kT/m=3.000, 비 0.924, N=80). 그런데 그 값은 **실제 변위율과 무관**하다 (자유 BD 1스텝 실측 v/(dx/dt) = -0.044/+0.003/+0.029 — 과감쇠 변위는 sqrt(2*D*dt)라 dt^0.5 스케일이고 v 는 별도 추첨). ⟹ 속도 의존 페어힘(md.pair.friction, DPD 계열)을 methods.Brownian 과 결합하면 마찰이 보는 것은 실제 상대운동이 아니라 **무상관 열잡음**이다. 결과가 나오고 에러도 없어서 조용히 틀린다. bd-hoomd 함정 5('BD는 과감쇠 — 속도에 물리적 의미가 없다')의 구체적 귀결이지만, '속도가 0이라 힘이 0'이 아니라 '속도가 쓰레기값이라 힘이 쓰레기'라는 점이 다르다.",
+      "kind": "pitfall",
+      "coords": {
+        "v2_over_3kT": 0.924
+      }
+    }
+  ],
+  "not_verified": []
+}

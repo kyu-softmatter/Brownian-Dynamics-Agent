@@ -1,0 +1,256 @@
+# =============================================================================
+#  시뮬레이션 실행 정책  —  Simulation Bot
+# =============================================================================
+#  이 파일이 "시뮬레이션 조건"의 단일 진실 원천이다.
+#
+#  ▸ 에이전트는 매 런에서 이 파일을 읽고, 조건표를 제시한 뒤 실행한다.
+#  ▸ 사람이 바꿀 곳은 맨 아래 `overrides:` 블록 **한 곳**이다.
+#    거기에 쓴 값이 위의 모든 기본값을 덮어쓴다.
+#  ▸ `measured:` 태그가 붙은 값은 실측 결과다. 하드웨어를 바꾸지 않았다면 건드리지 말 것.
+#    (재측정: master_plan.md §7.3 절차)
+#
+#  근거: master_plan.md §7.3 (CPU 실측), §7.4 (조건 유도)
+#        knowledge/parameters/local_cpu_parallelism.md (원자료)
+# =============================================================================
+
+meta:
+  version: 1
+  measured_on: "2026-07-28"
+  machine: "Apple M4 (Mac16,12) · 4 P-core + 6 E-core · 16 GB"
+
+
+# -----------------------------------------------------------------------------
+# 1. 하드웨어 실측값  [measured — 변경 금지]
+# -----------------------------------------------------------------------------
+hardware:
+  n_cores_total: 10
+  n_cores_performance: 4
+  n_cores_efficiency: 6
+  e_core_relative_speed: 0.32      # measured: E코어 실효성능 / P코어
+
+  # 처리량 상수. wall time 예측의 근거: wall ≈ N * steps / (throughput * eta_k)
+  # ⚠ 지수부 부호를 반드시 적을 것 (`6.3e+6`). YAML 1.1 은 `6.3e6` 을 **문자열**로 읽고,
+  #   그러면 비용 추정이 조용히 TypeError 를 내거나 문자열 연산이 된다.
+  #   load_policy() 가 숫자처럼 보이는 문자열을 거부한다 (simbot/policy.py).
+  throughput_particle_steps_per_s: 6.3e+6   # measured, N=500~32000에서 ±9% 이내
+
+  # 동시 실행 k에 대한 프로세스당 효율 eta_k  [measured]
+  efficiency_by_k:
+    1:  1.000
+    2:  0.948
+    3:  0.926
+    4:  0.925
+    5:  0.774
+    6:  0.696
+    8:  0.617
+    10: 0.547
+    12: 0.443     # k=10 대비 총처리량 회귀. 사용 금지
+
+  # HOOMD 병렬화 가용성 [measured]
+  hoomd_mpi_enabled: false         # conda-forge에 MPI 빌드 자체가 없음
+  hoomd_threads_per_sim: 1         # v3+에서 TBB 제거. 완전 단일스레드
+  gpu_available: false
+
+
+# -----------------------------------------------------------------------------
+# 2. 동시 실행 정책
+# -----------------------------------------------------------------------------
+concurrency:
+  default: 8            # 최대 처리량의 90%. 2코어를 분석·에이전트·OS에 남긴다
+  interactive: 4        # 사용자가 동시에 작업 중일 때. P코어만, 효율 93%
+  batch: 10             # 무인 실행. 절대 최대 처리량
+  hard_max: 10          # 초과 금지 (k=12에서 -2.7% 회귀 측정됨)
+
+  # 사용자가 다른 무거운 작업을 하고 있다고 판단되면 interactive로 강등
+  auto_downgrade_when_busy: true
+
+
+# -----------------------------------------------------------------------------
+# 3. 핵심 정책: 오차 막대는 공짜다
+# -----------------------------------------------------------------------------
+# k<=4 구간의 효율이 93%이므로, 독립 시드 4개를 동시에 돌리는 비용은 1개와 거의 같다.
+# 따라서 "긴 런 1개"보다 "짧은 런 4개"가 거의 항상 낫다.
+seeds:
+  default: 4            # 사용자 확정 2026-07-28 ("네개면 충분할듯")
+  minimum: 4            # 시드 1개짜리 프로덕션 런은 금지 (오차 막대 없는 결과)
+  explore_tier: 2       # T2 탐색은 스윕 점수를 늘리는 게 우선이라 시드는 2개
+  report_spread: true   # 시드간 산포를 계통오차 지표로 항상 보고
+
+  # 참고: 랩 관행은 더 많다 — Xu 2023 은 20 realization 평균
+  #   (knowledge/wiki/findings/lab-bd-conventions.md §5, reproduced: no).
+  #   4개로 시작하고, S7 판정이 INCONCLUSIVE 로 나오면 그때 늘린다.
+  #   k=8 에서 8시드 T2 배치는 약 1.7분이므로 증설 비용은 낮다.
+  escalate_to: 8        # INCONCLUSIVE 시 자동 제안할 시드 수
+
+
+# -----------------------------------------------------------------------------
+# 4. 실행 티어
+#    wall_s_per_proc = N * steps / (throughput * eta_k)
+#    t_total_tau_B   = steps * dt_star
+# -----------------------------------------------------------------------------
+tiers:
+
+  smoke:                        # T0 — 코드가 도는지만 확인
+    purpose: "코드 경로 검증. 물리적 의미 없음"
+    N: 200
+    steps: 2_000
+    dt_star: 5.0e-5
+    concurrency: 1
+    seeds: 1
+    expected_wall_s: 0.06
+    required_before: [pilot]
+
+  pilot:                        # T1 — S5-2 필수 단계
+    purpose: "런타임 가드 위반·dt 타당성 확인 + 본실행 wall time 예측"
+    N: from_spec                # 프로덕션과 동일하게
+    steps_fraction_of_production: 0.005
+    dt_star: from_spec
+    concurrency: 1
+    seeds: 1
+    wall_cap_s: 30              # 초과 시 즉시 중단하고 보고
+    mandatory: true             # 건너뛸 수 없다
+
+  explore:                      # T2 — 레짐 탐색 / 파라미터 스윕
+    purpose: "무차원수 공간에서 레짐 확인. 정밀 측정 아님"
+    N: 1_000
+    steps: 400_000
+    dt_star: 5.0e-5
+    concurrency: 8
+    seeds: 2
+    expected_wall_s_per_proc: 103
+    note: "8점 스윕이 약 1.7분. 레짐 지도 그리기에 최적"
+
+  production:                   # T3 — 기본 티어
+    purpose: "본 측정. S7 검증 대상이 되는 데이터"
+    N: 4_000
+    steps: 1_000_000
+    dt_star: 5.0e-5
+    concurrency: 4
+    seeds: 4
+    expected_wall_s_per_proc: 686
+    note: "4시드 동시 → 약 11.4분. t_total = 50 tau_B"
+
+  long:                         # T4 — 승인 필수
+    purpose: "GSER 전대역 / MIPS 조대화 / 농후계 장시간 확산"
+    N: 4_000
+    steps: 10_000_000
+    dt_star: 5.0e-5
+    concurrency: 4
+    seeds: 4
+    expected_wall_s_per_proc: 6860
+    requires_user_approval: true
+
+
+# -----------------------------------------------------------------------------
+# 5. 예산 및 게이트
+# -----------------------------------------------------------------------------
+budget:
+  wall_time_per_run_s: 600            # 10분. 초과 예상 시 실행 전에 보고
+  wall_time_per_batch_s: 1800         # 30분
+  on_exceed: report_and_ask           # report_and_ask | shrink | abort
+  disk_per_run_mb: 2000               # GSD 궤적 상한. 초과 시 dump 간격 늘림
+
+  # 처음 보는 시스템은 이 순서를 건너뛸 수 없다
+  required_tier_ladder: [smoke, pilot, explore]
+
+
+# -----------------------------------------------------------------------------
+# 6. 측정하려는 양 → 요구되는 t_total (티어 자동 선택 근거)
+# -----------------------------------------------------------------------------
+observable_requirements:
+  diffusion_coefficient:
+    min_t_total_tau_B: 10
+    recommended_tier: explore
+  long_time_diffusion_dense:
+    min_t_total_tau_B: 100
+    recommended_tier: production
+  rdf_structure:
+    min_t_total_tau_B: 20
+    note: "평형 도달 후 20 tau_B. L > 2 x 상관길이가 더 강한 제약"
+  gser_moduli:
+    min_t_total_tau_B: 100
+    recommended_tier: long
+    note: "MSD가 3~4 decade 필요. production은 marginal"
+  mips_coarsening:
+    min_t_total_tau_B: 1000
+    min_N: 10_000
+    recommended_tier: long
+  trap_relaxation:
+    min_t_total_tau_B: 10
+    note: "실제 제약은 tau_k = 1/k_star. t_total > 100 tau_k"
+
+
+# -----------------------------------------------------------------------------
+# 7. dt 선택 제약 (master_plan.md §5.4)
+#    4개 제약의 최소값을 채택. 어느 제약이 지배했는지 반드시 기록한다.
+# -----------------------------------------------------------------------------
+timestep:
+  # ⚠ 게이트는 dt/tau_B 가 아니라 "스텝당 변위"로 건다.
+  #   근거: BD_agent/knowledge/wiki/findings/dt-gate-should-be-displacement-based.md
+  #   실측 3건(선행 slit 0.045σ / Xu2023 0.0063σ / Quah코드 0.018σ)을 같은 축으로 환산한 결과,
+  #   dt/tau_B 기준은 50배 폭으로 벌어져 실제로 논문까지 나온 런 2건을 기각한다.
+  #   변위 기준으로는 7배 폭 안에 들어온다 (변위 ∝ sqrt(dt) 이므로).
+
+  displacement_convention: per_component   # sqrt(2*dt*) — 성분 하나 기준 (랩 관행)
+                                           # d차원 총변위는 여기에 sqrt(d)를 곱한 값
+
+  max_thermal_displacement_sigma: 0.03     # sqrt(2*dt*) <= 이 값. 랩 실측으로 보정된 문턱
+  max_force_displacement_sigma: 0.005      # max|F*| * dt* <= 이 값 (실제 힘 계산으로 얻을 것)
+  relaxation_safety_factor: 0.01           # dt* <= 0.01 * min(1/k*, 1/D_r*, ...)
+  max_active_displacement_sigma: 0.01      # v0* * dt* <= 이 값
+
+  # ★ 안정성 게이트 — 위 셋과 종류가 다르다. 정확도가 아니라 발산을 막는다.
+  #   dt <= s * 2*gamma/lambda_max,  lambda_max = 4*k_bond + 16*k_angle/b^2
+  #   결합·각이 있는 계에서만 켜진다. 변위 게이트로는 못 잡는다 — 곧은 사슬은
+  #   max|F*| = 0 인 정류점이라 힘 게이트가 무력해지고, kT=0 에서도 터진다.
+  #   실측 임계 dt 는 이 하한의 1.22-2.80 배 (10개 조합 이분법) -> s=0.2 는 6-14배 여유.
+  #   근거: knowledge/wiki/findings/dt-gate-needs-a-stability-term-for-stiff-bonds.md
+  stability_safety_factor: 0.2
+
+  default_dt_star: 5.0e-5                  # 변위 0.010σ — 위 문턱의 1/3. 보수적 기본값
+  hard_ceiling: 4.5e-4                     # 변위 0.030σ 에 해당. 이전 값(1e-4)은 Quah 코드
+                                           # (1.67e-4)를 기각해서 잘못이었다
+  hard_floor: 1.0e-7                       # 이보다 작으면 모델링 자체를 재검토
+
+  # S3(사전 게이트)과 S7(사후 진단)이 같은 양을 보아야 일관된다
+  post_hoc_max_displacement_sigma: 0.10    # S7 진단: 실측 최대 변위가 이걸 넘으면 폭발 징후
+  convergence_ladder: true                 # dt/2 재실행으로 수렴 확인 (S7)
+
+  # 기록용 (게이트 아님) — 다른 논문과 비교할 때 필요
+  log_dt_over_tau_B: true
+
+
+# =============================================================================
+# 8. OVERRIDES  ←──────  사람이 쓰는 곳. 여기만 고치면 된다.
+# =============================================================================
+#  위의 모든 값을 덮어쓴다. 주석을 풀고 값을 넣으면 에이전트가 즉시 따른다.
+#  `_why`를 적어두면 S8에서 knowledge/parameters/ 에 근거로 기록된다.
+# -----------------------------------------------------------------------------
+overrides: {}
+
+  # --- 예시 1: 이번 세션은 머신을 독점하니 전부 배치로 ---
+  # concurrency:
+  #   default: 10
+  # _why: "야간 무인 실행. 대화형 작업 없음"
+
+  # --- 예시 2: 프로덕션을 더 크고 길게 ---
+  # tiers:
+  #   production:
+  #     N: 8_000
+  #     steps: 2_000_000
+  # budget:
+  #   wall_time_per_run_s: 3600
+  # _why: "phi=0.5 농후계라 상관길이가 커서 L을 늘려야 함"
+
+  # --- 예시 3: 티어 사다리를 건너뛰고 바로 프로덕션 ---
+  # budget:
+  #   required_tier_ladder: [pilot]
+  # _why: "이미 검증된 시스템의 시드만 추가하는 런"
+
+  # --- 예시 4: 시드 수 늘리기 (오차 막대가 더 필요할 때) ---
+  # seeds:
+  #   default: 8
+  # tiers:
+  #   production:
+  #     concurrency: 8
+  # _why: "S7에서 INCONCLUSIVE 판정이 나와 통계 보강 필요"

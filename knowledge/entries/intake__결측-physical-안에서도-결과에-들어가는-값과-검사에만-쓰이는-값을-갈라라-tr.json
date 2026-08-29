@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "missing",
+    "triage"
+  ],
+  "dimensionless": {},
+  "source": "intake/trap-2d-5um/system.yaml",
+  "lessons": [
+    {
+      "claim": "결측 physical 안에서도 결과에 들어가는 값과 검사에만 쓰이는 값을 갈라라. trap 에서 rho_p 는 tier3 임의 가정이지만 BD 결과에 전혀 영향이 없다(tau_p 모델 타당성 검사 전용). 반면 eta 는 tau_k 를 직접 정한다. 이 구분을 하면 사람에게 확인받을 항목이 줄어든다",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

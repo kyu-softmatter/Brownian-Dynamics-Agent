@@ -1,0 +1,489 @@
+{
+  "A0.1": {
+    "amplitude": 0.1,
+    "n_particles": 256,
+    "n_seeds": 4,
+    "window": [
+      20.0,
+      30.0
+    ],
+    "zahn": {
+      "amplitude": 0.1,
+      "gamma": 0.5568327996831708,
+      "phase_zahn": "isotropic-liquid",
+      "distance_to_melt": -0.9907008550487112,
+      "distance_to_iso": -0.9900334204459786,
+      "citation": "[출처, 미재현] Zahn 1999 PRL 82, 2721"
+    },
+    "psi6_global": {
+      "mean": 0.029244146554265174,
+      "se": 0.0009944757319575248,
+      "values": [
+        0.031136970315128566,
+        0.03047237322665751,
+        0.026707408418878913,
+        0.0286598342563957
+      ]
+    },
+    "psi6_local": {
+      "mean": 0.35942421033978456,
+      "se": 0.000520438511809504,
+      "values": [
+        0.3602563029527664,
+        0.3595066177845001,
+        0.3579342573881149,
+        0.35999966323375704
+      ]
+    },
+    "defect_fraction": {
+      "mean": 0.64349609375,
+      "se": 0.0014420977056507646,
+      "values": [
+        0.639609375,
+        0.6434375,
+        0.644453125,
+        0.646484375
+      ]
+    },
+    "coord_kinds_aggregate": 6,
+    "coordination_hist_aggregate": {
+      "3": 0.001953125,
+      "4": 0.06703125,
+      "5": 0.2715625,
+      "6": 0.35650390625,
+      "7": 0.21384765625,
+      "8": 0.07224609375,
+      "9": 0.014609375,
+      "10": 0.001953125,
+      "11": 0.00029296875
+    },
+    "five_seven_balance": 0.11889912686597191,
+    "sixfold_modulation": 0.0033515720235850776,
+    "min_separation_d": 0.22086915816569888,
+    "reference_N100": {
+      "psi6_global": {
+        "mean": 0.04771460219926666,
+        "se": 0.0019187497735295577,
+        "values": [
+          0.04594456918537617,
+          0.044220904435496776,
+          0.04760905671864748,
+          0.05308387845754623
+        ]
+      },
+      "psi6_local": {
+        "mean": 0.3611549796164035,
+        "se": 0.0012207470717878475,
+        "values": [
+          0.3604888844490051,
+          0.35948240995407105,
+          0.36476427435874936,
+          0.35988434970378874
+        ]
+      },
+      "defect_fraction": {
+        "mean": 0.6444999999999999,
+        "se": 0.00283490152680242,
+        "values": [
+          0.649,
+          0.6481999999999999,
+          0.6365999999999999,
+          0.6441999999999999
+        ]
+      }
+    },
+    "finite_size": {
+      "p": 0.5208024050315011,
+      "p_se": 0.05602508936820638,
+      "eta6": 2.0832096201260044,
+      "eta6_se": 0.22410035747282553,
+      "reading": "liquid-like",
+      "n_points": 2
+    }
+  },
+  "A1": {
+    "amplitude": 1.0,
+    "n_particles": 256,
+    "n_seeds": 4,
+    "window": [
+      20.0,
+      30.0
+    ],
+    "zahn": {
+      "amplitude": 1.0,
+      "gamma": 5.568327996831708,
+      "phase_zahn": "isotropic-liquid",
+      "distance_to_melt": -0.9070085504871125,
+      "distance_to_iso": -0.900334204459787,
+      "citation": "[출처, 미재현] Zahn 1999 PRL 82, 2721"
+    },
+    "psi6_global": {
+      "mean": 0.0377320997195784,
+      "se": 0.002429980662749984,
+      "values": [
+        0.038127683140337466,
+        0.04434269019868225,
+        0.035337625229731204,
+        0.03312040030956268
+      ]
+    },
+    "psi6_local": {
+      "mean": 0.39406356915831564,
+      "se": 0.0009604721183866708,
+      "values": [
+        0.39450681626796724,
+        0.3926758152246475,
+        0.392474063038826,
+        0.3965975821018219
+      ]
+    },
+    "defect_fraction": {
+      "mean": 0.55634765625,
+      "se": 0.0014182700265337647,
+      "values": [
+        0.55296875,
+        0.557578125,
+        0.55953125,
+        0.5553125
+      ]
+    },
+    "coord_kinds_aggregate": 5,
+    "coordination_hist_aggregate": {
+      "3": 3.90625e-05,
+      "4": 0.0272265625,
+      "5": 0.26169921875,
+      "6": 0.44365234375,
+      "7": 0.22224609375,
+      "8": 0.0415625,
+      "9": 0.0033984375,
+      "10": 0.00017578125
+    },
+    "five_seven_balance": 0.08152393252078458,
+    "sixfold_modulation": 0.005943414297185596,
+    "min_separation_d": 0.4156113517807626,
+    "reference_N100": {
+      "psi6_global": {
+        "mean": 0.05971454644808546,
+        "se": 0.0024767161708101745,
+        "values": [
+          0.05265817699953914,
+          0.06213085681200028,
+          0.06013543195091188,
+          0.06393372002989053
+        ]
+      },
+      "psi6_local": {
+        "mean": 0.3916287848353386,
+        "se": 0.0008453036734628845,
+        "values": [
+          0.39134347677230835,
+          0.38983011186122896,
+          0.39391302049160004,
+          0.39142853021621704
+        ]
+      },
+      "defect_fraction": {
+        "mean": 0.5488999999999999,
+        "se": 0.0030566866593311967,
+        "values": [
+          0.5538,
+          0.5418,
+          0.5541999999999999,
+          0.5458
+        ]
+      }
+    },
+    "finite_size": {
+      "p": 0.4883626823580137,
+      "p_se": 0.081489889845453,
+      "eta6": 1.9534507294320549,
+      "eta6_se": 0.325959559381812,
+      "reading": "liquid-like",
+      "n_points": 2
+    }
+  },
+  "A10": {
+    "amplitude": 10.0,
+    "n_particles": 256,
+    "n_seeds": 4,
+    "window": [
+      60.0,
+      80.0
+    ],
+    "zahn": {
+      "amplitude": 10.0,
+      "gamma": 55.68327996831708,
+      "phase_zahn": "isotropic-liquid",
+      "distance_to_melt": -0.07008550487112428,
+      "distance_to_iso": -0.003342044597868569,
+      "citation": "[출처, 미재현] Zahn 1999 PRL 82, 2721"
+    },
+    "psi6_global": {
+      "mean": 0.17578218248265332,
+      "se": 0.013053945169553799,
+      "values": [
+        0.21195738174021245,
+        0.15060464459471404,
+        0.16570961805759,
+        0.17485708553809673
+      ]
+    },
+    "psi6_local": {
+      "mean": 0.5641036705672742,
+      "se": 0.004006181079652209,
+      "values": [
+        0.5742655766010284,
+        0.5549399089813233,
+        0.5620462602376938,
+        0.5651629364490509
+      ]
+    },
+    "defect_fraction": {
+      "mean": 0.29924804687499995,
+      "se": 0.007146184736532891,
+      "values": [
+        0.279375,
+        0.312734375,
+        0.305234375,
+        0.2996484375
+      ]
+    },
+    "coord_kinds_aggregate": 3,
+    "coordination_hist_aggregate": {
+      "4": 0.0006640625,
+      "5": 0.149248046875,
+      "6": 0.700751953125,
+      "7": 0.148115234375,
+      "8": 0.001220703125
+    },
+    "five_seven_balance": 0.0038095238095238915,
+    "sixfold_modulation": 0.01326799074630557,
+    "min_separation_d": 0.6915995020021649,
+    "reference_N100": {
+      "psi6_global": {
+        "mean": 0.24790043972432615,
+        "se": 0.007949096341836265,
+        "values": [
+          0.2694626392237842,
+          0.23111165625043215,
+          0.24532249395735561,
+          0.2457049694657326
+        ]
+      },
+      "psi6_local": {
+        "mean": 0.5687030825018882,
+        "se": 0.004132913571523187,
+        "values": [
+          0.577697936296463,
+          0.5583982932567596,
+          0.5664410609006881,
+          0.5722750395536422
+        ]
+      },
+      "defect_fraction": {
+        "mean": 0.294975,
+        "se": 0.006774753993073598,
+        "values": [
+          0.2814,
+          0.3136,
+          0.2906,
+          0.29429999999999995
+        ]
+      }
+    },
+    "finite_size": {
+      "p": 0.3657222651019166,
+      "p_se": 0.08605165770263487,
+      "eta6": 1.4628890604076663,
+      "eta6_se": 0.3442066308105395,
+      "reading": "between",
+      "n_points": 2
+    }
+  },
+  "_provenance_at_analysis": {
+    "code_hash": "196cb4d17bb5",
+    "git_rev": "61f80c5",
+    "git_dirty": true,
+    "env_hash": "eaf847c12616",
+    "env": {
+      "python": "3.12.13",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "hoomd": "7.1.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.0",
+      "gsd": "5.0.1",
+      "freud": "3.5.0"
+    },
+    "driver": [
+      "scripts/soft2d_nconv.py",
+      "scripts/soft2d_time_series.py"
+    ],
+    "drivers": {
+      "scripts/soft2d_nconv.py": "7ca777d1e474",
+      "scripts/soft2d_time_series.py": "0c7e64b77244"
+    },
+    "driver_hash": "a99f3f7652e7"
+  },
+  "_checks": [
+    {
+      "quantity": "psi6_global__A0.1__N256",
+      "predicted": 0.029821626374541662,
+      "tolerance": "±0.00508785",
+      "measured": 0.029244146554265174,
+      "verdict": "PASS",
+      "competing_value": 0.0449921046953466,
+      "note": "경쟁가설 `0.044992` 과의 거리 `0.01575` vs 예측과 `0.0005775` → **예측 쪽**",
+      "discriminates": "A=0.1 의 ψ₆ 가 유한크기 바닥인가 진짜 준장거리 질서인가"
+    },
+    {
+      "quantity": "psi6_exponent_p__A0.1",
+      "predicted": 0.5,
+      "tolerance": "±0.15",
+      "measured": 0.5208024050315011,
+      "verdict": "PASS",
+      "competing_value": 0.0625,
+      "note": "경쟁가설 `0.0625` 과의 거리 `0.4583` vs 예측과 `0.0208` → **예측 쪽**",
+      "discriminates": "A=0.1 의 상 판독 (η₆ = 4p)"
+    },
+    {
+      "quantity": "defect_fraction__A0.1__N256",
+      "predicted": 0.6444999999999999,
+      "tolerance": "±0.0120275",
+      "measured": 0.64349609375,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "defect_fraction 가 N=100 에서 이미 수렴했는가"
+    },
+    {
+      "quantity": "psi6_local__A0.1__N256",
+      "predicted": 0.3611549796164035,
+      "tolerance": "±0.00517919",
+      "measured": 0.35942421033978456,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "psi6_local 가 N=100 에서 이미 수렴했는가"
+    },
+    {
+      "quantity": "psi6_global__A1__N256",
+      "predicted": 0.03732159153005341,
+      "tolerance": "±0.00656739",
+      "measured": 0.0377320997195784,
+      "verdict": "PASS",
+      "competing_value": 0.05630735669569704,
+      "note": "경쟁가설 `0.056307` 과의 거리 `0.01858` vs 예측과 `0.0004105` → **예측 쪽**",
+      "discriminates": "A=1 의 ψ₆ 가 유한크기 바닥인가 진짜 준장거리 질서인가"
+    },
+    {
+      "quantity": "psi6_exponent_p__A1",
+      "predicted": 0.5,
+      "tolerance": "±0.15",
+      "measured": 0.4883626823580137,
+      "verdict": "PASS",
+      "competing_value": 0.0625,
+      "note": "경쟁가설 `0.0625` 과의 거리 `0.4259` vs 예측과 `0.01164` → **예측 쪽**",
+      "discriminates": "A=1 의 상 판독 (η₆ = 4p)"
+    },
+    {
+      "quantity": "defect_fraction__A1__N256",
+      "predicted": 0.5488999999999999,
+      "tolerance": "±0.0129684",
+      "measured": 0.55634765625,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "defect_fraction 가 N=100 에서 이미 수렴했는가"
+    },
+    {
+      "quantity": "psi6_local__A1__N256",
+      "predicted": 0.3916287848353386,
+      "tolerance": "±0.00358632",
+      "measured": 0.39406356915831564,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "psi6_local 가 N=100 에서 이미 수렴했는가"
+    },
+    {
+      "quantity": "psi6_global__A10__N256",
+      "predicted": 0.15493777482770385,
+      "tolerance": "±0.0210782",
+      "measured": 0.17578218248265332,
+      "verdict": "PASS",
+      "competing_value": 0.23375574821979261,
+      "note": "경쟁가설 `0.23376` 과의 거리 `0.05797` vs 예측과 `0.02084` → **예측 쪽**",
+      "discriminates": "A=10 의 ψ₆ 가 유한크기 바닥인가 진짜 준장거리 질서인가"
+    },
+    {
+      "quantity": "psi6_exponent_p__A10",
+      "predicted": 0.5,
+      "tolerance": "±0.15",
+      "measured": 0.3657222651019166,
+      "verdict": "PASS",
+      "competing_value": 0.0625,
+      "note": "경쟁가설 `0.0625` 과의 거리 `0.3032` vs 예측과 `0.1343` → **예측 쪽**",
+      "discriminates": "A=10 의 상 판독 (η₆ = 4p)"
+    },
+    {
+      "quantity": "defect_fraction__A10__N256",
+      "predicted": 0.294975,
+      "tolerance": "±0.0287428",
+      "measured": 0.29924804687499995,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "defect_fraction 가 N=100 에서 이미 수렴했는가"
+    },
+    {
+      "quantity": "psi6_local__A10__N256",
+      "predicted": 0.5687030825018882,
+      "tolerance": "±0.0175345",
+      "measured": 0.5641036705672742,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "psi6_local 가 N=100 에서 이미 수렴했는가"
+    },
+    {
+      "quantity": "beta_u_at_rcut__A0.1__N256",
+      "predicted": 0.0002,
+      "tolerance": "±0.0005",
+      "measured": 0.00021566373282900454,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "카드 §9 의 절단오차가 실제로 줄었는가"
+    },
+    {
+      "quantity": "beta_u_at_rcut__A1__N256",
+      "predicted": 0.0022,
+      "tolerance": "±0.0005",
+      "measured": 0.002156637328290045,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "카드 §9 의 절단오차가 실제로 줄었는가"
+    },
+    {
+      "quantity": "beta_u_at_rcut__A10__N256",
+      "predicted": 0.0216,
+      "tolerance": "±0.0005",
+      "measured": 0.021566373282900453,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "카드 §9 의 절단오차가 실제로 줄었는가"
+    },
+    {
+      "quantity": "coord_kinds_aggregate__A10__N256",
+      "predicted": 3,
+      "tolerance": "±0",
+      "measured": 3,
+      "verdict": "PASS",
+      "competing_value": null,
+      "note": "",
+      "discriminates": "결함의 성격이 N 에 무관한가"
+    }
+  ]
+}

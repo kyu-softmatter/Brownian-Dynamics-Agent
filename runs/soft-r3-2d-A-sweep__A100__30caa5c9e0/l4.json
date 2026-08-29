@@ -1,0 +1,43 @@
+{
+  "status": "ok",
+  "n_samples": 400,
+  "warnings": [],
+  "pe_mean": 105.510722899358,
+  "pe_std": 0.04758778481154747,
+  "phases": {
+    "평형화": {
+      "status": "ok",
+      "n_samples": 56,
+      "warnings": [],
+      "pe_mean": 105.59220521399187,
+      "pe_std": 0.13290789812020637,
+      "drift": -0.056865797266354434,
+      "drift_sem": 0.02601676404100878,
+      "drift_sigma": 2.1857367494558524,
+      "steps": 552858,
+      "expect_steady": true
+    },
+    "생산": {
+      "status": "ok",
+      "n_samples": 400,
+      "warnings": [],
+      "pe_mean": 105.510722899358,
+      "pe_std": 0.04758778481154747,
+      "drift": -0.008938098431997332,
+      "drift_sem": 0.0035455606132382086,
+      "drift_sigma": 2.520926704404595,
+      "steps": 2764000,
+      "expect_steady": true
+    }
+  },
+  "run_id": "soft-r3-2d-A-sweep__A100__30caa5c9e0",
+  "wall_seconds": 1426.3460385799408,
+  "steps_done": 3316858,
+  "steps_planned": 3316858,
+  "trip": null,
+  "guard_samples": 456,
+  "f_max_last": 49.7948434721193,
+  "step_disp_last": 0.0018013612423729629,
+  "f_max_seen": 91.89876293238848,
+  "step_disp_seen": 0.0033244982457092177
+}

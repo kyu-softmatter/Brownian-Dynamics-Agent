@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "contact",
+    "sliding",
+    "bending",
+    "jkr",
+    "dem"
+  ],
+  "dimensionless": {
+    "k_slide_over_ksR2": 5.3e-07
+  },
+  "source": "scratch/verify_rolling_contact.py#G3,G3′",
+  "lessons": [
+    {
+      "claim": "★ 접선(미끄러짐) 스프링만으로는 사슬 굽힘강성이 **정확히 0** 이다 — 구름 저항이 있어야 한다. 이유: U_s ∝ sum_k (theta_k + theta_{k+1} + 2*phi_k)^2 인데 방향 theta 가 결합 수보다 많아(n vs n-1) 항을 전부 0 으로 만드는 해가 항상 존재한다(끝에서 시작해 순차 결정). 실측: k_slide/(k_s R^2) = 1.8e-7 ~ 5.3e-7 (n=3~15), 그리고 delta 를 10/100 배 키우면 잔차가 1/100, 1/10000 로 줄어든다(1.46 → 0.00974 → 0.000146) — k ∝ 1/delta^2 이므로 진짜 2차 강성이 아니라 **상쇄 반올림**이다. ★ 이것은 md.pair.friction 이 무슬립 구름에 면제되는 것과 **같은 구조**다: 사슬은 굽힐 때 미끄러지지 않고 굴러서 빠져나간다. ⟹ JKR 굽힘의 대체 메커니즘을 찾을 때 '마찰'이 아니라 '구름 저항'을 구현해야 하는 이유.",
+      "kind": "method_note",
+      "coords": {
+        "k_slide_over_ksR2": 5.3e-07
+      }
+    }
+  ],
+  "not_verified": []
+}

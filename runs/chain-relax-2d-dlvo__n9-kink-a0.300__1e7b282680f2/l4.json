@@ -1,0 +1,28 @@
+{
+  "status": "ok",
+  "n_samples": 2000,
+  "warnings": [],
+  "pe_mean": -8.242680118139619,
+  "pe_std": 0.3031180296580558,
+  "phases": {
+    "release": {
+      "status": "ok",
+      "n_samples": 2000,
+      "warnings": [],
+      "pe_mean": -8.242680118139619,
+      "pe_std": 0.3031180296580558,
+      "steps": 300000,
+      "expect_steady": false
+    }
+  },
+  "run_id": "chain-relax-2d-dlvo__n9-kink-a0.300__1e7b282680f2",
+  "wall_seconds": 0.3526449203491211,
+  "steps_done": 300000,
+  "steps_planned": 300000,
+  "trip": null,
+  "guard_samples": 2000,
+  "f_max_last": 4023.264930354008,
+  "step_disp_last": 3.859754602468181e-05,
+  "f_max_seen": 10701.422683601813,
+  "step_disp_seen": 0.00010266503988926991
+}

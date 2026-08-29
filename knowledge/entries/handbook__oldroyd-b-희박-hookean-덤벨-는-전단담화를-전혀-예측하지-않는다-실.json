@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "polymer",
+    "oldroyd_b",
+    "dumbbell",
+    "model_limit"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#5 ← [L] (11.20),(11.21) p.496",
+  "lessons": [
+    {
+      "claim": "Oldroyd-B(=희박 Hookean 덤벨)는 전단담화를 전혀 예측하지 않는다 — 실행 확인: eta_p 가 gdot 4자리에 걸쳐 산포 6e-14. N1 = 2 eta_p lambda_p gdot^2, N2 = 0 이다. 유도상 희박 선형사슬 전용이므로 일반 고분자 유체 모형으로 쓰면 안 되고, 전단담화가 보이면 모델이 아니라 계가 다른 것이다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

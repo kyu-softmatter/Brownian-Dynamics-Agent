@@ -1,0 +1,99 @@
+{
+  "source": "scripts/soft2d_relax_seeds.py",
+  "stage": 2,
+  "provenance": {
+    "code_hash": "120a88adaf74",
+    "git_rev": "16381f3",
+    "git_dirty": true,
+    "env_hash": "eaf847c12616",
+    "env": {
+      "python": "3.12.13",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "hoomd": "7.1.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.0",
+      "gsd": "5.0.1",
+      "freud": "3.5.0"
+    },
+    "driver": [
+      "scripts/soft2d_relax_seeds.py",
+      "scripts/soft2d_time_series.py"
+    ],
+    "drivers": {
+      "scripts/soft2d_relax_seeds.py": "9be7b969f30c",
+      "scripts/soft2d_time_series.py": "0c7e64b77244"
+    },
+    "driver_hash": "8df8048c7216"
+  },
+  "parent_run": "runs/2026-07-29_soft-r3-relax-seeds",
+  "amplitudes": [
+    0.1,
+    1.0
+  ],
+  "k_seeds": 1536,
+  "geometry": {
+    "d_si": 1.5000000000000002e-05,
+    "L_si": 0.00015000000000000001,
+    "coverage": 0.08726646259971647,
+    "sigma_over_d": 0.3333333333333333,
+    "d_over_sigma": 3.0,
+    "L_star": 10.0,
+    "coverage_max": 0.1,
+    "sigma_over_d_max": 0.3568248232305542,
+    "tau_d_si": 2292.427238845818,
+    "D0_si": 9.814924381778073e-14,
+    "eta_si": 0.00089,
+    "eta_extrapolated": false,
+    "T_si": 298.15,
+    "sigma_si": 5e-06,
+    "kT_si": 4.1164049935e-21
+  },
+  "thresholds": {
+    "delta_thermal": 0.03,
+    "delta_force": 0.005,
+    "hard_floor": 1e-07
+  },
+  "gates": [
+    {
+      "amplitude": 0.1,
+      "gamma_zahn": 0.5568327996831708,
+      "phase_zahn": "isotropic-liquid",
+      "max_force_star": 0.9972189004705331,
+      "dt_max_thermal": 0.00045,
+      "dt_max_force": 0.005013944278072521,
+      "dominant_gate": "thermal_displacement",
+      "dt_star": 0.00045,
+      "steps": 177778,
+      "r_cut": 4.800000000000001,
+      "beta_u_at_rcut": 0.0009042245370370366,
+      "u_rel_to_nearest": 0.009042245370370365,
+      "Lx": 10.0,
+      "Ly": 10.0
+    },
+    {
+      "amplitude": 1.0,
+      "gamma_zahn": 5.568327996831708,
+      "phase_zahn": "isotropic-liquid",
+      "max_force_star": 9.97218900470533,
+      "dt_max_thermal": 0.00045,
+      "dt_max_force": 0.0005013944278072521,
+      "dominant_gate": "thermal_displacement",
+      "dt_star": 0.00045,
+      "steps": 177778,
+      "r_cut": 4.800000000000001,
+      "beta_u_at_rcut": 0.009042245370370365,
+      "u_rel_to_nearest": 0.009042245370370365,
+      "Lx": 10.0,
+      "Ly": 10.0
+    }
+  ],
+  "early_tau": 2.0,
+  "early_frames": 400,
+  "design_power": {
+    "k": 1536,
+    "sigma_expected_at_k": 3.962680445784916,
+    "k_for_3sigma": 886,
+    "t_quantile": 3.0085029252501836,
+    "stage": 2
+  }
+}

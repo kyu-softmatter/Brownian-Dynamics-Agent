@@ -1,0 +1,44 @@
+{
+  "status": "ok",
+  "n_samples": 1200,
+  "warnings": [
+    "[생산] ⟨U⟩/N 이 표류합니다: 후반−전반 = -0.01824 kT = 3.1·블록SEM (기준 3). 평형화가 부족합니다"
+  ],
+  "pe_mean": 0.9932213779166084,
+  "pe_std": 0.06803574391165841,
+  "phases": {
+    "평형화": {
+      "status": "ok",
+      "n_samples": 1,
+      "warnings": [],
+      "pe_mean": 0.9255258595132446,
+      "pe_std": 0.0,
+      "steps": 5000,
+      "expect_steady": true
+    },
+    "생산": {
+      "status": "ok",
+      "n_samples": 1200,
+      "warnings": [
+        "[생산] ⟨U⟩/N 이 표류합니다: 후반−전반 = -0.01824 kT = 3.1·블록SEM (기준 3). 평형화가 부족합니다"
+      ],
+      "pe_mean": 0.9932213779166084,
+      "pe_std": 0.06803574391165841,
+      "drift": -0.018237322446189808,
+      "drift_sem": 0.005897985509515874,
+      "drift_sigma": 3.092127374128932,
+      "steps": 60000,
+      "expect_steady": true
+    }
+  },
+  "run_id": "trap-2d-5um__ed80885e01b3",
+  "wall_seconds": 13.400683164596558,
+  "steps_done": 65000,
+  "steps_planned": 65000,
+  "trip": null,
+  "guard_samples": 1201,
+  "f_max_last": 603.0983805704514,
+  "step_disp_last": 1.998401222486912e-05,
+  "f_max_seen": 1246.334845781357,
+  "step_disp_seen": 4.129802300383645e-05
+}

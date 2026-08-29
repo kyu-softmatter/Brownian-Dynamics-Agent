@@ -1,0 +1,556 @@
+{
+  "schema": "bdbot.nondim/0.1",
+  "case": "chain-relax-2d-dlvo",
+  "label": "chain-relax-2d-dlvo",
+  "tag": "n9-straight",
+  "run_id": "chain-relax-2d-dlvo__n9-straight__f3eb1d45505d",
+  "system": {
+    "label": "chain-relax-2d-dlvo",
+    "derived_from": "intake/chain-relax-2d-dlvo/observation.yaml",
+    "description": "chain-bend-2d-dlvo 와 물리적으로 동일한 사슬(같은 PMMA 비드, DLVO 2차극소 결합, 명시적 굽힘/마찰 없음)이지만 트랩·오실레이션 구동을 전부 제거하고 자유 이완만 본다 (규칙 8: 정적인 계를 먼저 세우고 움직임은 그 다음에 얹는다 — 이 케이스가 chain-bend-2d-dlvo 가 건너뛴 \"정적 단계\"). 두 실험: (a) 직선 사슬의 열평형 — 결합 신장(radial) 자유도의 등분배 골든테스트. (b) 중앙 결합에 정확한 킹크각을 준 뒤 풀어서 굽음(bow)이 탄성 복원되는지 확산적으로 흩어지는지 관찰.\n",
+    "dimensions": 2,
+    "particle": {
+      "shape": "sphere",
+      "diameter": {
+        "value": 1.47,
+        "unit": "um",
+        "source": "[P1] p.1 '2a = 1.47 ± 0.01 µm' PMMA — chain-bend-2d-dlvo 승계",
+        "tier": 2
+      },
+      "density": {
+        "value": 1180,
+        "unit": "kg/m^3",
+        "source": "★제안: PMMA. τ_p(St, 모델 타당성 검사)에만 쓰임 — chain-bend-2d-dlvo 승계",
+        "tier": 3
+      },
+      "surface_potential": {
+        "value": 40,
+        "unit": "mV",
+        "source": "[P1] p.1 '측정된 표면전위 40 ± 3 mV' — chain-bend-2d-dlvo 승계",
+        "tier": 2
+      },
+      "count": {
+        "value": [
+          9
+        ],
+        "unit": "dimensionless",
+        "source": "★제안: 파일럿 사슬 길이. chain-bend-2d-dlvo 에서 가장 많이 쓰인 n=9 와 맞춰 대조 가능하게 함 (observation.yaml missing_required:n_beads). --n 으로 덮어씀.\n",
+        "tier": 3
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "water",
+      "temperature": {
+        "value": 300,
+        "unit": "K",
+        "source": "1-A 승계 → chain-bend-2d-dlvo 승계",
+        "tier": 1
+      },
+      "viscosity": {
+        "value": 0.851,
+        "unit": "mPa*s",
+        "source": "물@300K 핸드북 — chain-bend-2d-dlvo 승계",
+        "tier": 1
+      },
+      "relative_permittivity": {
+        "value": 78.5,
+        "unit": "dimensionless",
+        "source": "물@298K 핸드북(CRC) — 승계",
+        "tier": 1
+      },
+      "ionic_strength": {
+        "value": 10,
+        "unit": "mM",
+        "source": "[P1] 이 스윕한 MgCl2 농도 중 하나(~10mM). chain-bend-2d-dlvo 가 확정한 값을 그대로 승계 — 그 케이스에서 250mM(장벽 없이 발산)을 배제하고 10mM(교과서적 곡선)을 채택한 이유가 이 케이스에도 그대로 적용된다.\n",
+        "tier": 2,
+        "note": "MgCl2 (2:1 전해질). I = ½Σcᵢzᵢ² = 0.75×c_salt"
+      }
+    },
+    "interactions": [
+      {
+        "kind": "pair.dlvo_secondary_minimum",
+        "form": "U(h) = U_edl(h) + U_vdw(h), h=표면간극. HHF(등전위,약한중첩)+Derjaguin 비지연 vdW",
+        "rationale": "chain-bend-2d-dlvo 와 완전히 동일한 식·구현(cases/chain_bend_dlvo_2d.py 의 dlvo_reduced_params/find_well/build_table_arrays/U_star/F_h_star)을 그대로 임포트한다 — 재정의하지 않는다 (두 번째 케이스이므로, network 가 이미 같은 방식으로 재사용한 전례를 따른다). NN(최근접) 쌍에만 사실상 걸리지만(컷오프가 좁음), 전역 페어 퍼텐셜이라 사슬이 접히면 비인접 비드도 상호작용할 수 있다 — 막지 않는다(실제 물리, [P1]의 \"삼각형형\" 가능성과 직결).\n",
+        "hamaker_constant": {
+          "value": 1.05e-20,
+          "unit": "J",
+          "source": "웹검색값(PMMA-물-PMMA, 1차 출처 미확인). chain-bend-2d-dlvo 에서 독립 교차검증됨: Tabor-Winterton 근사(핸드북 유전율·굴절률)로 A_calc=9.40e-21 J (−10.5%, 같은 자릿수). 민감도 확인: A를 4배 바꿔도 우물깊이는 −4.9~−25.5 kT 범위로 JKR 급 굽힘강성에는 못 미침 — \"인력이 약하다\"는 결론이 A 불확실성에 안정적. 전체 유도: intake/chain-bend-2d-dlvo/system.yaml.\n",
+          "tier": 2
+        },
+        "debye_length": {
+          "value": 1.7618,
+          "unit": "nm",
+          "source": "derived: κ⁻¹=√(ε0·εr·kT/(2·NA·e²·I)), MgCl2 10mM — chain-bend-2d-dlvo 승계",
+          "tier": 1
+        },
+        "barrier_height": {
+          "value": 416.39,
+          "unit": "dimensionless",
+          "source": "derived: max U_tot(h)/kT @ h=0.508nm. 이 케이스가 임포트하는 cases/chain_bend_dlvo_2d.find_well() 로 직접 재계산한 값(4000점 격자) — network/system.yaml 이 지적한 것처럼 chain-bend-2d-dlvo/system.yaml 의 문서값(381.70@0.489nm)은 옛 dlvo_ledger.py(성긴 격자)에서 나온 8.3% 낮은 값이라 여기서는 쓰지 않고 재계산값을 채택했다.\n",
+          "tier": 1,
+          "note": "단위=kT. 1차극소로의 열적 전이가 사실상 불가능함을 보장"
+        },
+        "well_depth": {
+          "value": -11.7155,
+          "unit": "dimensionless",
+          "source": "derived (동일 재계산): U_tot(h)/kT 2차극소 @ h=11.161nm",
+          "tier": 1,
+          "note": "단위=kT. 열에너지 규모 → 결합이 가역적/깨지기 쉬울 수 있음"
+        },
+        "well_location": {
+          "value": 11.161,
+          "unit": "nm",
+          "source": "derived: argmin U_tot(h) (장벽 이후)",
+          "tier": 1
+        },
+        "bond_stiffness": {
+          "value": 0.00199797,
+          "unit": "N/m",
+          "source": "derived: d²U_tot/dh² @ well_location = 1.042363e6 kT/d² (재계산, 4000점 격자)",
+          "tier": 1,
+          "note": "방사(신축) 강성. 이 케이스의 유일한 조화(선형) 강성 모드 — dt 도 여기서 정한다"
+        },
+        "max_tension": {
+          "value": 810.412,
+          "unit": "dimensionless",
+          "source": "derived: max|F_h_star(h)| for h>h_min (h*=0.009946, h=14.62nm — well_location 에서 3.46nm 바깥). 킹크 초기조건의 결합 신장이 이 값을 넘어서는지 L3 기하 검사(안전용, 하드 아님)의 기준. dlvo_tension_stiffening.py(1-D 분석)의 810.4 kT/d 와 재계산으로 일치 — 교차검증.\n",
+          "tier": 1,
+          "note": "단위=kT/d. 이 지점을 넘으면 복원력이 약해지기 시작(우물 바깥쪽, 파단은 아님 — 컷오프 0.06d=88nm까지는 여전히 인력)"
+        }
+      }
+    ],
+    "external": "none",
+    "targets": [
+      {
+        "name": "bond_length_variance"
+      },
+      {
+        "name": "bend_angle_variance"
+      },
+      {
+        "name": "bow_relaxation"
+      },
+      {
+        "name": "nnn_folding"
+      }
+    ],
+    "derived_scales": {
+      "source": "cases/chain_bend_dlvo_2d.dlvo_reduced_params/find_well 재계산 (2026-08-06), bdbot.materials.sphere_bulk. chain-bend-2d-dlvo 와 물리가 같아 유도값도 같다.",
+      "kT": {
+        "value": 4.141947e-21,
+        "unit": "J",
+        "expr": "k_B T"
+      },
+      "gamma": {
+        "value": 1.179011e-08,
+        "unit": "kg/s",
+        "expr": "3 pi eta d"
+      },
+      "D_t": {
+        "value": 3.513068e-13,
+        "unit": "m^2/s",
+        "expr": "kT/gamma"
+      },
+      "tau_B": {
+        "value": 6.151034,
+        "unit": "s",
+        "expr": "d^2/D_t"
+      },
+      "tau_p": {
+        "value": 1.664618e-07,
+        "unit": "s",
+        "expr": "m/gamma",
+        "role": "관성 이완 — 모델 검사 전용"
+      },
+      "tau_bond": {
+        "value": 5.901049e-06,
+        "unit": "s",
+        "expr": "gamma/k_bond",
+        "role": "★★ 이 계의 유일한 강성 모드 — dt 를 정한다. tau_p/tau_bond=0.0282 (관성무시 기준 1e-2 를 2.8배 넘김 — chain-bend-2d-dlvo 와 동일한 미검증 상태, 물리가 같으므로 재검증하지 않음)"
+      },
+      "sigma_bond": {
+        "value": 1.43982,
+        "unit": "nm",
+        "expr": "sqrt(kT/k_bond)",
+        "role": "결합 신장 열요동 폭 — 골든테스트 예측값"
+      },
+      "ell": {
+        "value": 1481.161,
+        "unit": "nm",
+        "expr": "d + h_min",
+        "role": "결합길이(중심간 자연장)"
+      }
+    },
+    "dimensionless": {
+      "reference": {
+        "length": "d",
+        "time": "tau_B",
+        "energy": "kT",
+        "strategy": "thermal"
+      },
+      "groups": [
+        {
+          "name": "well_depth/kT",
+          "value": -11.7155,
+          "meaning": "★ 결합이 열에너지 규모 — 가역적"
+        },
+        {
+          "name": "barrier/kT",
+          "value": 416.39,
+          "meaning": "1차극소 전이는 사실상 불가능"
+        },
+        {
+          "name": "bond_stiffness_star",
+          "value": "1.042363e6",
+          "meaning": "k_bond d²/kT — 신장 강성(굽힘 아님, 굽힘은 0)"
+        },
+        {
+          "name": "tau_bond/tau_B",
+          "value": 9.5931e-07,
+          "meaning": "척도 분리 6자릿수"
+        },
+        {
+          "name": "St",
+          "value": 0.028209,
+          "meaning": "tau_p/tau_bond — 관성무시 기준 2.8배 초과(소프트, 승계)"
+        }
+      ]
+    },
+    "numerics": {
+      "dt": {
+        "value": null,
+        "unit": null,
+        "source": "L3(cases/chain_relax_2d_dlvo.py)에서 dt = 1e-2 x tau_bond 로 유도 — 이 계의 유일한 강성 모드가 tau_bond 뿐이라 트랩/굽힘 후보와 비교할 필요가 없다(chain-bend-2d-dlvo 는 트랩 tau_k 도 후보였다).",
+        "tier": 1
+      },
+      "production_note": "관측창은 '사슬 전체 형태 이완'(tau_chain_diff ~ 1e7 tau_bond, chain-bend-2d-dlvo 참조)이 아니라 '국소 결합 모드의 등분배 통계'만 필요해서 훨씬 짧다 — observation.yaml R2. 직선열평형 T_obs=2e4 tau_bond, 킹크이완 T_obs=3e3 tau_bond (과도구간 포착 목적).\n",
+      "stat_target_pct": 5.0,
+      "equilibration": "직선 모드: 국소(결합) 이완 배수로 저렴하게 잡음(eq_scale x tau_bond/dt, chain-bend-2d-dlvo 관례 승계). 킹크 모드: 평형화 없음 — t=0(방출 순간)부터 바로 기록한다(이완 자체가 관측 대상)."
+    },
+    "not_verified": [
+      "★★ 핵심 미검증: 결합 신장(radial) 자유도의 등분배(⟨δℓ²⟩=kT/k_bond)가 이 케이스로 이식한 DLVO 표 퍼텐셜에서 정확히 성립하는지 — chain-bend-2d-dlvo 는 트랩+구동이 섞여 순수 열평형 결합신장을 격리해서 잰 적이 없다. 어긋나면 이식 버그.",
+      "★★ 핵심 미검증(가설): 굽힘(각) 자유도의 열요동 폭 — G1 은 '선형강성이 0'이라고만 말하고 실제 요동 폭의 크기는 예측하지 않는다(고차항이 지배). 이 실행이 그 크기를 처음으로 재는 것 — 예측이 없으므로 measurement.",
+      "킹크각 0.30 rad·n=9 조합에서 NNN(2결합 건너) 간극이 컷오프(0.06d) 밖으로 충분히 남는지는 L3 기하 검사로 확인하지만, '충분히'의 기준(안전계수)은 ★제안",
+      "tau_p/tau_bond=0.0282 미검증 상태는 chain-bend-2d-dlvo 에서도 동일하게 미검증 — 같은 입자·같은 결합이므로 그 케이스가 검증하면 이 케이스도 같이 검증된다",
+      "Hamaker 상수(1.05e-20 J) 1차 출처 미확인(tier 2) — chain-bend-2d-dlvo 승계와 동일한 불확실성. 결론이 A 값에 민감해지면(우물이 kT 근방을 오르내리면) 재확인 필요"
+    ]
+  },
+  "reference": {
+    "strategy": "thermal",
+    "rationale": "thermal 규약 고정 (σ=d, E=kT, τ=τ_B). 단위계는 문헌 비교를 위해 계마다 바꾸지 않는다 (bd-physics §1.1). 지배 시간척도는 계마다 다를 수 있고, dt는 그쪽으로 정한다. ★ 이 계엔 굽힘강성도 트랩도 없다 — 유일한 강성 모드가 결합 신장(tau_bond)뿐이라, dt·평형화 판정이 chain-bend-2d-dlvo 보다 단순하다.",
+    "length": {
+      "symbol": "d",
+      "value": 1.47e-06,
+      "unit": "meter"
+    },
+    "time": {
+      "symbol": "tau_B",
+      "value": 6.151034378734867,
+      "unit": "second"
+    },
+    "energy": {
+      "symbol": "kT",
+      "value": 4.141947e-21,
+      "unit": "kilogram * meter ** 2 / second ** 2"
+    }
+  },
+  "back_transform": {
+    "sigma_SI": 1.47e-06,
+    "sigma_SI_unit": "meter",
+    "tau_SI": 6.151034378734867,
+    "tau_SI_unit": "second",
+    "energy_SI": 4.141947e-21,
+    "energy_SI_unit": "kilogram * meter ** 2 / second ** 2"
+  },
+  "ledger": {
+    "lengths": [
+      {
+        "symbol": "sigma_bond",
+        "value": 1.4398188857738901e-09,
+        "unit": "meter",
+        "note": "결합 신장 열요동 폭 √(kT/k_bond)",
+        "role": "",
+        "star": true,
+        "reduced": 0.0009794686297781565
+      },
+      {
+        "symbol": "h_min",
+        "value": 1.1161107829109314e-08,
+        "unit": "meter",
+        "note": "2차극소 위치(표면간극)",
+        "role": "",
+        "star": false,
+        "reduced": 0.007592590359938309
+      },
+      {
+        "symbol": "d",
+        "value": 1.47e-06,
+        "unit": "meter",
+        "note": "비드 지름",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "ell",
+        "value": 1.4811611078291093e-06,
+        "unit": "meter",
+        "note": "결합 자연길이 (중심간, d+h_min)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0075925903599383
+      },
+      {
+        "symbol": "L_chain",
+        "value": 1.1849288862632874e-05,
+        "unit": "meter",
+        "note": "사슬 윤곽길이 (n-1)ell",
+        "role": "",
+        "star": false,
+        "reduced": 8.060740722879506
+      }
+    ],
+    "times": [
+      {
+        "symbol": "tau_p",
+        "value": 1.6646180963572265e-07,
+        "unit": "second",
+        "note": "m/γ 관성 이완",
+        "role": "inertia",
+        "star": false,
+        "reduced": 2.7062409244729374e-08
+      },
+      {
+        "symbol": "dt",
+        "value": 5.9010489401633553e-08,
+        "unit": "second",
+        "note": "적분 스텝",
+        "role": "dt",
+        "star": false,
+        "reduced": 9.593587967194994e-09
+      },
+      {
+        "symbol": "tau_bond",
+        "value": 5.901048940163355e-06,
+        "unit": "second",
+        "note": "★★ γ/k_bond 결합 신장 — 이 계의 **유일한** 강성 모드. dt를 정한다",
+        "role": "",
+        "star": true,
+        "reduced": 9.593587967194993e-07
+      },
+      {
+        "symbol": "tau_B",
+        "value": 6.151034378734867,
+        "unit": "second",
+        "note": "d²/D_t 확산 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "T_obs",
+        "value": 0.00029505244700816775,
+        "unit": "second",
+        "note": "관측창 (τ_bond 배수 — 국소 모드만 필요, 사슬 전체 형태이완 τ_chain_diff 는 불필요, observation.yaml R2)",
+        "role": "observation",
+        "star": false,
+        "reduced": 4.796793983597497e-05
+      }
+    ],
+    "energies": [
+      {
+        "symbol": "kT",
+        "value": 4.141947e-21,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "열에너지 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "k_bond_d2",
+        "value": 4.317411811058878e-15,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "k_bond d² 결합 신장강성",
+        "role": "",
+        "star": true,
+        "reduced": 1042362.8817700656
+      },
+      {
+        "symbol": "well_depth",
+        "value": 4.852498052855894e-20,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "|2차극소 깊이|",
+        "role": "",
+        "star": false,
+        "reduced": 11.715500108658787
+      }
+    ]
+  },
+  "ledger_absent": {
+    "box": "주기경계 없음 (사슬 하나, 트랩도 없어 자유 이완·자유 회전). HOOMD 프레임에 형식적 박스가 필요하므로 사슬 자신의 최대 크기(4×L_chain, chain-bend-2d-dlvo와 같은 여유)로 크게 잡아 자기 주기이미지와의 상호작용만 피한다 — 물리적으로 의미 있는 확인 스케일이 아니다.",
+    "bending_stiffness": "★★ 구조적으로 없다 (G1, chain-bend-2d-dlvo 에서 유도) — 이 케이스가 그 구조적 사실을 구동 없는 최소 구성에서 직접 실행으로 확인하는 것 자체가 목적이다. 지어낸 대체 척도를 넣지 않는다."
+  },
+  "groups": [
+    {
+      "name": "k_bond_star",
+      "value": 1042362.8817700658,
+      "expr": "k_bond d²/kT",
+      "meaning": "결합 신장강성 — 유일한 조화 모드",
+      "num": [
+        "energies",
+        "k_bond_d2"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "well_depth/kT",
+      "value": 11.715500108658787,
+      "expr": "",
+      "meaning": "결합 깊이 — 열에너지 규모면 가역적",
+      "num": [
+        "energies",
+        "well_depth"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "sigma_bond/d",
+      "value": 0.0009794686297781565,
+      "expr": "",
+      "meaning": "결합 신장 열요동 (예측 골든테스트)",
+      "num": [
+        "lengths",
+        "sigma_bond"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "n_beads",
+      "value": 9.0,
+      "expr": "",
+      "meaning": "사슬 길이 (입력)",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "kink_angle_rad",
+      "value": 0.0,
+      "expr": "",
+      "meaning": "초기 킹크각 (입력, straight면 0)",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "dt/tau_bond",
+      "value": 0.01,
+      "expr": "",
+      "meaning": "적분 해상 — 유일한 강성 모드",
+      "num": [
+        "times",
+        "dt"
+      ],
+      "den": [
+        "times",
+        "tau_bond"
+      ]
+    },
+    {
+      "name": "T_obs/tau_bond",
+      "value": 50.0,
+      "expr": "",
+      "meaning": "관측창 (국소모드 통계용)",
+      "num": [
+        "times",
+        "T_obs"
+      ],
+      "den": [
+        "times",
+        "tau_bond"
+      ]
+    },
+    {
+      "name": "St",
+      "value": 0.028208850887976974,
+      "expr": "tau_p/tau_bond",
+      "meaning": "관성 vs 결합신장",
+      "num": [
+        "times",
+        "tau_p"
+      ],
+      "den": [
+        "times",
+        "tau_bond"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "kind": "모델",
+      "name": "참고: τ_p/τ_bond",
+      "value": 0.028208850887976974,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": false,
+      "margin": 0.3544986656745436,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "결합 신장 해상 dt/τ_bond",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "관측창 충분     T_obs/τ_bond",
+      "value": 50.0,
+      "limit": 1000.0,
+      "op": ">=",
+      "ok": false,
+      "margin": 0.05,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "verdict": "PASS (경고 2건)",
+  "params": {
+    "n_beads": 9,
+    "init": "straight",
+    "kink_angle": 0.0,
+    "kappa_star": 834.386642303084,
+    "edl_amp": 1239.9410533105035,
+    "vdw_amp": 0.211253306717831,
+    "a_star": 0.5,
+    "cutoff_h_star": 0.06,
+    "h_min_star": 0.00759259035993831,
+    "k_bond_star": 1042362.8817700658,
+    "well_star": -11.715500108658787,
+    "dl_var_boltz": 4.382352866628466e-06
+  },
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 2000,
+    "n_prod": 5000,
+    "n_samples": 100,
+    "sample_every": 50,
+    "seed": 1
+  },
+  "l3_issues": []
+}

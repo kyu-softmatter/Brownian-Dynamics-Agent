@@ -1,0 +1,133 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "soft-r3-2d-A-sweep__A100-rc7__efc0a658c9",
+  "case": "soft-r3-2d-A-sweep",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "d_um": 5.0,
+    "T_K": 300.0,
+    "eta_mPas": 0.851,
+    "N": 400,
+    "phi": 0.35,
+    "tau_B_s": 242.05059977272577,
+    "tau_int_s": 0.8756339787830663,
+    "L_um": 149.79969134027408,
+    "gamma_kg_per_s": 4.01024302230737e-08
+  },
+  "dimensionless": {
+    "Gamma  = U(a_mean)/kT   결합 vs 열요동 ★": 29.748648790272707,
+    "A      = U(d)/kT        접촉 결합": 100.0,
+    "phi                     밀집도": 0.35,
+    "a_mean/d                평균간격": 1.4979969134027407,
+    "L/d                     박스 크기": 29.959938268054813,
+    "r_c/d                   컷오프": 10.485978393819185,
+    "r_c/a_mean              컷오프(이웃 껍질 수)": 7.0,
+    "dt/tau_int              적분 해상": 0.009999999999999998,
+    "T_obs/tau_B             관측창": 100.0,
+    "St     = tau_p/tau_B    관성 vs 확산": 1.3485336132119386e-08
+  },
+  "observables": [
+    {
+      "name": "에너지 일관성 ⟨U⟩/N",
+      "measured": 113.43291620692403,
+      "predicted": 113.44618750451286,
+      "unit": "kT",
+      "err_pct": 0.01169968826739863,
+      "prediction_source": "consistency: HOOMD 힘 합 vs (ρ/2)∫U g(r) 2πr dr"
+    },
+    {
+      "name": "육방 NN 거리",
+      "measured": 1.616764443218708,
+      "predicted": 1.6097024411070593,
+      "unit": "d",
+      "err_pct": 0.4387147544357282,
+      "prediction_source": "lattice: a_NN = √(2/√3)·a_mean (완전 육방). ψ₆>0.6 일 때만 적용"
+    },
+    {
+      "name": "psi6",
+      "measured": 0.8867427778244018,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none"
+    },
+    {
+      "name": "U_per_N",
+      "measured": 113.43291620692403,
+      "predicted": null,
+      "unit": "kT",
+      "err_pct": null,
+      "prediction_source": "none"
+    }
+  ],
+  "numerics": {
+    "dt_over_tau_int": 0.01,
+    "dt_over_tau_B": 3.6175658296457254e-05,
+    "n_eq": 552858,
+    "n_prod": 2764000,
+    "seed": 20260803,
+    "bias_predicted_pct": 0.5,
+    "primary_sem_pct": 0.0018177312102850593,
+    "stat_target_pct": 2.0
+  },
+  "diagnostics": {
+    "equilibrium_z": 0.2913515614974701,
+    "trend_t": -0.6436465865032153,
+    "first_half": 113.4322108510978,
+    "second_half": 113.43362156275026,
+    "tau_int_samples": 0.0,
+    "n_eff": 400.0,
+    "drift_span": -0.005382247426123713,
+    "drift_span_rel_pct": -0.004744872657867167,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 400
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=+0.29, 지표=⟨U⟩/N [kT])",
+    "드리프트 없음 ✓ (t=-0.64, 전구간 -0.005%, n_eff=400/400)",
+    "분리 검사 7종 중 하드 전부 통과 ✓ (여유 부족 6건)",
+    "관측량 2종 예측과 일치 ✓ (최대 오차 +0.44% @ 육방 NN 거리)",
+    "통계 충분 ✓ (±0.002% < 목표 2%)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "예측값 없는 관측량 2종 (측정만 기록, 판정 안 함)",
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [
+    {
+      "claim": "2D r⁻³ 컷오프: r_c 5a→7a 에서 구조는 0.15% 이내 불변인데 절대 ⟨U⟩/N 은 +7.5% 변한다. 꼬리 에너지가 1/r_c 로만 줄기 때문 — 구조는 수렴, 열역학량은 꼬리보정 필요",
+      "kind": "pitfall",
+      "coords": {
+        "Gamma": 29.75
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

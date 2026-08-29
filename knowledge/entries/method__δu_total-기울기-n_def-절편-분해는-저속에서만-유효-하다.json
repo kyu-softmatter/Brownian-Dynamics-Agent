@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "relaxation",
+    "defects",
+    "regression",
+    "decomposition"
+  ],
+  "dimensionless": {
+    "Gamma": 29.7
+  },
+  "source": "runs/trap-drag-2d-hex300__ENSEMBLE#relax_vs_v",
+  "lessons": [
+    {
+      "claim": "ΔU_total = (기울기)·n_def + (절편) 분해는 **저속에서만 유효**하다. 상관 r 이 저속 0.70 → 고속 0.46 으로 떨어지고 기울기가 4.2 → 21.4 kT/결함 으로 부풀는데, 이건 결함당 에너지가 커진 게 아니라 **회귀가 무효**가 된 것이다 — 고속에서는 저장 에너지의 69%가 탐침 주변 탄성 변형장이고 결함과 무관해서, 선형 회귀가 그걸 결함 탓으로 잘못 배분한다. 인용해도 되는 값은 저속의 **4.2~5.2 kT/결함**(r≈0.70). ⚠️ r 을 함께 보고하지 않으면 이 무효화가 보이지 않는다.",
+      "kind": "pitfall",
+      "coords": {
+        "Gamma": 29.7
+      }
+    }
+  ],
+  "not_verified": []
+}

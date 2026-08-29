@@ -1,0 +1,246 @@
+{
+  "source": "scripts/soft2d_hexwin.py",
+  "provenance": {
+    "code_hash": "c3b453de24e3",
+    "git_rev": "c0e2efc",
+    "git_dirty": true,
+    "env_hash": "eaf847c12616",
+    "env": {
+      "python": "3.12.13",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "hoomd": "7.1.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.0",
+      "gsd": "5.0.1",
+      "freud": "3.5.0"
+    },
+    "driver": [
+      "scripts/soft2d_hexwin.py",
+      "scripts/soft2d_time_series.py"
+    ],
+    "drivers": {
+      "scripts/soft2d_hexwin.py": "c023a349c31d",
+      "scripts/soft2d_time_series.py": "0c7e64b77244"
+    },
+    "driver_hash": "b4c1b1cb6e10"
+  },
+  "parent_runs": [
+    "runs/2026-07-29_soft-r3-ascan",
+    "runs/2026-07-29_soft-r3-fss"
+  ],
+  "closes": [
+    "S25 (hexatic 창)",
+    "S26 부분 (A=31.6 절단 해방)"
+  ],
+  "amplitudes": [
+    10.0,
+    10.2,
+    10.4,
+    10.6,
+    10.8,
+    31.6
+  ],
+  "n_ladder": [
+    256,
+    576,
+    1024
+  ],
+  "seeds": [
+    41,
+    42,
+    43,
+    44
+  ],
+  "r_cut_fixed": 7.8,
+  "prod_tau": 10.0,
+  "window": [
+    6.0,
+    10.0
+  ],
+  "drift_split": 8.0,
+  "n_frames": 200,
+  "gates": [
+    {
+      "amplitude": 10.0,
+      "n_particles": 256,
+      "dt_star": 4.8056920601131116e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 208087,
+      "max_force_star": 104.04328736540633,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.021072506279606874
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 576,
+      "dt_star": 5.284024833780986e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 189250,
+      "max_force_star": 94.6248391573559,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.021072506279606874
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 1024,
+      "dt_star": 4.973837014021138e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 201052,
+      "max_force_star": 100.52601212916927,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.021072506279606874
+    },
+    {
+      "amplitude": 10.2,
+      "n_particles": 256,
+      "dt_star": 4.7114628040324624e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 212248,
+      "max_force_star": 106.12415311271445,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.021493956405199008
+    },
+    {
+      "amplitude": 10.2,
+      "n_particles": 576,
+      "dt_star": 5.180416503706849e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 193035,
+      "max_force_star": 96.517335940503,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.021493956405199008
+    },
+    {
+      "amplitude": 10.2,
+      "n_particles": 1024,
+      "dt_star": 4.876310798059939e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 205073,
+      "max_force_star": 102.53653237175267,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.021493956405199008
+    },
+    {
+      "amplitude": 10.4,
+      "n_particles": 256,
+      "dt_star": 4.620857750108761e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 216410,
+      "max_force_star": 108.20501886002259,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.02191540653079115
+    },
+    {
+      "amplitude": 10.4,
+      "n_particles": 576,
+      "dt_star": 5.0807931094047976e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 196820,
+      "max_force_star": 98.40983272365007,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.02191540653079115
+    },
+    {
+      "amplitude": 10.4,
+      "n_particles": 1024,
+      "dt_star": 4.7825355904049406e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 209094,
+      "max_force_star": 104.54705261433604,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.02191540653079115
+    },
+    {
+      "amplitude": 10.6,
+      "n_particles": 256,
+      "dt_star": 4.533671754823691e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 220572,
+      "max_force_star": 110.28588460733069,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.022336856656383283
+    },
+    {
+      "amplitude": 10.6,
+      "n_particles": 576,
+      "dt_star": 4.98492908847263e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 200605,
+      "max_force_star": 100.30232950679721,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.022336856656383283
+    },
+    {
+      "amplitude": 10.6,
+      "n_particles": 1024,
+      "dt_star": 4.692299069831263e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 213115,
+      "max_force_star": 106.55757285691942,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.022336856656383283
+    },
+    {
+      "amplitude": 10.8,
+      "n_particles": 256,
+      "dt_star": 4.4497148704751025e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 224734,
+      "max_force_star": 112.36675035463885,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.022758306781975424
+    },
+    {
+      "amplitude": 10.8,
+      "n_particles": 576,
+      "dt_star": 4.892615586834246e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 204390,
+      "max_force_star": 102.19482628994436,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.022758306781975424
+    },
+    {
+      "amplitude": 10.8,
+      "n_particles": 1024,
+      "dt_star": 4.6054046426121644e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 217136,
+      "max_force_star": 108.56809309950283,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.022758306781975424
+    },
+    {
+      "amplitude": 31.6,
+      "n_particles": 256,
+      "dt_star": 1.5207886266180731e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 657554,
+      "max_force_star": 328.776788074684,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.06658911984355773
+    },
+    {
+      "amplitude": 31.6,
+      "n_particles": 576,
+      "dt_star": 1.6721597575256285e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 598029,
+      "max_force_star": 299.0144917372446,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.06658911984355773
+    },
+    {
+      "amplitude": 31.6,
+      "n_particles": 1024,
+      "dt_star": 1.5739990550699803e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 635324,
+      "max_force_star": 317.66219832817495,
+      "r_cut": 7.8,
+      "beta_u_at_rcut": 0.06658911984355773
+    }
+  ],
+  "eta6_ceiling": 0.25,
+  "a100_infeasible": "A=100·N=1024 는 dt ∝ 1/A 때문에 런 하나가 ~2100 s = 예산의 3.5배다. 이 기계에서 A=100 의 유한크기 사다리는 불가능하다 — A=31.6 이 한계"
+}

@@ -1,0 +1,130 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "chain-relax-2d-dlvo__n9-straight__dd3485582c5f",
+  "case": "chain-relax-2d-dlvo",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "dlvo_secondary_minimum",
+    "WCA_core",
+    "no_bending",
+    "no_friction",
+    "no_drive",
+    "chain",
+    "straight"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "n_beads": 9,
+    "init": "straight",
+    "kink_angle": 0.0
+  },
+  "dimensionless": {
+    "k_bond_star": 1042362.8817700658,
+    "well_depth/kT": 11.715500108658787,
+    "sigma_bond/d": 0.0009794686297781565,
+    "n_beads": 9.0,
+    "kink_angle_rad": 0.0,
+    "dt/tau_bond": 0.01,
+    "T_obs/tau_bond": 20000.0,
+    "St": 0.028208850887976974
+  },
+  "observables": [
+    {
+      "name": "결합 신장 등분배 ⟨δℓ*²⟩",
+      "measured": 3.78353671525676e-06,
+      "predicted": 4.382352866628466e-06,
+      "unit": "d²",
+      "err_pct": -13.664261404682392,
+      "err_sigma": -2.154577199041318,
+      "sigma": 2.779274521414921e-07,
+      "prediction_source": "boltzmann_integral",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 8.0,
+      "tol_sigma": null,
+      "note": "예측 = 우물(basin) 비조화 볼츠만 적분(정확). 참고: 조화근사 kT*/k_bond*=9.594e-07 는 이 값의 1/4.57 뿐 — 조화근사를 예측으로 쓰면 안 된다(체제 판정용으로만)"
+    },
+    {
+      "name": "굽힘각 열요동 ⟨dθ²⟩",
+      "measured": 0.1266650926496179,
+      "predicted": null,
+      "unit": "rad²",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "G1(선형강성=0)의 직접 결과 — 요동 폭 자체는 예측이 없다(2차 이상 항·배제부피가 지배). κ_θ,eff=1/⟨dθ²⟩ 로 등분배를 가정하면 7.89 kT/rad² — 참고용 숫자일 뿐 조화 모드라는 뜻은 아니다"
+    }
+  ],
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 20000,
+    "n_prod": 2000000,
+    "n_samples": 2000,
+    "sample_every": 1000,
+    "seed": 1,
+    "steps_done": 2020000,
+    "step_drift_max_sigma": 9.963003541340251e-05,
+    "f_max_kT_per_sigma": 10385.065082436793
+  },
+  "diagnostics": {
+    "equilibrium_z": -1.3932047617169694,
+    "trend_t": -0.8311199951014882,
+    "first_half": -8.22625984795627,
+    "second_half": -8.258542741666838,
+    "tau_int_samples": 0.943663939651363,
+    "n_eff": 692.6819826513743,
+    "drift_span": -0.03337000759208665,
+    "drift_span_rel_pct": -0.4048578369157115,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 2000
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=-1.39, 지표=⟨U⟩/N [kT])",
+    "드리프트 없음 ✓ (t=-0.83, 전구간 -0.405%, n_eff=693/2000)",
+    "분리 검사 경고: 참고: τ_p/τ_bond = 0.0282 (기준 0.01)",
+    "분리 검사 3종 중 하드 전부 통과 ✓ (여유 부족 1건)",
+    "관측량 불일치 ✗ 최대 -13.66% @ 결합 신장 등분배 ⟨δℓ*²⟩"
+  ],
+  "outcome": "partial",
+  "failure_modes": [
+    "WRONG_REGIME"
+  ],
+  "not_verified": [
+    "소프트 검사 미충족: 참고: τ_p/τ_bond",
+    "예측값 없는 관측량 1종 (측정만 기록, 판정 안 함)",
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [
+    {
+      "claim": "DLVO 2차극소 결합의 신장(radial) 열요동은 조화근사 kT/k_bond 를 쓰면 진값(basin 볼츠만 적분)을 4.6배 과소평가한다 — 우물이 바깥쪽으로 무른 비대칭 탓, soft-r3 Einstein 케이지 근사와 같은 함정",
+      "kind": "pitfall",
+      "coords": {
+        "dl_var_ratio_boltz_over_harmonic": 4.57
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

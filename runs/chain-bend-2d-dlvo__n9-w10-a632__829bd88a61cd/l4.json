@@ -1,0 +1,40 @@
+{
+  "status": "ok",
+  "n_samples": 3195,
+  "warnings": [],
+  "pe_mean": -7.1550701583819425,
+  "pe_std": 0.64229470800336,
+  "phases": {
+    "예열": {
+      "status": "ok",
+      "n_samples": 2,
+      "warnings": [],
+      "pe_mean": -8.242437162809019,
+      "pe_std": 0.048336757079925796,
+      "steps": 20000,
+      "expect_steady": true
+    },
+    "생산": {
+      "status": "ok",
+      "n_samples": 3195,
+      "warnings": [],
+      "pe_mean": -7.1550701583819425,
+      "pe_std": 0.64229470800336,
+      "drift": 0.11667209625069663,
+      "drift_sem": 0.09849355040047515,
+      "drift_sigma": 1.1845658500105585,
+      "steps": 31942000,
+      "expect_steady": true
+    }
+  },
+  "run_id": "chain-bend-2d-dlvo__n9-w10-a632__829bd88a61cd",
+  "wall_seconds": 77.87638092041016,
+  "steps_done": 31962000,
+  "steps_planned": 31962000,
+  "trip": null,
+  "guard_samples": 3197,
+  "f_max_last": 1813.2765612359815,
+  "step_disp_last": 1.739582819907023e-05,
+  "f_max_seen": 7967.022157336437,
+  "step_disp_seen": 7.643232790299874e-05
+}

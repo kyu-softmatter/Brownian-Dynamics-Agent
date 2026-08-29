@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "angle.Harmonic",
+    "힘",
+    "silent",
+    "클램프",
+    "강체사슬"
+  ],
+  "dimensionless": {
+    "angle_sin_small": 0.001414217
+  },
+  "source": "scratch/verify_angle_force_small_theta.py",
+  "lessons": [
+    {
+      "claim": "★★ md.angle.Harmonic 은 **거의 곧은 사슬에서 에너지는 정확하고 힘이 틀린다.** 토크를 좌표로 옮길 때 1/sin θ 를 쓰면서 sin θ 를 아래로 클램프하는데, 실측 SMALL = 1.414217e-03 = √2×10⁻³ (표준편차 1.4e-7, 6개 진폭). sin θ < SMALL 이면 힘이 **정확히 sinθ/SMALL 배로 축소**된다. t0=π 면 평형 자체가 sinθ=0 인 특이점이라 **뻣뻣한 사슬에서 가장 심하게** 작동한다. sinθ≈|θ−π| 이므로 힘이 ∝ κ(θ−π)²/SMALL 로 **선형이 아니라 2차**가 되어 사슬이 실제보다 훨씬 무르고 비선형이 된다 (곧을수록 심함). 실측 힘비: |θ−π|=1.76e-3 → 1.000000 / 8.79e-4 → 0.621320 / 2.93e-4 → 0.207107 / 5.86e-5 → 0.041421. **에너지는 전 구간 0.0000%** 다. 우회책 없음 — angle.Table 은 같은 U·tau 를 줘도 힘비 3.27 (표 해상도 Δθ=3.1e-3 가 |θ−π|~3e-4 를 못 담음), angle.CosineSquared 는 θ₀=π 에서 U ∝ (π−θ)⁴ 로 4차라 조화 굽힘이 아니다 (해석적 배제). 대응: 전 각도를 min|θ−π| > 1.41e-3 위에 두거나, force.Custom 으로 직접 구현(26배 느림), 또는 선형 영역이면 MD 를 쓰지 말고 해석적으로 푼다.",
+      "kind": "pitfall",
+      "coords": {
+        "angle_sin_small": 0.001414217
+      }
+    }
+  ],
+  "not_verified": []
+}

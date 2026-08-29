@@ -1,0 +1,43 @@
+card: passive-sphere--harmonic-trap
+dim: 2
+n_particles: 1000
+box_star:
+- 200.00000000000003
+- 200.00000000000003
+- 0.0
+kT_star: 1.0
+gamma_star: 0.9999999999999998
+D_star: 1.0000000000000002
+sigma_star: 491.3576605026771
+dt_star: 0.005
+dt_dominant: spec(명시값)
+k_star: 0.9999999999999998
+equil_steps: 2000
+prod_steps: 8000
+sample_interval_steps: 400
+groups:
+  sigma_over_ref_length: 491.3576605026771
+  tau_D_over_ref_time: 241432.35053466403
+  k_star_sigma: 241432.3505346641
+  k_star: 0.9999999999999998
+  l_trap_over_sigma: 0.002035177387846081
+  tau_D_over_tau_trap: 241432.35053466403
+  tau_inertial_over_ref_time: 0.000845362942368538
+  reynolds: 1.4695216477924873e-05
+logged:
+  dt_over_tau_D: 2.0709734999999996e-08
+scales:
+  length_si: 2.0351773878460814e-08
+  energy_si: 4.141947e-21
+  time_si: 0.008064405509911927
+  origin: 'scales_harmonic_trap: (l_trap, kT, tau_trap)'
+inverse:
+  length: 2.0351773878460814e-08
+  energy: 4.141947e-21
+  time: 0.008064405509911927
+  force: 2.035177387846082e-13
+  stiffness: 1.0000000000000003e-05
+  velocity: 2.523654577320862e-06
+  diffusivity: 5.136084730497678e-14
+  rate: 124.00170090292511
+  area: 4.141946999999999e-16

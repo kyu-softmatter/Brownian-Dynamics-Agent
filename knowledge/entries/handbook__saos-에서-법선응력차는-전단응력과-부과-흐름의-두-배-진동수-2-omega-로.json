@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "saos",
+    "lockin",
+    "normal_stress",
+    "measurement"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#4.3 ← [L] p.183,(5.120),(5.122)",
+  "lessons": [
+    {
+      "claim": "★ SAOS 에서 법선응력차는 전단응력과 부과 흐름의 두 배 진동수(2 omega)로 진동한다 — omega 에서만 락인하면 법선응력을 원리적으로 못 본다 (우리 lockin.k_star 는 omega 채널이라 전단 성분만 본다). 그리고 eta' = G''/omega, eta'' = G'/omega 로 엇갈리므로 순서를 뒤집는 것이 흔한 실수다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

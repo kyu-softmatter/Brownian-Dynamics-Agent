@@ -1,0 +1,30 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "BD",
+    "관성",
+    "과감쇠",
+    "모드",
+    "해결됨"
+  ],
+  "dimensionless": {
+    "tau_p_over_tau_fast": 0.6
+  },
+  "source": "scratch/verify_chain_bend_gates.py --gate det --collect",
+  "lessons": [
+    {
+      "claim": "최속 모드가 과감쇠가 아니어도(τ_p/τ_fast = 0.60, 감쇠비 ζ=0.65<1) 그 모드가 관측 대역에서 충분히 멀면 BD 의 관측량은 영향을 받지 않는다 — chain-bend 에서 측정된 차이가 De 전 범위에서 최대 0.159% 이고 De 와 함께 단조증가한다. 물리적 이유: ω ≪ 1/τ_fast 에서 최속 모드는 준정적으로 따라가므로 그 **동역학**이 아니라 정적 컴플라이언스만 기여한다. ★ 다만 이 검정은 관성 항 자체만 본다 — 열적 링잉 × 비선형 결합은 덮지 않는다 (chain-bend 는 max|θ|=2.8e-3 rad 라 작을 것으로 보이나 확인 안 함).",
+      "kind": "method_note",
+      "coords": {
+        "tau_p_over_tau_fast": 0.6
+      }
+    }
+  ],
+  "not_verified": [
+    "열적 링잉 × 비선형 결합 경로는 미확인"
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "chain-relax-2d-dlvo__n9-kink-a0.300__1e7b282680f2",
+  "case": "chain-relax-2d-dlvo",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "dlvo_secondary_minimum",
+    "WCA_core",
+    "no_bending",
+    "no_friction",
+    "no_drive",
+    "chain",
+    "kink"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "n_beads": 9,
+    "init": "kink",
+    "kink_angle": 0.3
+  },
+  "dimensionless": {
+    "k_bond_star": 1042362.8817700658,
+    "well_depth/kT": 11.715500108658787,
+    "sigma_bond/d": 0.0009794686297781565,
+    "n_beads": 9.0,
+    "kink_angle_rad": 0.3,
+    "dt/tau_bond": 0.01,
+    "T_obs/tau_bond": 3000.0000000000005,
+    "St": 0.028208850887976974
+  },
+  "observables": [
+    {
+      "name": "결합 신장 등분배 ⟨δℓ*²⟩",
+      "measured": 3.512585048303873e-06,
+      "predicted": 4.382352866628466e-06,
+      "unit": "d²",
+      "err_pct": -19.847051225561007,
+      "err_sigma": -2.3192599052111786,
+      "sigma": 3.750195553203412e-07,
+      "prediction_source": "boltzmann_integral",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 8.0,
+      "tol_sigma": null,
+      "note": "예측 = 우물(basin) 비조화 볼츠만 적분(정확). 참고: 조화근사 kT*/k_bond*=9.594e-07 는 이 값의 1/4.57 뿐 — 조화근사를 예측으로 쓰면 안 된다(체제 판정용으로만)"
+    },
+    {
+      "name": "굽힘각 열요동 ⟨dθ²⟩",
+      "measured": 0.040477390617522715,
+      "predicted": null,
+      "unit": "rad²",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "G1(선형강성=0)의 직접 결과 — 요동 폭 자체는 예측이 없다(2차 이상 항·배제부피가 지배). κ_θ,eff=1/⟨dθ²⟩ 로 등분배를 가정하면 24.7 kT/rad² — 참고용 숫자일 뿐 조화 모드라는 뜻은 아니다"
+    }
+  ],
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 0,
+    "n_prod": 300000,
+    "n_samples": 2000,
+    "sample_every": 150,
+    "seed": 1,
+    "steps_done": 300000,
+    "step_drift_max_sigma": 0.00010266503988926991,
+    "f_max_kT_per_sigma": 10701.422683601813
+  },
+  "diagnostics": {
+    "equilibrium_z": -1.6057732499908746,
+    "trend_t": -1.7576442780837276,
+    "first_half": -8.19968870967333,
+    "second_half": -8.285671526605908,
+    "tau_int_samples": 7.453570872025547,
+    "n_eff": 125.72968998330289,
+    "drift_span": -0.16260665103325783,
+    "drift_span_rel_pct": -1.972740039679695,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 2000
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=-1.61, 지표=⟨U⟩/N [kT])",
+    "드리프트 없음 ✓ (t=-1.76, 전구간 -1.973%, n_eff=126/2000)",
+    "분리 검사 경고: 참고: τ_p/τ_bond = 0.0282 (기준 0.01)",
+    "분리 검사 4종 중 하드 전부 통과 ✓ (여유 부족 2건)",
+    "관측량 불일치 ✗ 최대 -19.85% @ 결합 신장 등분배 ⟨δℓ*²⟩"
+  ],
+  "outcome": "partial",
+  "failure_modes": [
+    "WRONG_REGIME"
+  ],
+  "not_verified": [
+    "소프트 검사 미충족: 참고: τ_p/τ_bond",
+    "예측값 없는 관측량 1종 (측정만 기록, 판정 안 함)",
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [
+    {
+      "claim": "n=9, 킹크각 0.3rad 를 방출하면 3000 tau_bond 동안 bow_rms 가 0.334d에서 0.313d로만(6%) 줄어든다 — 탄성 복원(0으로 붕괴) 아니라 확산적 소실에 가까움. 단일 시드라 결정적 결론 아님, 앙상블 필요",
+      "kind": "method_note",
+      "coords": {
+        "kink_angle": 0.3,
+        "bow_decay_frac": 0.063
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

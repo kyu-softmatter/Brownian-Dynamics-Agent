@@ -1,0 +1,135 @@
+{
+  "schema": "bdbot.metrics/0.2",
+  "run_id": "trap-2d-5um__a49f2508556b",
+  "case": "trap-2d-5um",
+  "system_tags": [
+    "2D",
+    "harmonic_trap",
+    "newtonian",
+    "single_particle",
+    "no_pair_interaction"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "d_um": 5.0,
+    "T_K": 300.0,
+    "eta_mPas": 0.851,
+    "k_pN_per_um": 10.0,
+    "N": 1000,
+    "tau_k_ms": 4.01024302230737,
+    "gamma_kg_per_s": 4.01024302230737e-08
+  },
+  "dimensionless": {
+    "k*     = k d\u00b2/kT   \ud2b8\ub7a9 vs \uc5f4\uc694\ub3d9": 60358.087633665986,
+    "l_k/d  = 1/\u221ak*     \uc694\ub3d9\ud3ed vs \uc785\uc790": 0.004070354775692164,
+    "tau_k/tau_B = 1/k*": 1.6567788000000008e-05,
+    "dt/tau_k           \uc801\ubd84 \ud574\uc0c1": 0.002,
+    "T_obs/tau_k        \uad00\uce21\ucc3d": 1999.9999999999998
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\uad00\uc131 \ubb34\uc2dc   \u03c4_p/\u03c4_k",
+      "value": 0.0008139491000319041,
+      "limit": 0.01,
+      "ok": true,
+      "margin": 12.285780523140861,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\ud2b8\ub7a9 \ud574\uc0c1   dt/\u03c4_k",
+      "value": 0.002,
+      "limit": 0.01,
+      "ok": true,
+      "margin": 5.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\uc694\ub3d9 vs \ubc15\uc2a4 2\u2113_k/L",
+      "value": 0.00025439717348076026,
+      "limit": 0.5,
+      "ok": true,
+      "margin": 1965.4306420107077,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d     T_obs/\u03c4_k",
+      "value": 1999.9999999999998,
+      "limit": 100.0,
+      "ok": true,
+      "margin": 19.999999999999996,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "\u27e8x\u00b2\u27e9",
+      "measured": 0.00041429327256023034,
+      "predicted": 0.0004141947000000001,
+      "unit": "\u00b5m\u00b2",
+      "err_pct": 0.023798604914612373,
+      "prediction_source": "analytic"
+    },
+    {
+      "name": "\u03c3 = \u221a\u27e8x\u00b2\u27e9",
+      "measured": 20.35419545352334,
+      "predicted": 20.351773878460815,
+      "unit": "nm",
+      "err_pct": 0.011898594574533324,
+      "prediction_source": "analytic"
+    },
+    {
+      "name": "\u03c4 (C(t) \ud53c\ud305)",
+      "measured": 4.000222602078198,
+      "predicted": 4.01024302230737,
+      "unit": "ms",
+      "err_pct": -0.24987064807376252,
+      "prediction_source": "analytic"
+    },
+    {
+      "name": "f_c (PSD \ud53c\ud305)",
+      "measured": 40.151635558783894,
+      "predicted": 39.68710679292511,
+      "unit": "Hz",
+      "err_pct": 1.1704777782934723,
+      "prediction_source": "analytic"
+    },
+    {
+      "name": "S(0) (PSD \ud53c\ud305)",
+      "measured": 6.621873878801522e-06,
+      "predicted": 6.6440856222067796e-06,
+      "unit": "\u00b5m\u00b2/Hz",
+      "err_pct": -0.334308506365694,
+      "prediction_source": "analytic"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "r2_series",
+    "label": "\u27e8\u0394r\u00b2\u27e9 (\uc575\ucee4 \ubcc0\uc704) [d\u00b2]"
+  },
+  "numerics": {
+    "dt_over_tau_k": 0.002,
+    "dt_over_tau_B": 3.313557600000001e-08,
+    "n_eq": 10000,
+    "n_prod": 1000000,
+    "seed": 20260803,
+    "bias_predicted_pct": 0.1,
+    "x2_sem_pct": 0.09071197581384431,
+    "primary_sem_pct": 0.09071197581384431,
+    "stat_target_pct": 0.5
+  },
+  "wall_seconds": 150.5717236995697,
+  "steps_per_second": 6707.766738562523
+}

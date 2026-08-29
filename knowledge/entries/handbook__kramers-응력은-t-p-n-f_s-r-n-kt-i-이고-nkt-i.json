@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "stress",
+    "kramers",
+    "polymer",
+    "golden_test"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#3.4 ← [L] (11.15b) p.494",
+  "lessons": [
+    {
+      "claim": "Kramers 응력은 T^(p) = n<F_s R> - n kT I 이고 -nkT I 항을 빼먹으면 평형에서 0 이 되지 않아 그것을 '잔류 탄성' 으로 오독한다. 평형에서 응력이 정확히 0 인지가 부호·전인자 규약의 골든 테스트다 (Hookean 이면 <RR>_eq=(kT/w0)I 이므로 정확히 상쇄 — 실행 확인 max|T|=0 기계정밀도)",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

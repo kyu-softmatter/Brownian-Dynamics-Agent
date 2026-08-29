@@ -1,0 +1,148 @@
+card: passive-sphere--harmonic-trap
+question: '이 광집게에 갇힌 반지름 5 um 입자의 열요동을 정량화하고 해석해와 대조하라. 부수 검증: 이 계에서 tau_D 기준 무차원화가 실제로 실패하는가.'
+geometry:
+  dim:
+    value: 2
+    provenance: inference
+    basis: 식 r = sqrt(x^2+y^2) 에 z 가 없고 축도 x,y 둘뿐
+    confidence: medium
+    ambiguity: A1
+  boundary:
+    value: periodic
+    provenance: rule
+    basis: 단일 구속 입자. 박스가 l_trap 보다 훨씬 크면 되고 벽이 필요 없다
+  box_over_ref:
+    value: 200.0
+    unit: l_trap
+    provenance: rule
+    basis: l_trap = 20.35 nm 이므로 L = 4.07 um. 트랩 카드 §7 게이트 (L >> l_trap)
+species:
+  - name: probe
+    n_simulated:
+      value: 1000
+      provenance: rule
+      basis: 비상호작용이므로 스냅샷 1개 = 독립표본 1000개 (Barakat 2022 방식, [출처, 미재현]). 실효표본 996/1000 실측
+    radius_si:
+      value: 5.0e-06
+      unit: m
+      provenance: from_drawing
+      basis: R = 5 um 지시선이 원을 직접 가리킴
+      confidence: medium
+      ambiguity: A2
+    density_si:
+      value: 1050.0
+      unit: kg/m^3
+      basis: 폴리스티렌. 과감쇠 판정에만 쓰이고 BD 동역학에는 영향 없음
+      confidence: low
+      sensitivity: none
+    n_physical:
+      value: 1
+      provenance: from_drawing
+      basis: 그림에 원이 1개
+medium:
+  T_si:
+    value: 300.0
+    unit: K
+    provenance: from_drawing
+    basis: T = 300 K (~27 C) 명기
+  eta_si:
+    value: 0.00085566
+    unit: Pa*s
+    basis: IAPWS 표 보간 (외삽 아님). knowledge/wiki/concepts/water-298k.md
+    confidence: medium
+    affects:
+      - tau_trap
+      - D0
+  rho_fluid_si:
+    value: 996.5
+    unit: kg/m^3
+    basis: 동일 출처. Reynolds 검사에만 사용
+    confidence: medium
+  species:
+    value: water
+    basis: 콜로이드 광집게 실험의 표준 매질. 그림에 명시 없음
+    confidence: medium
+friction:
+  note: '무한 매질 Stokes. 벽이 5a = 25 um 안에 있으면 Faxen 보정이 필요하지만 그림에 벽이 없다. 한계: knowledge/wiki/concepts/stokes-drag-corrections.md'
+external:
+  - kind: harmonic_trap
+    params:
+      k_si:
+        value: 1.0e-05
+        unit: N/m
+        provenance: from_drawing
+        basis: k_t = 10 pN/um = 10e-12 N / 1e-6 m
+      center_si:
+        - 0.0
+        - 0.0
+        - 0.0
+      active_axes:
+        - true
+        - true
+        - false
+    implementation: simbot.forces.HarmonicTrap (md.force.Custom)
+    note: center 는 그림의 "potential trap at (0,0)"
+timing:
+  equil_in_tau:
+    value: 10.0
+    unit: tau_trap
+    provenance: rule
+    basis: t_equil >= 10 tau_trap (카드 §7)
+  prod_in_tau:
+    value: 40.0
+    unit: tau_trap
+    provenance: derived
+    basis: simbot.estimators.trap_run_length(n=1000, rel_err=0.01)
+  sample_interval_in_tau:
+    value: 2.0
+    unit: tau_trap
+    provenance: rule
+    basis: 시간 방향 독립성 확보
+  target_precision:
+    value: 0.01
+    provenance: rule
+    basis: <x^2> 의 목표 상대 통계오차
+numerics:
+  dt_star:
+    value: 0.005
+    unit: tau_trap
+    provenance: rule
+    basis: Euler-Maruyama 계통편향 = 1/(1-dt*/2)-1 = +0.251 %. 목표 통계정밀도 1 % 의 1/4
+  n_seeds:
+    value: 4
+    provenance: rule
+    basis: config/run_policy.yaml. k<=4 효율 93 % 이므로 4시드 비용 ~ 1시드
+gates:
+  overdamped:
+    status: pass
+  stokes_reynolds:
+    status: pass
+  equipartition:
+    status: required
+    reason: 이 카드의 1급 게이트
+  em_bias_reproduced:
+    status: required
+    reason: <x*^2> = 1/(1-dt*/2)
+  configurational_temperature:
+    status: required
+  dt_over_tau_trap:
+    status: pass
+    reason: dt* = 5e-3 <= 1e-2
+  box_much_larger_than_l_trap:
+    status: pass
+  equilibration_detection:
+    status: applicable
+    reason: 열평형에 도달한다
+  step_displacement_vs_sigma:
+    status: 'off'
+    reason: 쌍 상호작용이 없어 겹침이 발생할 수 없다
+  r_cut_le_half_box:
+    status: 'off'
+    reason: 쌍 포텐셜 없음
+  polydispersity:
+    status: 'off'
+    reason: 상호작용 없어 결정화 불가
+  hydrodynamics_neglected:
+    status: pass
+    reason: 단일 입자·벽 없음 → 무한매질 Stokes 가 정확
+tier: explore

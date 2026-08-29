@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "rod",
+    "relaxation",
+    "saos"
+  ],
+  "dimensionless": {
+    "De_peak": 6.0
+  },
+  "source": "docs/books/leal_microstructural_rheology.md#4.2 ← [L] (5.121b) pp.180,183",
+  "lessons": [
+    {
+      "claim": "희박 축대칭 입자 현탁액의 배향 이완시간은 1/(6 Dr) 다 — 1/Dr 도 1/(2Dr) 도 아니다. 손실항이 De/(36+De^2) (De=omega/Dr) 라 극이 De=6 이고, 이 함수는 lambda=1/(6Dr) 인 단일 Maxwell 모드와 비례상수 하나로 정확히 같다(편차<1e-12). 즉 이 계의 선형점탄성은 정확히 단일 Maxwell 모드다. ★ 단 6 은 3D 의 l=2(응력) 모드 계수이므로 1차 모멘트나 2D 각도상관(abp-rod 의 <cos dtheta>)에 갖다 붙이면 틀린다",
+      "kind": "scaling",
+      "coords": {
+        "De_peak": 6.0
+      }
+    }
+  ],
+  "not_verified": [
+    "2D 계수는 이 책에서 확인 안 함"
+  ]
+}

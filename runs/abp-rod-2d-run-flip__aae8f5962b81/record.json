@@ -1,0 +1,151 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "abp-rod-2d-run-flip__aae8f5962b81",
+  "case": "abp-rod-2d-run-flip",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "active",
+    "run_and_tumble",
+    "ellipsoid",
+    "newtonian",
+    "no_pair_interaction",
+    "MSD"
+  ],
+  "reference_scales": {
+    "length": "d_eq",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "d_eq_um": 0.7937,
+    "aspect_ratio": 4.0,
+    "T_K": 300.0,
+    "eta_mPas": 0.851,
+    "N": 10000,
+    "tau_B_s": 1.0969226009454005,
+    "tau_tumble_s": 0.5,
+    "gamma_bar_kg_per_s": 7.2122e-09
+  },
+  "dimensionless": {
+    "Pe": 6.910183954550842,
+    "D_r*": 1.000946283672534,
+    "l_p/d_eq": 2.162953039588552,
+    "p": 4.0,
+    "tau_tumble/tau_r": 0.45625201031041396,
+    "L/d_eq": 31.999496031246068,
+    "T_obs/tau_eff": 637.8383805159614,
+    "St": 3.474674918820919e-08
+  },
+  "observables": [
+    {
+      "name": "τ_eff (⟨cosΔθ⟩ 피팅)",
+      "measured": 0.3431015111205692,
+      "predicted": 0.34334716550428673,
+      "unit": "s",
+      "err_pct": -0.07154693802604721,
+      "prediction_source": "analytic_from_model",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "1/τ_eff = D_r + 1/τ_tumble — 두 과정을 독립으로 **구현했으니** 따라 나온다",
+      "tol_pct": 5.0,
+      "note": "1/τ_eff = D_r + 1/τ_tumble — 두 과정을 독립으로 **구현했으니** 따라 나온다"
+    },
+    {
+      "name": "D_eff (MSD 장시간)",
+      "measured": 4.843090399075194,
+      "predicted": 4.8661368705977655,
+      "unit": "µm²/s",
+      "err_pct": -0.4736091921668459,
+      "prediction_source": "analytic_from_model",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "D_eff = D̄ + v²τ_eff/2 — 같은 모델의 결과",
+      "tol_pct": 5.0,
+      "note": "D_eff = D̄ + v²τ_eff/2 — 같은 모델의 결과"
+    },
+    {
+      "name": "D̄ (MSD 전체 피팅)",
+      "measured": 0.5739537248015484,
+      "predicted": 0.5742973017941821,
+      "unit": "µm²/s",
+      "err_pct": -0.05982563239638847,
+      "prediction_source": "analytic_from_model",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "kT/γ̄ — 적분기에 넣은 값이 그대로 나오는지 (가장 순환적)",
+      "tol_pct": 5.0,
+      "note": "kT/γ̄ — 적분기에 넣은 값이 그대로 나오는지 (가장 순환적)"
+    },
+    {
+      "name": "τ (MSD 전체 피팅)",
+      "measured": 0.3439308276877848,
+      "predicted": 0.34334716550428673,
+      "unit": "s",
+      "err_pct": 0.16999184561225197,
+      "prediction_source": "analytic_from_model",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "⟨cosΔθ⟩ 와 MSD 두 경로가 같은 τ 를 주는지 — 내부 일관성",
+      "tol_pct": 5.0,
+      "note": "⟨cosΔθ⟩ 와 MSD 두 경로가 같은 τ 를 주는지 — 내부 일관성"
+    },
+    {
+      "name": "텀블 빈도",
+      "measured": 2.0003016032162013,
+      "predicted": 2.0,
+      "unit": "1/s",
+      "err_pct": 0.015080160810065912,
+      "prediction_source": "analytic_from_model",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "updater가 지정한 rate 를 내는지",
+      "tol_pct": 3.0,
+      "note": "updater가 지정한 rate 를 내는지"
+    }
+  ],
+  "numerics": {
+    "dt_over_tau_B": 0.001447139477873711,
+    "n_eq": 1081,
+    "n_prod": 137925,
+    "seed": 20260804,
+    "bias_predicted_pct": 0.5,
+    "primary_sem_pct": null,
+    "stat_target_pct": 5.0
+  },
+  "diagnostics": {
+    "equilibrium_z": -0.9397276715519137,
+    "trend_t": -1.00206518201811,
+    "first_half": 0.8119746187883907,
+    "second_half": 0.8118321534943153,
+    "tau_int_samples": 0.0,
+    "n_eff": 3064.0,
+    "drift_span": -0.0002630348788786112,
+    "drift_span_rel_pct": -0.03239731270597469,
+    "source": "observables.npz:cos_theta_series",
+    "label": "⟨cos Δθ⟩ (1 표본 지연)",
+    "n_frames_production": 3064
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=-0.94, 지표=⟨cos Δθ⟩ (1 표본 지연))",
+    "드리프트 없음 ✓ (t=-1.00, 전구간 -0.032%, n_eff=3064/3064)",
+    "분리 검사 6종 중 하드 전부 통과 ✓ (여유 부족 3건)",
+    "관측량 5종 예측과 일치 ✓ (최대 오차 -0.47% @ D_eff (MSD 장시간))"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [],
+  "artifacts": [
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

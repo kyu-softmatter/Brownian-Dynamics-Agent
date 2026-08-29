@@ -1,0 +1,88 @@
+# L0 Observation — chain-bend-2d-oscill 의 대안가설 브랜치.
+# 새 스케치가 아니라 **같은 스케치·같은 논문 두 편**을 다시 읽되, 결합 퍼텐셜 U_ij 를
+# 다르게 해소한다. `chain-bend-2d-oscill`은 [P1][P2]가 실제로 쓴 모델(JKR 접착접촉 +
+# 접선 굽힘강성)을 그대로 옮겼다. 이 케이스는 사용자가 그 빔역학 해석 자체를 의심하며
+# 제기한 질문 — "중심력(DLVO) 페어 퍼텐셜만으로 연결한 비드-스프링 사슬로도 같은
+# (빔형) 굽힘 거동이 나오는가?" — 를 검증하려고 만든다 (원칙 7: 불일치는 발견).
+
+source_files:
+  - intake/chain-bend-2d-oscill/sketch_01.jpeg   # 동일 스케치 재사용
+  - intake/chain-bend-2d-oscill/PhysRevLett.94.138301.pdf
+  - intake/chain-bend-2d-oscill/la7023617.pdf
+
+raw_transcription: |
+  (chain-bend-2d-oscill/observation.yaml 과 동일 — 스케치 전사는 재사용.
+   달라지는 것은 아래 entities.bonded_interaction 의 해소뿐.)
+
+system_guess: >
+  같은 3점 굽힘·오실레이션 마이크로레올로지 기하. 단, 비드 사이 결합을
+  JKR 접착접촉이 아니라 **DLVO 중심 페어 퍼텐셜(이중층 반발 + vdW 인력)의
+  2차극소**로 대체한 대안 물리 모델.
+
+entities:
+  - kind: particle
+    note: "비드 사슬 — [P1] PMMA, d=1.47µm 승계"
+  - kind: bonded_interaction
+    form: "DLVO(r) 2차극소 — 중심력, 토크 없음"
+    note: >
+      ★★ [P1] p.2 좌단이 명시적으로 예측한다: "Such assumptions have been made
+      based on DLVO interactions between particles, which are centro-symmetric.
+      If particles did undergo free rotations, we would expect the aggregates
+      to respond to the bending moment by forming a trianglelike structure..."
+      이 케이스는 그 예측(중심력 → 자유회전 → 삼각형형 좌굴)이 실제로
+      시뮬레이션에서 나오는지를 확인한다. 명시적 angle 퍼텐셜은 넣지 않는다 —
+      그게 핵심 가설이다 (넣으면 JKR 모델과 다를 바 없어진다).
+
+stated_quantities: []   # 새 스케치 없음 — 원 전사(chain-bend-2d-oscill)와 동일, 여기서는 반복 안 함
+
+stated_goals:
+  - "G'(ω)·G''(ω)가 나오는가, 아니면 [P1]이 예측한 대로 사슬이 삼각형형으로
+     좌굴해 빔형 탄성 자체가 정의되지 않는가 — 이걸 확인하는 게 이 케이스의 목표"
+
+ambiguities:
+  - id: D1
+    issue: "DLVO(r)의 Hamaker 상수가 두 논문 어디에도 없다"
+    detail: >
+      grep 확인 — "Hamaker", "dielectric constant" 0건 (두 논문 모두).
+      표면전위 40±3 mV([P1] p.1)와 염농도(MgCl2, 이중층 스크리닝 목적,
+      [P1]/[P2] 명시)는 있지만 vdW 항의 크기가 없다.
+    resolution: >
+      웹검색으로 PMMA-물-PMMA 계 Hamaker 상수 A≈1.05e-20 J 을 찾음 (tier 3 —
+      1차 출처 논문을 직접 확인하지 못했고, 폴리스티렌-물 문헌값들(0.5~1.5e-20 J)과
+      같은 자릿수임만 교차확인. **불확실성 명시**). 사용자 승인 2026-08-05.
+    confirmed_by: user
+  - id: D2
+    issue: "염농도 — [P1]은 50~500mM 스윕, [P2]는 250mM 고정('bare')을 쓴다. 어느 것?"
+    detail: >
+      실제 계산 결과 250mM(λ_D=0.35nm)은 장벽이 없어 vdW가 접촉에서 발산 —
+      우물 깊이/강성이 DLVO가 아니라 내가 넣는 임의 정규화(컷오프)로 정해진다.
+      10mM(λ_D=1.76nm)은 장벽 382kT + 2차극소 −11.7kT @ h=11.2nm 로
+      교과서적 DLVO 곡선이 나오고, 우물 곡률(=결합강성)이 A·ψ0·κ 에서
+      **직접 유도**된다 (임의 정규화 불필요).
+    resolution: "10mM 채택 (사용자 승인 2026-08-05, 계산 근거로)."
+    confirmed_by: user
+
+missing_required:
+  - symbol: A_hamaker
+    what: "PMMA-물-PMMA 비지연 Hamaker 상수"
+    assumed_value: 1.05e-20
+    assumed_unit: J
+    confidence: 2
+    note: "웹검색 — tier 3, 1차 출처 미확인. 폴리스티렌 계열 문헌값(5e-21~1.5e-20 J)과 같은 자릿수"
+    resolution: "사용자 승인 2026-08-05"
+
+unread_regions: []   # 새 스케치 없음 — 미판독 영역은 원 스케치(chain-bend-2d-oscill) 쪽에 기록됨
+
+prerun_findings:
+  - id: G1
+    severity: "★★ 구조적 — 이 케이스의 존재 이유"
+    finding: >
+      직선 사슬에서 순수 중심력(NN) 결합만 있으면, 횡변위 y에 대한 결합길이 변화가
+      O(y²)이라 **횡방향(굽힘) 선형강성이 정확히 0**이다 — 힌지로 연결된 사슬과
+      동일한 구조. chain-bend-2d-oscill 의 bending_matrix() 같은 선형 강성 행렬이
+      이 계에는 존재하지 않는다(대각 성분이 전부 0인 것과 같음).
+    consequence: >
+      3점 굽힘에서 매끈한 빔 곡률이 아니라 [P1]이 예측한 "삼각형형" 국소 꺾임이
+      나올 가능성이 높다. G'(ω)도 사슬 탄성이 아니라 엔트로피/장력 지배
+      (Rouse류) 영역일 수 있다 — **감으로 단정하지 않고 실행해서 확인한다** (원칙 6).
+    verified: false

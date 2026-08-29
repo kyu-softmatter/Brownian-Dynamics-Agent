@@ -1,0 +1,306 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "chain-bend-2d-dlvo__n9-w10-a300__f5e9a298df55",
+  "case": "chain-bend-2d-dlvo",
+  "system_tags": [
+    "2D",
+    "chain",
+    "dlvo",
+    "pair_table",
+    "oscillatory_drive",
+    "no_bending",
+    "hypothesis_test",
+    "structural"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "n_beads": 9,
+    "omega_star": 61.51034378734867,
+    "amp_star": 0.20408163265306126,
+    "k_t_star": 5217.1116627035535,
+    "well_depth_star": -11.715500108658787,
+    "k_bond_star": 1042362.8817700658
+  },
+  "dimensionless": {
+    "well_depth/kT": 11.715500108658787,
+    "k_bond_star": 1042362.8817700656,
+    "k_t/k_bond": 0.005005081967082548,
+    "sigma_bond/h_min": 0.1290032233197044,
+    "a/sigma_bond": 208.35953949774222,
+    "a/L_chain": 0.025317975068196708,
+    "n_beads": 9.0,
+    "De_bond": 5.901048940163355e-05,
+    "De_chain_diff": 3996.6678647704975,
+    "De_trap": 0.011790114485583668,
+    "tau_bond/tau_chain_diff": 1.4764922029622329e-08,
+    "dt/tau_bond": 0.01,
+    "n_cycles": 3.0,
+    "St": 2.7062409244729374e-08
+  },
+  "checks": [
+    {
+      "kind": "모델",
+      "name": "참고: τ_p/τ_bond",
+      "value": 0.028208850887976974,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": false,
+      "margin": 0.3544986656745436,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "모델",
+      "name": "결합 안정     σ_bond/h_min",
+      "value": 0.1290032233197044,
+      "limit": 0.5,
+      "op": "<=",
+      "ok": true,
+      "margin": 3.87587214592977,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "결합 신축 해상 dt/τ_bond",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "최속 모드 해상 dt/τ_fast",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "구동 해상     dt/τ_w",
+      "value": 5.901048940163355e-07,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 16946.139748034653,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "SNR(결합)     a/σ_bond",
+      "value": 208.35953949774222,
+      "limit": 3.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 69.45317983258074,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "관측 주기 수  T_obs/(2π/ω)",
+      "value": 3.0,
+      "limit": 50.0,
+      "op": ">=",
+      "ok": false,
+      "margin": 0.06,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "K_prime",
+      "measured": 32.15891361611994,
+      "predicted": 0.0,
+      "unit": "kT/d^2",
+      "err_pct": null,
+      "err_sigma": 0.8046421628009416,
+      "sigma": 39.96672695372496,
+      "prediction_source": "none",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "중심력 U(r), 결합이 자연장 ℓ(U'(ℓ)=0)에 있을 때 횡변위 y_i,y_{i+1}에 대한 결합에너지는 U(ℓ)+U'(ℓ)(y_i-y_{i+1})²/(2ℓ)+O(y⁴) — U'(ℓ)=0이라 O(y²) 항이 사라진다. 비드 수·본드 토폴로지에 무관한 국소 대칭 논증이라 조합 전체(사슬)에도 그대로 성립한다 (극한 조건: 작은 y, 트랩이 사슬을 늘이거나 압축하지 않음).",
+      "tol_pct": null,
+      "tol_sigma": 3.0,
+      "note": "★ 예측 0 — G1(직선사슬+순수중심력+자연장 평형이면 선형 굽힘강성 정확히 0). 유의미하게 0이 아니면 장력/유한변형 효과가 섞인 것"
+    },
+    {
+      "name": "K_doubleprime",
+      "measured": 8.455020772876528,
+      "predicted": null,
+      "unit": "kT/d^2",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": ""
+    },
+    {
+      "name": "K_sem",
+      "measured": 39.96672695372496,
+      "predicted": null,
+      "unit": "kT/d^2",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": ""
+    },
+    {
+      "name": "y_response",
+      "measured": 0.20329050435670948,
+      "predicted": null,
+      "unit": "d",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": ""
+    },
+    {
+      "name": "shape_localization",
+      "measured": 3.1106904618550053,
+      "predicted": null,
+      "unit": "dimensionless",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "max|θ''|/mean|θ''| — 1에 가까우면 매끈한 빔형 곡률, ≫1 이면 국소 꺾임([P1]이 예측한 '삼각형형' 좌굴)"
+    },
+    {
+      "name": "bow_rms_gsd",
+      "measured": 0.6540651071782527,
+      "predicted": null,
+      "unit": "d",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "굽음 RMS — GSD 궤적 200프레임에서 사후계산 (scratch/backfill_bow.py). 신규 런의 bow_rms(전 표본)보다 성기다"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "⟨U⟩/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 20000,
+    "n_prod": 31942000,
+    "n_samples": 2000,
+    "sample_every": 15971,
+    "seed": 2,
+    "steps_done": 31962000,
+    "step_drift_max_sigma": 9.843818009403298e-05,
+    "f_max_kT_per_sigma": 10260.830507901694
+  },
+  "wall_seconds": 100.02971076965332,
+  "steps_per_second": 319525.06664346496,
+  "l4": {
+    "status": "ok",
+    "n_samples": 3195,
+    "warnings": [
+      "[생산] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.4211 kT = 5.3·블록SEM (기준 3). 평형화가 부족합니다"
+    ],
+    "pe_mean": -6.974405742520078,
+    "pe_std": 0.5309823882950976,
+    "phases": {
+      "예열": {
+        "status": "ok",
+        "n_samples": 2,
+        "warnings": [],
+        "pe_mean": -7.822791436027406,
+        "pe_std": 0.1953404615998915,
+        "steps": 20000,
+        "expect_steady": true
+      },
+      "생산": {
+        "status": "ok",
+        "n_samples": 3195,
+        "warnings": [
+          "[생산] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.4211 kT = 5.3·블록SEM (기준 3). 평형화가 부족합니다"
+        ],
+        "pe_mean": -6.974405742520078,
+        "pe_std": 0.5309823882950976,
+        "drift": 0.4210721587512687,
+        "drift_sem": 0.07993208813383891,
+        "drift_sigma": 5.267873873709169,
+        "steps": 31942000,
+        "expect_steady": true
+      }
+    },
+    "run_id": "chain-bend-2d-dlvo__n9-w10-a300__f5e9a298df55",
+    "wall_seconds": 100.02971076965332,
+    "steps_done": 31962000,
+    "steps_planned": 31962000,
+    "trip": null,
+    "guard_samples": 3197,
+    "f_max_last": 1813.921229494772,
+    "step_disp_last": 1.7402012880720593e-05,
+    "f_max_seen": 10260.830507901694,
+    "step_disp_seen": 9.843818009403298e-05
+  },
+  "result": {
+    "K_prime": 32.15891361611994,
+    "K_doubleprime": 8.455020772876528,
+    "K_sem": 39.96672695372496,
+    "y_resp_abs": 0.20329050435670948,
+    "drive_abs": 0.2040356459463123,
+    "omega_star": 61.51034378734867,
+    "shape_localization": 3.1106904618550053,
+    "shape_profile_mean": [
+      -0.0003500609469047269,
+      -0.5585092300934708,
+      0.17497681751599437,
+      0.09358419647467685,
+      0.0007691454090019945,
+      0.019718237473773426,
+      0.03653203211329746,
+      0.008216528170914256,
+      0.0009745276977177308
+    ],
+    "min_sep_all": 1.0051671552202859,
+    "nn_sep_max": 2.309641153288164,
+    "nn_sep_min": 1.0051671552202859
+  }
+}

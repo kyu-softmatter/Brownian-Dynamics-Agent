@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "permissions": {
+    "allow": [
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python:*)",
+      "Bash(/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/pytest:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(shasum:*)",
+      "Bash(du:*)"
+    ],
+
+    "deny": [
+      "Bash(conda activate:*)",
+      "Edit(./runs/**/02_prediction.md)",
+      "Edit(./runs/**/02_prediction.json)",
+      "Edit(./runs/**/01_intake.md)",
+      "Edit(./runs/**/SEALED.sha256)"
+    ]
+  }
+}

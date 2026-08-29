@@ -1,0 +1,63 @@
+# ── Trajectories and large binaries ───────────────────────────────────────
+# A run's science lives in its text artifacts (metrics.json, record.json,
+# result.txt, l4.json). The trajectory is 100-1000x larger and regenerable
+# from spec + seed, so it is not tracked. Measured: 254 runs = 5.7 MB of text
+# vs 542 MB of .gsd/.npz.
+*.gsd
+*.npz
+*.h5
+*.hdf5
+*.dcd
+*.parquet
+
+# ── Run outputs ───────────────────────────────────────────────────────────
+# Most of runs/ is regenerable, but NOT all of it. S1 readings, S2 predictions
+# and rationale documents are LLM judgments that do not regenerate, and the
+# prediction is the thing being sealed. So: track text, exclude binaries and
+# per-run figures.
+runs/**/figs/**
+runs/**/observables.png
+
+# Per-replica manifests of a seed-sweep. Measured on a k=1536 sweep: 3,534
+# files / 14 MB whose provenance fields (code_hash, git_rev, env, env_hash)
+# were *identical* -- only run_hash, seed and wall_s differed, and those three
+# recompute from spec + seed. A replica sweep's science is its aggregate
+# (metrics.json). Do not bleed 3,500 files into the history.
+runs*/**/raw_early/**/manifest.json
+runs*/**/raw/**/manifest.json
+
+# ── Raw source material ───────────────────────────────────────────────────
+# Copyrighted PDFs (papers, book chapters). The distillations in
+# knowledge/source/ are the in-git canonical form; the originals are fetched
+# by each reader from the source_url in the distillation's frontmatter.
+# See NOTICE.md.
+*.pdf
+knowledge/raw/
+
+# Unpublished lab assets -- senior-student code, notes, unpublished
+# parameters. Blocked pre-emptively: once committed it has to be scrubbed
+# from the whole history, not just the tip.
+knowledge/source/lab/
+
+# ── Machine-specific ──────────────────────────────────────────────────────
+# Using another machine's performance profile is silently wrong -- the cost
+# model then plans a sweep against hardware you do not have.
+*.local.yaml
+*.local.json
+*.local.jsonl
+.claude/settings.local.json
+sessions/
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+
+# ── OS / editor ───────────────────────────────────────────────────────────
+.DS_Store
+.vscode/
+.idea/

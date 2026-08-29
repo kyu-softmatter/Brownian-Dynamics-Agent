@@ -1,0 +1,150 @@
+# L0 Observation — 새 스케치 없음. `chain-bend-2d-dlvo` 의 정적(구동 없는) 짝.
+# 프로토콜: 전사 먼저 → 구조화 → 모호/미판독 명시 → 없는 값은 null (지어내지 않음)
+# 이 케이스가 왜 있는가: 사용자가 "체인 시스템을 구성하는데, 입자간 마찰력은 없고
+# 입자간 인력만 존재하는 상황으로 구현해보고 싶다"고 요청했다 (2026-08-06). 그 물리
+# (DLVO 2차극소 인력만, 명시적 굽힘/마찰 없음)는 이미 `chain-bend-2d-dlvo`가 갖고
+# 있지만, 그 케이스는 처음부터 트랩+오실레이션 구동이 얹혀 있다. 규칙 8(정적인 계를
+# 먼저 세우고 움직임은 그 다음에 얹는다)의 "정적 단계"가 이 케이스이고, 원래
+# chain-bend-2d-dlvo 를 만들 때는 이 단계를 건너뛰고 곧바로 동적 실험을 했다
+# (G1은 대수적으로만 유도됐고, 구동 없는 자유 이완으로 직접 확인한 적이 없다).
+
+source_files: []   # 새 스케치 없음 — 아래 참조
+
+# ── ① 전사 ──────────────────────────────────────────────────────────────
+raw_transcription: |
+  스케치 없음. 물성·DLVO 유도(장벽·2차극소·결합강성)는 전부
+  intake/chain-bend-2d-dlvo/{observation,system}.yaml 를 그대로 승계한다
+  ([P1] Pantina & Furst PRL 94 138301 · [P2] Langmuir 24 1141, 사용자 승인
+  2026-08-05일자 확인 그대로). 이번에 새로 결정하는 것은 두 가지뿐이다 —
+  ① 구동 방식: 트랩·오실레이션 없음 (자유 이완, external 섹션 없음)
+  ② 초기조건: 직선(straight) 또는 중앙 한 곳에 정확한 킹크각 Δφ를 준 상태(kink) —
+     둘 다 모든 결합이 정확히 자연장(ell)에서 시작하도록 놓는다 (신장 신호와
+     굽힘 신호가 섞이지 않게).
+
+system_guess: >
+  chain-bend-2d-dlvo 와 물리적으로 동일한 사슬(같은 PMMA 비드, 같은 DLVO 2차극소
+  결합, 명시적 각도/굽힘 퍼텐셜 없음, 입자간 마찰 없음 — BD 자체에 마찰력 항이
+  없고 md.pair.friction 도 쓰지 않는다)이지만, 트랩·오실레이션을 전부 떼어내고
+  자유 이완만 본다. 두 실험:
+    (a) 직선 사슬을 열평형시켜 각 결합의 국소 굽힘각(dtheta_i) 열요동을 잰다
+        — 순수 중심력 결합의 골든 테스트(트랩의 ⟨x²⟩=kT/k 와 같은 종류지만,
+        결합 "신장"(radial) 방향에만 적용된다 — "굽힘"(각) 방향은 G1에 의해
+        선형 등분배가 성립하지 않을 것으로 예상된다).
+    (b) 중앙 한 결합에 정확한 킹크각 Δφ를 준 뒤 풀어서, 굽음(bow)이 시간에 따라
+        0으로 "탄성 복원"되는지(=숨은 굽힘강성=버그) 아니면 그냥 확산적으로
+        흩어지는지(=G1 확인) 본다.
+
+entities:
+  - kind: particle
+    note: "PMMA 비드 사슬 — chain-bend-2d-dlvo 승계, 새 정보 없음"
+  - kind: bonded_interaction
+    form: "DLVO(r) 2차극소 — 중심력, 토크 없음. chain-bend-2d-dlvo 와 완전히 동일한
+           dlvo_reduced_params/find_well/build_table_arrays 를 그대로 임포트해서 쓴다
+           (두 번째 케이스가 됐으므로 재정의하지 않는다 — bdbot/ 로 올릴지는 세
+           번째가 나올 때 판단)."
+  - kind: external
+    note: "없음. 트랩·오실레이션·유령입자 전부 제외 — 이 케이스의 핵심 차이"
+  - kind: initial_condition
+    note: "신규 — straight(직선) 또는 kink(중앙 결합각 Δφ 부여). 아래 missing_required 참조"
+
+stated_quantities: []   # 스케치 없음 — 물성은 system.yaml 이 chain-bend-2d-dlvo 를 직접 승계
+
+stated_goals:
+  - "G1(직선 사슬 + 순수 중심력 + 자연장 결합 ⟹ 횡방향 선형 굽힘강성이 정확히 0)을
+     구동 없는 최소 구성에서 직접 실행으로 확인한다 — 지금까지는 대수적 유도와
+     오실레이션 구동 결과(강성이 0으로 수렴)로만 뒷받침됐지, 자유 이완 자체를
+     본 적은 없다."
+  - "결합의 신장(radial) 자유도가 트랩의 ⟨x²⟩=kT/k 와 같은 종류의 등분배
+     골든 테스트를 통과하는지 확인한다 (= 이 케이스로 이식한 DLVO 표 퍼텐셜
+     구현이 맞는지 재확인) — implementation_check."
+  - "킹크를 준 뒤 풀었을 때 굽음(bow)이 어떻게 이완하는지 서술적으로 관찰한다
+     (탄성 복원 vs 확산적 소실) — 엄밀한 사전 예측이 없으므로 measurement."
+  - "[P1] p.2 가 예측한 '삼각형형 국소 꺾임'이 이 최소 구성에서도 기하적으로
+     가능한지(2차 인접 비드가 서로의 DLVO 우물에 들어가는지) 관찰한다 — measurement."
+
+# ── ③ 모호한 것 ─────────────────────────────────────────────────────────
+ambiguities:
+  - id: R1
+    issue: "킹크각 Δφ 를 얼마로 줄 것인가?"
+    detail: >
+      결합의 신장(radial) 열요동 폭은 이미 알려져 있다(σ_bond=1.44nm, chain-bend-2d-dlvo
+      승계). 그런데 "굽힘(각)" 방향은 G1 에 의해 선형 등분배가 없어 비교할 사전 열요동
+      척도가 없다 — 이 실험 자체가 그 척도를 재는 것이다. 그래서 Δφ 는 "명확히 보일
+      만큼 크지만 두 팔이 서로의 컷오프 안에 들어가 조기에 새 결합을 만들 만큼 크지는
+      않은" 값으로 제안한다.
+    lean: "Δφ = 0.30 rad (17.2°) — n=9 기준 NNN(2결합 건너) 간극이 컷오프(0.06d) 대비
+           충분히 남는지 L3 에서 기하로 검사한다 (하드 아님, 정보용)"
+    resolution: null
+    proposed_by: assistant
+
+  - id: R2
+    issue: "결합 등분배(라디얼) 골든테스트의 관측창은 얼마나 필요한가?"
+    detail: >
+      τ_bond=5.90µs 가 이 계의 유일한 빠른 척도라 상관시간도 그 근방일 것으로 본다.
+      독립표본을 충분히 모으려면 τ_bond 의 수천~수만 배가 필요하다 — chain-bend-2d-dlvo
+      가 τ_chain_diff(사슬 전체 형태 이완, ~1e7 τ_bond)까지 기다리는 것과 달리, 이
+      측정은 "국소" 라디얼 모드만 봐서 훨씬 싸다(같은 이유로 dt 도 τ_bond 로 정한다).
+    lean: "T_obs = 2×10⁴ τ_bond (직선 열평형) / 3×10³ τ_bond (킹크 이완, 과도 구간
+           포착이 목적이라 더 짧아도 됨)"
+    resolution: null
+    proposed_by: assistant
+
+unread_regions: []   # 스케치 없음
+
+# ── ⑤ 이 케이스에서 새로 정해야 하는 값(물리적 결측이 아니라 시뮬레이션 선택) ──
+missing_required:
+  - symbol: n_beads
+    what: "파일럿 사슬 길이"
+    kind: choice
+    assumed_value: 9
+    assumed_unit: dimensionless
+    confidence: 3
+    note: "chain-bend-2d-dlvo 에서 가장 많이 쓰인 값(n=9)과 동일하게 맞춰 대조 가능하게
+           한다. --n 으로 덮어쓸 수 있음(스크립트 인자)."
+    resolution: "n=9 로 파일럿. 사용자 확인 대기"
+
+  - symbol: kink_angle
+    what: "킹크 초기조건의 결합각 편차 Δφ"
+    kind: choice
+    assumed_value: 0.30
+    assumed_unit: radian
+    confidence: 3
+    note: "R1 참조. 열요동보다 압도적으로 크고(사전 척도가 없어 상대 비교는 실행 후
+           가능), NNN 조기결합을 안 만드는 범위인지는 L3 기하 검사로 확인."
+    resolution: "0.30 rad 로 파일럿. 사용자 확인 대기"
+
+  - symbol: T_obs_straight, T_obs_kink
+    what: "관측창 (τ_bond 배수)"
+    kind: choice
+    assumed_value: null
+    note: "R2 참조. 직선열평형=2e4 τ_bond(≈300k 스텝), 킹크이완=3e3 τ_bond(≈200k 스텝) —
+           둘 다 저비용(수십만 스텝, 기존 케이스의 수십억 스텝과 대비됨). L3 에서 확정."
+    resolution: null
+
+  - symbol: n_seeds
+    what: "앙상블 시드 수 — 파일럿은 1개(단일 런)로 시작"
+    kind: choice
+    assumed_value: 1
+    assumed_unit: dimensionless
+    confidence: 3
+    note: "킹크 이완의 bow(t) 는 단일 시드로는 잡음이 크다. 파일럿이 코드/설계를
+           확인하면 앙상블(예: 8~16시드)로 확장 — chain-bend-2d-dlvo 가 실제로
+           이 순서(단일 시드 파일럿 → 시드 확장)를 밟았다."
+    resolution: "파일럿=1. 확장은 사용자 확인 후"
+
+prerun_findings:
+  - id: G1_import
+    severity: "정보"
+    finding: >
+      G1 자체(횡변위 y 에 대한 결합에너지가 O(y⁴)) 은 이미 chain-bend-2d-dlvo 에서
+      대수적으로 유도됐고 이 케이스는 그것을 재유도하지 않는다. 이 케이스가 더하는
+      것은 (a) 그 구조적 사실을 **구동이 전혀 없는** 최소 구성에서 직접 실행으로
+      확인하는 것, (b) 결합의 "신장" 자유도는 G1 과 무관하게 정상적으로 조화적이어야
+      한다는 것(라디얼 골든테스트) — 이건 아직 아무 케이스에서도 직접 잰 적이 없다
+      (chain-bend-2d-dlvo 는 트랩+구동이 섞여 있어 순수 열평형 결합신장을 격리해서
+      보지 않았다).
+    consequence: "라디얼 등분배가 어긋나면 이식한 DLVO 표 퍼텐셜(bdbot 재사용)에
+                  버그가 있다는 뜻 — FAIL. 각(굽힘) 자유도가 어긋나면(=하한 있는
+                  선형강성 발견) G1 자체가 틀렸거나 이 구현에 새로운 결합 경로
+                  (예: 컷오프 밖 비인접 상호작용)가 있다는 뜻 — 결과로 보고."
+    verified: false

@@ -1,0 +1,70 @@
+{
+  "system": {
+    "label": "trap-2d-5um",
+    "dimensions": 2,
+    "particle": {
+      "diameter": {
+        "value": 5.0,
+        "unit": "um"
+      },
+      "density": {
+        "value": 2000,
+        "unit": "kg/m^3"
+      },
+      "count": {
+        "value": 1000,
+        "unit": "dimensionless"
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "water",
+      "temperature": {
+        "value": 300,
+        "unit": "K"
+      },
+      "viscosity": {
+        "value": 0.851,
+        "unit": "mPa*s"
+      }
+    },
+    "external": {
+      "kind": "harmonic_trap",
+      "form": "U(r) = 0.5 * k_t * r^2,  r = sqrt(x^2 + y^2)",
+      "center": [
+        0,
+        0
+      ],
+      "stiffness": {
+        "value": 10,
+        "unit": "pN/um"
+      }
+    },
+    "interactions": "none",
+    "targets": [
+      {
+        "name": "position_distribution"
+      },
+      {
+        "name": "mean_square_displacement"
+      },
+      {
+        "name": "autocorrelation"
+      },
+      {
+        "name": "power_spectral_density"
+      }
+    ],
+    "numerics": {
+      "target_bias": 0.001,
+      "equilibration_tau": 20,
+      "production_tau": 2000,
+      "samples_per_tau": 10
+    }
+  },
+  "dt_over_tau_k": 0.002,
+  "n_eq": 10000,
+  "n_prod": 1000000,
+  "N": 1000,
+  "L_star": 32.0
+}

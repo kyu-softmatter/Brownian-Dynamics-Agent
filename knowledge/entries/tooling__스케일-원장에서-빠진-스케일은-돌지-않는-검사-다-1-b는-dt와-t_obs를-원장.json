@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "ledger",
+    "분리검사",
+    "L3"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/scales.py#MANDATORY_ROLES",
+  "lessons": [
+    {
+      "claim": "스케일 원장에서 빠진 스케일은 '돌지 않는 검사'다. 1-B는 dt와 T_obs를 원장에 올리지 않고 인자로 따로 넘겨서, 시간척도 정렬 표에 둘이 나타나지 않았다 — '정렬해 놓으면 분리 위반이 눈에 보인다'는 원장의 목적이 반감된다. 필수 역할(box·dt·observation·inertia)을 강제하고 없으면 declare_absent(role, 이유)로 명시하게 해야 한다. 기호가 아니라 역할로 강제해야 한다: 타원체 케이스의 기준 길이는 d가 아니라 d_eq다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

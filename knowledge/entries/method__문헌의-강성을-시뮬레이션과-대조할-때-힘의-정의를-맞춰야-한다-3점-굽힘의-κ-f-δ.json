@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "literature",
+    "force_definition"
+  ],
+  "dimensionless": {},
+  "source": "scratch/chain_bend_from_papers.py §2",
+  "lessons": [
+    {
+      "claim": "문헌의 강성을 시뮬레이션과 대조할 때 힘의 정의를 맞춰야 한다. 3점 굽힘의 κ=F/δ 는 끝 입자 힘 기준(24EI/L³)인데 시뮬레이션에서 재는 것은 중앙 힘(48EI/L³)이다 — 안 맞추면 정확히 2배 틀린다",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

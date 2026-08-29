@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "validation",
+    "separation_check"
+  ],
+  "dimensionless": {
+    "tau_p_over_tau_k": 0.000814
+  },
+  "source": ".claude/skills/bd-physics/SKILL.md §4",
+  "lessons": [
+    {
+      "claim": "실제 물리계 수치를 넣었을 때 만족 가능한 해가 없는 검사는 검사가 틀린 것이다. 관성 무시를 tau_p/dt <= 1e-2 로 잡았더니 trap-2d-5um 에서 100*tau_p <= dt <= 0.01*tau_k 를 만족하는 dt 가 아예 없었다. 원인은 BD 에 관성이 없다는 것(HOOMD Brownian 은 질량이 식에 없다) — tau_p 는 수치 조건이 아니라 모델 타당성 조건이라 tau_dyn 과 비교해야 했다. golden_trap 이 tau_p/dt=4000 에서 0.38 퍼센트 정확했던 것이 증거",
+      "kind": "pitfall",
+      "coords": {
+        "tau_p_over_tau_k": 0.000814
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,35 @@
+{
+  "status": "ok",
+  "n_samples": 2085,
+  "warnings": [
+    "[이완] ⟨U⟩/N 이 표류합니다: 후반−전반 = -0.0001162 kT = 6.9·블록SEM (기준 3). 평형화가 부족합니다"
+  ],
+  "pe_mean": 1.0069418317360614,
+  "pe_std": 0.00011152973711460289,
+  "phases": {
+    "이완": {
+      "status": "ok",
+      "n_samples": 2085,
+      "warnings": [
+        "[이완] ⟨U⟩/N 이 표류합니다: 후반−전반 = -0.0001162 kT = 6.9·블록SEM (기준 3). 평형화가 부족합니다"
+      ],
+      "pe_mean": 1.0069418317360614,
+      "pe_std": 0.00011152973711460289,
+      "drift": -0.00011616528171254359,
+      "drift_sem": 1.688199483188064e-05,
+      "drift_sigma": 6.881016305796539,
+      "steps": 20847258,
+      "expect_steady": true
+    }
+  },
+  "run_id": "network__N512-sprout-mc4-po0.2__8d9baf357248",
+  "wall_seconds": 1757.2345049381256,
+  "steps_done": 20847258,
+  "steps_planned": 20847258,
+  "trip": null,
+  "guard_samples": 2085,
+  "f_max_last": 5845.32346230339,
+  "step_disp_last": 5.6077624832316386e-05,
+  "f_max_seen": 14648.10579293993,
+  "step_disp_seen": 0.0001405278914773478
+}

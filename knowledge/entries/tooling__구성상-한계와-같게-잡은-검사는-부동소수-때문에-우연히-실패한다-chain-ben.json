@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "floating_point",
+    "checks"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/checks.py#Check.ok",
+  "lessons": [
+    {
+      "claim": "구성상 한계와 '같게' 잡은 검사는 부동소수 때문에 우연히 실패한다. chain-bend 는 T_obs ≡ 100·(2π/ω) 로 정의하는데 (100x)/x = 99.99999999999999 가 나와 '관측 주기 수 ≥ 100' 이 거짓 경고를 냈다. 같은 스펙의 dt/τ_fast ≤ 1e-2 는 우연히 정확히 떨어져 통과했다 — 그 우연에 기대면 안 된다. Check.ok 에 상대 허용오차 1e-12 를 넣어 고쳤다 (bdbot.nondim.RATIO_RTOL 과 같은 취지).",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

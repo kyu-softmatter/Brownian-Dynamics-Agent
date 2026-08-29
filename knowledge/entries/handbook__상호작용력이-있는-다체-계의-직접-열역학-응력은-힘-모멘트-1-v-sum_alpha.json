@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "stress",
+    "virial",
+    "bd_implementation"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#2.4 ← [L] (2.27),(2.59) pp.37,47",
+  "lessons": [
+    {
+      "claim": "상호작용력이 있는 다체 계의 직접 열역학 응력은 힘 모멘트 (1/V)*sum_alpha F_i^alpha x_j^alpha 다 (= virial/force-dipole). Brownian 운동은 유효 힘 F_Br = -kT grad ln P_N 으로 정확히 치환되고 sum F_Br = 0 이다. ★ BD 코드에서 응력을 실제로 계산할 수 있는 근거. 단 랜덤힘의 순간값을 virial 에 그대로 더하면 F_Br 과 이중계산이 되므로 kT=0 결정론 런과 대조해 확인해야 한다",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "이중계산 여부는 아직 실행 확인 안 함"
+  ]
+}

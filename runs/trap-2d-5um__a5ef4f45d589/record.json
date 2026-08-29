@@ -1,0 +1,144 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "trap-2d-5um__a5ef4f45d589",
+  "case": "trap-2d-5um",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "harmonic_trap",
+    "newtonian",
+    "single_particle",
+    "no_pair_interaction"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 1000,
+    "k_star": 60358.087633665986,
+    "L_star": 32.0
+  },
+  "dimensionless": {
+    "k*": 60358.087633665986,
+    "l_k/d": 0.004070354775692164,
+    "tau_k/tau_B": 1.6567788000000008e-05,
+    "dt/tau_k": 0.002,
+    "T_obs/tau_k": 1999.9999999999998
+  },
+  "observables": [
+    {
+      "name": "x2",
+      "measured": 0.00041429327256023034,
+      "predicted": 0.0004141947000000001,
+      "unit": "um^2",
+      "err_pct": 0.023798604914612373,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "단일 조화 트랩 + BD — OU 과정의 닫힌 형태 (조합 가정 없음)"
+    },
+    {
+      "name": "sigma",
+      "measured": 20.354195453523342,
+      "predicted": 20.351773878460815,
+      "unit": "nm",
+      "err_pct": 0.01189859457455078,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "단일 조화 트랩 + BD — OU 과정의 닫힌 형태 (조합 가정 없음)"
+    },
+    {
+      "name": "tau_fit",
+      "measured": 4.000222602078198,
+      "predicted": 4.010243022307369,
+      "unit": "ms",
+      "err_pct": -0.24987064807374043,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "단일 조화 트랩 + BD — OU 과정의 닫힌 형태 (조합 가정 없음)"
+    },
+    {
+      "name": "psd_fc",
+      "measured": 40.151635558783894,
+      "predicted": 39.687106792925114,
+      "unit": "Hz",
+      "err_pct": 1.1704777782934543,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "단일 조화 트랩 + BD — OU 과정의 닫힌 형태 (조합 가정 없음)"
+    },
+    {
+      "name": "psd_S0",
+      "measured": 6.621873878801523e-06,
+      "predicted": 6.6440856222067796e-06,
+      "unit": "um^2/Hz",
+      "err_pct": -0.3343085063656812,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "단일 조화 트랩 + BD — OU 과정의 닫힌 형태 (조합 가정 없음)"
+    }
+  ],
+  "numerics": {
+    "dt_star": 3.313557600000001e-08,
+    "dt_over_tau_k": 0.002,
+    "n_eq": 10000,
+    "n_prod": 1000000,
+    "sample_every": 50,
+    "seed": 20260803,
+    "steps_done": 1010000,
+    "step_drift_max_sigma": 4.524153282489607e-05,
+    "f_max_kT_per_sigma": 1365.3462014632266
+  },
+  "diagnostics": {
+    "equilibrium_z": -0.908940462385571,
+    "trend_t": -0.20560718707763323,
+    "first_half": 1.0008536141565676,
+    "second_half": 0.9996223579417197,
+    "tau_int_samples": 4.117424581095244,
+    "n_eff": 2165.7094391843907,
+    "drift_span": -0.00048246831068245145,
+    "drift_span_rel_pct": -0.048235351727458464,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 20000
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=-0.91, 지표=⟨U⟩/N [kT])",
+    "드리프트 없음 ✓ (t=-0.21, 전구간 -0.048%, n_eff=2166/20000)",
+    "분리 검사 4종 중 하드 전부 통과 ✓",
+    "관측량 5종 예측과 일치 ✓ (최대 오차 +1.17% @ psd_fc)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [],
+  "artifacts": [
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

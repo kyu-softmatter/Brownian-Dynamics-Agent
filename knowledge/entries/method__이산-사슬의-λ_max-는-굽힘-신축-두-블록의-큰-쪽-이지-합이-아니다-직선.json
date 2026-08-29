@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "eigenvalue",
+    "dt",
+    "chain",
+    "bending"
+  ],
+  "dimensionless": {},
+  "source": "cases/chain_bend_2d.py#bond_matrix",
+  "lessons": [
+    {
+      "claim": "이산 사슬의 λ_max 는 굽힘·신축 두 블록의 **큰 쪽**이지 합이 아니다. 직선 사슬에서 신축(x)과 굽힘(y)은 선형 차수에서 분리되므로 한 행렬로 더하면 λ_max 를 과대평가한다 (chain-bend 에서 0.0423 대신 0.0500 N/m → dt 18% 과소, 비용만 증가). λ_max(A+B) ≤ λ_max(A)+λ_max(B) 라는 상계를 dt에 그대로 쓰면 안 된다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

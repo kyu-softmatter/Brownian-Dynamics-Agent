@@ -1,0 +1,305 @@
+{
+  "items": [
+    {
+      "quantity": "psi6_global__A0.1__t20_30",
+      "value": 0.04861634311426315,
+      "tolerance": "±0.0076358",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.0486163 ± 0.0018 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null
+    },
+    {
+      "quantity": "defect_fraction__A0.1__t20_30",
+      "value": 0.647,
+      "tolerance": "±0.0057",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.647 ± 0.001344 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null
+    },
+    {
+      "quantity": "energy_per_particle__A0.1__t20_30",
+      "value": 0.637609786474552,
+      "tolerance": "±0.0113402",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.63761 ± 0.002673 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null,
+      "unit": "kT"
+    },
+    {
+      "quantity": "psi6_global__A1__t20_30",
+      "value": 0.06256456768198404,
+      "tolerance": "±0.00201462",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 0.0625646 ± 0.0004749 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null
+    },
+    {
+      "quantity": "defect_fraction__A1__t20_30",
+      "value": 0.556125,
+      "tolerance": "±0.0130725",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 0.556125 ± 0.003081 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null
+    },
+    {
+      "quantity": "energy_per_particle__A1__t20_30",
+      "value": 4.1771790300484115,
+      "tolerance": "±0.0194954",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 4.17718 ± 0.004595 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null,
+      "unit": "kT"
+    },
+    {
+      "quantity": "psi6_global__A10__t60_80",
+      "value": 0.2515028706868179,
+      "tolerance": "±0.0354199",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 0.251503 ± 0.008349 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null
+    },
+    {
+      "quantity": "defect_fraction__A10__t60_80",
+      "value": 0.290675,
+      "tolerance": "±0.0193505",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 0.290675 ± 0.004561 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null
+    },
+    {
+      "quantity": "energy_per_particle__A10__t60_80",
+      "value": 35.9797301340512,
+      "tolerance": "±0.0257525",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 35.9797 ± 0.00607 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "discriminates": "t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다",
+      "competing_value": null,
+      "unit": "kT"
+    },
+    {
+      "quantity": "coord_kinds__A0.1",
+      "value": 6,
+      "tolerance": "±0",
+      "basis": "선행 런 A0.1_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 6개. 정수량이므로 오차 0 을 요구한다",
+      "discriminates": "결함의 **성격**. 분율은 같아도 종류 수가 다르면 다른 물리다 — 액체(6종) vs 전위만(3종). 카드 §8.2",
+      "competing_value": null
+    },
+    {
+      "quantity": "coord_kinds__A1",
+      "value": 5,
+      "tolerance": "±0",
+      "basis": "선행 런 A1_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 5개. 정수량이므로 오차 0 을 요구한다",
+      "discriminates": "결함의 **성격**. 분율은 같아도 종류 수가 다르면 다른 물리다 — 액체(6종) vs 전위만(3종). 카드 §8.2",
+      "competing_value": null
+    },
+    {
+      "quantity": "coord_kinds__A10",
+      "value": 3,
+      "tolerance": "±0",
+      "basis": "선행 런 A10_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 3개. 정수량이므로 오차 0 을 요구한다",
+      "discriminates": "결함의 **성격**. 분율은 같아도 종류 수가 다르면 다른 물리다 — 액체(6종) vs 전위만(3종). 카드 §8.2",
+      "competing_value": null
+    },
+    {
+      "quantity": "rdf_at_0.5d__A0.1__first_window",
+      "value": ">0",
+      "tolerance": ">0",
+      "basis": "초기배치는 기각표집으로 min_sep = 0.8 d 를 강제하므로 t=0 에서 g(r<0.8d) = 0 이 정확히 성립한다. 이것은 **초기조건 인공물**이고 자유확산이 메운다: MSD* = 4t* ⇒ 간극 0.3 d 는 t* ≈ 0.0225 τ_d. 첫 창(0–20 τ_d)은 그보다 889배 길다",
+      "discriminates": "초기조건의 배제부피 껍질이 실제로 완화되는가. 남아 있으면 표집이 초기조건에 갇힌 것이다",
+      "competing_value": null
+    },
+    {
+      "quantity": "min_separation_over_sigma__A0.1",
+      "value": "<1",
+      "tolerance": "<1",
+      "basis": "선행 런 최소분리 0.2172 d = 0.6516 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 2.67배이므로 극값이 더 작아진다 → 겹침 판정은 유지되거나 강화된다",
+      "discriminates": "'5 µm 원판 100개' 라는 그림이 이 A 에서 물리적으로 성립하는가. A/r³ 에는 경질 코어가 없으므로 모델은 겹침을 허용한다 — 성립하지 않는다면 그것이 결과다",
+      "competing_value": null,
+      "unit": "sigma"
+    },
+    {
+      "quantity": "min_separation_over_sigma__A1",
+      "value": ">1",
+      "tolerance": ">1",
+      "basis": "선행 런 최소분리 0.4586 d = 1.376 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 2.67배이므로 극값이 더 작아진다 → 겹침 판정은 유지되거나 강화된다",
+      "discriminates": "'5 µm 원판 100개' 라는 그림이 이 A 에서 물리적으로 성립하는가. A/r³ 에는 경질 코어가 없으므로 모델은 겹침을 허용한다 — 성립하지 않는다면 그것이 결과다",
+      "competing_value": null,
+      "unit": "sigma"
+    },
+    {
+      "quantity": "min_separation_over_sigma__A10",
+      "value": ">1",
+      "tolerance": ">1",
+      "basis": "선행 런 최소분리 0.7164 d = 2.149 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 1배이므로 극값이 더 작아진다 → 겹침 판정은 유지되거나 강화된다",
+      "discriminates": "'5 µm 원판 100개' 라는 그림이 이 A 에서 물리적으로 성립하는가. A/r³ 에는 경질 코어가 없으므로 모델은 겹침을 허용한다 — 성립하지 않는다면 그것이 결과다",
+      "competing_value": null,
+      "unit": "sigma"
+    },
+    {
+      "quantity": "t90_ordering",
+      "value": "t90(A=10) > t90(A=1) 이고 t90(A=10) > 1 tau_d",
+      "tolerance": "정성 (순서)",
+      "basis": "A=10 은 Γ = π^{3/2}·10 = 55.68 로 Zahn 전이점 59.88 의 −7.0 % 다 [출처, 미재현] → 임계 완화가 예상된다. A ≤ 1 은 깊은 액체이고 무작위 초기배치가 이미 액체 배치에 가까우므로 ψ₆ 가 거의 평탄할 것이다",
+      "discriminates": "전이점 근처에서 구조 완화가 느려지는가 (임계 완화의 서명)",
+      "competing_value": "세 A 의 도달 시각이 모두 O(1) tau_d 로 구별되지 않는다"
+    }
+  ],
+  "checks": [
+    {
+      "quantity": "psi6_global__A0.1__t20_30",
+      "predicted": 0.04861634311426315,
+      "tolerance": "±0.0076358",
+      "measured": 0.04771460219926666,
+      "note": "SE_new = 0.001919 (시드 4개) · SE_prior = 0.0018 · **실제 0.34σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.0486163 ± 0.0018 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "defect_fraction__A0.1__t20_30",
+      "predicted": 0.647,
+      "tolerance": "±0.0057",
+      "measured": 0.6444999999999999,
+      "note": "SE_new = 0.002835 (시드 4개) · SE_prior = 0.001344 · **실제 0.80σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.647 ± 0.001344 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "energy_per_particle__A0.1__t20_30",
+      "predicted": 0.637609786474552,
+      "tolerance": "±0.0113402",
+      "measured": 0.6398941021941789,
+      "note": "SE_new = 0.001517 (시드 4개) · SE_prior = 0.002673 · **실제 0.74σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.63761 ± 0.002673 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "psi6_global__A1__t20_30",
+      "predicted": 0.06256456768198404,
+      "tolerance": "±0.00201462",
+      "measured": 0.05971454644808546,
+      "note": "SE_new = 0.002477 (시드 4개) · SE_prior = 0.0004749 · **실제 1.13σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 0.0625646 ± 0.0004749 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "FAIL"
+    },
+    {
+      "quantity": "defect_fraction__A1__t20_30",
+      "predicted": 0.556125,
+      "tolerance": "±0.0130725",
+      "measured": 0.5488999999999999,
+      "note": "SE_new = 0.003057 (시드 4개) · SE_prior = 0.003081 · **실제 1.66σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 0.556125 ± 0.003081 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "energy_per_particle__A1__t20_30",
+      "predicted": 4.1771790300484115,
+      "tolerance": "±0.0194954",
+      "measured": 4.180296583434388,
+      "note": "SE_new = 0.006778 (시드 4개) · SE_prior = 0.004595 · **실제 0.38σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 4.17718 ± 0.004595 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "psi6_global__A10__t60_80",
+      "predicted": 0.2515028706868179,
+      "tolerance": "±0.0354199",
+      "measured": 0.24790043972432615,
+      "note": "SE_new = 0.007949 (시드 4개) · SE_prior = 0.008349 · **실제 0.31σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 0.251503 ± 0.008349 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "defect_fraction__A10__t60_80",
+      "predicted": 0.290675,
+      "tolerance": "±0.0193505",
+      "measured": 0.294975,
+      "note": "SE_new = 0.006775 (시드 4개) · SE_prior = 0.004561 · **실제 0.53σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 0.290675 ± 0.004561 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "energy_per_particle__A10__t60_80",
+      "predicted": 35.9797301340512,
+      "tolerance": "±0.0257525",
+      "measured": 35.982953377240946,
+      "note": "SE_new = 0.007316 (시드 4개) · SE_prior = 0.00607 · **실제 0.34σ**",
+      "basis": "선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 35.9797 ± 0.00607 (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "coord_kinds__A0.1",
+      "predicted": 6,
+      "tolerance": "±0",
+      "measured": 6.145,
+      "note": "시드별 [6.04, 6.24, 6.04, 6.26]",
+      "basis": "선행 런 A0.1_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 6개. 정수량이므로 오차 0 을 요구한다",
+      "verdict": "FAIL"
+    },
+    {
+      "quantity": "coord_kinds__A1",
+      "predicted": 5,
+      "tolerance": "±0",
+      "measured": 5.205,
+      "note": "시드별 [5.12, 5.24, 5.26, 5.2]",
+      "basis": "선행 런 A1_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 5개. 정수량이므로 오차 0 을 요구한다",
+      "verdict": "FAIL"
+    },
+    {
+      "quantity": "coord_kinds__A10",
+      "predicted": 3,
+      "tolerance": "±0",
+      "measured": 3.165,
+      "note": "시드별 [3.13, 3.16, 3.18, 3.19]",
+      "basis": "선행 런 A10_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 3개. 정수량이므로 오차 0 을 요구한다",
+      "verdict": "FAIL"
+    },
+    {
+      "quantity": "rdf_at_0.5d__A0.1__first_window",
+      "predicted": ">0",
+      "tolerance": ">0",
+      "measured": 0.7388982176780701,
+      "note": "첫 시간창 g(0.5 d)",
+      "basis": "초기배치는 기각표집으로 min_sep = 0.8 d 를 강제하므로 t=0 에서 g(r<0.8d) = 0 이 정확히 성립한다. 이것은 **초기조건 인공물**이고 자유확산이 메운다: MSD* = 4t* ⇒ 간극 0.3 d 는 t* ≈ 0.0225 τ_d. 첫 창(0–20 τ_d)은 그보다 889배 길다",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "min_separation_over_sigma__A0.1",
+      "predicted": "<1",
+      "tolerance": "<1",
+      "measured": 0.6193897769361995,
+      "note": "= 0.2065 d",
+      "basis": "선행 런 최소분리 0.2172 d = 0.6516 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 2.67배이므로 극값이 더 작아진다 → 겹침 판정은 유지되거나 강화된다",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "min_separation_over_sigma__A1",
+      "predicted": ">1",
+      "tolerance": ">1",
+      "measured": 1.315957717412821,
+      "note": "= 0.4387 d",
+      "basis": "선행 런 최소분리 0.4586 d = 1.376 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 2.67배이므로 극값이 더 작아진다 → 겹침 판정은 유지되거나 강화된다",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "min_separation_over_sigma__A10",
+      "predicted": ">1",
+      "tolerance": ">1",
+      "measured": 2.144789196523069,
+      "note": "= 0.7149 d",
+      "basis": "선행 런 최소분리 0.7164 d = 2.149 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 1배이므로 극값이 더 작아진다 → 겹침 판정은 유지되거나 강화된다",
+      "verdict": "PASS"
+    },
+    {
+      "quantity": "t90_ordering",
+      "predicted": "t90(A=10) > t90(A=1) 이고 t90(A=10) > 1 tau_d",
+      "tolerance": "정성 (순서)",
+      "measured": {
+        "A0.1": 0.7992,
+        "A1": 0.5993999999999999,
+        "A10": 0.39991219561906427
+      },
+      "note": "A0.1: 0.799 τ_d · A1: 0.599 τ_d · A10: 0.4 τ_d",
+      "basis": "A=10 은 Γ = π^{3/2}·10 = 55.68 로 Zahn 전이점 59.88 의 −7.0 % 다 [출처, 미재현] → 임계 완화가 예상된다. A ≤ 1 은 깊은 액체이고 무작위 초기배치가 이미 액체 배치에 가까우므로 ψ₆ 가 거의 평탄할 것이다",
+      "verdict": "FAIL"
+    }
+  ]
+}

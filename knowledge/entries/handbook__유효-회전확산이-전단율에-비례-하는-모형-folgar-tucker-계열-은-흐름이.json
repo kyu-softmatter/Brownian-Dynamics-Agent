@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "rod",
+    "effective_diffusion",
+    "pitfall"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#7 ← [L] p.219",
+  "lessons": [
+    {
+      "claim": "'유효 회전확산이 전단율에 비례' 하는 모형(Folgar-Tucker 계열)은 흐름이 없으면 이완 기구가 아예 없다 — 정지 상태의 탄성·이완을 예측하지 못한다. 평형 이완이 필요한 관측량에 이런 모형을 쓰면 안 된다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

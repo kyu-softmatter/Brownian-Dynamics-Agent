@@ -1,0 +1,83 @@
+{
+  "var_x_star": {
+    "quantity": "var_x_star",
+    "value": 1.005765195529117,
+    "stat_err": 0.004461396900739161,
+    "method": "독립 스냅샷 성분분산, 시드 앙상블",
+    "n_samples": 4,
+    "spread": 0.008922793801478321,
+    "unit": ""
+  },
+  "var_x_nm2": {
+    "quantity": "var_x_nm2",
+    "value": 416.5826134326239,
+    "stat_err": 1.8478869508825864,
+    "method": "⟨x*²⟩ × kT/k",
+    "n_samples": 4,
+    "spread": null,
+    "unit": "nm^2"
+  },
+  "var_r_nm2": {
+    "quantity": "var_r_nm2",
+    "value": 833.1652268652477,
+    "stat_err": 3.6957739017651727,
+    "method": "d × ⟨x²⟩ (등방)",
+    "n_samples": 4,
+    "spread": null,
+    "unit": "nm^2"
+  },
+  "msd_plateau_star": {
+    "quantity": "msd_plateau_star",
+    "value": 4.021490444841885,
+    "stat_err": 0.006070265540187316,
+    "method": "MSD 피팅 plateau",
+    "n_samples": 4,
+    "spread": 0.012140531080374632,
+    "unit": ""
+  },
+  "tau_star": {
+    "quantity": "tau_star",
+    "value": 0.9990383472170556,
+    "stat_err": 0.00371692405915194,
+    "method": "MSD 피팅 완화시간",
+    "n_samples": 4,
+    "spread": 0.00743384811830388,
+    "unit": ""
+  },
+  "tau_trap_ms": {
+    "quantity": "tau_trap_ms",
+    "value": 8.056650351910529,
+    "stat_err": 0.02997478286254911,
+    "method": "τ* × τ_trap",
+    "n_samples": 4,
+    "spread": null,
+    "unit": "ms"
+  },
+  "msd_r_squared": {
+    "quantity": "msd_r_squared",
+    "value": 0.9999765015946711,
+    "stat_err": 7.792082212022798e-06,
+    "method": "단일지수 피팅 R²",
+    "n_samples": 4,
+    "spread": null,
+    "unit": ""
+  },
+  "kT_conf_star": {
+    "quantity": "kT_conf_star",
+    "value": 1.0057651955291167,
+    "stat_err": 0.004461396900739191,
+    "method": "배위 온도 ⟨|∇U|²⟩/⟨∇²U⟩",
+    "n_samples": 4,
+    "spread": null,
+    "unit": ""
+  },
+  "plateau_over_2d_var": {
+    "quantity": "plateau_over_2d_var",
+    "value": 0.9996096660329958,
+    "stat_err": 0.0015088674690601734,
+    "method": "MSD(시계열) / 분산(스냅샷) — 독립 경로 대조",
+    "n_samples": 4,
+    "spread": null,
+    "unit": ""
+  }
+}

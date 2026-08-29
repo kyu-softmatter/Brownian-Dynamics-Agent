@@ -1,0 +1,343 @@
+{
+  "schema": "bdbot.nondim/0.1",
+  "case": "trap-2d-5um",
+  "label": "trap-2d-5um",
+  "tag": null,
+  "run_id": "trap-2d-5um__ed80885e01b3",
+  "system": {
+    "label": "trap-2d-5um",
+    "derived_from": "observation.yaml",
+    "description": "2D 조화 퍼텐셜 트랩 안의 브라운 입자 (광집게). 뉴턴 유체(물).",
+    "dimensions": 2,
+    "particle": {
+      "diameter": {
+        "value": 5.0,
+        "unit": "um",
+        "source": "sketch:sketch_01.jpeg 'R = 5μm' + 사용자 확인(지름)",
+        "tier": 0
+      },
+      "density": {
+        "value": 2000,
+        "unit": "kg/m^3",
+        "source": "실리카 가정. τ_p(모델 타당성 검사)에만 사용, BD 결과에 영향 없음",
+        "tier": 3
+      },
+      "count": {
+        "value": 1000,
+        "unit": "dimensionless",
+        "source": "시뮬레이션 선택 — 독립 입자 앙상블로 통계 확보. 스케치엔 1개",
+        "tier": 3
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "water",
+      "temperature": {
+        "value": 300,
+        "unit": "K",
+        "source": "sketch:sketch_01.jpeg 'T = 300 K. (~27°C)'",
+        "tier": 0
+      },
+      "viscosity": {
+        "value": 0.851,
+        "unit": "mPa*s",
+        "source": "물 @300K 핸드북값. 매질이 물임은 사용자 확인",
+        "tier": 0
+      }
+    },
+    "external": {
+      "kind": "harmonic_trap",
+      "form": "U(r) = 0.5 * k_t * r^2,  r = sqrt(x^2 + y^2)",
+      "center": [
+        0,
+        0
+      ],
+      "stiffness": {
+        "value": 10,
+        "unit": "pN/um",
+        "source": "sketch:sketch_01.jpeg 'k_t = 10 pN/μm'",
+        "tier": 0
+      }
+    },
+    "interactions": "none",
+    "targets": [
+      {
+        "name": "position_distribution"
+      },
+      {
+        "name": "mean_square_displacement"
+      },
+      {
+        "name": "autocorrelation"
+      },
+      {
+        "name": "power_spectral_density"
+      }
+    ],
+    "numerics": {
+      "target_bias": 0.001,
+      "equilibration_tau": 20,
+      "production_tau": 2000,
+      "samples_per_tau": 10
+    }
+  },
+  "reference": {
+    "strategy": "thermal",
+    "rationale": "thermal 규약 고정 (σ=d, E=kT, τ=τ_B). 단위계는 문헌 비교를 위해 계마다 바꾸지 않는다 (bd-physics §1.1). 지배 시간척도는 계마다 다를 수 있고, dt는 그쪽으로 정한다. 이 계의 지배 시간척도는 τ_k다 — τ_B=242s는 트랩이 4ms에 붙잡아 실현되지 않는다. 결과 보고는 τ_k 단위로 재척도한다.",
+    "length": {
+      "symbol": "d",
+      "value": 4.9999999999999996e-06,
+      "unit": "meter"
+    },
+    "time": {
+      "symbol": "tau_B",
+      "value": 242.05059977272577,
+      "unit": "second"
+    },
+    "energy": {
+      "symbol": "kT",
+      "value": 4.141947e-21,
+      "unit": "kilogram * meter ** 2 / second ** 2"
+    }
+  },
+  "back_transform": {
+    "sigma_SI": 4.9999999999999996e-06,
+    "sigma_SI_unit": "meter",
+    "tau_SI": 242.05059977272577,
+    "tau_SI_unit": "second",
+    "energy_SI": 4.141947e-21,
+    "energy_SI_unit": "kilogram * meter ** 2 / second ** 2"
+  },
+  "ledger": {
+    "lengths": [
+      {
+        "symbol": "d",
+        "value": 4.9999999999999996e-06,
+        "unit": "meter",
+        "note": "입자 지름 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "l_k",
+        "value": 2.0351773878460817e-08,
+        "unit": "meter",
+        "note": "√(kT/k) 트랩 요동폭",
+        "role": "",
+        "star": false,
+        "reduced": 0.004070354775692164
+      },
+      {
+        "symbol": "L",
+        "value": 7.5e-05,
+        "unit": "meter",
+        "note": "박스",
+        "role": "box",
+        "star": false,
+        "reduced": 15.0
+      }
+    ],
+    "times": [
+      {
+        "symbol": "tau_p",
+        "value": 3.2641336989163074e-06,
+        "unit": "second",
+        "note": "m/γ 관성 이완",
+        "role": "inertia",
+        "star": false,
+        "reduced": 1.3485336132119386e-08
+      },
+      {
+        "symbol": "dt",
+        "value": 8.02048604461474e-06,
+        "unit": "second",
+        "note": "적분 스텝",
+        "role": "dt",
+        "star": false,
+        "reduced": 3.313557600000001e-08
+      },
+      {
+        "symbol": "tau_k",
+        "value": 0.0040102430223073705,
+        "unit": "second",
+        "note": "γ/k 트랩 이완",
+        "role": "",
+        "star": true,
+        "reduced": 1.6567788000000008e-05
+      },
+      {
+        "symbol": "tau_B",
+        "value": 242.05059977272577,
+        "unit": "second",
+        "note": "d²/D_t 확산 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "T_obs",
+        "value": 0.4812291626768845,
+        "unit": "second",
+        "note": "관측창",
+        "role": "observation",
+        "star": false,
+        "reduced": 0.0019881345600000007
+      }
+    ],
+    "energies": [
+      {
+        "symbol": "kT",
+        "value": 4.141947e-21,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "열에너지 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "k_d2",
+        "value": 2.499999999999999e-16,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "k·d² 트랩 강성",
+        "role": "",
+        "star": false,
+        "reduced": 60358.087633665986
+      }
+    ]
+  },
+  "ledger_absent": {},
+  "groups": [
+    {
+      "name": "k*",
+      "value": 60358.087633665986,
+      "expr": "k d²/kT",
+      "meaning": "트랩 vs 열요동",
+      "num": [
+        "energies",
+        "k_d2"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "l_k/d",
+      "value": 0.004070354775692164,
+      "expr": "1/√k*",
+      "meaning": "요동폭 vs 입자",
+      "num": [
+        "lengths",
+        "l_k"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "tau_k/tau_B",
+      "value": 1.6567788000000008e-05,
+      "expr": "1/k*",
+      "meaning": "트랩 이완 vs 확산",
+      "num": [
+        "times",
+        "tau_k"
+      ],
+      "den": [
+        "times",
+        "tau_B"
+      ]
+    },
+    {
+      "name": "dt/tau_k",
+      "value": 0.002,
+      "expr": "",
+      "meaning": "적분 해상",
+      "num": [
+        "times",
+        "dt"
+      ],
+      "den": [
+        "times",
+        "tau_k"
+      ]
+    },
+    {
+      "name": "T_obs/tau_k",
+      "value": 120.0,
+      "expr": "",
+      "meaning": "관측창",
+      "num": [
+        "times",
+        "T_obs"
+      ],
+      "den": [
+        "times",
+        "tau_k"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "kind": "모델",
+      "name": "관성 무시   τ_p/τ_k",
+      "value": 0.0008139491000319041,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 12.285780523140861,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "트랩 해상   dt/τ_k",
+      "value": 0.002,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 5.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "요동 vs 박스 2ℓ_k/L",
+      "value": 0.0005427139700922885,
+      "limit": 0.5,
+      "op": "<=",
+      "ok": true,
+      "margin": 921.2956134425193,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "관측창     T_obs/τ_k",
+      "value": 120.0,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 1.2,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "verdict": "PASS",
+  "params": {
+    "N": 200,
+    "L_star": 15.0,
+    "k_star": 60358.087633665986
+  },
+  "numerics": {
+    "dt_star": 3.313557600000001e-08,
+    "dt_over_tau_k": 0.002,
+    "n_eq": 5000,
+    "n_prod": 60000,
+    "sample_every": 50,
+    "seed": 20260803
+  },
+  "l3_issues": []
+}

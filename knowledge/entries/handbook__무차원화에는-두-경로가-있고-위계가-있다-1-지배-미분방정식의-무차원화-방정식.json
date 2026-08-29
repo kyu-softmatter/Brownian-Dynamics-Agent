@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "nondim",
+    "method",
+    "L3"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/welty_transport.md#4 ← [W] 11.2 vs 11.3 pp.126-128",
+  "lessons": [
+    {
+      "claim": "무차원화에는 두 경로가 있고 위계가 있다 — (1) 지배 미분방정식의 무차원화: 방정식 항들의 비라서 유일하고 해석 가능 (2) Buckingham: 책이 명시적으로 '지배방정식이 알려지지 않은 상황을 위한' 방법이라 하고 조합이 유일하지 않다. ★ 우리 L3(bdbot/nondim.py)는 Langevin/Smoluchowski 를 알므로 (1) 이고, 무차원수를 '원장 두 항목의 비' 로 정의·검사하는 우리 설계가 (1) 과 같은 논리다 — 변수 목록에서 pi 를 뽑는 방식으로 후퇴하면 해석 가능성을 잃는다",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

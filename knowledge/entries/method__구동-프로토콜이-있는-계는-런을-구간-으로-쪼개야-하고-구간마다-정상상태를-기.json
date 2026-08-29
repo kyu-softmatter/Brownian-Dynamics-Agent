@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "protocol",
+    "relaxation",
+    "drift"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/run.py#Phase · judge",
+  "lessons": [
+    {
+      "claim": "구동 프로토콜이 있는 계는 런을 **구간**으로 쪼개야 하고, 구간마다 '정상상태를 기대하는가'가 다르다. trap-drag 는 예열·평형·끌기·이완 네 구간인데, 이완 구간은 **에너지가 변하는 것이 물리**라서 표류 검사를 그대로 돌리면 발견을 경고로 부른다 (규칙 7'). Phase.expect_steady=False 로 그 구간만 표류 판정을 끈다. 반대로 평형 구간의 표류 경고는 진짜다 — 완전격자 IC 에서 시작하면 ⟨U⟩ 가 올라가므로 예열이 충분한지 실측으로 정해야 한다.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

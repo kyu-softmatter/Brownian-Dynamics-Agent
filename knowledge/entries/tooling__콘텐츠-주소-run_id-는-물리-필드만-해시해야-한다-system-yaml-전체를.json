@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "tooling",
+    "run_id",
+    "reproducibility"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py DOC_KEYS",
+  "lessons": [
+    {
+      "claim": "콘텐츠 주소 run_id 는 물리 필드만 해시해야 한다. system.yaml 전체를 해시하면 주석·출처를 고치는 것만으로 런이 무효화된다 (derived_from 필드 추가로 실제 발생)",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,267 @@
+---
+# 벤치마크 원장 — **정답을 아는 계**로 엔진을 잰다.
+#
+# 스키마·근거: master_plan.md §6-B (네 층의 증거) · §14-C
+# 로더: bdkit/knowledge/benchmarks.py     시험: tests/test_benchmarks.py
+#
+# ## 판정은 tests/ 에서만 한다 (2026-07-28 사용자 결정)
+#
+# 이 파일은 pytest 가 읽는다. **런 파이프라인은 이걸 보지 않고 사용자의 런을 판정하지
+# 않는다** (docs/11_simbot.md §2). 즉 "엔진이 사용자를 채점" 하는 것이 아니라
+# "시험이 엔진을 채점" 한다 — SD12(추정기를 정답 아는 입력으로 시험한다)와 같은 부류다.
+#
+# ## 지금은 증거 층 ② 뿐이다
+#
+# master_plan §6-B 의 네 층 중 **② 해석적 극한**만 등재되어 있다. 첫 등재를 여기서
+# 시작한 이유는 하나다 — **오늘 통과 여부를 확인할 수 있다.** ③ 문헌 벤치마크
+# (Carnahan–Starling · φ_freeze · Zahn 융해점)는 배제부피나 상분리를 요구하고
+# 엔진에 아직 없다 (Step 4b · D8 대기). 재현 못 하는 물리의 목록도 자산이므로
+# `blocked:` 절에 무엇이 막고 있는지 적어 둔다 (candidates.md 의 방침).
+#
+# ## 런 길이는 명세의 일부다
+#
+# `min_steps` 를 빼면 벤치마크가 거짓말을 한다. 트랩 τ 는 143,600 스텝에서 +70% 로
+# 틀리고 2e7 스텝에서 +1.2% 로 맞는다 — 물리가 아니라 추정기의 절단 편향이고
+# (SQ6 · SD12), 짧은 시계열일수록 심하다. 실측을 `evidence:` 에 남겨 둔다.
+
+schema_version: 1
+measured_on: 2026-07-28
+measured_env: hoomd 7.1.0 · gsd 5.0.1 · numpy 2.5.1 · Apple M4 10-core
+
+benchmarks:
+
+  # ── 자유 BD — Stokes–Einstein ─────────────────────────────────────
+  - id: free_bd_stokes_einstein
+    system: free_bd
+    config: configs/step3/g1_smoke.yaml
+    observable: ratio_fit_over_theory        # D_fit / (kT/γ), reduced 에서 D=1
+    expected: 1.0
+    tolerance_rel: 0.01                      # §14-C 가 지정한 "1% 이내"
+    evidence_layer: 2
+    cost: cheap                              # 실측 0.6 s
+    min_steps: 10000
+    source: >
+      해석해. 오버댐프 BD 의 MSD = 2·dim·D·t 이고 D = k_BT/γ, γ = 6πηa (Stokes).
+      reduced 단위에서 D=1 이므로 기대값이 정확히 1 이다.
+    evidence: >
+      실측 1.00616 (g1_smoke, N=500, 10k 스텝, 0.6 s) · 0.991104
+      (free_bd_1k, N=1000, 100k 스텝, 9.7 s). 둘 다 1% 안.
+      **짧은 런이 더 가까운 것은 우연이다** — 시드가 고정되어 있어 각각 결정론이다.
+
+  - id: free_bd_msd_linearity
+    system: free_bd
+    config: configs/step3/g1_smoke.yaml
+    observable: r_squared                    # 원점 통과 직선 피팅의 R²
+    expected: 1.0
+    tolerance_abs: 0.001
+    evidence_layer: 2
+    cost: cheap
+    min_steps: 10000
+    source: >
+      해석해. 자유 확산의 MSD 는 시간에 **정확히 선형**이다 (원점 통과).
+      휘면 적분이 틀렸거나 unwrap 이 틀린 것이다.
+    evidence: 실측 0.999994 (g1_smoke) · 0.999985 (free_bd_1k)
+
+  # ── 하모닉 트랩 — OU 과정의 해석해 넷 ─────────────────────────────
+  #
+  # reduced 단위(ℓ_trap = kT = τ_trap = 1)에서 이론값이 **전부 정수**가 된다.
+  # 그래서 표만 보고 1초에 안다 — 이것이 SD9 의 무차원화가 준 부수 이득이다.
+
+  - id: trap_equipartition
+    system: harmonic_trap
+    config: configs/trap_1particle.yaml
+    observable: r2_mean_reduced              # ⟨r²⟩
+    expected_expr: dim                       # 2D → 2
+    expected: 2.0
+    tolerance_rel: 0.02
+    evidence_layer: 2
+    cost: cheap                              # 실측 3.5 s (N=1 이라 2e7 스텝도 싸다)
+    min_steps: 2000000
+    source: >
+      등분배. ⟨x²⟩ = k_BT/k_t = ℓ_trap² 이므로 차원당 1, ⟨r²⟩ = dim.
+    evidence: 실측 2.010677 (+0.53%, 2e7 스텝). 143,600 스텝에서는 3.065/3 = +2.2% 로 벗어난다
+
+  - id: trap_stiffness_recovery
+    system: harmonic_trap
+    config: configs/trap_1particle.yaml
+    observable: k_recovered_reduced          # k = k_BT/⟨x²⟩ 로 되찾은 강성
+    expected: 1.0
+    tolerance_rel: 0.02
+    evidence_layer: 2
+    cost: cheap
+    min_steps: 2000000
+    source: >
+      해석해. 입력한 k_t 를 위치 분산에서 되찾을 수 있어야 한다 —
+      **입력과 출력을 잇는 자기일관성 검사**이기도 하다 (증거 층 ①과 겹친다).
+    evidence: 실측 0.994690 (−0.53%)
+
+  - id: trap_ou_relaxation_time
+    system: harmonic_trap
+    config: configs/trap_1particle.yaml
+    observable: tau_acf_blocks_reduced       # 위치 자기상관의 감쇠시간
+    expected: 1.0
+    tolerance_rel: 0.03
+    evidence_layer: 2
+    cost: cheap
+    min_steps: 2000000
+    source: >
+      OU 과정. C(t) = exp(−t/τ_trap), τ_trap = γ/k_t 이므로 reduced 에서 1.
+    evidence: >
+      실측 1.011975 (+1.2%, 2e7 스텝). **143,600 스텝에서는 1.699 (+70%)** —
+      물리가 아니라 `ln C` 피팅의 절단 선택 편향이고 짧은 시계열일수록 심하다
+      (SQ6 · SD12). `min_steps` 가 이 항목에서 특히 중요한 이유다.
+
+  - id: trap_msd_plateau
+    system: harmonic_trap
+    config: configs/trap_1particle.yaml
+    observable: msd_plateau_reduced
+    expected_expr: 2 * dim                   # 2D → 4
+    expected: 4.0
+    tolerance_rel: 0.02
+    evidence_layer: 2
+    cost: cheap
+    min_steps: 2000000
+    source: >
+      해석해. 갇힌 입자의 MSD(∞) = 2⟨r²⟩ = 2·dim.
+      ⟨r²⟩ 와 **독립인 경로**로 같은 물리를 재므로 증거가 하나 늘어난다.
+    evidence: 실측 4.020733 (+0.52%) · 2⟨r²⟩ = 4.021 과도 일치
+
+  - id: trap_short_time_diffusion
+    system: harmonic_trap
+    config: configs/trap_1particle.yaml
+    observable: msd_fit_D_reduced
+    expected: 1.0
+    tolerance_rel: 0.02
+    evidence_layer: 2
+    cost: cheap
+    min_steps: 2000000
+    source: >
+      해석해. t ≪ τ_trap 에서는 트랩이 안 보이므로 자유 확산 D 가 되어야 한다.
+      **트랩 계에서 자유 BD 의 답이 나오는 극한** 이라 두 계를 잇는다.
+    evidence: >
+      실측 0.991709 (−0.83%). 단시간 기울기 대신 **전 구간 OU 형태 피팅**을 쓴다 —
+      프레임 간격이 0.1 τ 라 기울기법은 구조적으로 1−0.375T 만큼 낮게 나온다 (§7 #15).
+
+# ── 순서 벤치마크 — 임계값을 쓰지 않는다 ─────────────────────────────
+#
+# 문헌이 상 **순서**를 주지만 우리 계에서 전이점을 재기에는 해상도·평형화가 부족할 때
+# 쓴다 (2026-07-28 사용자 결정). 임계값을 우리가 고르면 증거 층이 ③ 이 아니라
+# ①·③ 혼합이 된다 — 순서만 보면 문헌이 준 것만 쓰게 된다.
+#
+# `configs:` 는 **제어변수 오름차순**이다. 순서가 곧 명세다.
+
+ordinal:
+
+  - id: zahn_2d_ordinal_phases
+    system: pair_repulsive
+    observable: voronoi_psi6_global           # |⟨ψ₆⟩| 전역 배향질서
+    direction: increasing
+    control: pair.gamma_at_reference          # Γ = π^1.5·A
+    configs:
+      - configs/bench_ordinal/A0p1.yaml       # Γ_Zahn = 0.56   등방액체
+      - configs/bench_ordinal/A1.yaml         # Γ_Zahn = 5.57   등방액체
+      - configs/bench_ordinal/A10.yaml        # Γ_Zahn = 55.68  Γ_i=55.9 바로 아래
+      - configs/bench_ordinal/A100.yaml       # Γ_Zahn = 556.8  결정 (Γ_m 의 9.3배)
+    evidence_layer: 3
+    cost: cheap                               # 실측 4점 합계 16.3 s
+    source: >
+      K. Zahn, R. Lenke, G. Maret, PRL 82, 2721 (1999).
+      Γ > 59.9 결정 · 55.9 < Γ < 59.9 hexatic · Γ < 55.9 등방액체 (본문 p.2723).
+      **순서만 쓴다** — Γ 를 올리면 육방정렬이 세진다. 전이점 절대값은
+      zahn_2d_melting_transitions 가 막혀 있는 동안 쓰지 않는다.
+      증류: knowledge/source/papers/1999-zahn-two-stage-melting-2d.md
+    evidence: >
+      실측 |⟨ψ₆⟩| = 0.0342 → 0.0411 → 0.5561 → 0.9638 (단조증가).
+      A=10 (Γ=55.68) 이 0.556 으로 **중간값**을 내는 것이 Γ_i=55.87 에서 0.3% 라는
+      것과 맞는다 — 전이점에서 부분 융해다.
+      **삼각격자 시작**을 쓴다: 무작위 시작은 핵생성을 기다려야 해서 짧은 런에서
+      순서가 뒤집힌다. 융해는 활성화 장벽이 없어 2 τ_d 로도 충분하다.
+
+  - id: zahn_2d_ordinal_defects
+    system: pair_repulsive
+    observable: voronoi_defect_fraction       # 1 − f₆ (전위·입계)
+    direction: decreasing
+    control: pair.gamma_at_reference
+    configs:
+      - configs/bench_ordinal/A0p1.yaml
+      - configs/bench_ordinal/A1.yaml
+      - configs/bench_ordinal/A10.yaml
+      - configs/bench_ordinal/A100.yaml
+    evidence_layer: 3
+    cost: cheap                               # 위와 **같은 런**을 쓴다. 추가 비용 0
+    source: >
+      같은 논문. 결정상에서는 결함이 수천 개당 전위 1개 수준이고 (p.2721, ac 자기장
+      어닐 후), 액체상에서는 자유 disclination 이 안정하다 (p.2722). 따라서 Γ 가
+      오르면 결함분율이 내려간다 — 이것도 순서 예측이다.
+    evidence: >
+      실측 64.5% → 56.3% → 11.6% → 0.0% (단조감소).
+      `voronoi_psi6_global` 과 **독립인 관측량**이라 증거가 하나 늘어난다 (A1) —
+      같은 런에서 나오지만 배향질서와 결함 수는 다른 것을 센다.
+
+# ── 등재하지 못한 것 — 무엇이 막고 있는가 ────────────────────────────
+#
+# 재현 못 하는 물리의 목록도 자산이다 (candidates.md 의 선별 기준 ④).
+# 막힌 이유를 적어 두면 물리 범위가 늘 때 무엇이 풀리는지 바로 안다.
+
+blocked:
+
+  - id: carnahan_starling_hs_eos
+    system: hard_sphere_3d
+    observable: compressibility_factor_Z
+    evidence_layer: 3
+    blocked_by: >
+      배제부피가 없다 — `simbot/spec.py` 의 `INTERACTIONS = ("none",)`.
+      Step 4b(WCA)와 `D8`(배제부피 기본 퍼텐셜을 무엇으로 하는가)이 먼저다.
+      **D8 은 이 벤치마크로 정하기로 열려 있으므로** 순서가 거꾸로다:
+      퍼텐셜을 골라 등재하는 것이 아니라, 등재해서 퍼텐셜을 고른다.
+    source: "Carnahan & Starling, J. Chem. Phys. 51, 635 (1969)"
+
+  - id: hard_sphere_freezing
+    system: hard_sphere_3d
+    observable: phi_freeze
+    evidence_layer: 3
+    blocked_by: 위와 같다 (배제부피). 그리고 상전이 판정 자체가 v1 범위 밖이다
+    source: "Hoover & Ree, J. Chem. Phys. 49, 3609 (1968) — φ_freeze=0.494 / φ_melt=0.545"
+
+  - id: zahn_2d_melting_transitions
+    system: pair_repulsive
+    observable: gamma_hexatic_liquid
+    evidence_layer: 3
+    blocked_by: >
+      **증류는 됐다** (2026-07-28, `1999-zahn-two-stage-melting-2d.md`). 문헌값이
+      확정됐다: Γ_m = 59.9 (결정→hexatic) · Γ_i = 55.9 (hexatic→액체). 그리고 우리
+      환산 `Γ = π^1.5·A` 가 논문 정의와 **일치함을 확인**했다.
+
+      막고 있는 것은 이제 **우리 쪽 해상도와 평형화**다:
+        ① Γ 격자가 자릿수 간격(A = 0.1/1/10/100)이라 55~60 구간을 못 짚는다.
+           전이를 재려면 1% 해상도가 필요하다.
+        ② 평형화가 10 τ_d 인데 논문은 **며칠~일주일**이다 (SQ13 이 부딪힌 벽).
+        ③ g₆(r) 곡선이 없다 — η₆ 가 1/4 를 지나는 점이 판정 기준인데 우리는 ψ₆
+           스칼라만 낸다. **이것이 가장 값싸다** — 보로노이 ψ₆ᵢ 에서 바로 나온다.
+
+      A=10 이 Γ=55.68 로 **Γ_i 에서 0.3% 안**에 우연히 앉아 있다. 전이점에서 배향
+      order parameter 가 크게 요동하는 것은 임계 거동이므로, SQ15(A=10 의 두 시작
+      차이가 시드 산포 안인가)의 성격이 바뀐다 — 자세히는 증류 §5.
+    source: >
+      K. Zahn, R. Lenke, G. Maret, PRL 82, 2721 (1999), 본문 p.2723:
+      1/Γ_m = 0.0167 · 1/Γ_i = 0.0179.
+      증류: knowledge/source/papers/1999-zahn-two-stage-melting-2d.md
+
+  - id: carnahan_starling_ordinal_pressure
+    system: hard_sphere_3d
+    observable: compressibility_factor_Z
+    evidence_layer: 3
+    blocked_by: >
+      배제부피가 없다 (Step 4b · D8). 풀리면 순서 벤치마크로 먼저 등재할 수 있다 —
+      Z 가 φ 에 단조증가한다는 것은 임계값을 안 고르고도 검사되고, Carnahan–Starling
+      의 절대값은 그 뒤에 온다.
+    source: "Carnahan & Starling, J. Chem. Phys. 51, 635 (1969)"
+
+  - id: coarsening_exponent_diffusive
+    system: phase_separating
+    observable: growth_exponent
+    evidence_layer: 3
+    blocked_by: >
+      인력이 없어 상분리가 일어나지 않는다. `candidates.md` 가 A1(최우선)로 꼽았으나
+      그건 랩 논문 재현 관점의 우선순위이고, 엔진 물리 범위로는 가장 먼 항목이다.
+    source: knowledge/wiki/benchmarks/candidates.md §A1

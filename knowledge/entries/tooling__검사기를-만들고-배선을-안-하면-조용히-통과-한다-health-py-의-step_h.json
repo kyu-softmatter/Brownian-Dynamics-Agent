@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "health",
+    "커버리지",
+    "dt",
+    "되먹임"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/health.py#step_health · tools/health.py",
+  "lessons": [
+    {
+      "claim": "검사기를 만들고 배선을 안 하면 '조용히 통과'한다. health.py 의 step_health(L4→L3 되먹임, 스스로 '이 모듈의 핵심'이라 적음)이 81런 전부에서 실행되지 않았다 — run.Guard 는 dt·|F|max 를 l4 안에만 넣고, tools/health.py 는 numerics['step_rms_sigma'] 를 찾고 있었다(이름 어긋남). 없으면 '측정 없음'을 찍고 HEALTHY 를 반환해서 82/82 HEALTHY 가 커버리지처럼 읽혔다. 대책: 미측정 런 수를 별도로 보고하고, 그 HEALTHY 가 '발산·정지·붕괴 없음'일 뿐 'dt 가 충분히 작다'가 아님을 명시한다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

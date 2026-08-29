@@ -1,0 +1,14 @@
+{
+  "case": "soft-r3-2d-A-sweep",
+  "A": 10.0,
+  "phi": 0.01,
+  "N": 800,
+  "r_c_star": 8.0,
+  "dt_over_tau_int": 0.01,
+  "n_eq": 2920095,
+  "n_prod": 14599500,
+  "n_samples": 1500,
+  "wca_eps": 1.0,
+  "seed": 20260803,
+  "tag": "dilute"
+}

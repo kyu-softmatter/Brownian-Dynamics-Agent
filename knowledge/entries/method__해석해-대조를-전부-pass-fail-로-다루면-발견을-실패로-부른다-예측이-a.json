@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "validation",
+    "epistemics"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/metrics.py ROLES · cases/abp_rod_2d.py (2026-08-04 사용자 지적)",
+  "lessons": [
+    {
+      "claim": "해석해 대조를 전부 'PASS/FAIL' 로 다루면 발견을 실패로 부른다. 예측이 (a) 내가 구현한 모델에서 유도되는가(implementation_check — 불일치는 버그) 아니면 (b) 시뮬레이션이 부과하지 않은 가정 위에 있는가(hypothesis — 불일치가 결과)를 갈라야 한다. abp-rod의 5개 검증은 전부 (a)였고 가설 검증이 0건이었다 — 코드는 검증됐지만 물리는 아무것도 시험하지 않았다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "trap-drag·chain-bend 에 이 분류를 적용하지 않았다 (다음 작업)"
+  ]
+}

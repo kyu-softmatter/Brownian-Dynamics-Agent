@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py / 이 세션 2026-08-06",
+  "lessons": [
+    {
+      "claim": "스펙에 필드를 추가하면 **기존 런 전부가 재실행 대상이 된다** (run_id 가 콘텐츠 주소라서). 실측: params 에 drive_mode 를 넣자 137런의 id 가 전부 바뀌었고, 같은 명령을 다시 부르니 건너뛰지 않고 새 id 로 재실행됐다. 물리는 완전히 동일했다 — K'가 -166.4602377003598 로 소수 13자리까지 일치(같은 시드=같은 궤적). ★ 이건 버그가 아니라 설계다: drive_mode 는 물리를 정하므로 해시에 들어가는 게 맞다. 대응 두 가지 — ① 앙상블 집계는 **id 가 아니라 tag+spec 내용**(n·ω·a·분기·모드)으로 묶을 것. tag 는 안 바뀌므로 glob 집계가 그대로 동작한다. ② 스펙 필드를 추가할 계획이면 **큰 배치를 돌리기 전에** 확정할 것. (같은 사고가 trap-2d-5um 에서 seed 추가로 3번, 1-A 에서 derived_from 추가로 1번 있었다)",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

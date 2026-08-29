@@ -1,0 +1,30 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "statistics",
+    "ensemble",
+    "block_sem",
+    "error_bars"
+  ],
+  "dimensionless": {
+    "N": 306.0
+  },
+  "source": "runs/trap-drag-2d-hex300__ENSEMBLE · scratch/trap_drag_ensemble.py",
+  "lessons": [
+    {
+      "claim": "★★ 한 궤적의 블록 SEM 이 실현 간 산포를 **2.35배 과소평가**했다 (trap-drag 2격자, 시드 8개: ΔU 실현간 std 0.0352 vs 런 SEM 평균 0.0150). F_drag 는 1.37배. 블록 평균은 궤적 **안의** 상관만 보정하는데, 이 계에는 '어떤 전위가 어디에 생기느냐'라는 실현마다 다른 느린 자유도가 있어 그걸 못 잡는다. 그래서 단일 런으로 'ΔU = 0.238 ± 0.012 → 19σ' 라고 보고했다가 앙상블에서 ≈7σ 로 정정했다. **교훈: 확률적 결함/구조를 만드는 계에서는 시드 앙상블 없이 오차를 인용하면 과신한다.**",
+      "kind": "method_note",
+      "coords": {
+        "N": 306.0
+      }
+    }
+  ],
+  "not_verified": [
+    "2.35배가 이 계·이 관측량에 특수한지, 확률적 구조를 만드는 계 일반에 적용되는지 미확인"
+  ]
+}

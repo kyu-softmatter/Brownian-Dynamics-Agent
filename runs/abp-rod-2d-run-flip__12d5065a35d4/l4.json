@@ -1,0 +1,40 @@
+{
+  "status": "ok",
+  "n_samples": 3065,
+  "warnings": [],
+  "pe_mean": 0.8121292371263431,
+  "pe_std": 0.013224162626762757,
+  "phases": {
+    "평형화": {
+      "status": "ok",
+      "n_samples": 1,
+      "warnings": [],
+      "pe_mean": 1.0,
+      "pe_std": 0.0,
+      "steps": 1081,
+      "expect_steady": true
+    },
+    "생산": {
+      "status": "ok",
+      "n_samples": 3065,
+      "warnings": [],
+      "pe_mean": 0.8121292371263431,
+      "pe_std": 0.013224162626762757,
+      "drift": 0.0004950275671026239,
+      "drift_sem": 0.00019472442406048713,
+      "drift_sigma": 2.5421955642752536,
+      "steps": 137925,
+      "expect_steady": true
+    }
+  },
+  "run_id": "abp-rod-2d-run-flip__12d5065a35d4",
+  "wall_seconds": 67.99613904953003,
+  "steps_done": 139006,
+  "steps_planned": 139006,
+  "trip": null,
+  "guard_samples": 3066,
+  "f_max_last": 6.910183904542413,
+  "step_disp_last": 0.009999999927630829,
+  "f_max_seen": 6.91018395454152,
+  "step_disp_seen": 0.00999999999998651
+}

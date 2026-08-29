@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "시각화",
+    "matplotlib",
+    "폰트",
+    "한글",
+    "결과확인"
+  ],
+  "dimensionless": {
+    "fonts_missing_minus": 3.0
+  },
+  "source": "scratch/viz_chain_bend.py",
+  "lessons": [
+    {
+      "claim": "결과 그림에 한글을 쓸 때 폰트가 **양쪽으로** 깨진다. matplotlib 기본 DejaVu Sans 에는 한글 글리프가 없어 라벨이 전부 □ 가 되고, 반대로 한글 폰트 쪽에는 기호가 없다 — 실측으로 AppleGothic · Apple SD Gothic Neo · NanumGothic **셋 다** U+2212(−) 와 ŷ(U+0177) 가 빠져 있다. 한글+기호를 모두 갖춘 것은 macOS 에서 **Arial Unicode MS** 뿐이었다 (fontTools 로 cmap 을 직접 조회해 확인). ★ rcParams['axes.unicode_minus']=False 는 **눈금 라벨만** 고치고 문자열 리터럴의 − 는 그대로 깨진다. 생성 후 stderr 의 'missing from font' / 'does not have a glyph' 경고가 0건인지 확인해야 한다 — 경고를 무시하면 사람이 읽을 수 없는 그림을 결과라고 내놓게 된다. 이 환경에 ffmpeg 는 없으므로 애니메이션은 PillowWriter(GIF) 로 쓴다.",
+      "kind": "pitfall",
+      "coords": {
+        "fonts_missing_minus": 3.0
+      }
+    }
+  ],
+  "not_verified": []
+}

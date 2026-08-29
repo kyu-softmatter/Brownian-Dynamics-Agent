@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "schema"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/intake.py MISSING_KINDS",
+  "lessons": [
+    {
+      "claim": "missing_required 에 물리적 미지값과 시뮬레이션 선택(박스·관측창)을 섞으면 준비도 판정이 틀린다. 실제로 이미 완주한 2개 케이스가 BLOCKED 로 나왔다 → kind: physical|choice 로 갈라야 한다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

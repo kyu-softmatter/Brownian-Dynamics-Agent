@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "epistemics",
+    "prediction",
+    "preregistration"
+  ],
+  "dimensionless": {},
+  "source": "scratch/standalone_abp_diffusion.py 사후분석",
+  "lessons": [
+    {
+      "claim": "예측을 등록할 때 파라미터 매핑 가정도 함께 등록해야 한다. ABP 검증에서 사전 등록한 D_eff 식은 3D 에서 +90 퍼센트 실패했는데 틀린 것은 물리식이 아니라 보이지 않던 가정 Lambda=(d-1)D_r 이었다. 이 식의 D_r 이 도구의 rotational_diffusion 과 같다 도 하나의 가정이다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

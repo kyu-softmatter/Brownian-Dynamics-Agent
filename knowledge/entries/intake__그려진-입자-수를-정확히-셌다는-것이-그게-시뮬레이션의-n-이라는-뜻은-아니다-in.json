@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "network",
+    "intake",
+    "topology",
+    "transcription"
+  ],
+  "dimensionless": {},
+  "source": "intake/network/observation.yaml#A6",
+  "lessons": [
+    {
+      "claim": "그려진 입자 수를 정확히 셌다는 것이 '그게 시뮬레이션의 N'이라는 뜻은 아니다. intake/network 스케치는 원 21개를 셀 수 있게 그렸지만 위상이 트리다(링크 20·독립고리 0·자유단 6/21). 목표가 G'(ω)·응력전파 = 벌크/앙상블 양인데 트리에는 응력을 나르는 닫힌 경로가 없어 G'(ω→0)→0 이므로 목표가 정의되지 않는다. 판정 기준은 '셀 수 있었는가'가 아니라 '목표 관측량이 그 N 으로 정의되는가'다 — 정의되지 않으면 그림은 도식이고 N 은 관측량이 요구하는 크기로 따로 제안해야 한다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "그림이 도식이라는 판정 자체는 추론이다(A6 lean). 사용자가 '트리 그대로 21개'를 의도했을 가능성이 남아 있고, 그 경우 이 케이스는 chain-bend-2d-dlvo 결론의 반복이 된다."
+  ]
+}

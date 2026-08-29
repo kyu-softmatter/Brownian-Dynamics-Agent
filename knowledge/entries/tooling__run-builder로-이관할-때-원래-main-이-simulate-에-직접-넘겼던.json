@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/trap_2d_5um.py,cases/soft_r3_2d.py,cases/abp_rod_2d.py build()",
+  "lessons": [
+    {
+      "claim": "RUN.builder로 이관할 때 원래 main()이 simulate()에 직접 넘겼던 값(seed·L_star·Dr_star·tau_tumble_star 등)이 spec.params/numerics에 빠져 있으면 build(spec)이 그 값을 얻을 방법이 없다 — build()는 spec만 읽고 케이스 YAML을 다시 읽지 않기 때문. 이관 전에 main()에서 simulate() 호출부의 인자 목록을 spec.params/numerics의 키 목록과 대조해 빠진 것을 찾아야 한다. 세 케이스 모두 최소 하나씩(seed 또는 Dr_star류) 빠져 있었다. 이 값들을 추가하면 run_id가 바뀌지만(물리 해시에 포함되는 필드라서) 안전하다 — 기존 run_id 디렉토리는 그대로 남는다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

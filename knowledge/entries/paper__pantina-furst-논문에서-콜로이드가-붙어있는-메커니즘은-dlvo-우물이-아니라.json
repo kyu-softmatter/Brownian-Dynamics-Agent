@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "paper",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "intake/chain-bend-2d-dlvo/PhysRevLett.94.138301.pdf#p2",
+  "lessons": [
+    {
+      "claim": "Pantina&Furst 논문에서 콜로이드가 붙어있는 메커니즘은 DLVO 우물이 아니라 JKR 접착접촉이다. MgCl2(10~500mM)는 이중층 반발을 스크리닝해 입자를 접촉거리까지 데려가는 역할만 하고, 실제 결합은 표면이 맞닿은 뒤 vdW가 고체를 탄성변형시켜 만드는 유한 접촉면(a_c≈40nm)이다. 이 접촉이 토크를 지탱해서 사슬이 빔처럼 휜다 — PRL p.2: 'DLVO interactions between particles, which are centro-symmetric. If particles did undergo free rotations, we would expect... trianglelike structure'. 항복은 스프링 파단이 아니라 접촉선 de-pinning(나노 표면거칠기 핀닝). 논문은 또 2가이온 유발 초과인력을 'Poisson-Boltzmann(DLVO의 기반)이 담지 못하는 현상'이라고 명시한다(p.3).",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

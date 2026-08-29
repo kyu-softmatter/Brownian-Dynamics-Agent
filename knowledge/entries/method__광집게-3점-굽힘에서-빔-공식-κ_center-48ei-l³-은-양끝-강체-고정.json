@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "3점굽힘",
+    "경계조건",
+    "트랩",
+    "κ_center"
+  ],
+  "dimensionless": {
+    "kappa_drive_over_center": 0.682
+  },
+  "source": "cases/chain_bend_2d.py#driven_static_stiffness",
+  "lessons": [
+    {
+      "claim": "광집게 3점 굽힘에서 빔 공식 κ_center = 48EI/L³ 은 **양끝 강체 고정** 값이다. 양끝이 유한 강성 트랩이면 사슬이 통째로 밀려 구동 트랩이 느끼는 정적 강성이 0.682배로 떨어진다 (n=25·κ_end/k_t=0.463 에서 4830.7 → 3294.2 kT/d²). chain-bend 스펙이 48EI/L³ 을 '구동 트랩이 느끼는 값'이라고 적어 32% 틀렸다. ★ κ_end/k_t ~ 1 이라 '측정 창에 들어온다'고 스스로 별표를 붙여놓고도 경계조건은 강체로 유도한 것이 원인 — 강성비를 의도적으로 1 근처에 두면 경계조건 가정이 반드시 깨진다.",
+      "kind": "parameter",
+      "coords": {
+        "kappa_drive_over_center": 0.682
+      }
+    }
+  ],
+  "not_verified": []
+}

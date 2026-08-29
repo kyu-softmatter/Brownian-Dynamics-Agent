@@ -1,0 +1,14 @@
+{
+  "case": "soft-r3-2d-A-sweep",
+  "A": 0.1,
+  "phi": 0.35,
+  "N": 400,
+  "r_c_star": 7.489984567013703,
+  "dt_over_tau_int": 0.01,
+  "n_eq": 7065144,
+  "n_prod": 35325600,
+  "n_samples": 400,
+  "wca_eps": 1.0,
+  "seed": 20260803,
+  "tag": "A0.1"
+}

@@ -1,0 +1,202 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "chain-relax-2d-dlvo__n9-straight__dd3485582c5f",
+  "case": "chain-relax-2d-dlvo",
+  "system_tags": [
+    "2D",
+    "dlvo_secondary_minimum",
+    "WCA_core",
+    "no_bending",
+    "no_friction",
+    "no_drive",
+    "chain",
+    "straight"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "n_beads": 9,
+    "init": "straight",
+    "kink_angle": 0.0
+  },
+  "dimensionless": {
+    "k_bond_star": 1042362.8817700658,
+    "well_depth/kT": 11.715500108658787,
+    "sigma_bond/d": 0.0009794686297781565,
+    "n_beads": 9.0,
+    "kink_angle_rad": 0.0,
+    "dt/tau_bond": 0.01,
+    "T_obs/tau_bond": 20000.0,
+    "St": 0.028208850887976974
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\ucc38\uace0: \u03c4_p/\u03c4_bond",
+      "value": 0.028208850887976974,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": false,
+      "margin": 0.3544986656745436,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\uacb0\ud569 \uc2e0\uc7a5 \ud574\uc0c1 dt/\u03c4_bond",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d \ucda9\ubd84     T_obs/\u03c4_bond",
+      "value": 20000.0,
+      "limit": 1000.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 20.0,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "\uacb0\ud569 \uc2e0\uc7a5 \ub4f1\ubd84\ubc30 \u27e8\u03b4\u2113*\u00b2\u27e9",
+      "measured": 3.78353671525676e-06,
+      "predicted": 4.382352866628466e-06,
+      "unit": "d\u00b2",
+      "err_pct": -13.664261404682392,
+      "err_sigma": -2.154577199041318,
+      "sigma": 2.779274521414921e-07,
+      "prediction_source": "boltzmann_integral",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 8.0,
+      "tol_sigma": null,
+      "note": "\uc608\uce21 = \uc6b0\ubb3c(basin) \ube44\uc870\ud654 \ubcfc\uce20\ub9cc \uc801\ubd84(\uc815\ud655). \ucc38\uace0: \uc870\ud654\uadfc\uc0ac kT*/k_bond*=9.594e-07 \ub294 \uc774 \uac12\uc758 1/4.57 \ubfd0 \u2014 \uc870\ud654\uadfc\uc0ac\ub97c \uc608\uce21\uc73c\ub85c \uc4f0\uba74 \uc548 \ub41c\ub2e4(\uccb4\uc81c \ud310\uc815\uc6a9\uc73c\ub85c\ub9cc)"
+    },
+    {
+      "name": "\uad7d\ud798\uac01 \uc5f4\uc694\ub3d9 \u27e8d\u03b8\u00b2\u27e9",
+      "measured": 0.1266650926496179,
+      "predicted": null,
+      "unit": "rad\u00b2",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "G1(\uc120\ud615\uac15\uc131=0)\uc758 \uc9c1\uc811 \uacb0\uacfc \u2014 \uc694\ub3d9 \ud3ed \uc790\uccb4\ub294 \uc608\uce21\uc774 \uc5c6\ub2e4(2\ucc28 \uc774\uc0c1 \ud56d\u00b7\ubc30\uc81c\ubd80\ud53c\uac00 \uc9c0\ubc30). \u03ba_\u03b8,eff=1/\u27e8d\u03b8\u00b2\u27e9 \ub85c \ub4f1\ubd84\ubc30\ub97c \uac00\uc815\ud558\uba74 7.89 kT/rad\u00b2 \u2014 \ucc38\uace0\uc6a9 \uc22b\uc790\uc77c \ubfd0 \uc870\ud654 \ubaa8\ub4dc\ub77c\ub294 \ub73b\uc740 \uc544\ub2c8\ub2e4"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 20000,
+    "n_prod": 2000000,
+    "n_samples": 2000,
+    "sample_every": 1000,
+    "seed": 1,
+    "steps_done": 2020000,
+    "step_drift_max_sigma": 9.963003541340251e-05,
+    "f_max_kT_per_sigma": 10385.065082436793
+  },
+  "wall_seconds": 1.7932510375976562,
+  "steps_per_second": 1126445.7444319173,
+  "l4": {
+    "status": "ok",
+    "n_samples": 2000,
+    "warnings": [],
+    "pe_mean": -8.242401294811554,
+    "pe_std": 0.30520064161760857,
+    "phases": {
+      "\ud3c9\ud615\ud654": {
+        "status": "ok",
+        "n_samples": 2,
+        "warnings": [],
+        "pe_mean": -8.401538793388696,
+        "pe_std": 0.11144966350773888,
+        "steps": 20000,
+        "expect_steady": true
+      },
+      "\uc0dd\uc0b0": {
+        "status": "ok",
+        "n_samples": 2000,
+        "warnings": [],
+        "pe_mean": -8.242401294811554,
+        "pe_std": 0.30520064161760857,
+        "drift": -0.03228289371056903,
+        "drift_sem": 0.011825715496832517,
+        "drift_sigma": 2.72988925864282,
+        "steps": 2000000,
+        "expect_steady": true
+      }
+    },
+    "run_id": "chain-relax-2d-dlvo__n9-straight__dd3485582c5f",
+    "wall_seconds": 1.7932510375976562,
+    "steps_done": 2020000,
+    "steps_planned": 2020000,
+    "trip": null,
+    "guard_samples": 2002,
+    "f_max_last": 1463.4571524001346,
+    "step_disp_last": 1.4039804927771382e-05,
+    "f_max_seen": 10385.065082436793,
+    "step_disp_seen": 9.963003541340251e-05
+  },
+  "result": {
+    "dtheta_var": 0.1266650926496179,
+    "dl_var": 3.78353671525676e-06,
+    "dl_var_sem": 2.779274521414921e-07,
+    "dl_var_pred": 4.382352866628466e-06,
+    "k_bond_star": 1042362.8817700658,
+    "ell_star": 1.0075925903599383,
+    "min_sep": 1.0051733247647157,
+    "nnn_min": 0.8795917748340165,
+    "bow_initial": 0.015855751119462358,
+    "bow_final_rms": 0.16415209993890753,
+    "bow_final_sem": 0.0012559428578589426,
+    "post_checks": [
+      {
+        "kind": "\uae30\ud558",
+        "name": "\ud45c \ud558\ud55c \uc5ec\uc720 r_table_min/min_sep",
+        "value": 0.9948542956351071,
+        "limit": 1.0,
+        "op": "<=",
+        "ok": true,
+        "margin": 1.005172319592396,
+        "hard": true,
+        "phase": "post_run",
+        "note": "pair.Table \ud568\uc815 11: r<r_min \uc774\uba74 \ud798\uc774 0. \uce21\uc815 \ucd5c\uc18c \uacb0\ud569\uae38\uc774 1.0052"
+      },
+      {
+        "kind": "\uae30\ud558",
+        "name": "NNN \uac04\uadf9 \ucd5c\uc18c(\ub7f0 \uc804\uccb4) vs \ucef7\uc624\ud504",
+        "value": 0.8795917748340165,
+        "limit": 0.06,
+        "op": ">=",
+        "ok": true,
+        "margin": 14.659862913900275,
+        "hard": false,
+        "phase": "post_run",
+        "note": "\ub7f0 \ub3c4\uc911 2\uacb0\ud569 \uac74\ub108 \ube44\ub4dc\uac00 DLVO \ucef7\uc624\ud504 \uc548\uc73c\ub85c \ub4e4\uc5b4\uc628 \uc801\uc774 \uc788\ub294\uc9c0 (\ub4e4\uc5b4\uc624\uba74 '\uc0bc\uac01\ud615\ud615' \uad6d\uc18c \uc811\ud798 \ud6c4\ubcf4 \u2014 \uc2e4\ud328 \uc544\ub2c8\ub77c \uad00\ucc30 \ub300\uc0c1)"
+      }
+    ],
+    "post_checks_ok": true
+  }
+}

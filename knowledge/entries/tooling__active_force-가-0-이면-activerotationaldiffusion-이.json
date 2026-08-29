@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "abp",
+    "active"
+  ],
+  "dimensionless": {},
+  "source": "hoomd 7.1.0 md.update.ActiveRotationalDiffusion",
+  "lessons": [
+    {
+      "claim": "active_force 가 0 이면 ActiveRotationalDiffusion 이 아예 동작하지 않는다. 방향 상관 감쇠율이 정확히 0 이 된다 (2D/3D, D_r 2종 전부). 활성력을 끄고 회전 통계만 따로 보려는 격리 시도가 이것 때문에 막힌다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

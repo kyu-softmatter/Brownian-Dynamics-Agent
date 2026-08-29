@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "dlvo",
+    "chain",
+    "bending",
+    "tension",
+    "geometric_nonlinearity",
+    "3point"
+  ],
+  "dimensionless": {
+    "logK_logdelta_slope": 1.9999
+  },
+  "source": "scratch/dlvo_tension_stiffening.py",
+  "lessons": [
+    {
+      "claim": "★ 순수 중심력(DLVO)만으로도 3점 굽힘에서 겉보기 횡강성이 생긴다 — 굽힘(beam)이 아니라 **장력(string)** 이고, 크기가 자유 파라미터 없이 예측된다: K = 4*k_ext*delta^2/L^2, L=(n-1)*ell, 1/k_ext = (n-1)/k_bond + 2/k_t (양끝 트랩과 사슬의 직렬 합성). 양끝 강체 고정이면 k_ext=k_bond/(n-1) 이라 K = 4*k_bond*delta^2/((n-1)^3*ell^2). 실측(n=9, 정확 최소화, delta=1e-3~0.1): 예측과 **최대 편차 0.03%**, log-log 기울기 **1.9999**. ⟹ G1(선형 굽힘강성 정확히 0)과 모순이 아니다 — 선형항이 0 이라 K가 delta->0 에서 0 으로 가고, 관측되는 것은 O(delta^4) 에너지의 겉보기 할선강성이다. ★ **판별자는 크기가 아니라 delta 스케일링**이다: 장력은 K ∝ delta^2, 진짜 굽힘은 delta 무관(실측 delta 3000배에서 1.008/1.004배).",
+      "kind": "scaling",
+      "coords": {
+        "logK_logdelta_slope": 1.9999
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,165 @@
+# L0 Observation — 스케치에서 읽어낸 것. **초안: 사람 확인 대기**
+# 프로토콜: 전사 먼저 → 구조화 → 모호/미판독 명시 → 없는 값은 null
+# 무차원화 초안: scratch/intake_scales.py
+
+source_files:
+  - intake/trap-drag-2d-hex300/sketch_01.jpeg
+
+# ── ① 전사 ────────────────────────────────────────────────────────────
+raw_transcription: |
+  [상단]
+    start from hexagonal equilibrium
+
+  [중단 — 좌변에 아래로 향하는 긴 화살표, 위·아래·우측에 박스 경계선]
+    원 ~13개가 육방(엇갈린 행) 배치로 그려짐
+    중간 행의 원 하나에 X 표시 + 오른쪽으로 향하는 화살표 "⇒ v"
+      그 아래 첨자 "trap"   (전체를 "x_trap ⇒ v" 로 읽음)
+    우측 글:  N ~ 300
+              R = 5 µm
+              k_t = 10 pN/µm
+
+  [하단]
+    trapping potential      U_trap = ½ k_t (Δr)²
+      (U_trap 아래 지워진 글자 있음 — 판독 불가, 덧칠됨)
+    Δr = | r̄_trap − r̄_i |
+    r̄_trap(t) = r̄_trap(0) + v_x        ← t가 빠져 있으나 v_x·t 로 읽음
+      v_x = 0.5 µm/s
+    [우측 상단, 줄로 지워짐]  "Δr ... trap ... = optical center"
+
+# ── ② 구조화 ──────────────────────────────────────────────────────────
+system_guess: "2D 육방 콜로이드 격자 + 이동하는 광집게 트랩 하나 (능동 마이크로레올로지 / 끌린 탐침)"
+
+entities:
+  - kind: particle
+    note: "육방 배치 ~13개 도식. 개수는 'N ~ 300' 으로 별도 명시"
+  - kind: external_potential
+    form: "harmonic trap, 중심이 등속 이동"
+    expression: "U_trap = 0.5*k_t*(Δr)^2,  Δr = |r_trap(t) - r_i|,  r_trap(t) = r_trap(0) + v_x t"
+    note: "★ X 표시가 원 하나에만 있음 → 트랩 1개, 입자 1개만 끌리는 것으로 읽음"
+  - kind: pair_interaction
+    form: null              # ★ 스케치에 없음 — ambiguities B1
+  - kind: box
+    note: "경계선이 위·아래·우·좌 화살표로 암시. 주기 여부 미기재"
+
+stated_quantities:
+  - symbol: N
+    value: 300
+    unit: dimensionless
+    source: "스케치 우측 'N ~ 300'"
+    confidence: 1
+    note: "'~'(약) 표기 → 격자에 맞춰 조정 가능한 값으로 읽음"
+  - symbol: R
+    value: 5
+    unit: um
+    source: "스케치 우측 'R = 5 µm'"
+    confidence: 1
+    note: "1-A에서 'R=5µm'은 지름으로 확인됨 → 같은 관례 적용 (ambiguities B3)"
+  - symbol: k_t
+    value: 10
+    unit: pN/um
+    source: "스케치 우측 'k_t = 10 pN/µm'"
+    confidence: 1
+    note: "1-A와 같은 값"
+  - symbol: v_x
+    value: 0.5
+    unit: um/s
+    source: "스케치 하단 'v_x = 0.5 µm/s'"
+    confidence: 1
+
+stated_goals: []            # ★ 측정 목표가 적혀 있지 않음 — ambiguities B2
+
+# ── ③ 모호한 것 ───────────────────────────────────────────────────────
+ambiguities:
+  - id: B1
+    issue: "★ 페어 퍼텐셜이 없다. '육방 평형'을 만들 반발력이 스케치에 없음"
+    options:
+      - "soft-r3 스케치의 U/kT = A/r³ 와 같은 계 (같은 노트의 연속 케이스)"
+      - "입자마다 트랩이 있는 광학 격자 (그림엔 X가 하나뿐이라 약함)"
+      - "WCA/하드코어 + 격자를 초기조건으로만 두고 녹는 것을 관찰"
+    impact: "격자 강성(포논 스펙트럼)이 없으면 끌림 응답을 계산할 수 없다. 이 케이스의 핵심 물리."
+    lean: "soft-r3와 같은 페어 퍼텐셜 — 그러면 두 케이스가 모듈을 공유한다"
+    resolution: >
+      사용자 확정 2026-08-04: soft-r3 와 동일한 A/r³ + WCA 코어. lean 이 맞았고, 추천기(bdbot interactions)의 1순위 pair.soft_power 와도 일치한다. A = 100 은 ★제안(tier 3) — 1-B에서 Γ=29.7 이 육방 결정(ψ₆=0.885)임을 실측 확인한 값.
+    confirmed_by: user
+
+  - id: B2
+    issue: "무엇을 측정할 것인가? (스케치에 목표 미기재)"
+    note: |
+      후보: 끌림힘 ⟨F_drag⟩(= k_t·Δr_ss) / 유효 점도 / 격자 변형장 /
+            결함(전위) 생성 임계속도 / 탐침 뒤 항적(wake)
+    resolution: >
+      ★제안 확정 (사용자 승인 2026-08-04, tier 3): 관측량 3종 — (1) 끌림힘 ⟨F_drag⟩ = k_t·Δr_ss (2) 격자 변형장 (탐침 주변 변위장) (3) g(r)·ψ₆ (격자 질서 유지 여부). ⚠️ (1)은 SNR=0.0985 라 평균화가 필수다 — 그래서 (2)를 함께 본다 (입자 300개의 변형장은 통계가 N배 많다).
+    confirmed_by: user     # ★제안을 사용자가 승인 (tier 3 유지)
+
+  - id: B3
+    issue: "R = 5 µm 는 반지름인가 지름인가?"
+    note: "1-A에서 사용자가 '지름'으로 확인 → 같은 관례 적용. 명시적 확인 필요"
+    impact: "γ ∝ d 이므로 τ_k, Δr_ss가 정확히 2배 차이"
+    lean: "지름 (d = 5 µm)"
+    resolution: >
+      1-A에서 사용자가 '지름'으로 확인한 관례를 승계 (tier 1). lean 이 맞았다. ⚠️ 다만 이 승계는 케이스마다 검증해야 한다 — abp-rod 에 같은 관례를 적용하면 스케치의 τ_R 과 160배 어긋났다. 이 케이스에는 독립 교차검증 수단이 없다.
+    confirmed_by: convention_inherited
+
+  - id: B4
+    issue: "격자 간격 a (또는 면적분율)가 없다"
+    impact: "박스 L = a√(N·√3/2) 이므로 횡단 시간과 총 스텝수가 여기서 정해진다.
+             a=2d 이면 L=161µm, 횡단 322 s, 8.0e6 steps (dt=10⁻²τ_k)"
+    resolution: >
+      ★제안 확정 (사용자 승인 2026-08-04, tier 3): φ = 0.35 → a_mean = 7.490 µm, a_NN = 8.049 µm, L = 129.73 µm (N=300). 1-B에서 이 밀도·A=100 조합이 육방 결정임을 실측 확인했고, r_c = 5 a_mean 에서 최소이미지 여유 1.73× 다.
+    confirmed_by: user     # ★제안을 사용자가 승인 (tier 3 유지)
+
+  - id: B5
+    issue: "다른 입자들도 트랩되어 있는가?"
+    note: "그림엔 X가 하나. 끌리는 입자만 트랩된 것으로 읽음"
+    lean: "트랩 1개 (끌리는 입자만)"
+    resolution: >
+      스케치 근거로 확정: X 표시가 원 하나에만 있으므로 트랩 1개 (끌리는 입자만). lean 이 맞았다. system.yaml 의 external.n_trapped = 1 (tier 0, 스케치).
+    confirmed_by: sketch
+
+unread_regions:
+  - "'U_trap' 아래 덧칠로 지워진 글자 1~2개 (판독 불가). 수식 자체는 선명"
+  - "우측 상단 줄로 지운 메모: 'Δr ... trap ... = optical center' — 취소된 정의로 읽음"
+
+# ── ④ 스케치에 없어서 채워야 하는 값 ───────────────────────────────────
+missing_required:
+  - symbol: T
+    assumed_value: 300
+    assumed_unit: K
+    confidence: 1
+    note: "1-A 확인값 승계 (스케치 미기재)"
+    resolution: null
+  - symbol: eta
+    assumed_value: 0.851
+    assumed_unit: mPa*s
+    confidence: 1
+    note: "물@300K. 1-A에서 매질='물' 확인 승계"
+    resolution: null
+  - symbol: pair_potential
+    what: "페어 퍼텐셜 — 육방 격자를 유지할 반발력. 격자 강성(끌림 응답)의 근원 (B1)"
+    assumed_value: null       # ★ 지어내지 않음 (B1)
+    resolution: >
+      사용자 확정 2026-08-04: soft-r3 와 동일한 A/r³ + WCA 코어. 추천기 1순위와 일치 (bdbot interactions: pair.soft_power). A = 100 은 ★제안(tier 3) — 1-B에서 A=100·φ=0.35 가 Γ=29.7 로 육방 결정(ψ₆=0.885)임을 실측 확인했다.
+    confirmed_by: user
+  - symbol: lattice_spacing
+    what: "격자 간격 a — 박스 L=a√(N√3/2), 횡단 시간과 총 스텝수를 정한다 (B4)"
+    assumed_value: null       # ★ (B4)
+    resolution: >
+      ★제안 (tier 3): φ = 0.35 → a_mean = 7.490 µm, a_NN = 8.049 µm, L = 129.7 µm. 최소이미지 여유 1.73× (r_c = 5 a_mean).
+    proposed_by: assistant     # ★ tier 3 — 사람 확인 대기
+
+# ── ⑤ 무차원화에서 나온 사전 경고 (scratch/intake_scales.py) ────────────
+prerun_findings:
+  - id: F1
+    severity: "★★ 측정 설계 문제"
+    finding: |
+      등속 끌기의 정상상태 지연 Δr_ss = γv/k_t = 2.01 nm 인데
+      트랩 안 열요동은 ℓ_k = √(kT/k) = 20.35 nm.
+      → SNR = Δr_ss/ℓ_k = 0.098. 신호가 잡음의 1/10.
+    consequence: |
+      Δr_ss(=끌림힘)를 1% 정확도로 재려면 독립표본 ≈ 1.0e6 개
+      → T_obs ≈ 8.3e3 s = 2.3 시간(물리) = 2.1e8 steps. 끌리는 입자 1개 기준.
+    options:
+      - "v를 올린다 — SNR = γv/√(k·kT) ∝ v. SNR=1 이 되는 v = 5.07 µm/s (10배)"
+      - "k_t를 낮춘다 — SNR ∝ 1/√k (단, 트랩이 격자를 이길 만큼은 유지해야 함)"
+      - "격자 300개의 변형장을 관측량으로 쓴다 (통계가 N배 늘어남)"
+    verified: false           # 실행으로 확인 안 함 — 해석식 기반 예측

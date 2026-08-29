@@ -1,0 +1,20 @@
+{
+  "done": 48,
+  "failed": [],
+  "batch_wall_s": 248.35860845798743,
+  "concurrency": 8,
+  "n_jobs": 48,
+  "seeds": [
+    32,
+    33,
+    34,
+    35
+  ],
+  "n_ladder": [
+    64,
+    144,
+    256,
+    400
+  ],
+  "r_cut_fixed": 3.8
+}

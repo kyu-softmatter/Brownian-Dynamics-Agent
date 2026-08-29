@@ -1,0 +1,191 @@
+{
+  "source": "scripts/soft2d_fss.py",
+  "provenance": {
+    "code_hash": "79db25218e48",
+    "git_rev": "044c5e0",
+    "git_dirty": true,
+    "env_hash": "eaf847c12616",
+    "env": {
+      "python": "3.12.13",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "hoomd": "7.1.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.0",
+      "gsd": "5.0.1",
+      "freud": "3.5.0"
+    },
+    "driver": [
+      "scripts/soft2d_fss.py",
+      "scripts/soft2d_time_series.py"
+    ],
+    "drivers": {
+      "scripts/soft2d_fss.py": "f134e197324b",
+      "scripts/soft2d_time_series.py": "0c7e64b77244"
+    },
+    "driver_hash": "253adb7c04ef"
+  },
+  "n_ladder": [
+    64,
+    144,
+    256,
+    400
+  ],
+  "amplitudes": [
+    0.1,
+    1.0,
+    10.0
+  ],
+  "seeds": [
+    32,
+    33,
+    34,
+    35
+  ],
+  "r_cut_fixed": 3.8,
+  "prod_tau": 30.0,
+  "n_frames": 300,
+  "window": [
+    20.0,
+    30.0
+  ],
+  "chi2_max": 3.0,
+  "thresholds": {
+    "delta_thermal": 0.03,
+    "delta_force": 0.005,
+    "r_cut_fixed": 3.8
+  },
+  "gates": [
+    {
+      "amplitude": 0.1,
+      "n_particles": 64,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 0.8470620930376269,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.0018224230937454442,
+      "Lx": 8.0
+    },
+    {
+      "amplitude": 0.1,
+      "n_particles": 144,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 0.8723202700890668,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.0018224230937454442,
+      "Lx": 12.0
+    },
+    {
+      "amplitude": 0.1,
+      "n_particles": 256,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 0.9692473378441371,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.0018224230937454442,
+      "Lx": 16.0
+    },
+    {
+      "amplitude": 0.1,
+      "n_particles": 400,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 0.9510275485226036,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.0018224230937454442,
+      "Lx": 20.0
+    },
+    {
+      "amplitude": 1.0,
+      "n_particles": 64,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 8.470620930376269,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.01822423093745444,
+      "Lx": 8.0
+    },
+    {
+      "amplitude": 1.0,
+      "n_particles": 144,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 8.723202700890669,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.01822423093745444,
+      "Lx": 12.0
+    },
+    {
+      "amplitude": 1.0,
+      "n_particles": 256,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 9.692473378441374,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.01822423093745444,
+      "Lx": 16.0
+    },
+    {
+      "amplitude": 1.0,
+      "n_particles": 400,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "steps": 66667,
+      "max_force_star": 9.510275485226035,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.01822423093745444,
+      "Lx": 20.0
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 64,
+      "dt_star": 5.902754994111036e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 508237,
+      "max_force_star": 84.7062093037627,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441,
+      "Lx": 8.0
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 144,
+      "dt_star": 5.7318397513444046e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 523392,
+      "max_force_star": 87.23202700890667,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441,
+      "Lx": 12.0
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 256,
+      "dt_star": 5.1586419738034305e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 581548,
+      "max_force_star": 96.92473378441372,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441,
+      "Lx": 16.0
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 400,
+      "dt_star": 5.257471255977147e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 570617,
+      "max_force_star": 95.10275485226036,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441,
+      "Lx": 20.0
+    }
+  ]
+}

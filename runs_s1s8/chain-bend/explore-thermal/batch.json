@@ -1,0 +1,1712 @@
+{
+  "jobs": [
+    {
+      "config": {
+        "n_particles": 5,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3001,
+        "label": "N005_s1"
+      },
+      "skipped": false,
+      "span_L_star": 4.0,
+      "kappa_pred_star": 7500.0,
+      "ratio_meas_over_pred": 0.8690918213497518,
+      "dt_star": 1.2658227848101266e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 1.7531454282614018e-06,
+        "dt_stability_gate": 1.2658227848101266e-07,
+        "lambda_max_star": 3160000.0,
+        "k_bond_star": 750000.0,
+        "max_force_star_measured": 2852.0166777941013,
+        "binding": "stability",
+        "dt_seed": 1.2658227848101266e-07
+      },
+      "wall_s": 1.504,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.02558921721043017,
+        "bond_lengths": {
+          "max_rel_dev": 0.0015134794141598018,
+          "mean_rel_dev": 0.0009039159644183281,
+          "worst_bond": 2,
+          "worst_length": 1.0015134794141598,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 6518.188660123139,
+      "kappa_star_se": 519.8042307719871,
+      "var_yc_star": 0.00015341685430459885,
+      "rms_yc_star": 0.01238615575166883,
+      "rms_over_span": 0.0030965389379172077,
+      "act_frames": 12.719081872010541,
+      "n_frames": 8000,
+      "n_eff": 314.48810851688535,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 316000,
+        "prod": 1688000,
+        "stride": 211
+      },
+      "label": "N005_s1"
+    },
+    {
+      "config": {
+        "n_particles": 5,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3002,
+        "label": "N005_s2"
+      },
+      "skipped": false,
+      "span_L_star": 4.0,
+      "kappa_pred_star": 7500.0,
+      "ratio_meas_over_pred": 0.9092873165150548,
+      "dt_star": 1.2658227848101266e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 2.1331141745518355e-06,
+        "dt_stability_gate": 1.2658227848101266e-07,
+        "lambda_max_star": 3160000.0,
+        "k_bond_star": 750000.0,
+        "max_force_star_measured": 2343.9907997660243,
+        "binding": "stability",
+        "dt_seed": 1.2658227848101266e-07
+      },
+      "wall_s": 1.54,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.023640363603214976,
+        "bond_lengths": {
+          "max_rel_dev": 0.002212490684437407,
+          "mean_rel_dev": 0.0013965408198358398,
+          "worst_bond": 0,
+          "worst_length": 0.9977875093155626,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 6819.654873862911,
+      "kappa_star_se": 500.5610326235196,
+      "var_yc_star": 0.00014663498644669126,
+      "rms_yc_star": 0.012109293391717424,
+      "rms_over_span": 0.003027323347929356,
+      "act_frames": 10.775049604961705,
+      "n_frames": 8000,
+      "n_eff": 371.2279893503299,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 316000,
+        "prod": 1688000,
+        "stride": 211
+      },
+      "label": "N005_s2"
+    },
+    {
+      "config": {
+        "n_particles": 5,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3003,
+        "label": "N005_s3"
+      },
+      "skipped": false,
+      "span_L_star": 4.0,
+      "kappa_pred_star": 7500.0,
+      "ratio_meas_over_pred": 0.8990245985006974,
+      "dt_star": 1.2658227848101266e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 2.5001099781913206e-06,
+        "dt_stability_gate": 1.2658227848101266e-07,
+        "lambda_max_star": 3160000.0,
+        "k_bond_star": 750000.0,
+        "max_force_star_measured": 1999.912021317238,
+        "binding": "stability",
+        "dt_seed": 1.2658227848101266e-07
+      },
+      "wall_s": 1.561,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.025326133071442953,
+        "bond_lengths": {
+          "max_rel_dev": 0.0018789123231452987,
+          "mean_rel_dev": 0.0009269246865108438,
+          "worst_bond": 3,
+          "worst_length": 1.0018789123231453,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 6742.684488755231,
+      "kappa_star_se": 451.0391272481881,
+      "var_yc_star": 0.0001483088822660617,
+      "rms_yc_star": 0.012178213426692017,
+      "rms_over_span": 0.0030445533566730043,
+      "act_frames": 8.949376015326123,
+      "n_frames": 8000,
+      "n_eff": 446.958535785049,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 316000,
+        "prod": 1688000,
+        "stride": 211
+      },
+      "label": "N005_s3"
+    },
+    {
+      "config": {
+        "n_particles": 5,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3004,
+        "label": "N005_s4"
+      },
+      "skipped": false,
+      "span_L_star": 4.0,
+      "kappa_pred_star": 7500.0,
+      "ratio_meas_over_pred": 0.8265933475508579,
+      "dt_star": 1.2658227848101266e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 1.3838758072232423e-06,
+        "dt_stability_gate": 1.2658227848101266e-07,
+        "lambda_max_star": 3160000.0,
+        "k_bond_star": 750000.0,
+        "max_force_star_measured": 3613.040978028613,
+        "binding": "stability",
+        "dt_seed": 1.2658227848101266e-07
+      },
+      "wall_s": 1.64,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.026043655869517048,
+        "bond_lengths": {
+          "max_rel_dev": 0.0016094362319147848,
+          "mean_rel_dev": 0.0008121620937278917,
+          "worst_bond": 0,
+          "worst_length": 0.9983905637680852,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 6199.450106631434,
+      "kappa_star_se": 504.5920947899797,
+      "var_yc_star": 0.00016130462908804104,
+      "rms_yc_star": 0.01270057593528896,
+      "rms_over_span": 0.00317514398382224,
+      "act_frames": 13.24965414580646,
+      "n_frames": 8000,
+      "n_eff": 301.89467256894454,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 316000,
+        "prod": 1688000,
+        "stride": 211
+      },
+      "label": "N005_s4"
+    },
+    {
+      "config": {
+        "n_particles": 7,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3002,
+        "label": "N007_s2"
+      },
+      "skipped": false,
+      "span_L_star": 6.0,
+      "kappa_pred_star": 2222.222222222222,
+      "ratio_meas_over_pred": 0.9360967983498122,
+      "dt_star": 3.813559322033898e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 2.382913137531105e-06,
+        "dt_stability_gate": 3.813559322033898e-07,
+        "lambda_max_star": 1048888.888888889,
+        "k_bond_star": 222222.22222222222,
+        "max_force_star_measured": 2098.2720357068547,
+        "binding": "stability",
+        "dt_seed": 3.813559322033898e-07
+      },
+      "wall_s": 2.502,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.03957514643042939,
+        "bond_lengths": {
+          "max_rel_dev": 0.0036118377180847094,
+          "mean_rel_dev": 0.0022897099362993076,
+          "worst_bond": 3,
+          "worst_length": 0.9963881622819153,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 2080.215107444027,
+      "kappa_star_se": 173.69807058975866,
+      "var_yc_star": 0.00048071951617960606,
+      "rms_yc_star": 0.021925316786299942,
+      "rms_over_span": 0.0036542194643833237,
+      "act_frames": 13.944517520055614,
+      "n_frames": 8000,
+      "n_eff": 286.8510864034575,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 354000,
+        "prod": 1888000,
+        "stride": 236
+      },
+      "label": "N007_s2"
+    },
+    {
+      "config": {
+        "n_particles": 7,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3001,
+        "label": "N007_s1"
+      },
+      "skipped": false,
+      "span_L_star": 6.0,
+      "kappa_pred_star": 2222.222222222222,
+      "ratio_meas_over_pred": 0.898210849459848,
+      "dt_star": 3.813559322033898e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 3.3135621962001806e-06,
+        "dt_stability_gate": 3.813559322033898e-07,
+        "lambda_max_star": 1048888.888888889,
+        "k_bond_star": 222222.22222222222,
+        "max_force_star_measured": 1508.950097793166,
+        "binding": "stability",
+        "dt_seed": 3.813559322033898e-07
+      },
+      "wall_s": 2.571,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.03624480430621069,
+        "bond_lengths": {
+          "max_rel_dev": 0.001877602115807564,
+          "mean_rel_dev": 0.0008206503982087591,
+          "worst_bond": 1,
+          "worst_length": 1.0018776021158076,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 1996.0241099107732,
+      "kappa_star_se": 188.52830968732567,
+      "var_yc_star": 0.0005009959524209867,
+      "rms_yc_star": 0.022382938869169675,
+      "rms_over_span": 0.003730489811528279,
+      "act_frames": 17.84233040986485,
+      "n_frames": 8000,
+      "n_eff": 224.18596159324787,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 354000,
+        "prod": 1888000,
+        "stride": 236
+      },
+      "label": "N007_s1"
+    },
+    {
+      "config": {
+        "n_particles": 7,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3003,
+        "label": "N007_s3"
+      },
+      "skipped": false,
+      "span_L_star": 6.0,
+      "kappa_pred_star": 2222.222222222222,
+      "ratio_meas_over_pred": 1.0041319971139624,
+      "dt_star": 3.813559322033898e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 2.3060037182067944e-06,
+        "dt_stability_gate": 3.813559322033898e-07,
+        "lambda_max_star": 1048888.888888889,
+        "k_bond_star": 222222.22222222222,
+        "max_force_star_measured": 2168.2532254926823,
+        "binding": "stability",
+        "dt_seed": 3.813559322033898e-07
+      },
+      "wall_s": 2.532,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.03642144394820125,
+        "bond_lengths": {
+          "max_rel_dev": 0.0037809657128810015,
+          "mean_rel_dev": 0.0027384189560652103,
+          "worst_bond": 2,
+          "worst_length": 0.996219034287119,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 2231.4044380310274,
+      "kappa_star_se": 184.52727265441314,
+      "var_yc_star": 0.00044814825271316197,
+      "rms_yc_star": 0.021169512339994086,
+      "rms_over_span": 0.003528252056665681,
+      "act_frames": 13.677116188959031,
+      "n_frames": 8000,
+      "n_eff": 292.45931267506774,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 354000,
+        "prod": 1888000,
+        "stride": 236
+      },
+      "label": "N007_s3"
+    },
+    {
+      "config": {
+        "n_particles": 7,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3004,
+        "label": "N007_s4"
+      },
+      "skipped": false,
+      "span_L_star": 6.0,
+      "kappa_pred_star": 2222.222222222222,
+      "ratio_meas_over_pred": 0.8607732581810106,
+      "dt_star": 3.813559322033898e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 3.451858995518064e-06,
+        "dt_stability_gate": 3.813559322033898e-07,
+        "lambda_max_star": 1048888.888888889,
+        "k_bond_star": 222222.22222222222,
+        "max_force_star_measured": 1448.4948563924718,
+        "binding": "stability",
+        "dt_seed": 3.813559322033898e-07
+      },
+      "wall_s": 2.5,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.038663950505206074,
+        "bond_lengths": {
+          "max_rel_dev": 0.0025741043428861854,
+          "mean_rel_dev": 0.0018438466441463668,
+          "worst_bond": 5,
+          "worst_length": 1.0025741043428862,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "98308f667f78",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 1912.8294626244679,
+      "kappa_star_se": 156.44122777054918,
+      "var_yc_star": 0.0005227857577161978,
+      "rms_yc_star": 0.022864508691773762,
+      "rms_over_span": 0.00381075144862896,
+      "act_frames": 13.377652860504346,
+      "n_frames": 8000,
+      "n_eff": 299.0061142795417,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 354000,
+        "prod": 1888000,
+        "stride": 236
+      },
+      "label": "N007_s4"
+    },
+    {
+      "config": {
+        "n_particles": 9,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3001,
+        "label": "N009_s1"
+      },
+      "skipped": false,
+      "span_L_star": 8.0,
+      "kappa_pred_star": 937.5,
+      "ratio_meas_over_pred": 0.8923657658917129,
+      "dt_star": 7.476635514018693e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 4.594488417393991e-06,
+        "dt_stability_gate": 7.476635514018693e-07,
+        "lambda_max_star": 535000.0,
+        "k_bond_star": 93750.0,
+        "max_force_star_measured": 1088.2604428973655,
+        "binding": "stability",
+        "dt_seed": 7.476635514018693e-07
+      },
+      "wall_s": 4.122,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.05364775522237155,
+        "bond_lengths": {
+          "max_rel_dev": 0.005628923788069451,
+          "mean_rel_dev": 0.0033899110079349676,
+          "worst_bond": 7,
+          "worst_length": 0.9943710762119305,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 836.5929055234808,
+      "kappa_star_se": 96.96043112076858,
+      "var_yc_star": 0.001195324504185546,
+      "rms_yc_star": 0.034573465319310215,
+      "rms_over_span": 0.004321683164913777,
+      "act_frames": 26.86523950398818,
+      "n_frames": 8000,
+      "n_eff": 148.89128382444514,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 428000,
+        "prod": 2280000,
+        "stride": 285
+      },
+      "label": "N009_s1"
+    },
+    {
+      "config": {
+        "n_particles": 9,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3003,
+        "label": "N009_s3"
+      },
+      "skipped": false,
+      "span_L_star": 8.0,
+      "kappa_pred_star": 937.5,
+      "ratio_meas_over_pred": 0.9957566299915199,
+      "dt_star": 7.476635514018693e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 3.439000367704579e-06,
+        "dt_stability_gate": 7.476635514018693e-07,
+        "lambda_max_star": 535000.0,
+        "k_bond_star": 93750.0,
+        "max_force_star_measured": 1453.9108651905547,
+        "binding": "stability",
+        "dt_seed": 7.476635514018693e-07
+      },
+      "wall_s": 4.155,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.04911820219311014,
+        "bond_lengths": {
+          "max_rel_dev": 0.005786542142466544,
+          "mean_rel_dev": 0.0036165794299705817,
+          "worst_bond": 0,
+          "worst_length": 1.0057865421424665,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 933.52184061705,
+      "kappa_star_se": 93.23905203448264,
+      "var_yc_star": 0.001071212216458705,
+      "rms_yc_star": 0.03272937849178785,
+      "rms_over_span": 0.004091172311473481,
+      "act_frames": 19.95155400940793,
+      "n_frames": 8000,
+      "n_eff": 200.4856362624107,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 428000,
+        "prod": 2280000,
+        "stride": 285
+      },
+      "label": "N009_s3"
+    },
+    {
+      "config": {
+        "n_particles": 9,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3002,
+        "label": "N009_s2"
+      },
+      "skipped": false,
+      "span_L_star": 8.0,
+      "kappa_pred_star": 937.5,
+      "ratio_meas_over_pred": 0.9056150945362171,
+      "dt_star": 7.476635514018693e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 3.786751749366034e-06,
+        "dt_stability_gate": 7.476635514018693e-07,
+        "lambda_max_star": 535000.0,
+        "k_bond_star": 93750.0,
+        "max_force_star_measured": 1320.3928672739332,
+        "binding": "stability",
+        "dt_seed": 7.476635514018693e-07
+      },
+      "wall_s": 4.294,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.057132239194871884,
+        "bond_lengths": {
+          "max_rel_dev": 0.005107393939705718,
+          "mean_rel_dev": 0.0025738157693311753,
+          "worst_bond": 7,
+          "worst_length": 0.9948926060602943,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 849.0141511277036,
+      "kappa_star_se": 88.14319422609194,
+      "var_yc_star": 0.0011778366693555688,
+      "rms_yc_star": 0.03431962513425181,
+      "rms_over_span": 0.004289953141781476,
+      "act_frames": 21.556473146194026,
+      "n_frames": 8000,
+      "n_eff": 185.559111310666,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 428000,
+        "prod": 2280000,
+        "stride": 285
+      },
+      "label": "N009_s2"
+    },
+    {
+      "config": {
+        "n_particles": 9,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3004,
+        "label": "N009_s4"
+      },
+      "skipped": false,
+      "span_L_star": 8.0,
+      "kappa_pred_star": 937.5,
+      "ratio_meas_over_pred": 0.8702089178279065,
+      "dt_star": 7.476635514018693e-07,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 4.815461325991306e-06,
+        "dt_stability_gate": 7.476635514018693e-07,
+        "lambda_max_star": 535000.0,
+        "k_bond_star": 93750.0,
+        "max_force_star_measured": 1038.322117345778,
+        "binding": "stability",
+        "dt_seed": 7.476635514018693e-07
+      },
+      "wall_s": 4.154,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.053162079532333616,
+        "bond_lengths": {
+          "max_rel_dev": 0.002390654943775994,
+          "mean_rel_dev": 0.0012705668109727342,
+          "worst_bond": 4,
+          "worst_length": 1.002390654943776,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 815.8208604636624,
+      "kappa_star_se": 76.88537274520361,
+      "var_yc_star": 0.0012257592916068137,
+      "rms_yc_star": 0.03501084534264795,
+      "rms_over_span": 0.004376355667830994,
+      "act_frames": 17.763471030841973,
+      "n_frames": 8000,
+      "n_eff": 225.18121559997857,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 428000,
+        "prod": 2280000,
+        "stride": 285
+      },
+      "label": "N009_s4"
+    },
+    {
+      "config": {
+        "n_particles": 11,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3001,
+        "label": "N011_s1"
+      },
+      "skipped": false,
+      "span_L_star": 10.0,
+      "kappa_pred_star": 480.0,
+      "ratio_meas_over_pred": 0.8997671174794248,
+      "dt_star": 1.1363636363636364e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 5.239361955082621e-06,
+        "dt_stability_gate": 1.1363636363636364e-06,
+        "lambda_max_star": 352000.0,
+        "k_bond_star": 48000.0,
+        "max_force_star_measured": 954.3146747381292,
+        "binding": "stability",
+        "dt_seed": 1.1363636363636364e-06
+      },
+      "wall_s": 6.784,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.06485872059741918,
+        "bond_lengths": {
+          "max_rel_dev": 0.006632296550038164,
+          "mean_rel_dev": 0.003559572610806583,
+          "worst_bond": 2,
+          "worst_length": 0.9933677034499618,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 431.88821639012394,
+      "kappa_star_se": 49.38293841759271,
+      "var_yc_star": 0.0023154139475217855,
+      "rms_yc_star": 0.04811874839936909,
+      "rms_over_span": 0.004811874839936909,
+      "act_frames": 26.148160489977183,
+      "n_frames": 8000,
+      "n_eff": 152.9744320459267,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 550000,
+        "prod": 2936000,
+        "stride": 367
+      },
+      "label": "N011_s1"
+    },
+    {
+      "config": {
+        "n_particles": 11,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3004,
+        "label": "N011_s4"
+      },
+      "skipped": false,
+      "span_L_star": 10.0,
+      "kappa_pred_star": 480.0,
+      "ratio_meas_over_pred": 0.9374253080228004,
+      "dt_star": 1.1363636363636364e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 4.681274903388057e-06,
+        "dt_stability_gate": 1.1363636363636364e-06,
+        "lambda_max_star": 352000.0,
+        "k_bond_star": 48000.0,
+        "max_force_star_measured": 1068.0851057008567,
+        "binding": "stability",
+        "dt_seed": 1.1363636363636364e-06
+      },
+      "wall_s": 6.652,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.06352999197462912,
+        "bond_lengths": {
+          "max_rel_dev": 0.005204665400646125,
+          "mean_rel_dev": 0.0030162324744198886,
+          "worst_bond": 5,
+          "worst_length": 0.9947953345993539,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 449.9641478509442,
+      "kappa_star_se": 43.22316060401558,
+      "var_yc_star": 0.002222399283978646,
+      "rms_yc_star": 0.04714233006522531,
+      "rms_over_span": 0.004714233006522531,
+      "act_frames": 18.45470952284806,
+      "n_frames": 8000,
+      "n_eff": 216.7468415066493,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 550000,
+        "prod": 2936000,
+        "stride": 367
+      },
+      "label": "N011_s4"
+    },
+    {
+      "config": {
+        "n_particles": 11,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3002,
+        "label": "N011_s2"
+      },
+      "skipped": false,
+      "span_L_star": 10.0,
+      "kappa_pred_star": 480.0,
+      "ratio_meas_over_pred": 0.91301177859021,
+      "dt_star": 1.1363636363636364e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 5.36981617360538e-06,
+        "dt_stability_gate": 1.1363636363636364e-06,
+        "lambda_max_star": 352000.0,
+        "k_bond_star": 48000.0,
+        "max_force_star_measured": 931.1305710197004,
+        "binding": "stability",
+        "dt_seed": 1.1363636363636364e-06
+      },
+      "wall_s": 6.646,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.06809425127424691,
+        "bond_lengths": {
+          "max_rel_dev": 0.010834484315857318,
+          "mean_rel_dev": 0.005926716740326521,
+          "worst_bond": 6,
+          "worst_length": 0.9891655156841427,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 438.2456537233008,
+      "kappa_star_se": 52.50243206706481,
+      "var_yc_star": 0.0022818252537226058,
+      "rms_yc_star": 0.04776845458796637,
+      "rms_over_span": 0.004776845458796637,
+      "act_frames": 28.704739082277637,
+      "n_frames": 8000,
+      "n_eff": 139.34981218727077,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 550000,
+        "prod": 2936000,
+        "stride": 367
+      },
+      "label": "N011_s2"
+    },
+    {
+      "config": {
+        "n_particles": 11,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3003,
+        "label": "N011_s3"
+      },
+      "skipped": false,
+      "span_L_star": 10.0,
+      "kappa_pred_star": 480.0,
+      "ratio_meas_over_pred": 0.9641379144036436,
+      "dt_star": 1.1363636363636364e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 5.768714517780567e-06,
+        "dt_stability_gate": 1.1363636363636364e-06,
+        "lambda_max_star": 352000.0,
+        "k_bond_star": 48000.0,
+        "max_force_star_measured": 866.744226047033,
+        "binding": "stability",
+        "dt_seed": 1.1363636363636364e-06
+      },
+      "wall_s": 6.749,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.06641500943678669,
+        "bond_lengths": {
+          "max_rel_dev": 0.008582057874512383,
+          "mean_rel_dev": 0.004055665261576924,
+          "worst_bond": 4,
+          "worst_length": 0.9914179421254876,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "197c2658d9fe",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 462.78619891374893,
+      "kappa_star_se": 50.70494665089786,
+      "var_yc_star": 0.002160825025351228,
+      "rms_yc_star": 0.046484675166674316,
+      "rms_over_span": 0.004648467516667432,
+      "act_frames": 24.008767048023028,
+      "n_frames": 8000,
+      "n_eff": 166.60580662051845,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 550000,
+        "prod": 2936000,
+        "stride": 367
+      },
+      "label": "N011_s3"
+    },
+    {
+      "config": {
+        "n_particles": 15,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3002,
+        "label": "N015_s2"
+      },
+      "skipped": false,
+      "span_L_star": 14.0,
+      "kappa_pred_star": 174.9271137026239,
+      "ratio_meas_over_pred": 0.832467374201337,
+      "dt_star": 1.7393509127789049e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 6.117112205108573e-06,
+        "dt_stability_gate": 1.7393509127789049e-06,
+        "lambda_max_star": 229970.84548104956,
+        "k_bond_star": 17492.71137026239,
+        "max_force_star_measured": 817.3791541414524,
+        "binding": "stability",
+        "dt_seed": 1.7393509127789049e-06
+      },
+      "wall_s": 16.808,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.09500950025529314,
+        "bond_lengths": {
+          "max_rel_dev": 0.012744459554712928,
+          "mean_rel_dev": 0.00635913012715511,
+          "worst_bond": 1,
+          "worst_length": 0.9872555404452871,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "4bdd5faf6fa7",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 145.62111502064204,
+      "kappa_star_se": 19.690338546439147,
+      "var_yc_star": 0.0068671359909464255,
+      "rms_yc_star": 0.08286818443133906,
+      "rms_over_span": 0.005919156030809933,
+      "act_frames": 36.566859066326316,
+      "n_frames": 8000,
+      "n_eff": 109.38866783019708,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 986000,
+        "prod": 5256000,
+        "stride": 657
+      },
+      "label": "N015_s2"
+    },
+    {
+      "config": {
+        "n_particles": 15,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3001,
+        "label": "N015_s1"
+      },
+      "skipped": false,
+      "span_L_star": 14.0,
+      "kappa_pred_star": 174.9271137026239,
+      "ratio_meas_over_pred": 1.0446571018602913,
+      "dt_star": 1.7393509127789049e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 7.952835366690334e-06,
+        "dt_stability_gate": 1.7393509127789049e-06,
+        "lambda_max_star": 229970.84548104956,
+        "k_bond_star": 17492.71137026239,
+        "max_force_star_measured": 628.7065894689592,
+        "binding": "stability",
+        "dt_seed": 1.7393509127789049e-06
+      },
+      "wall_s": 16.971,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.09438579639838275,
+        "bond_lengths": {
+          "max_rel_dev": 0.021247383921216167,
+          "mean_rel_dev": 0.007674099040275043,
+          "worst_bond": 3,
+          "worst_length": 1.0212473839212162,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "4bdd5faf6fa7",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 182.73885163736873,
+      "kappa_star_se": 19.116966860989095,
+      "var_yc_star": 0.005472290052388112,
+      "rms_yc_star": 0.07397492853925654,
+      "rms_over_span": 0.0052839234670897526,
+      "act_frames": 21.888005414902594,
+      "n_frames": 8000,
+      "n_eff": 182.7484928012935,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 986000,
+        "prod": 5256000,
+        "stride": 657
+      },
+      "label": "N015_s1"
+    },
+    {
+      "config": {
+        "n_particles": 15,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3003,
+        "label": "N015_s3"
+      },
+      "skipped": false,
+      "span_L_star": 14.0,
+      "kappa_pred_star": 174.9271137026239,
+      "ratio_meas_over_pred": 1.0758490813156385,
+      "dt_star": 1.7393509127789049e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 6.626242202643293e-06,
+        "dt_stability_gate": 1.7393509127789049e-06,
+        "lambda_max_star": 229970.84548104956,
+        "k_bond_star": 17492.71137026239,
+        "max_force_star_measured": 754.5754965016878,
+        "binding": "stability",
+        "dt_seed": 1.7393509127789049e-06
+      },
+      "wall_s": 16.903,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.09789459774750026,
+        "bond_lengths": {
+          "max_rel_dev": 0.009406652244146385,
+          "mean_rel_dev": 0.004315779224506988,
+          "worst_bond": 4,
+          "worst_length": 0.9905933477558536,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "4bdd5faf6fa7",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 188.19517457416416,
+      "kappa_star_se": 20.217672217981896,
+      "var_yc_star": 0.005313632521464672,
+      "rms_yc_star": 0.07289466730471217,
+      "rms_over_span": 0.005206761950336584,
+      "act_frames": 23.082100662951433,
+      "n_frames": 8000,
+      "n_eff": 173.29445263274116,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 986000,
+        "prod": 5256000,
+        "stride": 657
+      },
+      "label": "N015_s3"
+    },
+    {
+      "config": {
+        "n_particles": 15,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3004,
+        "label": "N015_s4"
+      },
+      "skipped": false,
+      "span_L_star": 14.0,
+      "kappa_pred_star": 174.9271137026239,
+      "ratio_meas_over_pred": 0.9213397552681667,
+      "dt_star": 1.7393509127789049e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 6.582923659552782e-06,
+        "dt_stability_gate": 1.7393509127789049e-06,
+        "lambda_max_star": 229970.84548104956,
+        "k_bond_star": 17492.71137026239,
+        "max_force_star_measured": 759.5409363048394,
+        "binding": "stability",
+        "dt_seed": 1.7393509127789049e-06
+      },
+      "wall_s": 16.934,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.09747820998130113,
+        "bond_lengths": {
+          "max_rel_dev": 0.011566771811403087,
+          "mean_rel_dev": 0.006723122844184161,
+          "worst_bond": 10,
+          "worst_length": 0.9884332281885969,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "4bdd5faf6fa7",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 161.16730412854227,
+      "kappa_star_se": 18.723488661519355,
+      "var_yc_star": 0.0062047324387980675,
+      "rms_yc_star": 0.07877012402426485,
+      "rms_over_span": 0.005626437430304632,
+      "act_frames": 26.992906901425826,
+      "n_frames": 8000,
+      "n_eff": 148.18707798339094,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 986000,
+        "prod": 5256000,
+        "stride": 657
+      },
+      "label": "N015_s4"
+    },
+    {
+      "config": {
+        "n_particles": 21,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3001,
+        "label": "N021_s1"
+      },
+      "skipped": false,
+      "span_L_star": 20.0,
+      "kappa_pred_star": 60.0,
+      "ratio_meas_over_pred": 1.0557278544025015,
+      "dt_star": 2.173913043478261e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 6.703095086589848e-06,
+        "dt_stability_gate": 2.173913043478261e-06,
+        "lambda_max_star": 184000.0,
+        "k_bond_star": 6000.0,
+        "max_force_star_measured": 745.9240746864766,
+        "binding": "stability",
+        "dt_seed": 2.173913043478261e-06
+      },
+      "wall_s": 47.817,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.14001815180362437,
+        "bond_lengths": {
+          "max_rel_dev": 0.02747114220604918,
+          "mean_rel_dev": 0.0083369575060045,
+          "worst_bond": 18,
+          "worst_length": 1.0274711422060492,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "447bf64e744d",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 63.34367126415009,
+      "kappa_star_se": 9.414510056202039,
+      "var_yc_star": 0.01578689678136731,
+      "rms_yc_star": 0.1256459182837521,
+      "rms_over_span": 0.006282295914187605,
+      "act_frames": 44.179315412484065,
+      "n_frames": 8000,
+      "n_eff": 90.54010825323226,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 2300000,
+        "prod": 12264000,
+        "stride": 1533
+      },
+      "label": "N021_s1"
+    },
+    {
+      "config": {
+        "n_particles": 21,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3002,
+        "label": "N021_s2"
+      },
+      "skipped": false,
+      "span_L_star": 20.0,
+      "kappa_pred_star": 60.0,
+      "ratio_meas_over_pred": 1.0046822491474232,
+      "dt_star": 2.173913043478261e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 6.361362796458325e-06,
+        "dt_stability_gate": 2.173913043478261e-06,
+        "lambda_max_star": 184000.0,
+        "k_bond_star": 6000.0,
+        "max_force_star_measured": 785.995101990369,
+        "binding": "stability",
+        "dt_seed": 2.173913043478261e-06
+      },
+      "wall_s": 47.914,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.15028932580093185,
+        "bond_lengths": {
+          "max_rel_dev": 0.032585737261608516,
+          "mean_rel_dev": 0.012437277565343652,
+          "worst_bond": 10,
+          "worst_length": 0.9674142627383915,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "447bf64e744d",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 60.28093494884539,
+      "kappa_star_se": 8.641346675770947,
+      "var_yc_star": 0.01658899286894942,
+      "rms_yc_star": 0.12879826423112006,
+      "rms_over_span": 0.006439913211556003,
+      "act_frames": 41.09915509158351,
+      "n_frames": 8000,
+      "n_eff": 97.32560173284779,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 2300000,
+        "prod": 12264000,
+        "stride": 1533
+      },
+      "label": "N021_s2"
+    },
+    {
+      "config": {
+        "n_particles": 21,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3003,
+        "label": "N021_s3"
+      },
+      "skipped": false,
+      "span_L_star": 20.0,
+      "kappa_pred_star": 60.0,
+      "ratio_meas_over_pred": 1.009367041366817,
+      "dt_star": 2.173913043478261e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 6.650595881700281e-06,
+        "dt_stability_gate": 2.173913043478261e-06,
+        "lambda_max_star": 184000.0,
+        "k_bond_star": 6000.0,
+        "max_force_star_measured": 751.8123321487559,
+        "binding": "stability",
+        "dt_seed": 2.173913043478261e-06
+      },
+      "wall_s": 47.866,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.15893221684220354,
+        "bond_lengths": {
+          "max_rel_dev": 0.023148403447082133,
+          "mean_rel_dev": 0.008128888893607661,
+          "worst_bond": 9,
+          "worst_length": 0.9768515965529179,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "447bf64e744d",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 60.56202248200902,
+      "kappa_star_se": 8.947487299515881,
+      "var_yc_star": 0.01651199809743915,
+      "rms_yc_star": 0.12849901983065531,
+      "rms_over_span": 0.006424950991532766,
+      "act_frames": 43.6547430863473,
+      "n_frames": 8000,
+      "n_eff": 91.62807331354952,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 2300000,
+        "prod": 12264000,
+        "stride": 1533
+      },
+      "label": "N021_s3"
+    },
+    {
+      "config": {
+        "n_particles": 21,
+        "dim": 2,
+        "mode": "thermal",
+        "k_theta_star": 10000.0,
+        "k_bond_ratio": 100.0,
+        "delta_over_span": 0.01,
+        "dt_star": 0.0,
+        "relax_tau_bend": 30.0,
+        "equil_tau_bend": 300.0,
+        "prod_tau_bend": 4000.0,
+        "frames_per_tau_bend": 5.0,
+        "seed": 3004,
+        "label": "N021_s4"
+      },
+      "skipped": false,
+      "span_L_star": 20.0,
+      "kappa_pred_star": 60.0,
+      "ratio_meas_over_pred": 0.8862782440878811,
+      "dt_star": 2.173913043478261e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 6.858395726184965e-06,
+        "dt_stability_gate": 2.173913043478261e-06,
+        "lambda_max_star": 184000.0,
+        "k_bond_star": 6000.0,
+        "max_force_star_measured": 729.0334649122511,
+        "binding": "stability",
+        "dt_seed": 2.173913043478261e-06
+      },
+      "wall_s": 48.053,
+      "guards": {
+        "finite": true,
+        "failures": [],
+        "max_step_displacement_sigma": 0.13844243522435123,
+        "bond_lengths": {
+          "max_rel_dev": 0.031215926534787775,
+          "mean_rel_dev": 0.011647584838915676,
+          "worst_bond": 0,
+          "worst_length": 1.0312159265347878,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 0
+        }
+      },
+      "manifest": {
+        "code_hash": "447bf64e744d",
+        "git_rev": "c06b183",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "kappa_star": 53.17669464527287,
+      "kappa_star_se": 7.970976298862206,
+      "var_yc_star": 0.018805230499389355,
+      "rms_yc_star": 0.13713216435026962,
+      "rms_over_span": 0.006856608217513481,
+      "act_frames": 44.937649575780505,
+      "n_frames": 8000,
+      "n_eff": 89.01222110548103,
+      "statistic_fluctuates": true,
+      "statistic_fluctuates_msg": "",
+      "steps": {
+        "equil": 2300000,
+        "prod": 12264000,
+        "stride": 1533
+      },
+      "label": "N021_s4"
+    }
+  ],
+  "failed": [],
+  "n_requested": 24,
+  "batch_wall_s": 58.722,
+  "concurrency": 8
+}

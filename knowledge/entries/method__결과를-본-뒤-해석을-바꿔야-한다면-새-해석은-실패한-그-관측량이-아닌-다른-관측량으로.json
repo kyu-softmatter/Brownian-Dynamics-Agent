@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "epistemics",
+    "prediction",
+    "post_hoc"
+  ],
+  "dimensionless": {},
+  "source": "mater_plan.md 원칙 9.2",
+  "lessons": [
+    {
+      "claim": "결과를 본 뒤 해석을 바꿔야 한다면 새 해석은 실패한 그 관측량이 아닌 다른 관측량으로 독립 확인되어야 한다. ABP 에서 Lambda 를 MSD 가 아닌 director 자기상관에서 측정했기에 곡선맞춤과 구분됐다. 근거 세 가지는 다른 관측량 출처 자유 파라미터 0 여러 조건 동시 일치다. 그리고 원래 예측이 실패했다는 사실을 기록에 남긴다",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

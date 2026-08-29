@@ -1,0 +1,126 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "soft-r3-2d-A-sweep__dilute__9290e41799",
+  "case": "soft-r3-2d-A-sweep",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "d_um": 5.0,
+    "T_K": 300.0,
+    "eta_mPas": 0.851,
+    "N": 800,
+    "phi": 0.01,
+    "tau_B_s": 242.05059977272577,
+    "tau_int_s": 0.3315654173608698,
+    "L_um": 1253.3141373155004,
+    "gamma_kg_per_s": 4.01024302230737e-08
+  },
+  "dimensionless": {
+    "Gamma  = U(a_mean)/kT   결합 vs 열요동 ★": 0.01436696977001332,
+    "A      = U(d)/kT        접촉 결합": 10.0,
+    "phi                     밀집도": 0.01,
+    "a_mean/d                평균간격": 8.86226925452758,
+    "L/d                     박스 크기": 250.6628274631001,
+    "r_c/d                   컷오프": 8.0,
+    "r_c/a_mean              컷오프(이웃 껍질 수)": 0.90270333367641,
+    "dt/tau_int              적분 해상": 0.01,
+    "T_obs/tau_B             관측창": 200.0,
+    "St     = tau_p/tau_B    관성 vs 확산": 1.3485336132119386e-08
+  },
+  "observables": [
+    {
+      "name": "에너지 일관성 ⟨U⟩/N",
+      "measured": 0.10387434071398119,
+      "predicted": 0.10387607709887973,
+      "unit": "kT",
+      "err_pct": 0.0016716206202712972,
+      "prediction_source": "consistency: HOOMD 힘 합 vs (ρ/2)∫U g(r) 2πr dr"
+    },
+    {
+      "name": "psi6",
+      "measured": 0.42597351922591525,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none"
+    },
+    {
+      "name": "U_per_N",
+      "measured": 0.10387434071398119,
+      "predicted": null,
+      "unit": "kT",
+      "err_pct": null,
+      "prediction_source": "none"
+    }
+  ],
+  "numerics": {
+    "dt_over_tau_int": 0.01,
+    "dt_over_tau_B": 1.3698186150837646e-05,
+    "n_eq": 2920095,
+    "n_prod": 14599500,
+    "seed": 20260803,
+    "bias_predicted_pct": 0.5,
+    "primary_sem_pct": 0.7415421746177931,
+    "stat_target_pct": 2.0
+  },
+  "diagnostics": {
+    "equilibrium_z": -0.4861794442060827,
+    "trend_t": -0.9300189254497074,
+    "first_half": 0.1043613589140204,
+    "second_half": 0.10338732251394199,
+    "tau_int_samples": 13.081065995833946,
+    "n_eff": 55.22394193725779,
+    "drift_span": -0.003206941412228352,
+    "drift_span_rel_pct": -3.0873278137655675,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 1500
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=-0.49, 지표=⟨U⟩/N [kT])",
+    "드리프트 없음 ✓ (t=-0.93, 전구간 -3.087%, n_eff=55/1500)",
+    "분리 검사 7종 중 하드 전부 통과 ✓ (여유 부족 5건)",
+    "관측량 1종 예측과 일치 ✓ (최대 오차 +0.00% @ 에너지 일관성 ⟨U⟩/N)",
+    "통계 충분 ✓ (±0.742% < 목표 2%)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "예측값 없는 관측량 2종 (측정만 기록, 판정 안 함)",
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [
+    {
+      "claim": "희박 g(r)를 e^(-βU)와 바로 대조하면 안 된다. φ=0.01·A=10 에서 RMS 6.30% 계통 편차가 남고, 클러스터 전개 1차항 ρ∫f f 를 넣으면 2.43%로 줄어든다 (편차는 물리)",
+      "kind": "method_note",
+      "coords": {
+        "Gamma": 0.0144,
+        "phi": 0.01
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

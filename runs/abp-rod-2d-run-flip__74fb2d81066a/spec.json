@@ -1,0 +1,112 @@
+{
+  "case": "abp-rod-2d-run-flip",
+  "system": {
+    "label": "abp-rod-2d-run-flip",
+    "dimensions": 2,
+    "particle": {
+      "shape": "ellipsoid",
+      "semi_axes": {
+        "value": [
+          1.0,
+          0.25,
+          0.25
+        ],
+        "unit": "um"
+      },
+      "aspect_ratio": {
+        "value": 4.0,
+        "unit": "dimensionless"
+      },
+      "diameter": {
+        "value": 0.7937,
+        "unit": "um"
+      },
+      "density": {
+        "value": 1050,
+        "unit": "kg/m^3"
+      },
+      "count": {
+        "value": 1000,
+        "unit": "dimensionless"
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "water",
+      "temperature": {
+        "value": 300,
+        "unit": "K"
+      },
+      "viscosity": {
+        "value": 0.851,
+        "unit": "mPa*s"
+      }
+    },
+    "geometry": {
+      "kind": "periodic_square_2d",
+      "box_length": {
+        "value": 25.398,
+        "unit": "um"
+      },
+      "periodic": true
+    },
+    "interactions": "none",
+    "friction": {
+      "zeta_parallel": {
+        "value": 6.4081e-09,
+        "unit": "kg/s"
+      },
+      "zeta_perp": {
+        "value": 8.2471e-09,
+        "unit": "kg/s"
+      },
+      "gamma_bar_2d": {
+        "value": 7.2122e-09,
+        "unit": "kg/s"
+      },
+      "gamma_rot_z": {
+        "value": 4.5391e-21,
+        "unit": "kg*m^2/s"
+      }
+    },
+    "active": {
+      "kind": "run_and_tumble",
+      "speed": {
+        "value": 5.0,
+        "unit": "um/s"
+      },
+      "tumble_interval": {
+        "value": 0.5,
+        "unit": "s"
+      },
+      "tumble_angle": {
+        "value": 0,
+        "unit": "dimensionless"
+      }
+    },
+    "targets": [
+      {
+        "name": "mean_square_displacement"
+      },
+      {
+        "name": "mean_square_angular_displacement"
+      }
+    ],
+    "numerics": {
+      "dt": {
+        "value": 1.5874,
+        "unit": "ms"
+      },
+      "production_s": 219,
+      "production_note": "200 \u00d7 max(\u03c4_r, \u03c4_tumble)",
+      "stat_target_pct": 2.0,
+      "equilibration": "\uce21\uc815\uc73c\ub85c \ud310\uc815 (MSD \ucd08\uae30 \uad6c\uac04 \uc81c\uc678)"
+    }
+  },
+  "N": 1000,
+  "dt_over_tau_B": 0.001447139477873711,
+  "n_eq": 1081,
+  "n_prod": 137925,
+  "sample_every": 45,
+  "seed": 20260804
+}

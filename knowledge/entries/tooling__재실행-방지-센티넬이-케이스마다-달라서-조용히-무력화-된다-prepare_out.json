@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "run_id",
+    "재실행방지",
+    "센티넬",
+    "데이터손실",
+    "RUN.execute"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py#prepare_outdir · scratch/run_trap_drag_ensemble.py",
+  "lessons": [
+    {
+      "claim": "재실행 방지 센티넬이 케이스마다 달라서 **조용히 무력화**된다. prepare_outdir 은 result.txt 존재로 '완료'를 판정하는데, RUN.execute 경로 케이스는 result.txt 를 쓰지 않는다(l4.json·metrics.json·observables.npz·spec.json·traj_A.gsd 만 남긴다). 실측: 런 168개 중 151개(chain-bend-dlvo 76 · trap-drag 68 · chain-bend-oscill 7)가 result.txt 가 없어 재실행 방지가 전혀 작동하지 않는다 — CLAUDE.md 가 약속하는 '같은 스펙 → 같은 run_id → 재실행하지 않는다'가 그 케이스들에서 거짓이다. 그냥 느려지는 게 아니라 **데이터를 잃는다**: 건너뛰지 않고 record.json 만 남긴 채 나머지를 지우고 덮어쓴다(레거시 trap-drag 33런 손실, 2026-08-06). 교훈: 완료 센티넬은 **실행 계약(RUN.execute)이 스스로 쓰는 파일**이어야 하고, 케이스 main() 이 나중에 쓰는 파일을 기준으로 삼으면 안 된다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

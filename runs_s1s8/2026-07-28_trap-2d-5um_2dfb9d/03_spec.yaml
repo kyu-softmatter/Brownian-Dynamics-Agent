@@ -1,0 +1,215 @@
+# S3 SPEC — 시뮬레이션 시스템 완전 명세
+# run_id: 2026-07-28_trap-2d-5um_2dfb9d
+# 원자료: inputs/trap-2d-5um/sketch_01.jpeg (sha256 2dfb9dae...)
+# 카드:   knowledge/wiki/systems/passive-sphere--harmonic-trap.md
+#
+# provenance 값:
+#   from_drawing    그림에서 직접 읽음
+#   inference       그림 + 물리지식으로 유도 (모호성 있음 → 01_intake.md §3)
+#   assumed         그림에 없어 채움 → S7b 감도 분석 대상
+#   derived         다른 필드에서 계산 (simbot 함수 호출 결과)
+#   rule            정책/규칙에서 유도 (config/run_policy.yaml)
+
+system:
+  card: passive-sphere--harmonic-trap
+  question: >
+    이 광집게에 갇힌 반지름 5 um 입자의 열요동을 정량화하고 해석해와 대조하라.
+    부수 검증: 이 계에서 tau_D 기준 무차원화가 실제로 실패하는가.
+
+# ---------------------------------------------------------------------------
+geometry:
+  dim:
+    value: 2
+    provenance: inference
+    basis: "식 r = sqrt(x^2+y^2) 에 z 가 없고 축도 x,y 둘뿐"
+    ambiguity: A1        # 01_intake.md §3. 판별자: <r^2> 비가 3D/2D = 1.5
+    confidence: medium
+  boundary:
+    value: periodic
+    provenance: rule
+    basis: "단일 구속 입자. 박스는 l_trap 보다 훨씬 크면 되고 벽이 필요 없다"
+  box_over_l_trap:
+    value: 200.0
+    provenance: rule
+    basis: "l_trap = 20.35 nm 이므로 L = 4.07 um. 트랩 카드 §7 게이트 (L >> l_trap)"
+
+# ---------------------------------------------------------------------------
+particles:
+  n_physical:
+    value: 1
+    provenance: from_drawing
+    basis: "그림에 원이 1개"
+  n_simulated:
+    value: 1000
+    provenance: rule
+    basis: >
+      비상호작용이므로 스냅샷 1개 = 독립표본 1000개 (Barakat 2022 방식,
+      [출처, 미재현]). 독립성은 실측 확인됨 — 실효표본 996/1000,
+      knowledge/wiki/findings/hoomd-brownian-scheme-and-noise.md §3
+  radius_si:
+    value: 5.0e-6
+    unit: m
+    provenance: from_drawing
+    basis: "R = 5 um 지시선이 원을 직접 가리킴"
+    ambiguity: A2        # 판별자: tau_trap ~ a.  <x^2> 는 a 에 무관
+    confidence: medium
+  sigma_si:
+    value: 1.0e-5
+    unit: m
+    provenance: derived
+    basis: "sigma = 2a"
+  density_si:
+    value: 1050.0
+    unit: kg/m^3
+    provenance: assumed
+    basis: "폴리스티렌. 과감쇠 판정에만 쓰이고 BD 동역학에는 영향 없음"
+    confidence: low
+    sensitivity: none     # 결론에 무관 — S7b 에서 확인
+
+# ---------------------------------------------------------------------------
+medium:
+  species:
+    value: water
+    provenance: assumed
+    basis: "콜로이드 광집게 실험의 표준 매질. 그림에 명시 없음"
+    confidence: medium
+  T_si:
+    value: 300.0
+    unit: K
+    provenance: from_drawing
+    basis: "T = 300 K (~27 C) 명기"
+  eta_si:
+    value: 8.5566e-4
+    unit: Pa*s
+    provenance: assumed        # 값은 정확하나 "물이다"라는 선택이 가정
+    basis: "IAPWS 표 보간 (외삽 아님). knowledge/wiki/concepts/water-298k.md"
+    confidence: medium
+    affects: [tau_trap, D0]    # <x^2> 에는 영향 없음
+  rho_fluid_si:
+    value: 996.5
+    unit: kg/m^3
+    provenance: assumed
+    basis: "동일 출처. Reynolds 검사에만 사용"
+
+# ---------------------------------------------------------------------------
+friction:
+  model: stokes_infinite_medium
+  gamma_si:
+    value: 8.0644e-8
+    unit: kg/s
+    provenance: derived
+    basis: "gamma = 6*pi*eta*a  (a = 반지름). simbot.units.stokes_drag_si"
+  wall_correction: none
+  note: >
+    무한 매질 Stokes. 벽이 5a = 25 um 안에 있으면 Faxen 보정이 필요하지만
+    그림에 벽이 없다.
+
+# ---------------------------------------------------------------------------
+interactions:
+  pair: []                    # 없음
+  pair_rationale: >
+    ★ k*_sigma = k sigma^2 / kT = 2.414e5 이고 l_trap/sigma = 2.035e-3 이다.
+    입자는 자기 지름의 0.2 % 만 탐색한다 -> 배제부피가 동역학에 무관하다.
+    따라서 r_cut 은 정의되지 않는다 (simbot.cutoff.propose_cutoff ->
+    criterion = "single_particle_free").
+  external:
+    - type: harmonic_trap
+      implementation: "simbot.forces.HarmonicTrap (md.force.Custom)"
+      k_si:
+        value: 1.0e-5
+        unit: N/m
+        provenance: from_drawing
+        basis: "k_t = 10 pN/um = 10e-12 N / 1e-6 m"
+      center_si: [0.0, 0.0, 0.0]
+      active_axes: [true, true, false]
+      basis_center: from_drawing   # "potential trap at (0,0)"
+
+# ---------------------------------------------------------------------------
+# 파생 스케일 — 전부 simbot.estimators.harmonic_trap 출력
+derived:
+  kT_si: 4.14195e-21            # J  (= 4.14195 pN*nm)
+  D0_si: 5.1361e-14             # m^2/s (= 0.05136 um^2/s)
+  tau_trap_si: 8.0644e-3        # s  (= 8.064 ms)   <- 기준 시간
+  tau_D_si: 1.9470e3            # s  (= 32.45 min)  <- 쓰면 안 되는 시간
+  l_trap_si: 2.0352e-8          # m  (= 20.35 nm)   <- 기준 길이
+  corner_freq_si: 19.735        # Hz
+  tau_inertial_si: 6.817e-6     # s
+
+dimensionless:
+  k_star_sigma: 2.4143e5        # k sigma^2/kT — 극도로 강한 구속
+  l_trap_over_sigma: 2.0352e-3  # 입자가 탐색하는 거리 / 자기 지름
+  tau_D_over_tau_trap: 2.4143e5 # 시간척도 분리
+  tau_inertial_over_tau_trap: 8.454e-4   # << 1 ✓ 과감쇠 유효
+  reynolds: 1.470e-5            # << 1 ✓ Stokes 유효
+
+# ---------------------------------------------------------------------------
+# 무차원화 — 카드 §3 이 소유한다
+nondimensionalization:
+  scales:
+    length: l_trap              # sqrt(kT/k) = 20.35 nm
+    energy: kT
+    time: tau_trap              # gamma/k = 8.064 ms
+  consequence:
+    k_star: 1.0                 # 정확히
+    D_star: 1.0                 # 정확히
+    var_x_star: 1.0             # 정확히
+    equation_of_motion: "dr*/dt* = -r* + sqrt(2) xi(t*)"   # 파라미터 없음
+  why_not_tau_D: >
+    ★ tau_D/tau_trap = 2.41e5. tau_D 기준으로 dt* = 5e-5 를 쓰면
+    dt = 97 ms = 12 x tau_trap 이 된다. 발산하지 않으므로 더 위험하다 —
+    완화 과정을 통째로 건너뛰고도 그럴듯한 숫자가 나온다.
+    근거: 트랩 카드 §3, knowledge/wiki/findings/dt-gate-should-be-displacement-based.md
+
+# ---------------------------------------------------------------------------
+numerics:
+  integrator: "hoomd.md.methods.Brownian"
+  scheme: euler_maruyama        # 실측 확인 (findings §1)
+  noise_distribution: uniform   # ★ Gaussian 아님 (findings §2)
+  dt_star:
+    value: 5.0e-3
+    unit: tau_trap
+    dt_si: 4.032e-5             # s = 40.32 us
+    provenance: rule
+    criterion: em_bias_target
+    basis: >
+      Euler-Maruyama 계통편향 = 1/(1-dt*/2) - 1 = +0.251 %.
+      목표 통계정밀도 1 % 의 1/4 이므로 편향이 통계오차에 묻힌다.
+      ★ 변위 게이트(0.03 sigma)는 이 계에서 꺼진다 — 쌍 상호작용이 없어
+        겹침이 발생할 수 없다. 카드 §7 참조.
+  known_bias:
+    var_x_star: 1.00251         # 이 값이 나와야 정상. 1.0000 이면 실패 신호
+  seed_base: 1
+  n_seeds:
+    value: 4
+    provenance: rule
+    basis: "config/run_policy.yaml. k<=4 효율 93 % 이므로 4시드 비용 ~ 1시드"
+
+timing:
+  equilibration_tau_trap: 10
+  equilibration_steps: 2000
+  production_tau_trap: 40
+  production_steps: 8000
+  sample_interval_tau_trap: 2   # 시간 독립성 확보
+  sample_interval_steps: 400
+  target_precision: 0.01        # <x^2> 의 상대 통계오차
+  basis: "simbot.estimators.trap_run_length(n=1000, rel_err=0.01)"
+
+cost:
+  tier: explore                 # T2. run_policy.yaml
+  wall_s_per_seed: 1.27
+  wall_s_batch_4seeds: 1.4
+  pair_cost_multiplier: 1.0     # 쌍 상호작용 없음 -> Lambda 기준선 그대로
+
+# ---------------------------------------------------------------------------
+validity_gates:                 # 카드 §7 — 이 계에서 켜지는 것만
+  overdamped: pass              # tau_i/tau_trap = 8.45e-4 << 1
+  stokes_reynolds: pass         # Re = 1.47e-5 << 1
+  equipartition: required       # 1급 게이트
+  em_bias_reproduced: required  # <x*^2> = 1/(1-dt*/2)
+  configurational_temperature: required
+  dt_over_tau_trap: pass        # 5e-3 <= 1e-2
+  box_much_larger_than_l_trap: pass   # 200 >> 1
+  step_displacement_vs_sigma: OFF     # 쌍 상호작용 없음
+  r_cut_le_half_box: OFF              # 쌍 포텐셜 없음
+  polydispersity: OFF                 # 상호작용 없어 결정화 불가
+  equilibration_detection: applicable # 열평형에 도달한다

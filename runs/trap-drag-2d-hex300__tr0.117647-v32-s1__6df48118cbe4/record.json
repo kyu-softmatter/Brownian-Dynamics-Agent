@@ -1,0 +1,248 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "trap-drag-2d-hex300__tr0.117647-v32-s1__6df48118cbe4",
+  "case": "trap-drag-2d-hex300",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "hex_lattice",
+    "moving_trap",
+    "microrheology",
+    "newtonian",
+    "driven_relaxation"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 306,
+    "n_x": 17,
+    "n_y": 18,
+    "phi": 0.35,
+    "A": 100.0,
+    "Gamma": 29.748648790272707,
+    "k_star": 60358.087633665986,
+    "v_star": 1549.1238385454449,
+    "sigma_SI": 4.9999999999999996e-06,
+    "tau_SI": 242.05059977272577,
+    "energy_SI": 4.141947e-21
+  },
+  "dimensionless": {
+    "Gamma": 29.748648790272707,
+    "A": 100.0,
+    "U(d)/kT": 101.0,
+    "k*": 60358.087633665986,
+    "phi": 0.35,
+    "Pe_drag": 1549.1238385454449,
+    "SNR": 6.3054836143620285,
+    "a_mean/d": 1.4979969134027407,
+    "a_NN/a_mean": 1.074569931823542,
+    "L_x/d": 27.36494149882001,
+    "L_y/d": 25.092777717585676,
+    "L_x/L_y": 1.0905505084692932,
+    "L_x/a_NN": 17.0,
+    "L_y/a_NN": 15.588457268119896,
+    "r_c/a_mean": 5.000010302415285,
+    "tau_k/tau_int": 0.004579816589439236,
+    "dt/tau_k": 0.01,
+    "T_obs/tau_B": 0.2553077906233201,
+    "tau_cross/tau_B": 0.0176647862604157,
+    "n_cell": 17.0,
+    "St": 1.3485336132119386e-08
+  },
+  "observables": [
+    {
+      "name": "U_pair_equilibrium",
+      "measured": 105.33233181829347,
+      "predicted": null,
+      "unit": "kT/particle",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "트랩 고정 구간의 격자 에너지 (±0.01025)"
+    },
+    {
+      "name": "U_pair_driven",
+      "measured": 106.5941524017907,
+      "predicted": null,
+      "unit": "kT/particle",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "끌기 정상상태(후반 절반) (±0.04721)"
+    },
+    {
+      "name": "dU_drive",
+      "measured": 1.2618205834972258,
+      "predicted": null,
+      "unit": "kT/particle",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "구동이 격자에 저장시킨 초과 에너지 = +1.2618 ± 0.04831 kT/입자 (+1.198%). 전체로는 +386.1 kT. 예측 없음 — 이게 답이다"
+    },
+    {
+      "name": "U_recovered_frac",
+      "measured": 0.3003454110933701,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "이완 끝 20% 평균이 평형선까지 돌아온 비율. 잔차 +0.2404 kT/입자 (평형 요동 ±0.01025). ★ 피팅과 독립인 숫자다"
+    },
+    {
+      "name": "tau_relax",
+      "measured": 0.003686865722594944,
+      "predicted": null,
+      "unit": "tau_B",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "⟨U⟩ 이완시간 = 1.02 τ_int (창의 0.03배). 국소 케이지 τ_int 는 집단 이완과 일치할 이유가 없다 — 눈금일 뿐"
+    },
+    {
+      "name": "n_def_driven_vs_eq",
+      "measured": 7.214354066985646,
+      "predicted": null,
+      "unit": "개",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "평형 0 → 구동 7.214 → 이완후 10.24 [개]"
+    },
+    {
+      "name": "n5_driven_vs_eq",
+      "measured": 4.0344497607655505,
+      "predicted": null,
+      "unit": "개",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "평형 0 → 구동 4.034 → 이완후 5.207 [개]"
+    },
+    {
+      "name": "n7_driven_vs_eq",
+      "measured": 2.1607655502392347,
+      "predicted": null,
+      "unit": "개",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "평형 0 → 구동 2.161 → 이완후 4.554 [개]"
+    },
+    {
+      "name": "psi6_driven_vs_eq",
+      "measured": -0.006932420259133987,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "평형 0.917 → 구동 0.9101 → 이완후 0.8749 [1]"
+    },
+    {
+      "name": "F_drag_total",
+      "measured": 2637.9678657305617,
+      "predicted": null,
+      "unit": "kT/d",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "⟨F_drag⟩ = −k*·⟨Δx⟩ (정상상태). 맨 Stokes γv = 1549 대비 초과 +70.29% (±4.45%)"
+    }
+  ],
+  "numerics": {
+    "dt_star": 1.6567788000000008e-07,
+    "dt_over_tau_k": 0.01,
+    "n_warm": 218349,
+    "n_equil": 436699,
+    "n_prod": 12540,
+    "n_relax": 873397,
+    "n_samples": 2000,
+    "sample_every": 6,
+    "seed": 1,
+    "steps_done": 1540985
+  },
+  "diagnostics": {
+    "equilibrium_z": 2.299036933258266,
+    "trend_t": 1.901710067088476,
+    "first_half": 105.68459417070261,
+    "second_half": 106.31556987694145,
+    "tau_int_samples": 136.83929705461298,
+    "n_eff": 9.800545283588884,
+    "drift_span": 0.9582605309683683,
+    "drift_span_rel_pct": 0.9040186692997205,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 2692
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=+2.30, 지표=⟨U⟩/N [kT])",
+    "드리프트 없음 ✓ (t=+1.90, 전구간 +0.904%, n_eff=10/2692)",
+    "분리 검사 경고: 격자 주기 수  L_x/a_NN = 17 (기준 100)",
+    "분리 검사 12종 중 하드 전부 통과 ✓ (여유 부족 5건)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "소프트 검사 미충족: 격자 주기 수  L_x/a_NN",
+    "예측값 없는 관측량 10종 (측정만 기록, 판정 안 함)",
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [
+    {
+      "claim": "유효 마찰 배수 F/γv 가 v 640배 구간에서 16.9 → 1.87 로 단조 감소한다 (**전단 담화**). 경계는 τ_cell=τ_int (v=9.19 µm/s): 탐침이 격자 한 칸 지나는 시간이 격자 이완시간과 같아지는 속도. 빠르면 격자가 반응할 시간이 없어 맨 Stokes 에 수렴하고, 느리면 격자가 붙잡아 16배까지 뻑뻑해진다",
+      "kind": "scaling",
+      "coords": {
+        "v_um_per_s": 32.0
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "record.json",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

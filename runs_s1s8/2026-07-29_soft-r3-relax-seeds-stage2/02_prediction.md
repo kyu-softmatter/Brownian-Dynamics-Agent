@@ -1,0 +1,130 @@
+# S2 PREDICTION — 사전 등록, **2단계** (순차 설계)
+#
+# ⚠ 이 파일은 S5 실행 전에 봉인된다 (SEALED.sha256). 실행 후 수정 금지.
+#
+# ★★ 이것은 순차 설계의 2단계다. 1단계(k=256)가 INCONCLUSIVE 로 끝났고,
+#   그 실패의 원인이 **1단계 설계 검정력의 입력이 편향된 예비값**이었음을 알았다.
+#   2단계의 k 는 1단계의 신뢰할 수 있는 추정치(k=254)에서 다시 계산했다.
+#
+# ★ **3단계는 없다.** k=1536 에서 나오는 것이 답이다. 유의해질 때까지 늘리면
+#   optional stopping 이 되고 σ 는 "많이 돌렸다"만 뜻하게 된다.
+
+question: >
+  soft-r3 2D 계에서 초기배치→정상상태 결함 완화시간 τ 가 A=0.1 과 A=1 에서 다른가.
+
+stage: 2
+parent_run: runs/2026-07-29_soft-r3-relax-seeds        # 1단계 (k=256, INCONCLUSIVE)
+grandparent_run: runs/2026-07-29_soft-r3-time-resolved  # k=16 예비
+
+# --- 1단계가 왜 실패했는가 ----------------------------------------------------
+stage1_postmortem:
+  predicted_sigma: 4.19
+  observed_sigma: 1.61
+  verdict: "INCONCLUSIVE (사전등록된 결과 중 하나)"
+  cause_1_biased_diff:
+    k16_diff: 0.010897
+    k254_diff: 0.0069625
+    change_pct: -36.1
+    note: >
+      저시드 편향. A=1 의 τ 가 k=4 → 0.0613, k=16 → 0.0420, k=254 → 0.0367 으로
+      단조 감소했다. 1단계 예측의 alternatives ③ 이 이 시나리오를 명시했다.
+      원인 가설: 지수 적합에서 τ 와 진폭이 상관되어 있고 잡음이 τ 를 위로 끌어올린다.
+      시드 평균 곡선의 잡음이 1/√k 로 줄면 그 편향도 줄어든다.
+  cause_2_underestimated_se:
+    se_ratio_bootstrap_over_fit_A0.1: 1.43
+    se_ratio_bootstrap_over_fit_A1: 1.5488
+    note: >
+      curve_fit 공분산이 시드 간 변동을 1.4–1.6배 과소추정했다. 1단계 예측의
+      se_ratio 항목(1.0 ± 1.5)은 통과했지만 **1 에서 유의하게 벗어났다** —
+      즉 k=16 시절의 1.05σ 도, k=254 의 curve_fit 기준 2.48σ 도 믿을 수 없다.
+  arithmetic_check: >
+    4.19 × (0.006964/0.010897) / 1.55 = 1.72 ≈ 관측 1.61.
+    두 원인이 예측-관측 격차를 정량적으로 설명한다.
+
+# --- 2단계 설계 검정력: 신뢰할 수 있는 입력으로 -------------------------------
+design_power:
+  prior_k: 254                    # ★ 16 이 아니라 254 기반 — 이것이 1단계와의 차이다
+  prior_diff_tau_d: 0.0069624990569
+  prior_se_diff_tau_d: 0.0043207073039   # 부트스트랩 SE (curve_fit 아님)
+  prior_sigma: 1.6114
+  k_for_3sigma: 886
+  k_chosen: 1536
+  k_chosen_expected_sigma: 3.9627
+  k_chosen_rationale: >
+    886 이 3σ 하한이고 1536 은 3.96σ 로 여유가 있다. 여유를 두는 이유는 1단계에서
+    배운 것 때문이다 — 추정치가 아직 조금 더 움직일 수 있다. 비용 3072 런 ≈ 7 분.
+  cost_runs: 3072
+  cost_wall_min_estimate: 6.8
+
+decision_rule:
+  primary_statistic: tau_relax_diff_sigma
+  se_source: bootstrap_over_seeds
+  threshold_sigma: 3.0
+  verdict_if_above: "DIFFERENT — 깊은 액체 영역에서도 τ 가 A 에 의존한다"
+  verdict_if_below: >
+    INCONCLUSIVE — k=1536 으로도 구별되지 않는다. 같다는 증명이 아니라
+    "이 크기의 차이를 이 표본으로는 볼 수 없다"는 뜻이다. **3단계는 돌리지 않는다.**
+  n_resample: 400
+  bootstrap_seed: 20260729
+  no_stage_3: true
+
+items:
+  - quantity: tau_relax__A0.1
+    value: 0.0297528
+    tolerance: ±0.003
+    basis: >
+      k=254 관측 0.029750 ± 0.001000 (부트스트랩). k 를 6배로 늘려도 중심값은
+      움직이지 않아야 한다 — 이 A 는 폭/잡음이 44배라 편향이 이미 작다.
+      허용오차는 k=254 SE 의 3배.
+    discriminates: A=0.1 의 τ 추정이 k=254 에서 이미 수렴했는가
+  - quantity: tau_relax__A1
+    value: 0.0367153
+    tolerance: ±0.013
+    basis: >
+      k=254 관측 0.036714 ± 0.004200. ★ 이 값은 k=4 → 16 → 254 로 단조 감소해 왔다
+      (0.0613 → 0.0420 → 0.0367). 계속 내려가면 차이가 더 줄어 INCONCLUSIVE 가
+      강화된다. 허용오차는 k=254 SE 의 3배 — 그 시나리오를 열어 둔다.
+    discriminates: A=1 의 τ 가 아직도 시드 수와 함께 내려가는가 (저시드 편향의 잔여)
+  - quantity: tau_relax_diff_sigma
+    value: ">3"
+    tolerance: ">3"
+    basis: "k=1536 에서 차이가 유지되면 3.96σ. 이 런의 1급 예측이다."
+    discriminates: τ 가 A=0.1 과 A=1 사이에서 다른가
+    competing_value: "3σ 미만 — 차이가 관측보다 작거나 편향이 남아 있다"
+  - quantity: tau_relax_diff
+    value: 0.0069625
+    tolerance: ±0.004
+    basis: >
+      차이 자체. k=254 관측을 그대로 예측한다. 이 값이 계속 줄어들면 저시드 편향이
+      k=254 에서도 완전히 사라지지 않았다는 뜻이고, 그것이 이 런의 두 번째 결과다.
+    discriminates: 편향이 k=254 에서 수렴했는가
+  - quantity: se_ratio_bootstrap_over_fit__A1
+    value: 1.5488
+    tolerance: ±0.5
+    basis: >
+      k=254 관측 1.55. 비가 k 에 무관하게 유지되는지 본다 — 유지되면
+      "curve_fit SE 는 이 적합에서 구조적으로 1.5배 과소추정한다"고 말할 수 있고,
+      그것은 이 계 밖에도 적용되는 결과다.
+    discriminates: curve_fit SE 의 과소추정이 구조적인가 표본 요동인가
+  - quantity: init_config_failures_per_1000_seeds
+    value: 7.8
+    tolerance: ±6
+    basis: >
+      1단계에서 시드 256개 중 2개(61, 110)가 기각표집으로 초기배치를 만들지 못했다
+      (min_sep = 0.8 d, 20000회 시도). 7.8/1000 이다. k=1536 에서 12±4개 예상.
+      **이것이 A 에 무관하다는 것이 중요하다** — 같은 시드가 두 A 에서 모두 실패했다.
+    discriminates: 초기배치 실패가 A 에 독립인가 (독립이어야 편향을 만들지 않는다)
+
+alternatives:
+  - >
+    가장 그럴듯한 결과는 3σ 를 아슬아슬하게 넘거나 못 넘는 것이다 (예상 3.96σ 이지만
+    1단계에서 예상이 2.6배 낙관적이었다). 못 넘으면 INCONCLUSIVE 로 닫고 3단계를
+    돌리지 않는다 — 20 % 차이를 시드로 쫓는 것은 수확이 체감한다.
+  - >
+    물리적으로는 차이가 있을 쪽이 자연스럽다. τ 가 A=0.1 → 1 → 10 에서
+    0.0298 → 0.0367 → 0.0982 로 단조 증가하고 A=10 은 이미 4.7σ 로 갈렸다.
+    ⇒ 이 런이 INCONCLUSIVE 여도 "단조 추세" 주장은 A=10 이 지탱한다.
+  - >
+    이 런은 무차원 물리를 바꾸지 않는다 — 같은 계·같은 dt·같은 상자, 시드만 다르다.
+    새로 얻는 것은 오차막대뿐이다. dt 수렴·N 수렴은 여전히 미실행이고
+    이 런이 그것을 대신하지 않는다.

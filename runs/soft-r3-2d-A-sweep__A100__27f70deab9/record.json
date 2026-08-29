@@ -1,0 +1,142 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "soft-r3-2d-A-sweep__A100__27f70deab9",
+  "case": "soft-r3-2d-A-sweep",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "d_um": 5.0,
+    "T_K": 300.0,
+    "eta_mPas": 0.851,
+    "N": 400,
+    "phi": 0.35,
+    "tau_B_s": 242.05059977272577,
+    "tau_int_s": 0.8756339787830663,
+    "L_um": 149.79969134027408,
+    "gamma_kg_per_s": 4.01024302230737e-08
+  },
+  "dimensionless": {
+    "Gamma  = U(a_mean)/kT   결합 vs 열요동 ★": 29.748648790272707,
+    "A      = U(d)/kT        접촉 결합": 100.0,
+    "phi                     밀집도": 0.35,
+    "a_mean/d                평균간격": 1.4979969134027407,
+    "L/d                     박스 크기": 29.959938268054813,
+    "r_c/d                   컷오프": 7.489984567013703,
+    "r_c/a_mean              컷오프(이웃 껍질 수)": 5.0,
+    "dt/tau_int              적분 해상": 0.009999999999999998,
+    "T_obs/tau_B             관측창": 100.0,
+    "St     = tau_p/tau_B    관성 vs 확산": 1.3485336132119386e-08
+  },
+  "observables": [
+    {
+      "name": "에너지 일관성 ⟨U⟩/N",
+      "measured": 105.510722899358,
+      "predicted": 105.51988675874172,
+      "unit": "kT",
+      "err_pct": -0.00868448561233858,
+      "prediction_source": "consistency: HOOMD 힘 합 vs (ρ/2)∫U g(r) 2πr dr"
+    },
+    {
+      "name": "육방 NN 거리",
+      "measured": 1.6170154574513436,
+      "predicted": 1.6097024411070593,
+      "unit": "d",
+      "err_pct": 0.4543085826008196,
+      "prediction_source": "lattice: a_NN = √(2/√3)·a_mean (완전 육방). ψ₆>0.6 일 때만 적용"
+    },
+    {
+      "name": "psi6",
+      "measured": 0.8854118251800537,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none"
+    },
+    {
+      "name": "U_per_N",
+      "measured": 105.510722899358,
+      "predicted": null,
+      "unit": "kT",
+      "err_pct": null,
+      "prediction_source": "none"
+    }
+  ],
+  "numerics": {
+    "dt_over_tau_int": 0.01,
+    "dt_over_tau_B": 3.6175658296457254e-05,
+    "n_eq": 552858,
+    "n_prod": 2764000,
+    "seed": 20260803,
+    "bias_predicted_pct": 0.49999999999999994,
+    "primary_sem_pct": 0.0033603794152942744,
+    "stat_target_pct": 2.0
+  },
+  "diagnostics": {
+    "equilibrium_z": -1.3528343653816932,
+    "trend_t": -2.3822325671401066,
+    "first_half": 105.51519194857401,
+    "second_half": 105.50625385014202,
+    "tau_int_samples": 0.4674985624739152,
+    "n_eff": 206.71865339892142,
+    "drift_span": -0.026944680381878854,
+    "drift_span_rel_pct": -0.025537385813933045,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 400
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=-1.35, 지표=⟨U⟩/N [kT])",
+    "드리프트 없음 ✓ (t=-2.38, 전구간 -0.026%, n_eff=207/400)",
+    "분리 검사 7종 중 하드 전부 통과 ✓ (여유 부족 6건)",
+    "관측량 2종 예측과 일치 ✓ (최대 오차 +0.45% @ 육방 NN 거리)",
+    "통계 충분 ✓ (±0.003% < 목표 2%)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "예측값 없는 관측량 2종 (측정만 기록, 판정 안 함)",
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [
+    {
+      "claim": "2D r⁻³ + WCA(φ=0.35)에서 Γ=U(a_mean)/kT≈30 은 육방 결정. ψ₆=0.885, 6배위 98.7%",
+      "kind": "phase_boundary",
+      "coords": {
+        "Gamma": 29.75,
+        "phi": 0.35
+      },
+      "tier": 3
+    },
+    {
+      "claim": "육방 결정의 최근접거리는 a_mean이 아니라 a_NN=√(2/√3)·a_mean. 측정 +0.45% 일치",
+      "kind": "method_note",
+      "coords": {
+        "Gamma": 29.75
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

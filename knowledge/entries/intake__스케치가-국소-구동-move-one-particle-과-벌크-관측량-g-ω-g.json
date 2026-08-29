@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "network",
+    "intake",
+    "microrheology",
+    "moduli"
+  ],
+  "dimensionless": {},
+  "source": "intake/network/observation.yaml#A1",
+  "lessons": [
+    {
+      "claim": "스케치가 국소 구동('move one particle')과 벌크 관측량(G'(ω), G''(ω))을 한 페이지에 같이 적으면 그 둘은 같은 양이 아니다 — 인테이크에서 모호점으로 올려야 한다. 1점 구동은 국소 응답 K*(ω) [N/m]를 주고, GSER G*=K*/(6πa) 환산은 이 계열에서 무효임이 이미 실측됐다(비드가 느끼는 것은 매질이 아니라 이웃 비드). 스케치의 네 목표(G'·G''·응답시간·응력전파)를 한 측정으로 전부 주는 읽기는 **2점 마이크로레올로지**(한 입자를 흔들고 먼 입자들의 상관 변위를 봄)뿐이다 — 장파장 극한에서 G*가 정당하고 거리별 위상지연이 곧 응력 전파다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "2점 읽기가 사용자 의도라는 근거는 '목표 4개가 한 측정에서 나온다'는 정합성뿐이다. 1점 K*(ω) 보고도 정당한 선택이며, 구동이 같아 같은 런에서 둘 다 뽑을 수 있으므로 갈라놓을 필요가 없을 수도 있다."
+  ]
+}

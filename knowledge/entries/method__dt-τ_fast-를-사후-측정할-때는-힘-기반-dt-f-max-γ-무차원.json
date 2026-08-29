@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "dt",
+    "측정",
+    "열잡음",
+    "L4"
+  ],
+  "dimensionless": {},
+  "source": "scratch/verify_health.py#②b",
+  "lessons": [
+    {
+      "claim": "dt/τ_fast 를 사후 측정할 때는 **힘 기반**(dt·|F|max/γ, 무차원 γ=1)을 쓴다. 그 자체가 dt/τ_fast 라 뺄 것이 없다. 위치 차분(스냅샷 두 장의 rms)은 열잡음 √(2·dim·dt)를 제곱에서 빼야 하는데, 표류가 열잡음의 0.5% 수준이면 유한 표본(N=1000)에서 표본 rms 가 기대값보다 작게 나와 표류가 0 으로 잘린다(실측). 또한 런 전체의 최악값을 남겨야 한다 — 마지막 가드 표본만 저장했더니 최대 힘 1062.9 vs 마지막 244.2 kT/σ 로 4.4배 차이였다.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

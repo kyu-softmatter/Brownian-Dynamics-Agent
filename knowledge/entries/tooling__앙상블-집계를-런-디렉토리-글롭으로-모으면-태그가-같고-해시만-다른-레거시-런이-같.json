@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "앙상블",
+    "글롭",
+    "레거시",
+    "run_id",
+    "집계오류"
+  ],
+  "dimensionless": {},
+  "source": "scratch/trap_drag_ensemble.py#is_current",
+  "lessons": [
+    {
+      "claim": "앙상블 집계를 런 디렉토리 글롭으로 모으면 **태그가 같고 해시만 다른 레거시 런이 같이 걸린다**. trap-drag 재실행에서 실측: 글롭 tr0.117647-s* 가 옛 코드 런 8개와 새 런 8개를 모두 매칭해, 그냥 두면 두 코드 버전을 같은 평균에 섞고 시드를 두 번 센다. 콘텐츠 주소는 같은 물리 파라미터에 같은 태그를 주므로 태그로는 구분이 안 된다. 판별자로 '그 코드 버전에서만 생기는 필드'(여기서는 numerics.step_drift_max_sigma)를 쓰고, 제외한 런을 **이름까지 찍어야** 한다 — 조용히 버리면 '전부 포함했다'로 읽힌다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

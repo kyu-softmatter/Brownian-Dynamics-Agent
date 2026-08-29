@@ -1,0 +1,109 @@
+{
+  "schema": "bdbot.trap_drag_vsweep/0.2",
+  "note": "시드 앙상블 오차막대. 오차는 실현 간 산포(앙상블 SEM)이며 블록 SEM 이 아니다.",
+  "points": [
+    {
+      "v_star": 2.4205059977272576,
+      "n_seeds": 9,
+      "F_mean": 40.699358326689776,
+      "F_ensemble_sem": 3.222537195503501,
+      "F_realization_std": 9.667611586510503,
+      "F_block_sem_mean": 8.335004112910367,
+      "block_sem_underestimate": 1.159880841754597,
+      "F_over_gamma_v": 16.814400941333993,
+      "n_def_mean": 7.010999999999999,
+      "n_def_sem": 0.853775943155528,
+      "psi6_mean": 0.8843299539022975,
+      "recovered_frac_mean": -0.13307988941156798
+    },
+    {
+      "v_star": 4.841011995454515,
+      "n_seeds": 9,
+      "F_mean": 49.44255401644864,
+      "F_ensemble_sem": 3.4380865860554373,
+      "F_realization_std": 10.314259758166312,
+      "F_block_sem_mean": 9.472312052321314,
+      "block_sem_underestimate": 1.0888851318658435,
+      "F_over_gamma_v": 10.213268230459436,
+      "n_def_mean": 8.125,
+      "n_def_sem": 0.572296373296991,
+      "psi6_mean": 0.8803967049982813,
+      "recovered_frac_mean": -0.0254560861125352
+    },
+    {
+      "v_star": 24.205059977272576,
+      "n_seeds": 9,
+      "F_mean": 98.03499162726067,
+      "F_ensemble_sem": 3.943101858888772,
+      "F_realization_std": 11.829305576666316,
+      "F_block_sem_mean": 9.146188151081123,
+      "block_sem_underestimate": 1.2933590891925875,
+      "F_over_gamma_v": 4.050185858630838,
+      "n_def_mean": 9.42868242868243,
+      "n_def_sem": 0.3334788621504994,
+      "psi6_mean": 0.8797963145094398,
+      "recovered_frac_mean": 0.2720679860145817
+    },
+    {
+      "v_star": 72.61517993181774,
+      "n_seeds": 9,
+      "F_mean": 226.6809067172416,
+      "F_ensemble_sem": 6.9848780687372205,
+      "F_realization_std": 20.95463420621166,
+      "F_block_sem_mean": 10.870908504679212,
+      "block_sem_underestimate": 1.9275881309452718,
+      "F_over_gamma_v": 3.121673828118093,
+      "n_def_mean": 8.96344157278551,
+      "n_def_sem": 0.4366686422283603,
+      "psi6_mean": 0.8867440380769929,
+      "recovered_frac_mean": 0.36190717279469475
+    },
+    {
+      "v_star": 193.6404798181806,
+      "n_seeds": 9,
+      "F_mean": 437.8609565980221,
+      "F_ensemble_sem": 9.397832688876557,
+      "F_realization_std": 28.193498066629672,
+      "F_block_sem_mean": 17.29537541780466,
+      "block_sem_underestimate": 1.6301177271703498,
+      "F_over_gamma_v": 2.2612056993927774,
+      "n_def_mean": 7.543702226653372,
+      "n_def_sem": 0.49372473135320755,
+      "psi6_mean": 0.8942120225838652,
+      "recovered_frac_mean": 0.33495590110184525
+    },
+    {
+      "v_star": 580.9214394545419,
+      "n_seeds": 9,
+      "F_mean": 1146.0812212769551,
+      "F_ensemble_sem": 28.82489452808747,
+      "F_realization_std": 86.47468358426241,
+      "F_block_sem_mean": 46.17515065528584,
+      "block_sem_underestimate": 1.8727536858477651,
+      "F_over_gamma_v": 1.9728678327883231,
+      "n_def_mean": 6.8556087187666135,
+      "n_def_sem": 0.5157569347123355,
+      "psi6_mean": 0.8991970029554108,
+      "recovered_frac_mean": 0.3471513728773632
+    },
+    {
+      "v_star": 1549.1238385454449,
+      "n_seeds": 9,
+      "F_mean": 2846.5688334075426,
+      "F_ensemble_sem": 82.18045612937816,
+      "F_realization_std": 246.54136838813446,
+      "F_block_sem_mean": 108.13669630797833,
+      "block_sem_underestimate": 2.279904757640951,
+      "F_over_gamma_v": 1.837534716450002,
+      "n_def_mean": 6.832748538011696,
+      "n_def_sem": 0.3218654821301841,
+      "psi6_mean": 0.899772515035829,
+      "recovered_frac_mean": 0.3143625610234815
+    }
+  ],
+  "herschel_bulkley": {
+    "n": 0.9,
+    "F_yield": 34.20667014042268,
+    "c": 3.6690545448952028
+  }
+}

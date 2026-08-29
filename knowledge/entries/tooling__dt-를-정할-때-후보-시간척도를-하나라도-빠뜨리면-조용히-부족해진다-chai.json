@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py#build_ledger#tau_fast",
+  "lessons": [
+    {
+      "claim": "dt 를 정할 때 **후보 시간척도를 하나라도 빠뜨리면 조용히 부족해진다**. chain-bend-2d-dlvo 에서 τ_fast = min(τ_bond, τ_bend) 로 두고 **트랩 τ_k 를 빼먹었다** — 기본 k_t 에서는 k_bond(1.04e6)가 지배해서 드러나지 않았지만, --kt-scale 200 부근에서 트랩이 최속 모드가 되는데 dt 는 그대로였다. 특히 DLVO 분기는 굽힘행렬이 없어 τ_bend 가 None 이라 더 위험했다. 고친 뒤 실측: kt×1·×100 은 dt=59ns 유지, ×300 에서 39ns, ×1000 에서 11.8ns 로 자동 축소된다. → 파라미터를 스케일링하는 플래그를 추가할 때는 **그 파라미터가 dt 후보에 들어 있는지** 반드시 확인할 것.",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

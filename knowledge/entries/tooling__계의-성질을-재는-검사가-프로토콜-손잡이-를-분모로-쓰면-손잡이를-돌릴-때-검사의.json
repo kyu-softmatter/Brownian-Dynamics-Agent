@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "L4",
+    "checks",
+    "protocol",
+    "coupling"
+  ],
+  "dimensionless": {},
+  "source": "cases/trap_drag_2d.py#build_ledger · analyze_scales",
+  "lessons": [
+    {
+      "claim": "계의 성질을 재는 검사가 **프로토콜 손잡이**를 분모로 쓰면 손잡이를 돌릴 때 검사의 의미가 조용히 바뀐다. trap-drag 의 '항적 치유 v·τ_int/L_x' 를 τ_int/T_obs 로 구현했는데, T_obs = traverse×L_x/v 라서 --traverse 1 에서만 맞았다. 평형화 연구를 하려고 traverse=0.001 로 줄이자 값이 1000배가 되어 **하드 FAIL** 이 났다 (계는 그대로인데). 고친 방법: 프로토콜과 무관한 tau_cross = L_x/v_x 를 원장에 따로 올리고 검사가 그것만 보게 했다. 원칙 — 검사의 분모는 계의 척도여야 하고, 관측창 같은 실행 선택이 섞이면 안 된다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

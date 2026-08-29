@@ -1,0 +1,112 @@
+{
+  "source": "scripts/soft2d_nconv.py",
+  "provenance": {
+    "code_hash": "196cb4d17bb5",
+    "git_rev": "804384c",
+    "git_dirty": true,
+    "env_hash": "eaf847c12616",
+    "env": {
+      "python": "3.12.13",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "hoomd": "7.1.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.0",
+      "gsd": "5.0.1",
+      "freud": "3.5.0"
+    },
+    "driver": [
+      "scripts/soft2d_nconv.py",
+      "scripts/soft2d_time_series.py"
+    ],
+    "drivers": {
+      "scripts/soft2d_nconv.py": "7ca777d1e474",
+      "scripts/soft2d_time_series.py": "0c7e64b77244"
+    },
+    "driver_hash": "a99f3f7652e7"
+  },
+  "parent_run": "runs/2026-07-29_soft-r3-time-resolved",
+  "n_particles": 256,
+  "n_ref": 100,
+  "geometry": {
+    "d_si": 1.5000000000000002e-05,
+    "L_si": 0.00024000000000000003,
+    "coverage": 0.08726646259971647,
+    "sigma_over_d": 0.3333333333333333,
+    "d_over_sigma": 3.0,
+    "L_star": 16.0,
+    "coverage_max": 0.1,
+    "sigma_over_d_max": 0.3568248232305542,
+    "tau_d_si": 2292.427238845818,
+    "n_particles": 256
+  },
+  "thresholds": {
+    "delta_thermal": 0.03,
+    "delta_force": 0.005
+  },
+  "gates": [
+    {
+      "amplitude": 0.1,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "dt_max_thermal": 0.00045,
+      "dt_max_force": 0.005649032335991237,
+      "steps": 177778,
+      "max_force_star": 0.8851073427468086,
+      "r_cut": 7.74,
+      "beta_u_at_rcut": 0.00021566373282900454,
+      "u_rel_to_nearest": 0.002156637328290045,
+      "Lx": 16.0,
+      "Ly": 16.0
+    },
+    {
+      "amplitude": 1.0,
+      "dt_star": 0.00045,
+      "dominant_gate": "thermal_displacement",
+      "dt_max_thermal": 0.00045,
+      "dt_max_force": 0.0005649032335991232,
+      "steps": 177778,
+      "max_force_star": 8.851073427468092,
+      "r_cut": 7.74,
+      "beta_u_at_rcut": 0.002156637328290045,
+      "u_rel_to_nearest": 0.002156637328290045,
+      "Lx": 16.0,
+      "Ly": 16.0
+    },
+    {
+      "amplitude": 10.0,
+      "dt_star": 5.649032335991233e-05,
+      "dominant_gate": "force_displacement",
+      "dt_max_thermal": 0.00045,
+      "dt_max_force": 5.649032335991233e-05,
+      "steps": 1416172,
+      "max_force_star": 88.51073427468091,
+      "r_cut": 7.74,
+      "beta_u_at_rcut": 0.021566373282900453,
+      "u_rel_to_nearest": 0.002156637328290045,
+      "Lx": 16.0,
+      "Ly": 16.0
+    }
+  ],
+  "seeds": [
+    21,
+    22,
+    23,
+    24
+  ],
+  "total_tau": 80.0,
+  "n_frames": 400,
+  "window": {
+    "0.1": [
+      20.0,
+      30.0
+    ],
+    "1.0": [
+      20.0,
+      30.0
+    ],
+    "10.0": [
+      60.0,
+      80.0
+    ]
+  }
+}

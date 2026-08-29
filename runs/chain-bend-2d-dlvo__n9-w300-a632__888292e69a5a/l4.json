@@ -1,0 +1,44 @@
+{
+  "status": "ok",
+  "n_samples": 2000,
+  "warnings": [
+    "[생산] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.5437 kT = 3.1·블록SEM (기준 3). 평형화가 부족합니다"
+  ],
+  "pe_mean": -3.0875587297444747,
+  "pe_std": 2.259106789087981,
+  "phases": {
+    "예열": {
+      "status": "ok",
+      "n_samples": 2,
+      "warnings": [],
+      "pe_mean": -6.062008694881705,
+      "pe_std": 0.8344920793310773,
+      "steps": 20000,
+      "expect_steady": true
+    },
+    "생산": {
+      "status": "ok",
+      "n_samples": 2000,
+      "warnings": [
+        "[생산] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.5437 kT = 3.1·블록SEM (기준 3). 평형화가 부족합니다"
+      ],
+      "pe_mean": -3.0875587297444747,
+      "pe_std": 2.259106789087981,
+      "drift": 0.5437181820317272,
+      "drift_sem": 0.17487762180976799,
+      "drift_sigma": 3.109135270739124,
+      "steps": 1774000,
+      "expect_steady": true
+    }
+  },
+  "run_id": "chain-bend-2d-dlvo__n9-w300-a632__888292e69a5a",
+  "wall_seconds": 11.091363191604614,
+  "steps_done": 1794000,
+  "steps_planned": 1794000,
+  "trip": null,
+  "guard_samples": 2002,
+  "f_max_last": 810.5428704609811,
+  "step_disp_last": 7.77601432895016e-06,
+  "f_max_seen": 8878.094706666958,
+  "step_disp_seen": 8.51727825494977e-05
+}

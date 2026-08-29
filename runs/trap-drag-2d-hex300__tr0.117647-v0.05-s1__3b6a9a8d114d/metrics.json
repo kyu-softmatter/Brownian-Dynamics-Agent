@@ -1,0 +1,497 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "trap-drag-2d-hex300__tr0.117647-v0.05-s1__3b6a9a8d114d",
+  "case": "trap-drag-2d-hex300",
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "hex_lattice",
+    "moving_trap",
+    "microrheology",
+    "newtonian",
+    "driven_relaxation"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 306,
+    "n_x": 17,
+    "n_y": 18,
+    "phi": 0.35,
+    "A": 100.0,
+    "Gamma": 29.748648790272707,
+    "k_star": 60358.087633665986,
+    "v_star": 2.4205059977272576,
+    "sigma_SI": 4.9999999999999996e-06,
+    "tau_SI": 242.05059977272577,
+    "energy_SI": 4.141947e-21
+  },
+  "dimensionless": {
+    "Gamma": 29.748648790272707,
+    "A": 100.0,
+    "U(d)/kT": 101.0,
+    "k*": 60358.087633665986,
+    "phi": 0.35,
+    "Pe_drag": 2.4205059977272576,
+    "SNR": 0.00985231814744067,
+    "a_mean/d": 1.4979969134027407,
+    "a_NN/a_mean": 1.074569931823542,
+    "L_x/d": 27.36494149882001,
+    "L_y/d": 25.092777717585676,
+    "L_x/L_y": 1.0905505084692932,
+    "L_x/a_NN": 17.0,
+    "L_y/a_NN": 15.588457268119896,
+    "r_c/a_mean": 5.000010302415285,
+    "tau_k/tau_int": 0.004579816589439236,
+    "dt/tau_k": 0.01,
+    "T_obs/tau_B": 1.5832834297204808,
+    "tau_cross/tau_B": 11.30546320666605,
+    "n_cell": 17.0,
+    "St": 1.3485336132119386e-08
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\uad00\uc131 \ubb34\uc2dc     \u03c4_p/\u03c4_k",
+      "value": 0.0008139491000319041,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 12.285780523140861,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\ud2b8\ub7a9 \ud574\uc0c1     dt/\u03c4_k",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\ud398\uc5b4 \ud574\uc0c1     dt/\u03c4_int",
+      "value": 4.579816589439236e-05,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 218.3493553663123,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\uc774\ub958 \ud574\uc0c1     dt/\u03c4_v",
+      "value": 4.010243022307371e-07,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 24936.144628577415,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucef7\uc624\ud504       r_c/(L_min/2)",
+      "value": 0.596984525531489,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.67508529489891,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\uc815\ud569 \uc721\ubc29    max|\uc815\uc218 \uc774\ud0c8|",
+      "value": 0.0,
+      "limit": 1e-09,
+      "op": "<=",
+      "ok": true,
+      "margin": Infinity,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucf54\uc5b4 \uc5ec\uc720    r_table_min/r_min",
+      "value": 0.37277816532214714,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2.6825605494780542,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ud56d\uc801 \uce58\uc720    v \u03c4_int/L_x",
+      "value": 0.0003199838665179767,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 3125.1575614791814,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d       T_obs/\u03c4_k",
+      "value": 95563.96,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 955.6396000000001,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uce21\uc815\uac00\ub2a5\uc131   SNR",
+      "value": 0.00985231814744067,
+      "limit": 1.0,
+      "op": ">=",
+      "ok": false,
+      "margin": 0.00985231814744067,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\ub04c\ub9bc\ud798 \uc815\ubc00\ub3c4 SEM/\u0394r_ss [%]",
+      "value": 17.376594008431084,
+      "limit": 2.0,
+      "op": "<=",
+      "ok": false,
+      "margin": 0.11509735446599055,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uaca9\uc790 \uc8fc\uae30 \uc218  L_x/a_NN",
+      "value": 17.0,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": false,
+      "margin": 0.17,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "U_pair_equilibrium",
+      "measured": 105.33233181829347,
+      "predicted": null,
+      "unit": "kT/particle",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\ud2b8\ub7a9 \uace0\uc815 \uad6c\uac04\uc758 \uaca9\uc790 \uc5d0\ub108\uc9c0 (\u00b10.01025)"
+    },
+    {
+      "name": "U_pair_driven",
+      "measured": 105.48025740023189,
+      "predicted": null,
+      "unit": "kT/particle",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\ub04c\uae30 \uc815\uc0c1\uc0c1\ud0dc(\ud6c4\ubc18 \uc808\ubc18) (\u00b10.0105)"
+    },
+    {
+      "name": "dU_drive",
+      "measured": 0.14792558193842353,
+      "predicted": null,
+      "unit": "kT/particle",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\uad6c\ub3d9\uc774 \uaca9\uc790\uc5d0 \uc800\uc7a5\uc2dc\ud0a8 \ucd08\uacfc \uc5d0\ub108\uc9c0 = +0.14793 \u00b1 0.01467 kT/\uc785\uc790 (+0.140%). \uc804\uccb4\ub85c\ub294 +45.27 kT. \uc608\uce21 \uc5c6\uc74c \u2014 \uc774\uac8c \ub2f5\uc774\ub2e4"
+    },
+    {
+      "name": "U_recovered_frac",
+      "measured": 0.11443206755514934,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\uc774\uc644 \ub05d 20% \ud3c9\uade0\uc774 \ud3c9\ud615\uc120\uae4c\uc9c0 \ub3cc\uc544\uc628 \ube44\uc728. \uc794\ucc28 +0.2217 kT/\uc785\uc790 (\ud3c9\ud615 \uc694\ub3d9 \u00b10.01025). \u2605 \ud53c\ud305\uacfc \ub3c5\ub9bd\uc778 \uc22b\uc790\ub2e4"
+    },
+    {
+      "name": "tau_relax",
+      "measured": 0.43302266563895403,
+      "predicted": null,
+      "unit": "tau_B",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\u2605 \ucc3d \uc548\uc5d0\uc11c \uc774\uc644\uc774 \ub05d\ub098\uc9c0 \uc54a\uc544 \u03c4 \ub97c \uc815\ud560 \uc218 \uc5c6\ub2e4 (\u03c4=120 \u03c4_int \ub294 \uc0c1\ud55c\uc5d0 \ubd99\uc740 \uac12\uc774\ub2e4). \uad6d\uc18c \ucf00\uc774\uc9c0 \u03c4_int \ub294 \uc9d1\ub2e8 \uc774\uc644\uacfc \uc77c\uce58\ud560 \uc774\uc720\uac00 \uc5c6\ub2e4 \u2014 \ub208\uae08\uc77c \ubfd0"
+    },
+    {
+      "name": "n_def_driven_vs_eq",
+      "measured": 5.032,
+      "predicted": null,
+      "unit": "\uac1c",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\ud3c9\ud615 0 \u2192 \uad6c\ub3d9 5.032 \u2192 \uc774\uc644\ud6c4 8.344 [\uac1c]"
+    },
+    {
+      "name": "n5_driven_vs_eq",
+      "measured": 2.494,
+      "predicted": null,
+      "unit": "\uac1c",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\ud3c9\ud615 0 \u2192 \uad6c\ub3d9 2.494 \u2192 \uc774\uc644\ud6c4 4.172 [\uac1c]"
+    },
+    {
+      "name": "n7_driven_vs_eq",
+      "measured": 2.45,
+      "predicted": null,
+      "unit": "\uac1c",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\ud3c9\ud615 0 \u2192 \uad6c\ub3d9 2.45 \u2192 \uc774\uc644\ud6c4 4.172 [\uac1c]"
+    },
+    {
+      "name": "psi6_driven_vs_eq",
+      "measured": -0.02856819524515919,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\ud3c9\ud615 0.917 \u2192 \uad6c\ub3d9 0.8885 \u2192 \uc774\uc644\ud6c4 0.8709 [1]"
+    },
+    {
+      "name": "F_drag_total",
+      "measured": 42.40033426797485,
+      "predicted": null,
+      "unit": "kT/d",
+      "err_pct": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "note": "\u27e8F_drag\u27e9 = \u2212k*\u00b7\u27e8\u0394x\u27e9 (\uc815\uc0c1\uc0c1\ud0dc). \ub9e8 Stokes \u03b3v = 2.421 \ub300\ube44 \ucd08\uacfc +1651.71% (\u00b1264.90%)"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 1.6567788000000008e-07,
+    "dt_over_tau_k": 0.01,
+    "n_warm": 218349,
+    "n_equil": 436699,
+    "n_prod": 8026000,
+    "n_relax": 873397,
+    "n_samples": 2000,
+    "sample_every": 4013,
+    "seed": 1,
+    "steps_done": 9554445,
+    "step_drift_max_sigma": 0.00015242578429347734,
+    "f_max_kT_per_sigma": 920.0128846015972
+  },
+  "wall_seconds": 5886.351534843445,
+  "steps_per_second": 1623.152294497497,
+  "l4": {
+    "status": "ok",
+    "n_samples": 2602,
+    "warnings": [
+      "[\uc608\uc5f4] \u27e8U\u27e9/N \uc774 \ud45c\ub958\ud569\ub2c8\ub2e4: \ud6c4\ubc18\u2212\uc804\ubc18 = +0.135 kT = 4.1\u00b7\ube14\ub85dSEM (\uae30\uc900 3). \ud3c9\ud615\ud654\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4",
+      "[\ud3c9\ud615] \u27e8U\u27e9/N \uc774 \ud45c\ub958\ud569\ub2c8\ub2e4: \ud6c4\ubc18\u2212\uc804\ubc18 = +0.04058 kT = 4.0\u00b7\ube14\ub85dSEM (\uae30\uc900 3). \ud3c9\ud615\ud654\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4",
+      "[\ub04c\uae30] \u27e8U\u27e9/N \uc774 \ud45c\ub958\ud569\ub2c8\ub2e4: \ud6c4\ubc18\u2212\uc804\ubc18 = +0.0477 kT = 3.4\u00b7\ube14\ub85dSEM (\uae30\uc900 3). \ud3c9\ud615\ud654\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4"
+    ],
+    "pe_mean": 105.46498228405403,
+    "pe_std": 0.09521180182052083,
+    "phases": {
+      "\uc608\uc5f4": {
+        "status": "ok",
+        "n_samples": 22,
+        "warnings": [
+          "[\uc608\uc5f4] \u27e8U\u27e9/N \uc774 \ud45c\ub958\ud569\ub2c8\ub2e4: \ud6c4\ubc18\u2212\uc804\ubc18 = +0.135 kT = 4.1\u00b7\ube14\ub85dSEM (\uae30\uc900 3). \ud3c9\ud615\ud654\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4"
+        ],
+        "pe_mean": 105.29502607835516,
+        "pe_std": 0.11773158487760683,
+        "drift": 0.135021106570548,
+        "drift_sem": 0.033300964548229284,
+        "drift_sigma": 4.054570442696907,
+        "steps": 218349,
+        "expect_steady": true
+      },
+      "\ud3c9\ud615": {
+        "status": "ok",
+        "n_samples": 201,
+        "warnings": [
+          "[\ud3c9\ud615] \u27e8U\u27e9/N \uc774 \ud45c\ub958\ud569\ub2c8\ub2e4: \ud6c4\ubc18\u2212\uc804\ubc18 = +0.04058 kT = 4.0\u00b7\ube14\ub85dSEM (\uae30\uc900 3). \ud3c9\ud615\ud654\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4"
+        ],
+        "pe_mean": 105.33233181829347,
+        "pe_std": 0.058600015397876494,
+        "drift": 0.040583691907968955,
+        "drift_sem": 0.010246166919809983,
+        "drift_sigma": 3.9608657779627103,
+        "steps": 436699,
+        "expect_steady": true
+      },
+      "\ub04c\uae30": {
+        "status": "ok",
+        "n_samples": 2000,
+        "warnings": [
+          "[\ub04c\uae30] \u27e8U\u27e9/N \uc774 \ud45c\ub958\ud569\ub2c8\ub2e4: \ud6c4\ubc18\u2212\uc804\ubc18 = +0.0477 kT = 3.4\u00b7\ube14\ub85dSEM (\uae30\uc900 3). \ud3c9\ud615\ud654\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4"
+        ],
+        "pe_mean": 105.45640793507943,
+        "pe_std": 0.0815922247417475,
+        "drift": 0.04769893030493222,
+        "drift_sem": 0.013991694615238297,
+        "drift_sigma": 3.4090888642597665,
+        "steps": 8026000,
+        "expect_steady": true
+      },
+      "\uc774\uc644": {
+        "status": "ok",
+        "n_samples": 401,
+        "warnings": [],
+        "pe_mean": 105.57423774930872,
+        "pe_std": 0.05267329784121422,
+        "steps": 873397,
+        "expect_steady": false
+      }
+    },
+    "run_id": "trap-drag-2d-hex300__tr0.117647-v0.05-s1__3b6a9a8d114d",
+    "wall_seconds": 5886.351534843445,
+    "steps_done": 9554445,
+    "steps_planned": 9554445,
+    "trip": null,
+    "guard_samples": 2624,
+    "f_max_last": 215.45021384575762,
+    "step_disp_last": 3.569533467551179e-05,
+    "f_max_seen": 920.0128846015972,
+    "step_disp_seen": 0.00015242578429347734
+  },
+  "result": {
+    "relax_fit": {
+      "n": 401,
+      "y_start": 105.58267670924957,
+      "y_end": 105.5540292257756,
+      "window": 0.1443408885463202,
+      "recovered_frac": 0.11443206755514934,
+      "residual": 0.22169740748212519,
+      "amp": 0.07836831496678194,
+      "tau_star": 0.43302266563895403,
+      "U_inf": 105.50761511640493,
+      "tau_sem": 4.089493834024341,
+      "tau_over_window": 2.9999999999999543,
+      "e_foldings": 0.3333333333333384,
+      "resolved": false
+    },
+    "relax_fit_defects": {
+      "n": 401,
+      "y_start": 7.325,
+      "y_end": 9.675,
+      "window": 0.1443408885463202,
+      "recovered_frac": -0.3208191126279864,
+      "residual": 9.675,
+      "amp": -5.5882206745995955,
+      "tau_star": 0.2321235269065175,
+      "U_inf": 12.499999999996286,
+      "tau_sem": 0.19695102754100793,
+      "tau_over_window": 1.6081619646676006,
+      "e_foldings": 0.6218279140849443,
+      "resolved": false
+    },
+    "n_def": {
+      "equilibrium": 0.0,
+      "driven": 5.032,
+      "relaxed": 8.344139650872817
+    },
+    "n5": {
+      "equilibrium": 0.0,
+      "driven": 2.494,
+      "relaxed": 4.172069825436409
+    },
+    "n7": {
+      "equilibrium": 0.0,
+      "driven": 2.45,
+      "relaxed": 4.172069825436409
+    },
+    "psi6": {
+      "equilibrium": 0.9170308904861336,
+      "driven": 0.8884626952409744,
+      "relaxed": 0.8708718093553386
+    },
+    "g_r_peak": {
+      "\uc774\uc644": {
+        "r": 1.5834499597549438,
+        "g": 5.2379279136657715
+      },
+      "\ub04c\uae30": {
+        "r": 1.5834499597549438,
+        "g": 5.481701850891113
+      },
+      "\ud3c9\ud615": {
+        "r": 1.6067500114440918,
+        "g": 5.8098297119140625
+      }
+    },
+    "f_drag_kT_per_d": 42.40033426797485,
+    "f_drag_sem": 6.412021140945381,
+    "f_stokes_bare": 2.4205059977272576,
+    "excess_pct": 1651.7136626716392,
+    "probe_index": 161,
+    "U_pair_eq": 105.33233181829347,
+    "U_pair_driven": 105.48025740023189,
+    "dU_drive": 0.14792558193842353,
+    "dU_sem": 0.014671384340887756,
+    "dU_total_kT": 45.2652280731576,
+    "tau_relax_star": 0.43302266563895403,
+    "min_sep_d": 1.1841319799423218,
+    "dev_max_d": 1.9687240877929029
+  }
+}

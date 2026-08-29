@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "convention",
+    "intake"
+  ],
+  "dimensionless": {},
+  "source": "intake/abp-rod-2d-run-flip/observation.yaml#D1,D2",
+  "lessons": [
+    {
+      "claim": "같은 노트의 다른 스케치에서 온 관례를 승계할 때는 케이스마다 자기일관성을 검사해야 한다. 'R=5µm' 관례를 abp-rod에 적용하면 스케치의 τ_R=0.5s 와 Stokes 예측이 160배 어긋난다 — 실제 답은 장축 2µm 타원체였다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

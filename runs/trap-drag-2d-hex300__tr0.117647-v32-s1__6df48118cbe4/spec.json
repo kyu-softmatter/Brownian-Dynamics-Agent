@@ -1,0 +1,992 @@
+{
+  "schema": "bdbot.nondim/0.1",
+  "case": "trap-drag-2d-hex300",
+  "label": "trap-drag-2d-hex300",
+  "tag": "tr0.117647-v32-s1",
+  "run_id": "trap-drag-2d-hex300__tr0.117647-v32-s1__6df48118cbe4",
+  "system": {
+    "label": "trap-drag-2d-hex300",
+    "derived_from": "observation.yaml",
+    "description": "2D 육방 콜로이드 격자를 소프트 반발(A/r³ + WCA)로 만들고, 광집게 트랩 하나를 등속으로 끌어 격자를 지나가게 한다. 능동 마이크로레올로지 / 끌린 탐침.\n",
+    "dimensions": 2,
+    "particle": {
+      "shape": "sphere",
+      "diameter": {
+        "value": 5.0,
+        "unit": "um",
+        "source": "sketch 'R = 5 µm' — 1-A에서 사용자 확인된 '지름' 관례 적용",
+        "tier": 1
+      },
+      "density": {
+        "value": 2000,
+        "unit": "kg/m^3",
+        "source": "★제안: 실리카 가정. τ_p(모델 타당성)에만 쓰임",
+        "tier": 3
+      },
+      "count": {
+        "value": 306,
+        "unit": "dimensionless",
+        "source": "sketch 'N ~ 300' (~ 표기 → 격자에 맞춰 조정 가능, observation.yaml B4). ★ 정합 육방을 위해 N = n_x·n_y = 17×18 로 확정 (사용자 승인 2026-08-04). Δ+2.0% 로 300에 가장 가깝고, 끌기 방향 격자 주기 n_x=17 이 최대",
+        "tier": 0
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "water",
+      "temperature": {
+        "value": 300,
+        "unit": "K",
+        "source": "1-A 확인값 승계 (스케치 미기재)",
+        "tier": 1
+      },
+      "viscosity": {
+        "value": 0.851,
+        "unit": "mPa*s",
+        "source": "물@300K 핸드북. 1-A 승계",
+        "tier": 1
+      }
+    },
+    "geometry": {
+      "kind": "periodic_rect_2d",
+      "area_fraction": {
+        "value": 0.35,
+        "unit": "dimensionless",
+        "source": "★제안: 1-B에서 Γ=29.7(육방 결정 ψ₆=0.885)로 확인된 조합을 재사용",
+        "tier": 3
+      },
+      "n_x": {
+        "value": 17,
+        "unit": "dimensionless",
+        "source": "정합 육방 — 행 방향 셀 수 = 끌기 방향 격자 주기 수",
+        "tier": 1
+      },
+      "n_y": {
+        "value": 18,
+        "unit": "dimensionless",
+        "source": "정합 육방 — 행 수 (짝수여야 엇갈림이 이어진다)",
+        "tier": 1
+      },
+      "box_length_x": {
+        "value": 136.825,
+        "unit": "um",
+        "source": "derived: n_x·a_NN (끌기 방향)",
+        "tier": 1
+      },
+      "box_length_y": {
+        "value": 125.464,
+        "unit": "um",
+        "source": "derived: n_y·(√3/2)·a_NN",
+        "tier": 1
+      },
+      "aspect_ratio": {
+        "value": 1.0906,
+        "unit": "dimensionless",
+        "source": "derived: L_x/L_y",
+        "tier": 1
+      },
+      "a_mean": {
+        "value": 7.49,
+        "unit": "um",
+        "source": "derived: d√(π/4φ)",
+        "tier": 1
+      },
+      "a_nn": {
+        "value": 8.049,
+        "unit": "um",
+        "source": "derived: √(2/√3)·a_mean (육방 최근접)",
+        "tier": 1
+      },
+      "drag_axis": "x",
+      "drag_axis_note": "★ 끌기 방향을 **최근접(행) 방향**으로 잡는다. 그러면 탐침이 겪는 퍼텐셜의 공간 주기가 a_NN 이고 횡단당 주기 수 = n_x 다. 행에 수직으로 끌면 주기가 2행 = √3·a_NN 이 되어 같은 박스에서 주기 수가 오히려 줄어든다 (17회 → 10회).\n",
+      "periodic": true
+    },
+    "interactions": [
+      {
+        "kind": "pair.soft_r3",
+        "form": "U(r)/kT = A (d/r)^3",
+        "amplitude_A": {
+          "value": 100.0,
+          "unit": "dimensionless",
+          "source": "★제안: 스케치 '육방 평형에서 시작'을 만족하는 값. 1-B에서 A=100·φ=0.35 가 Γ=29.7 로 육방 결정임을 실측 확인 (ψ₆=0.885, 6배위 98.7%)",
+          "tier": 3
+        },
+        "cutoff": {
+          "value": 37.45,
+          "unit": "um",
+          "source": "r_c = 5 a_mean. 절대 kT 기준이 아니라 a_mean 배수 (1-B 교훈)",
+          "tier": 1,
+          "shift": true
+        }
+      },
+      {
+        "kind": "pair.wca",
+        "form": "WCA 배제부피 코어",
+        "sigma": {
+          "value": 5.0,
+          "unit": "um",
+          "source": "코어를 입자 지름에 (1-B와 동일)",
+          "tier": 1
+        },
+        "epsilon": {
+          "value": 1.0,
+          "unit": "kT",
+          "source": "★제안: 관례값",
+          "tier": 3
+        }
+      }
+    ],
+    "external": {
+      "kind": "harmonic_trap_moving",
+      "form": "U_trap = 0.5 k_t (Δr)^2,  r_trap(t) = r_trap(0) + v_x t",
+      "n_trapped": {
+        "value": 1,
+        "unit": "dimensionless",
+        "source": "sketch — X 표시가 원 하나에만 있음",
+        "tier": 0
+      },
+      "stiffness": {
+        "value": 10,
+        "unit": "pN/um",
+        "source": "sketch 'k_t = 10 pN/µm'",
+        "tier": 0
+      },
+      "drag_velocity": {
+        "value": [
+          0.05,
+          0.1,
+          0.5,
+          1.5,
+          4.0,
+          12.0,
+          32.0
+        ],
+        "unit": "um/s",
+        "source": "sketch 'v_x = 0.5 µm/s' (tier 0). 나머지 6점은 ★제안 — τ_cell/τ_int 를 184 ~ 0.29 로 훑어 준정적↔동적 교차를 덮는다",
+        "tier": 0
+      }
+    },
+    "targets": [
+      {
+        "name": "drag_force"
+      },
+      {
+        "name": "lattice_deformation"
+      },
+      {
+        "name": "radial_distribution_function"
+      }
+    ],
+    "derived_scales": {
+      "source": "scratch/propose_3cases.py §B",
+      "gamma": {
+        "value": 4.0102e-08,
+        "unit": "kg/s",
+        "expr": "3 pi eta d"
+      },
+      "D_t": {
+        "value": 0.1033,
+        "unit": "um^2/s",
+        "expr": "kT/gamma"
+      },
+      "tau_B": {
+        "value": 242.05,
+        "unit": "s",
+        "expr": "d^2/D_t"
+      },
+      "tau_p": {
+        "value": 3.264e-06,
+        "unit": "s",
+        "expr": "m/gamma"
+      },
+      "kT": {
+        "value": 4.1419e-21,
+        "unit": "J"
+      },
+      "tau_k": {
+        "value": 0.00401,
+        "unit": "s",
+        "expr": "gamma/k_t",
+        "role": "★ 가장 빠른 척도 → dt를 정한다"
+      },
+      "tau_int": {
+        "value": 0.8756,
+        "unit": "s",
+        "expr": "gamma/U''(r_min), r_min=1.341d",
+        "role": "페어 — 트랩보다 218배 느리다"
+      },
+      "tau_v": {
+        "value": 10.0,
+        "unit": "s",
+        "expr": "d/v_x",
+        "role": "끌기"
+      },
+      "l_k": {
+        "value": 20.35,
+        "unit": "nm",
+        "expr": "sqrt(kT/k_t)"
+      },
+      "dr_ss": {
+        "value": 2.005,
+        "unit": "nm",
+        "expr": "gamma v/k_t",
+        "role": "끌림의 정상상태 지연"
+      }
+    },
+    "dimensionless": {
+      "reference": {
+        "length": "d",
+        "time": "tau_B",
+        "energy": "kT",
+        "strategy": "thermal"
+      },
+      "groups": [
+        {
+          "name": "Gamma",
+          "value": 29.75,
+          "expr": "A (d/a_mean)^3",
+          "meaning": "페어 결합세기 → 육방 결정"
+        },
+        {
+          "name": "k*",
+          "value": "6.036e4",
+          "expr": "k_t d^2/kT",
+          "meaning": "트랩 vs 열요동 (매우 뻣뻣)"
+        },
+        {
+          "name": "phi",
+          "value": 0.35
+        },
+        {
+          "name": "Pe_drag",
+          "value": 24.205,
+          "expr": "v_x d/D_t"
+        },
+        {
+          "name": "SNR",
+          "value": 0.0985,
+          "expr": "dr_ss/l_k",
+          "meaning": "★ 끌림 신호가 열요동의 1/10"
+        },
+        {
+          "name": "r_c/(L_min/2)",
+          "value": 0.597,
+          "meaning": "최소이미지 여유 1.68× (짧은 변 L_y 기준)"
+        },
+        {
+          "name": "n_cell",
+          "value": 17.0,
+          "expr": "L_x/a_NN = n_x",
+          "meaning": "★ 횡단당 격자 주기 수 (정수)"
+        },
+        {
+          "name": "tau_k/tau_int",
+          "value": 0.00458,
+          "meaning": "★ 트랩이 페어보다 218배 빠르다 → dt 지배"
+        }
+      ]
+    },
+    "numerics": {
+      "dt": {
+        "value": 40.1,
+        "unit": "us",
+        "source": "10⁻² × τ_k. ★ 트랩과 페어 두 강성이 경쟁하는데 트랩이 218배 빠르다",
+        "tier": 1
+      },
+      "production_s": 273.6,
+      "production_note": "박스 횡단 L_x/v_x (끌기 방향). 6.8e6 steps",
+      "stat_target_pct": 2.0,
+      "equilibration": "정합 육방 격자에서 시작 → 트랩 끌기 전 완화 구간 필요"
+    },
+    "not_verified": [
+      "★ SNR=0.0985 — 끌림 신호가 열요동의 1/10. Δr_ss를 1% 정확도로 재려면 물리시간 2.3h(2e8 steps). v를 5.07 µm/s로 올리면 SNR=1 이 된다 (또는 격자 306개의 변형장을 관측량으로 쓴다)",
+      "★ 정합 육방으로 바꾸면서 박스가 종횡비 1.091 의 직사각이 됐다. 유한크기 인공효과가 x·y로 비대칭일 수 있다 — 격자 변형장(관측량 2)이 그 비대칭에 민감한지 미확인. 대안은 15×20(N=300 정확, 종횡비 0.866)·16×18(N=288, 종횡비 1.026)이었다",
+      "A=100·φ=0.35 는 1-B의 조합을 옮긴 것 — 이 계(트랩 포함)에서 육방 결정인지 미확인",
+      "측정 목표가 스케치에 없어서 ★제안으로 채웠다 (끌림힘·격자 변형장)",
+      "이동 트랩은 bd-hoomd 의 variant 스니펫으로 가능하나 이 케이스에서 미검증"
+    ]
+  },
+  "reference": {
+    "strategy": "thermal",
+    "rationale": "thermal 규약 고정 (σ=d, E=kT, τ=τ_B). 단위계는 문헌 비교를 위해 계마다 바꾸지 않는다 (bd-physics §1.1). 지배 시간척도는 계마다 다를 수 있고, dt는 그쪽으로 정한다. ★ 이 계에는 강성이 **두 개**(트랩 k_t, 페어 U'')이고 트랩이 218배 빠르다 → dt는 트랩이 정한다. 1-A는 트랩만, 1-B는 페어만 있었다.",
+    "length": {
+      "symbol": "d",
+      "value": 4.9999999999999996e-06,
+      "unit": "meter"
+    },
+    "time": {
+      "symbol": "tau_B",
+      "value": 242.05059977272577,
+      "unit": "second"
+    },
+    "energy": {
+      "symbol": "kT",
+      "value": 4.141947e-21,
+      "unit": "kilogram * meter ** 2 / second ** 2"
+    }
+  },
+  "back_transform": {
+    "sigma_SI": 4.9999999999999996e-06,
+    "sigma_SI_unit": "meter",
+    "tau_SI": 242.05059977272577,
+    "tau_SI_unit": "second",
+    "energy_SI": 4.141947e-21,
+    "energy_SI_unit": "kilogram * meter ** 2 / second ** 2"
+  },
+  "ledger": {
+    "lengths": [
+      {
+        "symbol": "dr_ss",
+        "value": 1.2832777671383584e-07,
+        "unit": "meter",
+        "note": "γv/k_t 끌림 지연 (신호)",
+        "role": "",
+        "star": true,
+        "reduced": 0.025665555342767172
+      },
+      {
+        "symbol": "l_k",
+        "value": 2.0351773878460817e-08,
+        "unit": "meter",
+        "note": "√(kT/k_t) 트랩 요동 (잡음)",
+        "role": "",
+        "star": true,
+        "reduced": 0.004070354775692164
+      },
+      {
+        "symbol": "d",
+        "value": 4.9999999999999996e-06,
+        "unit": "meter",
+        "note": "입자 지름 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "r_min",
+        "value": 6.706401373695135e-06,
+        "unit": "meter",
+        "note": "최근접 접근거리",
+        "role": "",
+        "star": false,
+        "reduced": 1.3412802747390271
+      },
+      {
+        "symbol": "a_mean",
+        "value": 7.489984567013702e-06,
+        "unit": "meter",
+        "note": "평균 간격",
+        "role": "",
+        "star": false,
+        "reduced": 1.4979969134027407
+      },
+      {
+        "symbol": "a_NN",
+        "value": 8.048512205535296e-06,
+        "unit": "meter",
+        "note": "육방 최근접 = 격자 상수 (a_mean 이 아님)",
+        "role": "",
+        "star": false,
+        "reduced": 1.6097024411070593
+      },
+      {
+        "symbol": "r_c",
+        "value": 3.745e-05,
+        "unit": "meter",
+        "note": "컷오프",
+        "role": "",
+        "star": false,
+        "reduced": 7.490000000000001
+      },
+      {
+        "symbol": "L_y",
+        "value": 0.00012546388858792836,
+        "unit": "meter",
+        "note": "박스 짧은 변 — 최소이미지의 분모 (18행)",
+        "role": "box",
+        "star": false,
+        "reduced": 25.092777717585676
+      },
+      {
+        "symbol": "L_x",
+        "value": 0.00013682470749410002,
+        "unit": "meter",
+        "note": "박스 긴 변 = 끌기 방향 (17열 × a_NN)",
+        "role": "",
+        "star": false,
+        "reduced": 27.364941498820006
+      }
+    ],
+    "times": [
+      {
+        "symbol": "tau_p",
+        "value": 3.2641336989163074e-06,
+        "unit": "second",
+        "note": "m/γ 관성 이완",
+        "role": "inertia",
+        "star": false,
+        "reduced": 1.3485336132119386e-08
+      },
+      {
+        "symbol": "dt",
+        "value": 4.010243022307371e-05,
+        "unit": "second",
+        "note": "적분 스텝",
+        "role": "dt",
+        "star": false,
+        "reduced": 1.6567788000000008e-07
+      },
+      {
+        "symbol": "tau_k",
+        "value": 0.0040102430223073705,
+        "unit": "second",
+        "note": "γ/k_t 트랩 — 최속, dt를 정한다",
+        "role": "",
+        "star": true,
+        "reduced": 1.6567788000000008e-05
+      },
+      {
+        "symbol": "tau_int",
+        "value": 0.8756339787830663,
+        "unit": "second",
+        "note": "γ/U''(r_min=1.341d) 페어",
+        "role": "",
+        "star": false,
+        "reduced": 0.003617565829645726
+      },
+      {
+        "symbol": "tau_v",
+        "value": 0.15625,
+        "unit": "second",
+        "note": "d/v_x 이류 (움직이는 트랩)",
+        "role": "",
+        "star": false,
+        "reduced": 0.0006455261839743899
+      },
+      {
+        "symbol": "tau_cell",
+        "value": 0.251516006422978,
+        "unit": "second",
+        "note": "a_NN/v_x 격자 주기",
+        "role": "",
+        "star": false,
+        "reduced": 0.0010391050741421
+      },
+      {
+        "symbol": "tau_cross",
+        "value": 4.275772109190626,
+        "unit": "second",
+        "note": "L_x/v_x 박스 횡단 (계의 성질 — 프로토콜 무관)",
+        "role": "",
+        "star": false,
+        "reduced": 0.0176647862604157
+      },
+      {
+        "symbol": "tau_B",
+        "value": 242.05059977272577,
+        "unit": "second",
+        "note": "d²/D_t 확산 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "T_obs",
+        "value": 61.79740384702413,
+        "unit": "second",
+        "note": "관측창 = 네 구간 전체",
+        "role": "observation",
+        "star": false,
+        "reduced": 0.2553077906233201
+      }
+    ],
+    "energies": [
+      {
+        "symbol": "kT",
+        "value": 4.141947e-21,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "열에너지 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "U_a",
+        "value": 1.2321732661092366e-19,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "U(a_mean) 평균간격 결합 = Γ kT",
+        "role": "",
+        "star": false,
+        "reduced": 29.748648790272707
+      },
+      {
+        "symbol": "U_d",
+        "value": 4.1833664700000002e-19,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "U(d) 접촉 결합 = (A+ε_WCA) kT",
+        "role": "",
+        "star": false,
+        "reduced": 101.0
+      },
+      {
+        "symbol": "k_t_d2",
+        "value": 2.499999999999999e-16,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "k_t d² 트랩 강성",
+        "role": "",
+        "star": false,
+        "reduced": 60358.087633665986
+      }
+    ]
+  },
+  "ledger_absent": {},
+  "groups": [
+    {
+      "name": "Gamma",
+      "value": 29.748648790272707,
+      "expr": "A(d/a_mean)³",
+      "meaning": "페어 결합 → 육방 결정 ★",
+      "num": [
+        "energies",
+        "U_a"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "A",
+      "value": 100.0,
+      "expr": "",
+      "meaning": "r⁻³ 진폭 (입력, ★제안)",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "U(d)/kT",
+      "value": 101.0,
+      "expr": "(A+ε_WCA)",
+      "meaning": "접촉 결합",
+      "num": [
+        "energies",
+        "U_d"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "k*",
+      "value": 60358.087633665986,
+      "expr": "k_t d²/kT",
+      "meaning": "트랩 vs 열요동 (매우 뻣뻣)",
+      "num": [
+        "energies",
+        "k_t_d2"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "phi",
+      "value": 0.35,
+      "expr": "",
+      "meaning": "밀집도",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "Pe_drag",
+      "value": 1549.1238385454449,
+      "expr": "v_x d/D_t",
+      "meaning": "이류 vs 확산",
+      "num": [
+        "times",
+        "tau_B"
+      ],
+      "den": [
+        "times",
+        "tau_v"
+      ]
+    },
+    {
+      "name": "SNR",
+      "value": 6.3054836143620285,
+      "expr": "Δr_ss/ℓ_k",
+      "meaning": "★ 끌림 신호가 열요동의 1/10",
+      "num": [
+        "lengths",
+        "dr_ss"
+      ],
+      "den": [
+        "lengths",
+        "l_k"
+      ]
+    },
+    {
+      "name": "a_mean/d",
+      "value": 1.4979969134027407,
+      "expr": "",
+      "meaning": "평균간격",
+      "num": [
+        "lengths",
+        "a_mean"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "a_NN/a_mean",
+      "value": 1.074569931823542,
+      "expr": "√(2/√3)",
+      "meaning": "육방 최근접 (파라미터 없는 예측)",
+      "num": [
+        "lengths",
+        "a_NN"
+      ],
+      "den": [
+        "lengths",
+        "a_mean"
+      ]
+    },
+    {
+      "name": "L_x/d",
+      "value": 27.36494149882001,
+      "expr": "n_x·a_NN/d",
+      "meaning": "박스 긴 변 = 끌기 방향",
+      "num": [
+        "lengths",
+        "L_x"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "L_y/d",
+      "value": 25.092777717585676,
+      "expr": "n_y·(√3/2)a_NN/d",
+      "meaning": "박스 짧은 변",
+      "num": [
+        "lengths",
+        "L_y"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "L_x/L_y",
+      "value": 1.0905505084692932,
+      "expr": "",
+      "meaning": "★ 종횡비 — 정합이 정한다 (정사각이 아니다)",
+      "num": [
+        "lengths",
+        "L_x"
+      ],
+      "den": [
+        "lengths",
+        "L_y"
+      ]
+    },
+    {
+      "name": "L_x/a_NN",
+      "value": 17.0,
+      "expr": "n_x",
+      "meaning": "★ 정합 — 정수여야 한다",
+      "num": [
+        "lengths",
+        "L_x"
+      ],
+      "den": [
+        "lengths",
+        "a_NN"
+      ]
+    },
+    {
+      "name": "L_y/a_NN",
+      "value": 15.588457268119896,
+      "expr": "n_y·√3/2",
+      "meaning": "★ 정합 — 행 간격의 정수배 (n_y = 18, 짝수)",
+      "num": [
+        "lengths",
+        "L_y"
+      ],
+      "den": [
+        "lengths",
+        "a_NN"
+      ]
+    },
+    {
+      "name": "r_c/a_mean",
+      "value": 5.000010302415285,
+      "expr": "",
+      "meaning": "컷오프 (이웃 껍질 수)",
+      "num": [
+        "lengths",
+        "r_c"
+      ],
+      "den": [
+        "lengths",
+        "a_mean"
+      ]
+    },
+    {
+      "name": "tau_k/tau_int",
+      "value": 0.004579816589439236,
+      "expr": "",
+      "meaning": "★ 두 강성의 비 — 트랩이 218배 빠르다",
+      "num": [
+        "times",
+        "tau_k"
+      ],
+      "den": [
+        "times",
+        "tau_int"
+      ]
+    },
+    {
+      "name": "dt/tau_k",
+      "value": 0.01,
+      "expr": "",
+      "meaning": "적분 해상 (지배 척도)",
+      "num": [
+        "times",
+        "dt"
+      ],
+      "den": [
+        "times",
+        "tau_k"
+      ]
+    },
+    {
+      "name": "T_obs/tau_B",
+      "value": 0.2553077906233201,
+      "expr": "",
+      "meaning": "관측창 (네 구간 전체)",
+      "num": [
+        "times",
+        "T_obs"
+      ],
+      "den": [
+        "times",
+        "tau_B"
+      ]
+    },
+    {
+      "name": "tau_cross/tau_B",
+      "value": 0.0176647862604157,
+      "expr": "",
+      "meaning": "박스 횡단",
+      "num": [
+        "times",
+        "tau_cross"
+      ],
+      "den": [
+        "times",
+        "tau_B"
+      ]
+    },
+    {
+      "name": "n_cell",
+      "value": 17.0,
+      "expr": "L_x/a_NN",
+      "meaning": "한 번 횡단의 격자 주기 수 = n_x",
+      "num": [
+        "times",
+        "tau_cross"
+      ],
+      "den": [
+        "times",
+        "tau_cell"
+      ]
+    },
+    {
+      "name": "St",
+      "value": 1.3485336132119386e-08,
+      "expr": "tau_p/tau_B",
+      "meaning": "관성 vs 확산",
+      "num": [
+        "times",
+        "tau_p"
+      ],
+      "den": [
+        "times",
+        "tau_B"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "kind": "모델",
+      "name": "관성 무시     τ_p/τ_k",
+      "value": 0.0008139491000319041,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 12.285780523140861,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "트랩 해상     dt/τ_k",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "페어 해상     dt/τ_int",
+      "value": 4.579816589439236e-05,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 218.3493553663123,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "이류 해상     dt/τ_v",
+      "value": 0.00025665555342767175,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 38.96272598215221,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "컷오프       r_c/(L_min/2)",
+      "value": 0.596984525531489,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.67508529489891,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "정합 육방    max|정수 이탈|",
+      "value": 0.0,
+      "limit": 1e-09,
+      "op": "<=",
+      "ok": true,
+      "margin": Infinity,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "코어 여유    r_table_min/r_min",
+      "value": 0.37277816532214714,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2.6825605494780542,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "항적 치유    v τ_int/L_x",
+      "value": 0.2047896745715051,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 4.883058689811221,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "관측창       T_obs/τ_k",
+      "value": 15409.890000000001,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 154.09890000000001,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "측정가능성   SNR",
+      "value": 6.3054836143620285,
+      "limit": 1.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 6.3054836143620285,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "끌림힘 정밀도 SEM/Δr_ss [%]",
+      "value": 0.6868701880334667,
+      "limit": 2.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2.911758342178265,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "격자 주기 수  L_x/a_NN",
+      "value": 17.0,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": false,
+      "margin": 0.17,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "verdict": "PASS (경고 1건)",
+  "params": {
+    "A": 100.0,
+    "phi": 0.35,
+    "N": 306,
+    "Lx_star": 27.36494149882001,
+    "Ly_star": 25.092777717585676,
+    "n_x": 17,
+    "n_y": 18,
+    "a_nn_star": 1.6097024411070593,
+    "lattice": "hex_commensurate",
+    "drag_axis": "x",
+    "r_c_star": 7.490000000000001,
+    "wca_eps": 1.0,
+    "Gamma": 29.748648790272707,
+    "k_star": 60358.087633665986,
+    "v_star": 1549.1238385454449,
+    "n_trapped": 1,
+    "r_table_min_star": 0.5
+  },
+  "numerics": {
+    "dt_star": 1.6567788000000008e-07,
+    "dt_over_tau_k": 0.01,
+    "n_warm": 218349,
+    "n_equil": 436699,
+    "n_prod": 12540,
+    "n_relax": 873397,
+    "n_samples": 2000,
+    "sample_every": 6,
+    "seed": 1
+  },
+  "l3_issues": []
+}

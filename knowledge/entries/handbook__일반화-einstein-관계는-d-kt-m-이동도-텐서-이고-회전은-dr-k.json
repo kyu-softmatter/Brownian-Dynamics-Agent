@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "diffusion",
+    "mobility",
+    "anisotropy",
+    "abp_rod"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#2.5 ← [L] (2.42),(2.48) 각주11 pp.42-45",
+  "lessons": [
+    {
+      "claim": "일반화 Einstein 관계는 D = kT*M (이동도 텐서) 이고 회전은 Dr = kT*varpi 다. ★ 즉 확산의 이방성은 이동도 텐서에서 오고 이동도 텐서의 이방 성분은 유체역학(HI)이 만든다 — BD 는 M 을 스스로 만들지 않고 우리가 넣어준 것을 쓸 뿐이다. 이것이 abp-rod 의 'BD 로는 이방성 병진 마찰 불가' 결론의 이론적 배경이다",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

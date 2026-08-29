@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "run_id",
+    "콘텐츠주소",
+    "소급측정",
+    "커버리지"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py + tools/health.py",
+  "lessons": [
+    {
+      "claim": "콘텐츠 주소(run_id = 스펙 해시)를 쓰면 **레거시 런에 새 측정을 소급할 수 없다**. 코드가 진화하면 해시가 바뀌어 재실행이 같은 id 를 만들지 않고 새 디렉토리가 생기며, 옛 런은 영구히 미측정으로 남는다. 실측: 미측정 79런 전부가 현재 코드로 재현되지 않았다(trap-drag 태그 규약 tr0.117647-v4 → v4, trap-2d-5um 은 seed 가 스펙에 추가되며 3번 바뀜). 또한 'specs/<run_id>.json 이 있다'는 재현 가능의 근거가 못 된다 — 낡은 스펙이 남아 있다. 그래서 커버리지는 '채울 수 있는 것'이 아니라 '측정 배선 이후 실행된 런'으로 분모를 잡고, 레거시는 소급 불가로 명시해야 한다.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

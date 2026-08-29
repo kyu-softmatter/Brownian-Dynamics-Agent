@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "l4",
+    "validation",
+    "timeseries"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/health.py 성장 지수",
+  "lessons": [
+    {
+      "claim": "성장 지수 알파는 인덱스가 아니라 실제 시간축으로 재야 한다. MSD 의 lag 가 로그 간격이면 인덱스 기준 알파가 2.5 를 넘어 발산으로 오판된다. 실제 시간축을 주니 알파 1.172 로 확산과 탄도 사이의 타당한 값이 나왔다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

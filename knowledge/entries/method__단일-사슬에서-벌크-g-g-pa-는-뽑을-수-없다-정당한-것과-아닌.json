@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "scratch/viz_moduli.py",
+  "lessons": [
+    {
+      "claim": "단일 사슬에서 **벌크 G'·G'' [Pa] 는 뽑을 수 없다** — 정당한 것과 아닌 것을 구분해야 한다. ✅ 정당: K*[kT/d²] → EI[N·m²] → κ₀[N/m] (순수 기하 변환). 실측 JKR κ₀=56.6 mN/m 인데 이건 **입력 64 mN/m 을 되찾은 왕복확인**이지 검증이 아니다(-12% 는 유한 트랩 + De=10.7 점성 혼입). 의미 있는 것은 DLVO 가 -0.005 mN/m 로 4~5 자릿수 아래라는 것. ❌ 부당: GSER `G* = K*/(6πa)` 를 적용하면 JKR G'=15.6 Pa, G''=7.9 Pa 가 나오지만 **무효**다 — GSER 는 프로브가 연속 매질에 잠겨 있을 때 성립하는데, 여기서 비드가 느끼는 것은 매질이 아니라 이웃 비드 2개다. 진짜 G'(ω) 를 내려면 사슬 **망(network)** 을 만들어 응력 텐서에서 직접 계산해야 한다. 단일 사슬에 면적밀도를 가정해 곱하는 것은 지어내는 것이다. ※ chain-bend-2d-oscill 의 observation.yaml F1 이 이미 같은 경고를 적어뒀고, 이번에 정량 확인됐다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

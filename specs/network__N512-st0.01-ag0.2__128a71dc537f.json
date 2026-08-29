@@ -1,0 +1,886 @@
+{
+  "schema": "bdbot.nondim/0.1",
+  "case": "network",
+  "label": "network",
+  "tag": "N512-st0.01-ag0.2",
+  "run_id": "network__N512-st0.01-ag0.2__128a71dc537f",
+  "system": {
+    "label": "network",
+    "derived_from": "intake/network/observation.yaml",
+    "description": "단분산 콜로이드 비드를 3D 박스에 흩뿌리고 DLVO 2차극소로 응집시킨 뒤, 박스를 등방 압축해 φ=0.1 의 침투하는 망을 만든다 (사용자 지정 프로토콜 2026-08-06). 결합은 DLVO(중심력) + JKR 접착접촉의 굽힘강성을 **함께** 켠다 (A2 확정). 1단계 산출물은 동결 가능한 위상(접촉 목록)과 구조 관측량이고, 2단계에서 입자 하나를 x(t)=A sin(ωt) 로 강제해 G'(ω)·G''(ω)·응답시간·응력전파를 본다.\n",
+    "dimensions": 3,
+    "particle": {
+      "shape": "sphere",
+      "diameter": {
+        "value": 1.47,
+        "unit": "um",
+        "source": "[P1] p.1 '2a = 1.47 ± 0.01 µm' PMMA — chain-bend-2d-dlvo 관례 승계 (이 스케치엔 크기 미기재, 'identical bead' 만 적힘)",
+        "tier": 1
+      },
+      "density": {
+        "value": 1180,
+        "unit": "kg/m^3",
+        "source": "★제안: PMMA. BD 는 질량을 쓰지 않으므로 τ_p(St) 검사에만 쓰인다 — 결과 영향 0",
+        "tier": 3
+      },
+      "surface_potential": {
+        "value": 40,
+        "unit": "mV",
+        "source": "[P1] p.1 'a measured surface potential of 40 ± 3 mV' — 승계",
+        "tier": 2
+      },
+      "count": {
+        "value": [
+          512,
+          1528
+        ],
+        "unit": "dimensionless",
+        "source": "★제안. 그림의 원 21개는 **도식**이다 (observation A6 — 위상이 트리라 G'(ω) 가 정의되지 않는다). N = φ(L/d)³·6/π 로 φ=0.1 에서:\n  512 → L/d=13.89 (파일럿 · 유한크기 하한)\n  1528 → L/d=20.00 (생산 · L/2=10d 가 전파 측정 유효 반경)\n상한 근거는 비용이다 — 실측 6384 steps/s (N=1528, 3D, Table+WCA)에서 dt=1e-2·τ_bond 이면 겔화 1 τ_B 가 4.5 시간/시드다 (scratch/verify_3d_boxresize.py ⑤).\n",
+        "tier": 3
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "water",
+      "temperature": {
+        "value": 300,
+        "unit": "K",
+        "source": "1-A 승계, 논문은 수용액",
+        "tier": 1
+      },
+      "viscosity": {
+        "value": 0.851,
+        "unit": "mPa*s",
+        "source": "물@300K 핸드북",
+        "tier": 1
+      },
+      "relative_permittivity": {
+        "value": 78.5,
+        "unit": "dimensionless",
+        "source": "물@298K 핸드북 (CRC)",
+        "tier": 1
+      },
+      "ionic_strength": {
+        "value": 10,
+        "unit": "mM",
+        "source": "MgCl2 10mM — chain-bend-2d-dlvo 승계 (사용자 승인 2026-08-05). 250mM 은 이중층 반발이 죽어 vdW 가 접촉에서 장벽 없이 발산하고 결합강성이 임의 정규화로 정해진다. 10mM 은 교과서적 곡선(장벽 416 kT + 2차극소 −11.7 kT)을 준다.\n",
+        "tier": 2,
+        "note": "MgCl2 (2:1 전해질). I = ½Σcᵢzᵢ² = 0.75×c_salt"
+      }
+    },
+    "geometry": {
+      "kind": "periodic_box_compressed",
+      "boundary": "3D PBC (x·y·z)",
+      "volume_fraction_initial": {
+        "value": 0.02,
+        "unit": "dimensionless",
+        "source": "★제안. 충분히 묽어 초기 배치에 겹침·즉시응집이 없고(평균 최근접 간격 ≈1.65d), 압축 여유가 총 선형변형 41.5% 로 남는다. observation A8 (φ=0.1 이 최종값)의 짝.\n",
+        "tier": 3
+      },
+      "volume_fraction_final": {
+        "value": 0.1,
+        "unit": "dimensionless",
+        "source": "사용자 지정 2026-08-06 ('0.1 성긴 겔'). 콜로이드 겔의 전형 범위",
+        "tier": 1
+      },
+      "compression": {
+        "mode": "isotropic",
+        "source": "★제안 등방. 1축(uniaxial)으로 하면 겔에 전역 축이 생겨 2단계의 '망에 수직/평행' (observation A9-ⓑ)이 정의되지만 계가 이방성 겔로 바뀐다. 등방을 기본으로 두고 A9 는 **국소 결합 좌표계**로 해소한다 (A9-ⓐ).\n",
+        "tier": 3
+      },
+      "n_stages": {
+        "value": 178,
+        "unit": "dimensionless",
+        "source": "derived. 허용 변형 ε_crit = (h_min−h_barrier)/ℓ = 0.7031% 에 안전계수 1.76 을 두어 **트리거당 0.4%** 를 쓴다 (실측: 0.40% 결합 유지 h*=0.007591 / 0.80% 붕괴 h*=−0.042257 — scratch/verify_3d_boxresize.py ④, docs/hoomd_capabilities.md §5.5). ★ 단계 수는 **보간 방식에 따라 다르다**:\n  · 상대변형 일정(등비): ln(0.5848)/ln(1−0.004) = 134\n  · `variant.box.Interpolate` 는 **L 에 선형**이라 ΔL 이 일정하고 L 이 줄어드는\n    만큼 상대변형이 커진다 — **최악은 마지막 단계**다. (L₀/L₁−1)/ε = 0.7100/0.004\n    = 177.5 → **178**. 이때 최대 단계변형 0.3989% (안전계수 1.76).\n⚠️ 134 를 쓰면 마지막 단계가 0.53% 로 실측 안전선(0.40%)을 넘는다 — 예측 문턱(0.703%)보다는 아래지만 **측정되지 않은 구간**이다. 178 을 쓴다.\n",
+        "tier": 1
+      }
+    },
+    "interactions": [
+      {
+        "kind": "pair.dlvo_secondary_minimum",
+        "form": "U(h) = U_edl(h) + U_vdw(h), h=표면간극. HHF(등전위,약한중첩)+Derjaguin 비지연 vdW",
+        "rationale": "스케치가 \"DLVO, & JKR\" 이라고 적었고 사용자가 **합쳐서 한 계**로 확정했다 (observation A2). 식과 축약 파라미터는 chain-bend-2d-dlvo 에서 SI로 검증된 것을 그대로 쓴다 (cases/chain_bend_dlvo_2d.py 의 dlvo_reduced_params/U_star/F_h_star). NN(접촉) 쌍이 \"결합\"이고, 겔화 단계에서는 위상을 선언하지 않고 **페어 퍼텐셜만** 쓴다 — 결합이 런 중에 생기기 때문이다 (observation N5).\n",
+        "hamaker_constant": {
+          "value": 1.05e-20,
+          "unit": "J",
+          "source": "chain-bend-2d-dlvo 승계. 그 케이스에서 Tabor-Winterton 근사로 독립 교차검증됨 (A_calc=9.40e-21 J, −10.5%; scratch/hamaker_crosscheck.py). 1차 출처 미확인.\n",
+          "tier": 2
+        },
+        "debye_length": {
+          "value": 1.7618,
+          "unit": "nm",
+          "source": "derived: κ⁻¹=√(ε0·εr·kT/(2·NA·e²·I)), MgCl2 10mM",
+          "tier": 1
+        },
+        "barrier_height": {
+          "value": 416.39,
+          "unit": "dimensionless",
+          "source": "derived: max U_tot(h)/kT @ h=0.7468 nm. ★ 촘촘 격자(4e5점)로 재확인한 값이고 `find_well()` 과 일치한다. ⚠️ chain-bend-2d-dlvo/system.yaml 에는 381.70 @ 0.489nm 로 적혀 있는데 그것은 **최댓값이 아닌 점의 값**이다 (dlvo_ledger.py 의 성긴 격자 — 장벽 8.3%·위치 35% 과소). 결론(장벽 ≫ 1 kT)은 양쪽 다 같다.\n",
+          "tier": 1,
+          "note": "단위=kT. 1차극소로의 열적 전이가 사실상 불가능함을 보장"
+        },
+        "well_depth": {
+          "value": -11.7155,
+          "unit": "dimensionless",
+          "source": "derived: U_tot(h)/kT 2차극소 @ h=11.1611nm",
+          "tier": 1,
+          "note": "단위=kT. ★ 11.7 kT 는 열에너지 규모라 **결합이 가역적**이다 — 탈출시간 τ_esc ≈ τ_bond·exp(11.7) ≈ 0.115 τ_B. 즉 이 망은 영구 겔이 아니라 재배열하는 가역 겔이고, 압축 중 구조 이완의 기준 시간이 τ_B 가 아니라 τ_esc 다 (압축 단계 길이를 정하는 값 — numerics 참조).\n"
+        },
+        "well_location": {
+          "value": 11.1611,
+          "unit": "nm",
+          "source": "derived: argmin U_tot(h) (장벽 이후)",
+          "tier": 1
+        },
+        "bond_stiffness": {
+          "value": 0.001998,
+          "unit": "N/m",
+          "source": "derived: d²U_tot/dh² @ well_location = 1.0424e6 kT/d²",
+          "tier": 1,
+          "note": "방사(신축) 강성. dt 를 정하는 최속 모드 후보 → τ_bond = γ/k_bond"
+        }
+      },
+      {
+        "kind": "contact.adhesive_bending",
+        "form": "접선 굽힘 강성 κ_θ = EI/ℓ. [P1][P2] 의 JKR 접착접촉에서 유도",
+        "enabled_stage": 2,
+        "rationale": "★ 1단계(겔화)에서는 **끄고**, 2단계(구동)에서 동결된 위상 위에 켠다 — HOOMD 의 angle/bond 는 정적 토폴로지라 응집 중에는 선언할 수 없다 (N5). ⛔ 그리고 `md.angle.Harmonic` 은 쓸 수 없다: sinθ 를 √2e-3 으로 클램프해 거의 곧은 삼중항에서 **힘이 최대 96% 틀리고 에너지는 정확하다** (skill bd-hoomd 함정 15). 겔의 사슬 구간에는 곧은 삼중항이 반드시 생긴다. → `force.Custom` (정확, 26배 느림) 또는 해석 경로. 2단계 설계에서 확정한다.\n",
+        "kappa_0": {
+          "value": 64,
+          "unit": "mN/m",
+          "source": "[P1] p.3 'experimental value at 10 mM MgCl₂ is 64 ± 0.5 mN/m' — 염 조건 일치",
+          "tier": 2
+        },
+        "angle_stiffness": {
+          "value": 5.7624e-15,
+          "unit": "J",
+          "source": "derived: κ_θ = EI/ℓ, EI = κ₀a³/3, ℓ=d. chain-bend-2d-oscill 에서 검증 승계",
+          "tier": 1,
+          "note": "= 1.391e6 kT — DLVO 2차극소 깊이(11.7 kT)의 12만 배"
+        }
+      }
+    ],
+    "external": {
+      "kind": "position_forced_oscillation",
+      "enabled_stage": 2,
+      "form": "구동 비드 하나의 위치를 x(t) = A sin(ωt) 로 직접 강제 (트랩 아님 — observation A3)",
+      "drive_direction": {
+        "value": [
+          0,
+          30,
+          60,
+          90
+        ],
+        "unit": "degree",
+        "source": "★사용자 지정 2026-08-06 ('네트워크의 수직방향, 평행방향 등 다양한 각도'). 각도는 **국소 결합 좌표계** 기준 (0°=결합축 평행, 90°=수직) — 등방 압축 겔에는 전역 축이 없기 때문이다 (observation A9). 중심력 DLVO 는 평행으로는 k_bond=1.998e-3 N/m 이지만 수직으로는 선형강성이 정확히 0 이라, 이 스윕이 DLVO 대 JKR 굽힘의 대비를 직접 재는 축이 된다.\n",
+        "tier": 1
+      },
+      "amplitude": {
+        "value": null,
+        "unit": "nm",
+        "source": "미정 (observation A_amplitude) — 선형응답 영역 확인이 첫 검사여야 한다",
+        "tier": 3
+      },
+      "omega_range": {
+        "value": null,
+        "unit": "rad/s",
+        "source": "미정 (observation omega_range). ⚠️ G' 고원을 보려면 저주파 끝이 반드시 준정적 이어야 한다 — chain-bend 에서 De(ω_min)=0.993 으로 고원에 못 닿은 전례가 있다.\n",
+        "tier": 3
+      }
+    },
+    "targets": [
+      {
+        "name": "coordination_number"
+      },
+      {
+        "name": "independent_loops"
+      },
+      {
+        "name": "dangling_fraction"
+      },
+      {
+        "name": "fractal_dimension"
+      },
+      {
+        "name": "percolation"
+      },
+      {
+        "name": "rdf"
+      },
+      {
+        "name": "crushed_bond_fraction"
+      },
+      {
+        "name": "storage_modulus"
+      },
+      {
+        "name": "loss_modulus"
+      },
+      {
+        "name": "response_time"
+      },
+      {
+        "name": "stress_propagation"
+      }
+    ],
+    "derived_scales": {
+      "source": "bdbot.materials.sphere_bulk + cases/chain_bend_dlvo_2d.find_well (승계 검증)",
+      "kT": {
+        "value": 4.14195e-21,
+        "unit": "J",
+        "expr": "k_B T"
+      },
+      "gamma": {
+        "value": 1.17901e-08,
+        "unit": "kg/s",
+        "expr": "3 pi eta d"
+      },
+      "D_t": {
+        "value": 3.51307e-13,
+        "unit": "m^2/s",
+        "expr": "kT/gamma"
+      },
+      "tau_B": {
+        "value": 6.15103,
+        "unit": "s",
+        "expr": "d^2/D_t"
+      },
+      "tau_p": {
+        "value": 1.66462e-07,
+        "unit": "s",
+        "expr": "m/gamma"
+      },
+      "tau_bond": {
+        "value": 5.901e-06,
+        "unit": "s",
+        "expr": "gamma/k_bond",
+        "role": "★ 최속 모드 — dt 를 정한다. = 9.5936e-7 tau_B"
+      },
+      "tau_esc": {
+        "value": 0.7076,
+        "unit": "s",
+        "expr": "tau_bond * exp(|well_depth|/kT)",
+        "role": "★ 결합 탈출시간 = 0.115 tau_B. **압축 단계 길이의 기준** (구조 이완 시간)"
+      },
+      "sigma_bond": {
+        "value": 1.4398,
+        "unit": "nm",
+        "expr": "sqrt(kT/k_bond)",
+        "role": "결합 열요동 폭"
+      },
+      "ell": {
+        "value": 1481.16,
+        "unit": "nm",
+        "expr": "d + h_min",
+        "role": "결합길이(중심간 평형거리)"
+      },
+      "eps_crit": {
+        "value": 0.007031,
+        "unit": "dimensionless",
+        "expr": "(h_min - h_barrier)/ell",
+        "role": "★ 압축 트리거당 허용 선형변형. 실측 0.40% 유지 / 0.80% 붕괴 로 확인"
+      },
+      "h_bond_edge": {
+        "value": 26.505,
+        "unit": "nm",
+        "expr": "U(h) = well_depth/2 의 외곽 해 (h > h_min)",
+        "role": "★ **결합 판정 경계** — 이보다 가까우면 결합으로 센다 (r* < 1.018031). h_min 의 2.375배. 임의 컷오프가 아니라 우물 깊이의 절반으로 정의해 z·고리 수·자유단 비율이 임의 선택에 안 흔들리게 한다.\n"
+      }
+    },
+    "dimensionless": {
+      "reference": {
+        "length": "d",
+        "time": "tau_B",
+        "energy": "kT",
+        "strategy": "thermal"
+      },
+      "groups": [
+        {
+          "name": "phi_final",
+          "value": 0.1,
+          "meaning": "부피분율 — 성긴 겔"
+        },
+        {
+          "name": "well_depth/kT",
+          "value": -11.7155,
+          "meaning": "★ 가역 결합 (τ_esc=0.115 τ_B)"
+        },
+        {
+          "name": "barrier/kT",
+          "value": 416.39,
+          "meaning": "1차극소 전이 사실상 불가능"
+        },
+        {
+          "name": "k_bond_star",
+          "value": "1.0424e6",
+          "meaning": "k_bond d²/kT — 신축 강성"
+        },
+        {
+          "name": "tau_bond/tau_B",
+          "value": 9.5936e-07,
+          "meaning": "★ 척도 분리 6자릿수 — dt 비용의 근원"
+        },
+        {
+          "name": "tau_esc/tau_B",
+          "value": 0.115,
+          "meaning": "결합 재배열 / 확산. 압축 준정적성 기준"
+        },
+        {
+          "name": "eps_crit",
+          "value": 0.007031,
+          "meaning": "압축 단계당 허용 변형 → 134 단계"
+        },
+        {
+          "name": "sigma_bond/h_min",
+          "value": 0.129,
+          "meaning": "결합 열요동 폭 / 우물 위치"
+        }
+      ]
+    },
+    "numerics": {
+      "dt": {
+        "value": null,
+        "unit": null,
+        "source": "L3 에서 유도. 후보 최속 모드는 τ_bond (= 9.5936e-7 τ_B). 설계 관례 dt/τ_fast = 1e-2 → dt ≈ 9.59e-9 τ_B. ⚠️ **압축 중에는 후보가 하나 더 있다** — 붕괴한 쌍이 앉는 자리(h*≈−0.042, WCA 코어와 vdW 가 균형)의 곡률은 k_bond 보다 크다. 붕괴가 생기면 dt 를 다시 봐야 한다 (crushed_bond_fraction 을 재는 이유).\n",
+        "tier": 3
+      },
+      "compression_stage_length": {
+        "value": null,
+        "unit": null,
+        "source": "★ **이것이 1단계 비용을 정한다.** 두 극단이 서로 다른 물리다:\n  · 단계 = τ_esc(0.115 τ_B) → 총 15.4 τ_B → 1.6e9 스텝 → 70 시간/시드 (N=1528)\n    = 각 단계에서 결합이 재배열할 시간이 있는 **준정적** 압축\n  · 단계 = τ_bond 규모(1e-3 τ_B) → 총 0.13 τ_B → 1.4e7 스텝 → 37 분/시드\n    = 결합은 안 부서지지만 확산이 개입하지 않은 **아핀 압축**\n→ 파일럿에서 2~3점 비교해 **압축 속도 무관성을 실측**한다 (observation A8). 무관하지 않으면 그 자체가 결과다 (원칙 7).\n",
+        "tier": 3
+      },
+      "aggregation_time": {
+        "value": null,
+        "unit": null,
+        "source": "★ 압축 전 응집 시간. 미정 — 파일럿에서 침투·z 의 시간 곡선을 재서 정한다. 어림: φ₀=0.02 에서 평균 최근접 간격 0.65d 를 확산하는 데 0.07 τ_B. 전체 겔화(침투)는 그보다 길다. 1 τ_B = 4.5 시간/시드(N=1528)이므로 **측정 없이 크게 잡으면 안 된다** (N3: 판정 전에 재라).\n",
+        "tier": 3
+      },
+      "stat_target_pct": 5.0,
+      "production_note": "1단계는 스윕이 아니라 구조 생성 — 시드 앙상블이 통계의 전부다"
+    },
+    "required_convergence_checks": [
+      "dt 절반 수렴 — 구조 관측량(z·고리 수·d_f)이 dt 에 안 변하는지 (Brownian 은 O(δt))",
+      "압축 속도 무관성 — compression_stage_length 2~3점 (A8)",
+      "유한크기 — N 512 ↔ 1528 에서 z·고리 수·침투가 유지되는지",
+      "crushed_bond_fraction ≈ 0 확인 — 0 이 아니면 ε 를 더 줄여야 한다"
+    ],
+    "not_verified": [
+      "★★ 압축이 겔을 부수지 않고 φ=0.1 까지 갈 수 있는지 — ε_crit 은 **쌍 하나**로 실측했다. 침투한 망이 강직해지면 아핀 압축이 여러 결합에 동시에 걸려 문턱이 내려갈 수 있다. crushed_bond_fraction 으로 재서 판정한다",
+      "★★ 겔화에 필요한 물리 시간(aggregation_time)이 미측정 — 이것이 1단계 비용 전체를 정하는데 어림밖에 없다. 파일럿이 먼저다",
+      "Hamaker 상수(1.05e-20 J)의 1차 출처 미확인 (tier 2). 결론이 A 값에 민감하면 재확인",
+      "이 프로젝트 최초의 3D 케이스 — 3D 자유확산은 검증했으나(⟨r²⟩=6Dt, −1.40%) bdbot 의 다른 모듈이 2D 를 가정하는 곳이 남아 있을 수 있다 (observation N4)",
+      "τ_p/τ_bond = 0.0282 로 관성 무시 기준(1e-2)을 2.82배 넘긴다. ζ=2.98 로 과감쇠 조건은 만족하고, chain-bend-2d-oscill 이 훨씬 심한 ζ=0.65 에서 OverdampedViscous vs Langevin(kT=0) 대조로 영향 0.159% 를 실측했다 — 하지만 **이 계에서 그 대조를 직접 한 것은 아니다.** 구조 관측량이 예상과 어긋나면 여기를 먼저 의심할 것. (chain-bend-2d-dlvo 도 같은 값·같은 미검증 상태다 — 같은 입자·같은 결합이므로)",
+      "★ 압축이 '아핀 압축'인지 '준정적'인지는 T_stage/τ_esc 로 갈린다. 파일럿의 T_stage=1e-3 τ_B 는 비 0.0085 로 **확산이 개입하지 않는** 쪽이다 — 구조가 압축 전 배치의 아핀 상이라는 뜻일 수 있다. A8(압축 속도 무관성)을 재기 전에는 '겔화했다'고 말하지 말 것",
+      "2단계의 굽힘 구현(force.Custom 26배 느림)이 N=1528·ω스윕에서 감당되는지 미측정"
+    ]
+  },
+  "reference": {
+    "strategy": "thermal",
+    "rationale": "d·kT·τ_B 열 기준. HOOMD 에서 σ=kT=γ=1 이 되고, 압축은 박스만 바뀐다.",
+    "length": {
+      "symbol": "d",
+      "value": 1.47e-06,
+      "unit": "meter"
+    },
+    "time": {
+      "symbol": "tau_B",
+      "value": 6.151034378734867,
+      "unit": "second"
+    },
+    "energy": {
+      "symbol": "kT",
+      "value": 4.141947e-21,
+      "unit": "kilogram * meter ** 2 / second ** 2"
+    }
+  },
+  "back_transform": {
+    "sigma_SI": 1.47e-06,
+    "sigma_SI_unit": "meter",
+    "tau_SI": 6.151034378734867,
+    "tau_SI_unit": "second",
+    "energy_SI": 4.141947e-21,
+    "energy_SI_unit": "kilogram * meter ** 2 / second ** 2"
+  },
+  "ledger": {
+    "lengths": [
+      {
+        "symbol": "d",
+        "value": 1.47e-06,
+        "unit": "meter",
+        "note": "입자 지름 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "ell",
+        "value": 1.4811611078291093e-06,
+        "unit": "meter",
+        "note": "DLVO 결합길이 (중심간, 자연장)",
+        "role": "",
+        "star": true,
+        "reduced": 1.0075925903599383
+      },
+      {
+        "symbol": "h_min",
+        "value": 1.1161107829109314e-08,
+        "unit": "meter",
+        "note": "2차극소 표면간극",
+        "role": "",
+        "star": false,
+        "reduced": 0.007592590359938309
+      },
+      {
+        "symbol": "h_edge",
+        "value": 2.6505286449160816e-08,
+        "unit": "meter",
+        "note": "결합 판정 경계 (U=well/2)",
+        "role": "",
+        "star": false,
+        "reduced": 0.018030807108272665
+      },
+      {
+        "symbol": "sigma_bond",
+        "value": 1.43981888577389e-09,
+        "unit": "meter",
+        "note": "결합 열요동 폭",
+        "role": "",
+        "star": false,
+        "reduced": 0.0009794686297781565
+      },
+      {
+        "symbol": "lambda_D",
+        "value": 1.7617731702205684e-09,
+        "unit": "meter",
+        "note": "Debye 길이",
+        "role": "",
+        "star": false,
+        "reduced": 0.0011984851498099106
+      },
+      {
+        "symbol": "r_cut",
+        "value": 1.5582e-06,
+        "unit": "meter",
+        "note": "페어 표 컷오프",
+        "role": "",
+        "star": false,
+        "reduced": 1.06
+      },
+      {
+        "symbol": "L0",
+        "value": 3.4919139308811044e-05,
+        "unit": "meter",
+        "note": "초기 박스 (φ=0.020)",
+        "role": "",
+        "star": false,
+        "reduced": 23.754516536606154
+      },
+      {
+        "symbol": "L",
+        "value": 2.042083654841793e-05,
+        "unit": "meter",
+        "note": "박스 한 변 (압축 후, φ=0.100)",
+        "role": "box",
+        "star": false,
+        "reduced": 13.891725543141451
+      }
+    ],
+    "times": [
+      {
+        "symbol": "tau_B",
+        "value": 6.151034378734867,
+        "unit": "second",
+        "note": "브라운 시간 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "tau_p",
+        "value": 1.6646180963572265e-07,
+        "unit": "second",
+        "note": "관성 이완",
+        "role": "inertia",
+        "star": false,
+        "reduced": 2.7062409244729374e-08
+      },
+      {
+        "symbol": "tau_bond",
+        "value": 5.901048940163355e-06,
+        "unit": "second",
+        "note": "★ DLVO 결합 신축 — 최속 모드",
+        "role": "",
+        "star": true,
+        "reduced": 9.593587967194993e-07
+      },
+      {
+        "symbol": "tau_esc",
+        "value": 0.7226138253063888,
+        "unit": "second",
+        "note": "★ 결합 탈출 (가역 겔의 구조 이완)",
+        "role": "",
+        "star": true,
+        "reduced": 0.11747842408499344
+      },
+      {
+        "symbol": "T_stage",
+        "value": 0.06151034378734867,
+        "unit": "second",
+        "note": "압축 한 단계의 물리 시간",
+        "role": "",
+        "star": false,
+        "reduced": 0.01
+      },
+      {
+        "symbol": "T_compress",
+        "value": 10.948841194148063,
+        "unit": "second",
+        "note": "압축 전체 (178 단계)",
+        "role": "",
+        "star": false,
+        "reduced": 1.78
+      },
+      {
+        "symbol": "dt",
+        "value": 5.9010489401633553e-08,
+        "unit": "second",
+        "note": "적분 스텝",
+        "role": "dt",
+        "star": false,
+        "reduced": 9.593587967194994e-09
+      },
+      {
+        "symbol": "T_obs",
+        "value": 13.409254945642008,
+        "unit": "second",
+        "note": "관측창 (응집+압축+후이완)",
+        "role": "observation",
+        "star": false,
+        "reduced": 2.1799999999999997
+      }
+    ],
+    "energies": [
+      {
+        "symbol": "kT",
+        "value": 4.141947e-21,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "열에너지 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "well_depth",
+        "value": 4.852498052855894e-20,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "2차극소 깊이 (부호 반대)",
+        "role": "",
+        "star": false,
+        "reduced": 11.715500108658787
+      },
+      {
+        "symbol": "barrier",
+        "value": 1.7246648532999056e-18,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "DLVO 장벽",
+        "role": "",
+        "star": false,
+        "reduced": 416.38988941671766
+      },
+      {
+        "symbol": "k_bond_d2",
+        "value": 4.317411811058878e-15,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "결합 신축 강성 × d²",
+        "role": "",
+        "star": false,
+        "reduced": 1042362.8817700656
+      }
+    ]
+  },
+  "ledger_absent": {},
+  "groups": [
+    {
+      "name": "phi_final",
+      "value": 0.1,
+      "expr": "N(π/6)d³/L³",
+      "meaning": "부피분율 — 성긴 겔",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "well_depth/kT",
+      "value": 11.715500108658787,
+      "expr": "",
+      "meaning": "★ 11.7 → 결합이 가역 (τ_esc = 0.115 τ_B)",
+      "num": [
+        "energies",
+        "well_depth"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "barrier/kT",
+      "value": 416.38988941671766,
+      "expr": "",
+      "meaning": "1차극소 전이 사실상 불가능",
+      "num": [
+        "energies",
+        "barrier"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "k_bond_star",
+      "value": 1042362.8817700656,
+      "expr": "",
+      "meaning": "결합 신축 강성 — dt 를 정한다",
+      "num": [
+        "energies",
+        "k_bond_d2"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    },
+    {
+      "name": "tau_bond/tau_B",
+      "value": 9.593587967194993e-07,
+      "expr": "",
+      "meaning": "★ 척도 분리 6자릿수 — dt 비용의 근원",
+      "num": [
+        "times",
+        "tau_bond"
+      ],
+      "den": [
+        "times",
+        "tau_B"
+      ]
+    },
+    {
+      "name": "tau_esc/tau_B",
+      "value": 0.11747842408499344,
+      "expr": "",
+      "meaning": "결합 재배열 / 확산 — 압축 준정적성의 기준",
+      "num": [
+        "times",
+        "tau_esc"
+      ],
+      "den": [
+        "times",
+        "tau_B"
+      ]
+    },
+    {
+      "name": "T_stage/tau_esc",
+      "value": 0.08512201349215569,
+      "expr": "",
+      "meaning": "★ ≥1 이면 준정적 압축, ≪1 이면 아핀 압축 (다른 물리)",
+      "num": [
+        "times",
+        "T_stage"
+      ],
+      "den": [
+        "times",
+        "tau_esc"
+      ]
+    },
+    {
+      "name": "ell/d",
+      "value": 1.0075925903599383,
+      "expr": "",
+      "meaning": "결합길이 / 지름",
+      "num": [
+        "lengths",
+        "ell"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "L/d",
+      "value": 13.891725543141451,
+      "expr": "",
+      "meaning": "압축 후 박스 (전파 유효반경 L/2)",
+      "num": [
+        "lengths",
+        "L"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "eps_max",
+      "value": 0.003988628913914027,
+      "expr": "(L0/L1−1)/n_stages",
+      "meaning": "★ 압축 단계당 최대 선형변형",
+      "num": null,
+      "den": null
+    }
+  ],
+  "checks": [
+    {
+      "kind": "적분",
+      "name": "dt / tau_fast",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "모델",
+      "name": "참고: τ_p/τ_bond",
+      "value": 0.028208850887976974,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": false,
+      "margin": 0.3544986656745436,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "모델",
+      "name": "결합 안정  σ_bond/h_min",
+      "value": 0.1290032233197044,
+      "limit": 0.5,
+      "op": "<=",
+      "ok": true,
+      "margin": 3.87587214592977,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "r_cut / (L/2)",
+      "value": 0.15260883130869768,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 6.55270072789691,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "lambda_D / (L/4)",
+      "value": 0.0003450932416100375,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2897.7675579344454,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "ell / (L/2)",
+      "value": 0.14506370533031465,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 6.893523074727536,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "eps_max / eps_crit",
+      "value": 0.5672652579057618,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.7628437244540847,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "N",
+      "value": 512.0,
+      "limit": 512.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "T_stage / tau_bond",
+      "value": 10423.628817700657,
+      "limit": 10.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 1042.3628817700658,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "유한크기",
+      "name": "L / ell",
+      "value": 13.787046149455072,
+      "limit": 8.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 1.723380768681884,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "verdict": "PASS (경고 1건)",
+  "params": {
+    "n_particles": 512,
+    "phi0": 0.02,
+    "phi1": 0.1,
+    "L0_star": 23.754516536606154,
+    "L1_star": 13.891725543141451,
+    "n_stages": 178,
+    "eps_max": 0.003988628913914027,
+    "eps_crit": 0.007031329450069455,
+    "kappa_star": 834.386642303084,
+    "edl_amp": 1239.9410533105035,
+    "vdw_amp": 0.211253306717831,
+    "a_star": 0.5,
+    "cutoff_h_star": 0.06,
+    "h_min_star": 0.00759259035993831,
+    "h_edge_star": 0.018030807108272665,
+    "r_bond_star": 1.0180308071082727,
+    "well_depth_star": -11.715500108658787,
+    "barrier_star": 416.38988941671766,
+    "k_bond_star": 1042362.8817700658,
+    "tau_esc_star": 0.11747842408499344,
+    "stage_tau": 0.01,
+    "agg_tau": 0.2,
+    "post_tau": 0.2,
+    "stage": 1,
+    "jkr": false,
+    "drive": "none"
+  },
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 0,
+    "n_prod": 227235130,
+    "n_agg": 20847258,
+    "n_stage": 1042363,
+    "n_post": 20847258,
+    "n_samples": 200,
+    "sample_every": 1136175,
+    "seed": 1
+  },
+  "l3_issues": []
+}

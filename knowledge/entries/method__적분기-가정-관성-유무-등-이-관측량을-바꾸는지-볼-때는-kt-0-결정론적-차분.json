@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "검정력",
+    "결정론",
+    "kT=0",
+    "적분기",
+    "관성"
+  ],
+  "dimensionless": {
+    "det_diff_pct": 0.159
+  },
+  "source": "scratch/verify_chain_bend_gates.py#관문B′",
+  "lessons": [
+    {
+      "claim": "적분기 가정(관성 유무 등)이 관측량을 바꾸는지 볼 때는 **kT=0 결정론적 차분**이 열적 비교보다 압도적으로 강하다. chain-bend 에서 Brownian vs Langevin(kT=1) 은 3σ 로 47~51% 미만 차이를 배제할 수 없었는데(관측된 K″ 차이 18~19% — 판정 불가), OverdampedViscous vs Langevin(kT=0) 은 통계오차가 0 이라 7개 ω 전부에서 최대 **0.159%** 로 결판났다. ★ 잡음이 없으면 SNR 문제가 사라지고, 두 적분기가 같은 과도를 공유하므로 공통모드가 상쇠된다. 열적 비교는 검정력을 먼저 계산하고 쓸 것.",
+      "kind": "method_note",
+      "coords": {
+        "det_diff_pct": 0.159
+      }
+    }
+  ],
+  "not_verified": []
+}

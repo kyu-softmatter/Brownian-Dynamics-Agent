@@ -1,0 +1,201 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "chain-relax-2d-dlvo__n9-kink-a0.300__1e7b282680f2",
+  "case": "chain-relax-2d-dlvo",
+  "system_tags": [
+    "2D",
+    "dlvo_secondary_minimum",
+    "WCA_core",
+    "no_bending",
+    "no_friction",
+    "no_drive",
+    "chain",
+    "kink"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "n_beads": 9,
+    "init": "kink",
+    "kink_angle": 0.3
+  },
+  "dimensionless": {
+    "k_bond_star": 1042362.8817700658,
+    "well_depth/kT": 11.715500108658787,
+    "sigma_bond/d": 0.0009794686297781565,
+    "n_beads": 9.0,
+    "kink_angle_rad": 0.3,
+    "dt/tau_bond": 0.01,
+    "T_obs/tau_bond": 3000.0000000000005,
+    "St": 0.028208850887976974
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\ucc38\uace0: \u03c4_p/\u03c4_bond",
+      "value": 0.028208850887976974,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": false,
+      "margin": 0.3544986656745436,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\uacb0\ud569 \uc2e0\uc7a5 \ud574\uc0c1 dt/\u03c4_bond",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d \ucda9\ubd84     T_obs/\u03c4_bond",
+      "value": 3000.0000000000005,
+      "limit": 1000.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 3.0000000000000004,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ud0b9\ud06c NNN \uac04\uadf9(\ucd08\uae30) vs \ucef7\uc624\ud504",
+      "value": 0.9925568233811306,
+      "limit": 0.06,
+      "op": ">=",
+      "ok": true,
+      "margin": 16.542613723018842,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "\uacb0\ud569 \uc2e0\uc7a5 \ub4f1\ubd84\ubc30 \u27e8\u03b4\u2113*\u00b2\u27e9",
+      "measured": 3.512585048303873e-06,
+      "predicted": 4.382352866628466e-06,
+      "unit": "d\u00b2",
+      "err_pct": -19.847051225561007,
+      "err_sigma": -2.3192599052111786,
+      "sigma": 3.750195553203412e-07,
+      "prediction_source": "boltzmann_integral",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 8.0,
+      "tol_sigma": null,
+      "note": "\uc608\uce21 = \uc6b0\ubb3c(basin) \ube44\uc870\ud654 \ubcfc\uce20\ub9cc \uc801\ubd84(\uc815\ud655). \ucc38\uace0: \uc870\ud654\uadfc\uc0ac kT*/k_bond*=9.594e-07 \ub294 \uc774 \uac12\uc758 1/4.57 \ubfd0 \u2014 \uc870\ud654\uadfc\uc0ac\ub97c \uc608\uce21\uc73c\ub85c \uc4f0\uba74 \uc548 \ub41c\ub2e4(\uccb4\uc81c \ud310\uc815\uc6a9\uc73c\ub85c\ub9cc)"
+    },
+    {
+      "name": "\uad7d\ud798\uac01 \uc5f4\uc694\ub3d9 \u27e8d\u03b8\u00b2\u27e9",
+      "measured": 0.040477390617522715,
+      "predicted": null,
+      "unit": "rad\u00b2",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "G1(\uc120\ud615\uac15\uc131=0)\uc758 \uc9c1\uc811 \uacb0\uacfc \u2014 \uc694\ub3d9 \ud3ed \uc790\uccb4\ub294 \uc608\uce21\uc774 \uc5c6\ub2e4(2\ucc28 \uc774\uc0c1 \ud56d\u00b7\ubc30\uc81c\ubd80\ud53c\uac00 \uc9c0\ubc30). \u03ba_\u03b8,eff=1/\u27e8d\u03b8\u00b2\u27e9 \ub85c \ub4f1\ubd84\ubc30\ub97c \uac00\uc815\ud558\uba74 24.7 kT/rad\u00b2 \u2014 \ucc38\uace0\uc6a9 \uc22b\uc790\uc77c \ubfd0 \uc870\ud654 \ubaa8\ub4dc\ub77c\ub294 \ub73b\uc740 \uc544\ub2c8\ub2e4"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 0,
+    "n_prod": 300000,
+    "n_samples": 2000,
+    "sample_every": 150,
+    "seed": 1,
+    "steps_done": 300000,
+    "step_drift_max_sigma": 0.00010266503988926991,
+    "f_max_kT_per_sigma": 10701.422683601813
+  },
+  "wall_seconds": 0.3526449203491211,
+  "steps_per_second": 850714.0828882429,
+  "l4": {
+    "status": "ok",
+    "n_samples": 2000,
+    "warnings": [],
+    "pe_mean": -8.242680118139619,
+    "pe_std": 0.3031180296580558,
+    "phases": {
+      "release": {
+        "status": "ok",
+        "n_samples": 2000,
+        "warnings": [],
+        "pe_mean": -8.242680118139619,
+        "pe_std": 0.3031180296580558,
+        "steps": 300000,
+        "expect_steady": false
+      }
+    },
+    "run_id": "chain-relax-2d-dlvo__n9-kink-a0.300__1e7b282680f2",
+    "wall_seconds": 0.3526449203491211,
+    "steps_done": 300000,
+    "steps_planned": 300000,
+    "trip": null,
+    "guard_samples": 2000,
+    "f_max_last": 4023.264930354008,
+    "step_disp_last": 3.859754602468181e-05,
+    "f_max_seen": 10701.422683601813,
+    "step_disp_seen": 0.00010266503988926991
+  },
+  "result": {
+    "dtheta_var": 0.040477390617522715,
+    "dl_var": 3.512585048303873e-06,
+    "dl_var_sem": 3.750195553203412e-07,
+    "dl_var_pred": 4.382352866628466e-06,
+    "k_bond_star": 1042362.8817700658,
+    "ell_star": 1.0075925903599383,
+    "min_sep": 1.0051390260292337,
+    "nnn_min": 0.973068340108874,
+    "bow_initial": 0.3339606913613895,
+    "bow_final_rms": 0.3134146616167118,
+    "bow_final_sem": 0.0013196214936319977,
+    "post_checks": [
+      {
+        "kind": "\uae30\ud558",
+        "name": "\ud45c \ud558\ud55c \uc5ec\uc720 r_table_min/min_sep",
+        "value": 0.9948882434208814,
+        "limit": 1.0,
+        "op": "<=",
+        "ok": true,
+        "margin": 1.0051380208912128,
+        "hard": true,
+        "phase": "post_run",
+        "note": "pair.Table \ud568\uc815 11: r<r_min \uc774\uba74 \ud798\uc774 0. \uce21\uc815 \ucd5c\uc18c \uacb0\ud569\uae38\uc774 1.0051"
+      },
+      {
+        "kind": "\uae30\ud558",
+        "name": "NNN \uac04\uadf9 \ucd5c\uc18c(\ub7f0 \uc804\uccb4) vs \ucef7\uc624\ud504",
+        "value": 0.973068340108874,
+        "limit": 0.06,
+        "op": ">=",
+        "ok": true,
+        "margin": 16.217805668481233,
+        "hard": false,
+        "phase": "post_run",
+        "note": "\ub7f0 \ub3c4\uc911 2\uacb0\ud569 \uac74\ub108 \ube44\ub4dc\uac00 DLVO \ucef7\uc624\ud504 \uc548\uc73c\ub85c \ub4e4\uc5b4\uc628 \uc801\uc774 \uc788\ub294\uc9c0 (\ub4e4\uc5b4\uc624\uba74 '\uc0bc\uac01\ud615\ud615' \uad6d\uc18c \uc811\ud798 \ud6c4\ubcf4 \u2014 \uc2e4\ud328 \uc544\ub2c8\ub77c \uad00\ucc30 \ub300\uc0c1)"
+      }
+    ],
+    "post_checks_ok": true
+  }
+}

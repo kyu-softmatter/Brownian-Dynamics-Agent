@@ -1,0 +1,35 @@
+{
+  "run_id": "2026-07-28_cli-e2e-test",
+  "spec_hash": "cb5e6ce29cd6f2cfc5a82ea1c4ba564a3e229c0f4263b013dfd56f2a44096c16",
+  "seed": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "code_hash": "ad9a21d4efe3",
+  "git_rev": "ad82bdb",
+  "git_dirty": true,
+  "env_hash": "eaf847c12616",
+  "env": {
+    "python": "3.12.13",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "hoomd": "7.1.0",
+    "numpy": "2.5.1",
+    "scipy": "1.18.0",
+    "gsd": "5.0.1",
+    "freud": "3.5.0"
+  },
+  "sealed": {
+    "runs/2026-07-28_cli-e2e-test/02_prediction.md": "4606cc943ac2583826be10cdde8b90f304bb077c7a12b99942de89f91334c716",
+    "runs/2026-07-28_cli-e2e-test/03_spec.yaml": "0a4b56044af17d43ca2a59cf16e08b135bfd1a06caf10fd6e15f74714e4743ac"
+  },
+  "batch": {
+    "failed": [],
+    "n_requested": 4,
+    "batch_wall_s": 2.328,
+    "concurrency": 4
+  },
+  "wall_s_measured": 2.328,
+  "wall_s_estimated": 1.716
+}

@@ -1,0 +1,83 @@
+{
+  "A0.1": {
+    "amplitude": 0.1,
+    "n_seeds": 254,
+    "tau": 0.029752766584900007,
+    "tau_se_fit": 0.0006951714319557994,
+    "tau_se_bootstrap": 0.0009968714132012424,
+    "tau_ci95": [
+      0.028193913250913607,
+      0.03183980746184757
+    ],
+    "se_ratio_bootstrap_over_fit": 1.4339936415347772,
+    "bootstrap_converged": 400,
+    "relax_amplitude": -0.14259540517559133,
+    "relax_converged": true,
+    "relax_note": "",
+    "r_squared": 0.948487241089405,
+    "defect_frame_sd": 0.0032123412963490183,
+    "defect_at_t0": 0.50748031496063,
+    "defect_tail_mean": 0.6462474302781117
+  },
+  "A1": {
+    "amplitude": 1.0,
+    "n_seeds": 254,
+    "tau": 0.036715265641816576,
+    "tau_se_fit": 0.002714494486140796,
+    "tau_se_bootstrap": 0.0042041359387863485,
+    "tau_ci95": [
+      0.029564398367337444,
+      0.046691735918548624
+    ],
+    "se_ratio_bootstrap_over_fit": 1.5487730626277232,
+    "bootstrap_converged": 400,
+    "relax_amplitude": -0.04660754866339145,
+    "relax_converged": true,
+    "relax_note": "",
+    "r_squared": 0.6471471413421418,
+    "defect_frame_sd": 0.0034397805046743235,
+    "defect_at_t0": 0.50748031496063,
+    "defect_tail_mean": 0.5544435824832241
+  },
+  "comparison_bootstrap": {
+    "diff": 0.006962499056916569,
+    "se_diff": 0.004320707303932171,
+    "sigma": 1.6114257613748024
+  },
+  "comparison_fit": {
+    "diff": 0.006962499056916569,
+    "se_diff": 0.002802096292973577,
+    "sigma": 2.484746535790169
+  },
+  "_provenance_at_analysis": {
+    "code_hash": "120a88adaf74",
+    "git_rev": "16381f3",
+    "git_dirty": true,
+    "env_hash": "eaf847c12616",
+    "env": {
+      "python": "3.12.13",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "hoomd": "7.1.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.0",
+      "gsd": "5.0.1",
+      "freud": "3.5.0"
+    },
+    "driver": [
+      "scripts/soft2d_relax_seeds.py",
+      "scripts/soft2d_time_series.py"
+    ],
+    "drivers": {
+      "scripts/soft2d_relax_seeds.py": "360639812f04",
+      "scripts/soft2d_time_series.py": "0c7e64b77244"
+    },
+    "driver_hash": "2081aa235e0c"
+  },
+  "_design_power": {
+    "k": 256,
+    "sigma_expected_at_k": 4.188334774670895,
+    "sigma_at_64": 2.0941673873354474,
+    "k_for_3sigma": 137,
+    "t_quantile": 3.056376985517616
+  }
+}

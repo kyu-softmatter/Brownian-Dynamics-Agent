@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "시간척도",
+    "고유값",
+    "De",
+    "평형화",
+    "L3"
+  ],
+  "dimensionless": {
+    "tau_max_over_tau_chain": 9.18
+  },
+  "source": "cases/chain_bend_2d.py#build_ledger lam_min",
+  "lessons": [
+    {
+      "claim": "★★ 다체 계의 지배(최장) 이완시간은 대표 강성으로 만든 γ/κ 가 아니라 **강성 행렬의 최저 고유값** γ/λ_min 이다. chain-bend 는 τ_chain = γ/κ_center 를 지배 척도로 썼는데 τ_max = γ/λ_min 이 9.18배 길다 (λ_min=526.4 vs κ_center=4830.7 kT/d²). 두 가지가 동시에 틀어졌다 — (a) De 가 9.18배 과소평가되어 'De 0.1~10 스윕'이 실제로는 0.99~91.8 이라 준정적 고원에 **아예 들어가지 못했다** (스케치가 요구한 포화 곡선을 낼 수 없는 스윕이었다) (b) 평형화 20 τ_chain = 2.2 τ_max 로 부족해 잔여 과도가 11% 남고 K* 가 최대 21% 틀렸다. 실측 확인: 평형화를 10 τ_max 로 늘리니 블록 산포가 **1000배** 줄고 (σ 5785→0.7) K′ 이 21% 이동했다. λ_max 로 dt 를 정하면서 λ_min 을 보지 않는 것이 함정 — 같은 고유값 분해에서 공짜로 나온다.",
+      "kind": "scaling",
+      "coords": {
+        "tau_max_over_tau_chain": 9.18
+      }
+    }
+  ],
+  "not_verified": []
+}

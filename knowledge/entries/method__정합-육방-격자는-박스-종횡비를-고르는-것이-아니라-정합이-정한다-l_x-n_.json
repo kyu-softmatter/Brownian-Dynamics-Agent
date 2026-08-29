@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "lattice",
+    "commensurate",
+    "hexagonal",
+    "box"
+  ],
+  "dimensionless": {
+    "N": 306.0
+  },
+  "source": "cases/trap_drag_2d.py#build_ledger",
+  "lessons": [
+    {
+      "claim": "정합 육방 격자는 박스 종횡비를 **고르는 것이 아니라 정합이 정한다**. L_x=n_x·a_NN, L_y=n_y·(√3/2)a_NN, N=n_x·n_y, n_y 짝수(엇갈린 행의 주기가 2행). 정사각 L=a_mean√N 은 φ 만 맞고 이음매에서 격자가 안 맞아 결함이 주입된다. trap-drag 는 N~300 → 17×18=306 (종횡비 1.091, 대안 15×20=300/0.866 · 16×18=288/1.026). ★ 끌기 방향은 최근접(행) 방향으로 — 행에 수직으로 끌면 공간 주기가 2행=√3 a_NN 이 되어 같은 박스에서 주기 수가 17→10 으로 준다.",
+      "kind": "pitfall",
+      "coords": {
+        "N": 306.0
+      }
+    }
+  ],
+  "not_verified": []
+}

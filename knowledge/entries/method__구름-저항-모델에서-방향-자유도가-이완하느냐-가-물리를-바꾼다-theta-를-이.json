@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "contact",
+    "rolling",
+    "frequency",
+    "orientation"
+  ],
+  "dimensionless": {
+    "omega_c_star": 8347000.0
+  },
+  "source": "scratch/verify_rolling_contact.py#G5",
+  "lessons": [
+    {
+      "claim": "구름 저항 모델에서 **방향 자유도가 이완하느냐**가 물리를 바꾼다. theta 를 이완시키면 곡률(theta_bend)을 벌하지만, theta 를 얼리면 결합의 **절대 회전** phi_k 를 벌한다(U_r = k_r R^2 sum phi_k^2) — 3점 굽힘 강성이 (n^2-2n+3)/3 배 뻣뻣해진다 (실측 n=5/9/15 → 6.0000/22.0002/66.0003, 닫힌 형태와 일치). 교차 주파수는 omega_c = 1/tau_rot, tau_rot = gamma_r/(k_r R^2). chain-bend-2d-dlvo 값(gamma_r=4a^2/3=1/3, k_r=1.113e7, R=0.5)으로 tau_rot=1.198e-7 이라 omega_c=8.35e6 이고, 생산 런의 omega*=18453 에서는 omega*tau_rot=2.2e-3 ≪1 — **준정적이라 조화굽힘과 구별되지 않는다**. 즉 이 계에서 구름 저항 구현은 결론을 바꾸지 않고 메커니즘을 명시적으로 만들 뿐이다(대신 M_c 항복을 얹을 자리가 생긴다).",
+      "kind": "method_note",
+      "coords": {
+        "omega_c_star": 8347000.0
+      }
+    }
+  ],
+  "not_verified": []
+}

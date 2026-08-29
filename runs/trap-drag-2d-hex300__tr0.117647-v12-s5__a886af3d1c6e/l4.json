@@ -1,0 +1,71 @@
+{
+  "status": "ok",
+  "n_samples": 2692,
+  "warnings": [
+    "[예열] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.1222 kT = 3.9·블록SEM (기준 3). 평형화가 부족합니다",
+    "[끌기] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.6149 kT = 7.4·블록SEM (기준 3). 평형화가 부족합니다"
+  ],
+  "pe_mean": 105.914204554187,
+  "pe_std": 0.391475731825624,
+  "phases": {
+    "예열": {
+      "status": "ok",
+      "n_samples": 22,
+      "warnings": [
+        "[예열] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.1222 kT = 3.9·블록SEM (기준 3). 평형화가 부족합니다"
+      ],
+      "pe_mean": 105.24972255958545,
+      "pe_std": 0.11184916745189427,
+      "drift": 0.12217100351685417,
+      "drift_sem": 0.0313705132382711,
+      "drift_sigma": 3.894453450248597,
+      "steps": 218349,
+      "expect_steady": true
+    },
+    "평형": {
+      "status": "ok",
+      "n_samples": 201,
+      "warnings": [],
+      "pe_mean": 105.35527384429561,
+      "pe_std": 0.052516066007155554,
+      "drift": 0.0033132330033822655,
+      "drift_sem": 0.009965124447022607,
+      "drift_sigma": 0.3324828526724719,
+      "steps": 436699,
+      "expect_steady": true
+    },
+    "끌기": {
+      "status": "ok",
+      "n_samples": 2090,
+      "warnings": [
+        "[끌기] ⟨U⟩/N 이 표류합니다: 후반−전반 = +0.6149 kT = 7.4·블록SEM (기준 3). 평형화가 부족합니다"
+      ],
+      "pe_mean": 106.0279836445218,
+      "pe_std": 0.36409235762219744,
+      "drift": 0.614888022475796,
+      "drift_sem": 0.08324154225783978,
+      "drift_sigma": 7.386792769542724,
+      "steps": 33440,
+      "expect_steady": true
+    },
+    "이완": {
+      "status": "ok",
+      "n_samples": 401,
+      "warnings": [],
+      "pe_mean": 105.60135361625292,
+      "pe_std": 0.12076721982550931,
+      "steps": 873397,
+      "expect_steady": false
+    }
+  },
+  "run_id": "trap-drag-2d-hex300__tr0.117647-v12-s5__a886af3d1c6e",
+  "wall_seconds": 480.6872179508209,
+  "steps_done": 1561885,
+  "steps_planned": 1561885,
+  "trip": null,
+  "guard_samples": 2714,
+  "f_max_last": 94.91722010911721,
+  "step_disp_last": 1.5725683803171915e-05,
+  "f_max_seen": 2005.3812108896368,
+  "step_disp_seen": 0.0003322473076120281
+}

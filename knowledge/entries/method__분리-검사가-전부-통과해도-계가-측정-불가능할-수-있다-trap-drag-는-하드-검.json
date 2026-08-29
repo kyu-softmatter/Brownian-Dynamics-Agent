@@ -1,0 +1,30 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "microrheology",
+    "statistics",
+    "trap",
+    "drag"
+  ],
+  "dimensionless": {
+    "SNR": 0.0985
+  },
+  "source": "cases/trap_drag_2d.py#analyze_scales",
+  "lessons": [
+    {
+      "claim": "분리 검사가 전부 통과해도 계가 측정 불가능할 수 있다. trap-drag 는 하드 검사 7종을 통과하는데 끌림 지연 Δr_ss=γv/k_t=2.0nm 가 트랩 열요동 ℓ_k=20.4nm 의 1/10 이라(SNR=0.0985) 한 번 횡단(독립표본 T_obs/2τ_k=32,350)의 ⟨F_drag⟩ 정밀도가 5.6%(목표 2%)다. L3에 '측정가능성 SNR'과 '목표 정밀도 SEM/신호' 를 통계 검사로 넣어야 실행 전에 보인다 — 분리 검사만으로는 안 보인다.",
+      "kind": "method_note",
+      "coords": {
+        "SNR": 0.0985
+      }
+    }
+  ],
+  "not_verified": [
+    "해석식(SEM=ℓ_k/√n) 기반 예측. 런으로 확인 안 함"
+  ]
+}

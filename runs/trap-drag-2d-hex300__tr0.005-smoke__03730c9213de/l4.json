@@ -1,0 +1,18 @@
+{
+  "status": "ok",
+  "n_samples": 40,
+  "warnings": [],
+  "pe_mean": 105.55349699404942,
+  "pe_std": 0.03649970709423055,
+  "drift": 0.0057878282293160055,
+  "drift_sem": 0.007875829921191884,
+  "drift_sigma": 0.7348848676559674,
+  "run_id": "trap-drag-2d-hex300__tr0.005-smoke__03730c9213de",
+  "wall_seconds": 78.02094101905823,
+  "steps_done": 470779,
+  "steps_planned": 470779,
+  "trip": null,
+  "guard_samples": 84,
+  "f_max_last": 128.30457671221987,
+  "step_disp_last": 2.125723026397797e-05
+}

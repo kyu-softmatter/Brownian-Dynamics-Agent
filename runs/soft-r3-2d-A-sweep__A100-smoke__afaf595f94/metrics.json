@@ -1,0 +1,238 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "soft-r3-2d-A-sweep__A100-smoke__afaf595f94",
+  "case": "soft-r3-2d-A-sweep",
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 144,
+    "A": 100.0,
+    "phi": 0.35,
+    "r_c_star": 7.489984567013703,
+    "L_star": 17.975962960832888
+  },
+  "dimensionless": {
+    "Gamma": 29.748648790272707,
+    "A": 100.0,
+    "U(d)/kT": 101.0,
+    "phi": 0.35,
+    "a_mean/d": 1.4979969134027407,
+    "L/d": 17.975962960832888,
+    "r_c/d": 7.489984567013703,
+    "r_c/a_mean": 5.0,
+    "dt/tau_int": 0.009999999999999998,
+    "T_obs/tau_B": 3.0000000000000004,
+    "St": 1.3485336132119386e-08
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\uad00\uc131 \ubb34\uc2dc    \u03c4_p/\u03c4_int",
+      "value": 3.72773759128525e-06,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 2682.5922573998023,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\uc0c1\ud638\uc791\uc6a9 \ud574\uc0c1 dt/\u03c4_int",
+      "value": 0.009999999999999998,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0000000000000002,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucef7\uc624\ud504       r_c/(L/2)",
+      "value": 0.8333333333333334,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.2,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucf54\uc5b4 \uc5ec\uc720    r_table_min/r_min",
+      "value": 0.37277816532214714,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2.6825605494780542,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d       T_obs/\u03c4_B",
+      "value": 3.0000000000000004,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": false,
+      "margin": 0.030000000000000006,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "\uc5d0\ub108\uc9c0 \uc77c\uad00\uc131 \u27e8U\u27e9/N",
+      "measured": 105.49394751438558,
+      "predicted": 105.50167613429537,
+      "unit": "kT",
+      "err_pct": -0.007325589690107105,
+      "prediction_source": "consistency",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "\u27e8U\u27e9/N = (\u03c1/2)\u222bU(r)g(r)2\u03c0r dr \ub294 g(r)\uc774 \ubb34\uc5c7\uc774\ub4e0 \uc131\ub9bd\ud558\ub294 \ud56d\ub4f1\uc2dd(\ud3c9\uade0\uc7a5\u00b7\ud76c\ubc15 \uadfc\uc0ac\uac00 \uc544\ub2c8\ub2e4) \u2014 \uacb0\uc815/\uc720\uccb4 \uc5b4\ub290 \uad6c\uc870\uc5d0\ub3c4 \uadf8\ub300\ub85c \uc62e\uaca8\uc628\ub2e4",
+      "tol_pct": 2.0,
+      "note": "consistency: HOOMD \ud798 \ud569 vs (\u03c1/2)\u222bU g(r) 2\u03c0r dr"
+    },
+    {
+      "name": "\uc721\ubc29 NN \uac70\ub9ac",
+      "measured": 1.6170097932219505,
+      "predicted": 1.6097024411070593,
+      "unit": "d",
+      "err_pct": 0.4539567020762935,
+      "prediction_source": "lattice",
+      "role": "hypothesis",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": 2.0,
+      "note": "lattice: a_NN = \u221a(2/\u221a3)\u00b7a_mean (\uc644\uc804 \uc721\ubc29). \u03c8\u2086>0.6 \uc77c \ub54c\ub9cc \uc801\uc6a9"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 3.6175658296457254e-05,
+    "dt_over_tau_int": 0.01,
+    "n_eq": 16586,
+    "n_prod": 82800,
+    "n_samples": 400,
+    "sample_every": 207,
+    "seed": 20260803,
+    "steps_done": 99386,
+    "step_drift_max_sigma": 0.00298791102303198,
+    "f_max_kT_per_sigma": 82.59451696901371
+  },
+  "wall_seconds": 20.23068404197693,
+  "steps_per_second": 4912.63665597182,
+  "l4": {
+    "status": "ok",
+    "n_samples": 400,
+    "warnings": [],
+    "pe_mean": 105.49394751438558,
+    "pe_std": 0.15683638309002623,
+    "phases": {
+      "\ud3c9\ud615\ud654": {
+        "status": "ok",
+        "n_samples": 2,
+        "warnings": [],
+        "pe_mean": 106.17447967811616,
+        "pe_std": 0.12030575526351583,
+        "steps": 16586,
+        "expect_steady": true
+      },
+      "\uc0dd\uc0b0": {
+        "status": "ok",
+        "n_samples": 400,
+        "warnings": [],
+        "pe_mean": 105.49394751438558,
+        "pe_std": 0.15683638309002623,
+        "drift": -0.07883614374850367,
+        "drift_sem": 0.02917359642498643,
+        "drift_sigma": 2.702311453139269,
+        "steps": 82800,
+        "expect_steady": true
+      }
+    },
+    "run_id": "soft-r3-2d-A-sweep__A100-smoke__afaf595f94",
+    "wall_seconds": 20.23068404197693,
+    "steps_done": 99386,
+    "steps_planned": 99386,
+    "trip": null,
+    "guard_samples": 402,
+    "f_max_last": 47.12083613622865,
+    "step_disp_last": 0.0017046272667075627,
+    "f_max_seen": 82.59451696901371,
+    "step_disp_seen": 0.00298791102303198
+  },
+  "result": {
+    "psi6": 0.885977310538292,
+    "psi6_sem": 0.008108756875590326,
+    "nn_distance_d": 1.6170097932219505,
+    "nn_std_rel": 0.06561220052894047,
+    "min_sep_d": 1.223821759223938,
+    "Gamma": 29.748648790272707,
+    "coord_hist": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.004704861111111111,
+      0.9905902777777778,
+      0.004704861111111111,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "state_predicted": "\uacb0\uc815",
+    "u_rms_rel_einstein": 0.05558422051871631,
+    "pe_mean": 105.49394751438558,
+    "pe_sem": 0.02917359642498643,
+    "pe_rdf": 105.50167613429537,
+    "post_checks": [
+      {
+        "kind": "\uae30\ud558",
+        "name": "\ud45c \ud558\ud55c \uc5ec\uc720  r_tab_min/min_sep",
+        "value": 0.408556226616746,
+        "limit": 1.0,
+        "op": "<=",
+        "ok": true,
+        "margin": 2.447643518447876,
+        "hard": true,
+        "phase": "post_run",
+        "note": "pair.Table \ud568\uc815 11: r<0.5d \uba74 \ud798\uc774 0. \uce21\uc815 \ucd5c\uc18c 1.224d"
+      },
+      {
+        "kind": "\uc801\ubd84",
+        "name": "\uc124\uacc4 r_min \uc900\uc218 r_min/min_sep",
+        "value": 1.0959768157656986,
+        "limit": 1.15,
+        "op": "<=",
+        "ok": true,
+        "margin": 1.0492922691950908,
+        "hard": true,
+        "phase": "post_run",
+        "note": "dt\ub294 r_min=1.341d \uc758 \uad6d\uc18c \uac15\uc131\uc5d0\uc11c \uc815\ud588\ub2e4. \uce21\uc815 \ucd5c\uc18c 1.224d \u2014 \ud06c\uac8c \uc548\ucabd\uc774\uba74 dt \uc7ac\uac80\ud1a0"
+      }
+    ],
+    "post_checks_ok": true
+  }
+}

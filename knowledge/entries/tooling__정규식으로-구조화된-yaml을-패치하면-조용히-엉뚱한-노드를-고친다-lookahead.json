@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "tooling",
+    "yaml"
+  ],
+  "dimensionless": {},
+  "source": "intake/abp-rod-2d-run-flip/observation.yaml (2026-08-04 사고)",
+  "lessons": [
+    {
+      "claim": "정규식으로 구조화된 YAML을 패치하면 조용히 엉뚱한 노드를 고친다. lookahead를 넣어도 D1의 resolution 자리에 R의 답이 들어갔다. 유일 앵커 문자열로 교체하고, 패치 후 반드시 파싱+중복 검사를 한다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "statistics",
+    "drift"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/stats.py stationarity",
+  "lessons": [
+    {
+      "claim": "시계열 판정(드리프트·오차막대)에는 자기상관 보정이 필수다. 보정 없이 t검정하면 전 구간 변화가 평균의 0.026% 인 런이 t=-3.3 으로 드리프트 판정된다. Sokal 자동창으로 n_eff를 구하고, 유의성과 크기를 함께 본다",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

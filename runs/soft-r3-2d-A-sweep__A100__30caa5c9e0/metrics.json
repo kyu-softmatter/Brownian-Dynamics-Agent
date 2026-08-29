@@ -1,0 +1,241 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "soft-r3-2d-A-sweep__A100__30caa5c9e0",
+  "case": "soft-r3-2d-A-sweep",
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 400,
+    "A": 100.0,
+    "phi": 0.35,
+    "r_c_star": 7.489984567013703,
+    "L_star": 29.959938268054813
+  },
+  "dimensionless": {
+    "Gamma": 29.748648790272707,
+    "A": 100.0,
+    "U(d)/kT": 101.0,
+    "phi": 0.35,
+    "a_mean/d": 1.4979969134027407,
+    "L/d": 29.959938268054813,
+    "r_c/d": 7.489984567013703,
+    "r_c/a_mean": 5.0,
+    "dt/tau_int": 0.009999999999999998,
+    "T_obs/tau_B": 100.0,
+    "St": 1.3485336132119386e-08
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\uad00\uc131 \ubb34\uc2dc    \u03c4_p/\u03c4_int",
+      "value": 3.72773759128525e-06,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 2682.5922573998023,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\uc0c1\ud638\uc791\uc6a9 \ud574\uc0c1 dt/\u03c4_int",
+      "value": 0.009999999999999998,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0000000000000002,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucef7\uc624\ud504       r_c/(L/2)",
+      "value": 0.5,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucf54\uc5b4 \uc5ec\uc720    r_table_min/r_min",
+      "value": 0.37277816532214714,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2.6825605494780542,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d       T_obs/\u03c4_B",
+      "value": 100.0,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "\uc5d0\ub108\uc9c0 \uc77c\uad00\uc131 \u27e8U\u27e9/N",
+      "measured": 105.510722899358,
+      "predicted": 105.51988675874172,
+      "unit": "kT",
+      "err_pct": -0.00868448561233858,
+      "prediction_source": "none",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "\u27e8U\u27e9/N = (\u03c1/2)\u222bU(r)g(r)2\u03c0r dr \ub294 g(r)\uc774 \ubb34\uc5c7\uc774\ub4e0 \uc131\ub9bd\ud558\ub294 \ud56d\ub4f1\uc2dd(\ud3c9\uade0\uc7a5\u00b7\ud76c\ubc15 \uadfc\uc0ac\uac00 \uc544\ub2c8\ub2e4) \u2014 \uacb0\uc815/\uc720\uccb4 \uc5b4\ub290 \uad6c\uc870\uc5d0\ub3c4 \uadf8\ub300\ub85c \uc62e\uaca8\uc628\ub2e4",
+      "tol_pct": 2.0,
+      "note": "consistency: HOOMD \ud798 \ud569 vs (\u03c1/2)\u222bU g(r) 2\u03c0r dr"
+    },
+    {
+      "name": "\uc721\ubc29 NN \uac70\ub9ac",
+      "measured": 1.6170154574513436,
+      "predicted": 1.6097024411070593,
+      "unit": "d",
+      "err_pct": 0.4543085826008196,
+      "prediction_source": "none",
+      "role": "hypothesis",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": 2.0,
+      "note": "lattice: a_NN = \u221a(2/\u221a3)\u00b7a_mean (\uc644\uc804 \uc721\ubc29). \u03c8\u2086>0.6 \uc77c \ub54c\ub9cc \uc801\uc6a9"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 3.6175658296457254e-05,
+    "dt_over_tau_int": 0.01,
+    "n_eq": 552858,
+    "n_prod": 2764000,
+    "n_samples": 400,
+    "sample_every": 6910,
+    "seed": 20260803,
+    "steps_done": 3316858,
+    "step_drift_max_sigma": 0.0033244982457092177,
+    "f_max_kT_per_sigma": 91.89876293238848
+  },
+  "wall_seconds": 1426.3460385799408,
+  "steps_per_second": 2325.423081275732,
+  "l4": {
+    "status": "ok",
+    "n_samples": 400,
+    "warnings": [],
+    "pe_mean": 105.510722899358,
+    "pe_std": 0.04758778481154747,
+    "phases": {
+      "\ud3c9\ud615\ud654": {
+        "status": "ok",
+        "n_samples": 56,
+        "warnings": [],
+        "pe_mean": 105.59220521399187,
+        "pe_std": 0.13290789812020637,
+        "drift": -0.056865797266354434,
+        "drift_sem": 0.02601676404100878,
+        "drift_sigma": 2.1857367494558524,
+        "steps": 552858,
+        "expect_steady": true
+      },
+      "\uc0dd\uc0b0": {
+        "status": "ok",
+        "n_samples": 400,
+        "warnings": [],
+        "pe_mean": 105.510722899358,
+        "pe_std": 0.04758778481154747,
+        "drift": -0.008938098431997332,
+        "drift_sem": 0.0035455606132382086,
+        "drift_sigma": 2.520926704404595,
+        "steps": 2764000,
+        "expect_steady": true
+      }
+    },
+    "run_id": "soft-r3-2d-A-sweep__A100__30caa5c9e0",
+    "wall_seconds": 1426.3460385799408,
+    "steps_done": 3316858,
+    "steps_planned": 3316858,
+    "trip": null,
+    "guard_samples": 456,
+    "f_max_last": 49.7948434721193,
+    "step_disp_last": 0.0018013612423729629,
+    "f_max_seen": 91.89876293238848,
+    "step_disp_seen": 0.0033244982457092177
+  },
+  "result": {
+    "psi6": 0.8854118251800537,
+    "psi6_sem": 0.0006874668374029536,
+    "nn_distance_d": 1.6170154574513436,
+    "nn_std_rel": 0.06625081888493249,
+    "min_sep_d": 1.2183923721313477,
+    "Gamma": 29.748648790272707,
+    "coord_hist": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      6.25e-06,
+      0.0063375,
+      0.98730625,
+      0.00635,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "state_predicted": "\uacb0\uc815",
+    "u_rms_rel_einstein": 0.05558422051871631,
+    "pe_mean": 105.510722899358,
+    "pe_sem": 0.0035455606132382086,
+    "pe_rdf": 105.51988675874172,
+    "post_checks": [
+      {
+        "kind": "\uae30\ud558",
+        "name": "\ud45c \ud558\ud55c \uc5ec\uc720  r_tab_min/min_sep",
+        "value": 0.41037683051589063,
+        "limit": 1.0,
+        "op": "<=",
+        "ok": true,
+        "margin": 2.4367847442626953,
+        "hard": true,
+        "phase": "post_run",
+        "note": "pair.Table \ud568\uc815 11: r<0.5d \uba74 \ud798\uc774 0. \uce21\uc815 \ucd5c\uc18c 1.218d"
+      },
+      {
+        "kind": "\uc801\ubd84",
+        "name": "\uc124\uacc4 r_min \uc900\uc218 r_min/min_sep",
+        "value": 1.10086069596177,
+        "limit": 1.15,
+        "op": "<=",
+        "ok": true,
+        "margin": 1.0446371681889317,
+        "hard": true,
+        "phase": "post_run",
+        "note": "dt\ub294 r_min=1.341d \uc758 \uad6d\uc18c \uac15\uc131\uc5d0\uc11c \uc815\ud588\ub2e4. \uce21\uc815 \ucd5c\uc18c 1.218d \u2014 \ud06c\uac8c \uc548\ucabd\uc774\uba74 dt \uc7ac\uac80\ud1a0"
+      }
+    ],
+    "post_checks_ok": true
+  }
+}

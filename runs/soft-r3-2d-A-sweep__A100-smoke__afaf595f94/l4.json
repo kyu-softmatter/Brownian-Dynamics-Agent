@@ -1,0 +1,40 @@
+{
+  "status": "ok",
+  "n_samples": 400,
+  "warnings": [],
+  "pe_mean": 105.49394751438558,
+  "pe_std": 0.15683638309002623,
+  "phases": {
+    "평형화": {
+      "status": "ok",
+      "n_samples": 2,
+      "warnings": [],
+      "pe_mean": 106.17447967811616,
+      "pe_std": 0.12030575526351583,
+      "steps": 16586,
+      "expect_steady": true
+    },
+    "생산": {
+      "status": "ok",
+      "n_samples": 400,
+      "warnings": [],
+      "pe_mean": 105.49394751438558,
+      "pe_std": 0.15683638309002623,
+      "drift": -0.07883614374850367,
+      "drift_sem": 0.02917359642498643,
+      "drift_sigma": 2.702311453139269,
+      "steps": 82800,
+      "expect_steady": true
+    }
+  },
+  "run_id": "soft-r3-2d-A-sweep__A100-smoke__afaf595f94",
+  "wall_seconds": 20.23068404197693,
+  "steps_done": 99386,
+  "steps_planned": 99386,
+  "trip": null,
+  "guard_samples": 402,
+  "f_max_last": 47.12083613622865,
+  "step_disp_last": 0.0017046272667075627,
+  "f_max_seen": 82.59451696901371,
+  "step_disp_seen": 0.00298791102303198
+}

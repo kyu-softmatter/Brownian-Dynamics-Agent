@@ -1,0 +1,209 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "trap-2d-5um__a5ef4f45d589",
+  "case": "trap-2d-5um",
+  "system_tags": [
+    "2D",
+    "harmonic_trap",
+    "newtonian",
+    "single_particle",
+    "no_pair_interaction"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 1000,
+    "k_star": 60358.087633665986,
+    "L_star": 32.0
+  },
+  "dimensionless": {
+    "k*": 60358.087633665986,
+    "l_k/d": 0.004070354775692164,
+    "tau_k/tau_B": 1.6567788000000008e-05,
+    "dt/tau_k": 0.002,
+    "T_obs/tau_k": 1999.9999999999998
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\uad00\uc131 \ubb34\uc2dc   \u03c4_p/\u03c4_k",
+      "value": 0.0008139491000319041,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 12.285780523140861,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\ud2b8\ub7a9 \ud574\uc0c1   dt/\u03c4_k",
+      "value": 0.002,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 5.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\uc694\ub3d9 vs \ubc15\uc2a4 2\u2113_k/L",
+      "value": 0.00025439717348076026,
+      "limit": 0.5,
+      "op": "<=",
+      "ok": true,
+      "margin": 1965.4306420107077,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d     T_obs/\u03c4_k",
+      "value": 1999.9999999999998,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 19.999999999999996,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "\u27e8x\u00b2\u27e9",
+      "measured": 0.00041429327256023034,
+      "predicted": 0.0004141947000000001,
+      "unit": "\u00b5m\u00b2",
+      "err_pct": 0.023798604914612373,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "\ub2e8\uc77c \uc870\ud654 \ud2b8\ub7a9 + BD \u2014 OU \uacfc\uc815\uc758 \ub2eb\ud78c \ud615\ud0dc (\uc870\ud569 \uac00\uc815 \uc5c6\uc74c)"
+    },
+    {
+      "name": "\u03c3 = \u221a\u27e8x\u00b2\u27e9",
+      "measured": 20.354195453523342,
+      "predicted": 20.351773878460815,
+      "unit": "nm",
+      "err_pct": 0.01189859457455078,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "\ub2e8\uc77c \uc870\ud654 \ud2b8\ub7a9 + BD \u2014 OU \uacfc\uc815\uc758 \ub2eb\ud78c \ud615\ud0dc (\uc870\ud569 \uac00\uc815 \uc5c6\uc74c)"
+    },
+    {
+      "name": "\u03c4 (C(t) \ud53c\ud305)",
+      "measured": 4.000222602078198,
+      "predicted": 4.010243022307369,
+      "unit": "ms",
+      "err_pct": -0.24987064807374043,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "\ub2e8\uc77c \uc870\ud654 \ud2b8\ub7a9 + BD \u2014 OU \uacfc\uc815\uc758 \ub2eb\ud78c \ud615\ud0dc (\uc870\ud569 \uac00\uc815 \uc5c6\uc74c)"
+    },
+    {
+      "name": "f_c (PSD \ud53c\ud305)",
+      "measured": 40.151635558783894,
+      "predicted": 39.687106792925114,
+      "unit": "Hz",
+      "err_pct": 1.1704777782934543,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "\ub2e8\uc77c \uc870\ud654 \ud2b8\ub7a9 + BD \u2014 OU \uacfc\uc815\uc758 \ub2eb\ud78c \ud615\ud0dc (\uc870\ud569 \uac00\uc815 \uc5c6\uc74c)"
+    },
+    {
+      "name": "S(0) (PSD \ud53c\ud305)",
+      "measured": 6.621873878801523e-06,
+      "predicted": 6.6440856222067796e-06,
+      "unit": "\u00b5m\u00b2/Hz",
+      "err_pct": -0.3343085063656812,
+      "prediction_source": "analytic",
+      "role": "implementation_check",
+      "scope": "module",
+      "derivation": "",
+      "tol_pct": 5.0,
+      "note": "\ub2e8\uc77c \uc870\ud654 \ud2b8\ub7a9 + BD \u2014 OU \uacfc\uc815\uc758 \ub2eb\ud78c \ud615\ud0dc (\uc870\ud569 \uac00\uc815 \uc5c6\uc74c)"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 3.313557600000001e-08,
+    "dt_over_tau_k": 0.002,
+    "n_eq": 10000,
+    "n_prod": 1000000,
+    "sample_every": 50,
+    "seed": 20260803,
+    "steps_done": 1010000,
+    "step_drift_max_sigma": 4.524153282489607e-05,
+    "f_max_kT_per_sigma": 1365.3462014632266
+  },
+  "wall_seconds": 3037.526612997055,
+  "steps_per_second": 332.5073748089591,
+  "l4": {
+    "status": "ok",
+    "n_samples": 20000,
+    "warnings": [],
+    "pe_mean": 1.0002379860491437,
+    "pe_std": 0.03152420997489798,
+    "phases": {
+      "\ud3c9\ud615\ud654": {
+        "status": "ok",
+        "n_samples": 1,
+        "warnings": [],
+        "pe_mean": 0.9751883620976194,
+        "pe_std": 0.0,
+        "steps": 10000,
+        "expect_steady": true
+      },
+      "\uc0dd\uc0b0": {
+        "status": "ok",
+        "n_samples": 20000,
+        "warnings": [],
+        "pe_mean": 1.0002379860491437,
+        "pe_std": 0.03152420997489798,
+        "drift": -0.0012312562148478756,
+        "drift_sem": 0.00048161824320872145,
+        "drift_sigma": 2.556498289277384,
+        "steps": 1000000,
+        "expect_steady": true
+      }
+    },
+    "run_id": "trap-2d-5um__a5ef4f45d589",
+    "wall_seconds": 3037.526612997055,
+    "steps_done": 1010000,
+    "steps_planned": 1010000,
+    "trip": null,
+    "guard_samples": 20001,
+    "f_max_last": 810.6193719608664,
+    "step_disp_last": 2.6860339806681566e-05,
+    "f_max_seen": 1365.3462014632266,
+    "step_disp_seen": 4.524153282489607e-05
+  },
+  "result": {
+    "x2_star": 1.6571730902409215e-05,
+    "x2_sem_pct": 0.04815036520569129,
+    "tau_fit_star": 1.6526389960752916e-05,
+    "psd_fc_star": 9718.727468859544,
+    "psd_S0_star": 1.0942958017900645e-09,
+    "bias_predicted_pct": 0.1,
+    "stat_target_pct": 0.5
+  }
+}

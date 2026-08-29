@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py#G1",
+  "lessons": [
+    {
+      "claim": "직선 사슬을 순수 중심력 페어 퍼텐셜(DLVO 2차극소 등)로 연결하고 결합이 자연장(U'(ℓ)=0)에 있으면 횡방향(굽힘) 선형강성이 정확히 0이다 — O(y²) 항의 계수가 U'(ℓ)이라 자연장에서 소멸하고 복원력이 O(y³)부터 시작한다. 실측 확인: n=9 3점굽힘 오실레이션, ω 10~30000 rad/s(7점)·진폭 a/d 0.07~1.0(5점), 시드 6~9개 앙상블. 가장 깨끗한 조건(저주파 ω=10: K'=42±9, 큰 진폭 a=d: K'=106±46)일수록 0에 수렴하고, 전 범위에서 JKR 모델의 굽힘강성(κ_θ*≈1.4e6 kT/d²)보다 1000배 이상 작다. Pantina&Furst PRL 94 138301 p.2 가 예측한 'DLVO는 centro-symmetric이라 자유회전→삼각형형 좌굴'과 부합한다.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

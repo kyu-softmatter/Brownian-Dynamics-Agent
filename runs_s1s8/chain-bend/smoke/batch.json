@@ -1,0 +1,272 @@
+{
+  "jobs": [
+    {
+      "config": {
+        "n_particles": 5,
+        "dim": 2,
+        "k_theta_star": 10000.0,
+        "k_bond_star": 1000000.0,
+        "dt_star": 0.0,
+        "n_frames": 200,
+        "prod_tau_bend": 5.0,
+        "equil_tau_bend": 1.0,
+        "seed": 1001,
+        "label": "N005_s1"
+      },
+      "skipped": false,
+      "span_L_star": 4.0,
+      "kappa_star": 1.1528710002178728,
+      "kappa_star_se": 1.1528710002178728,
+      "kappa_pred_star": 7500.0,
+      "ratio_meas_over_pred": 0.00015371613336238304,
+      "var_yc_star": 0.8673997349321972,
+      "var_yc_star_se": 0.8673997349321972,
+      "rms_yc_star": 0.9313429738459389,
+      "act_frames": 1.0,
+      "n_frames": 1,
+      "n_eff": 2.0,
+      "dt_star": 4.8183393939137675e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 4.8183393939137675e-06,
+        "max_force_star_measured": 1037.7019116411134,
+        "binding": "force"
+      },
+      "steps": {
+        "equil": 100,
+        "prod": 200,
+        "stride": 1
+      },
+      "wall_s": 0.004,
+      "guards": {
+        "finite": false,
+        "failures": [
+          "frame 0: 결합 길이 위반 max_rel_dev=2.816e+01 (>0.05)"
+        ],
+        "max_step_displacement_sigma": 31.4756669209577,
+        "bond_lengths": {
+          "max_rel_dev": 28.158953770487702,
+          "mean_rel_dev": 17.337406832871665,
+          "worst_bond": 0,
+          "worst_length": 29.158953770487702,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 4
+        },
+        "statistic_fluctuates": false,
+        "statistic_fluctuates_msg": "need >= 2 samples"
+      },
+      "manifest": {
+        "code_hash": "67c7927a3292",
+        "git_rev": "a63de95",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "label": "N005_s1"
+    },
+    {
+      "config": {
+        "n_particles": 5,
+        "dim": 2,
+        "k_theta_star": 10000.0,
+        "k_bond_star": 1000000.0,
+        "dt_star": 0.0,
+        "n_frames": 200,
+        "prod_tau_bend": 5.0,
+        "equil_tau_bend": 1.0,
+        "seed": 1002,
+        "label": "N005_s2"
+      },
+      "skipped": false,
+      "span_L_star": 4.0,
+      "kappa_star": 0.01666410474500207,
+      "kappa_star_se": 0.01666410474500207,
+      "kappa_pred_star": 7500.0,
+      "ratio_meas_over_pred": 2.2218806326669426e-06,
+      "var_yc_star": 60.009224335914105,
+      "var_yc_star_se": 60.009224335914105,
+      "rms_yc_star": 7.746562097854383,
+      "act_frames": 1.0,
+      "n_frames": 1,
+      "n_eff": 2.0,
+      "dt_star": 1.7968201679322098e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 1.7968201679322098e-06,
+        "max_force_star_measured": 2782.69361020921,
+        "binding": "force"
+      },
+      "steps": {
+        "equil": 100,
+        "prod": 371,
+        "stride": 1
+      },
+      "wall_s": 0.004,
+      "guards": {
+        "finite": false,
+        "failures": [
+          "frame 0: 결합 길이 위반 max_rel_dev=1.399e+01 (>0.05)"
+        ],
+        "max_step_displacement_sigma": 7.519926349200392,
+        "bond_lengths": {
+          "max_rel_dev": 13.987501843784893,
+          "mean_rel_dev": 7.345321121123698,
+          "worst_bond": 1,
+          "worst_length": 14.987501843784893,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 4
+        },
+        "statistic_fluctuates": false,
+        "statistic_fluctuates_msg": "need >= 2 samples"
+      },
+      "manifest": {
+        "code_hash": "67c7927a3292",
+        "git_rev": "a63de95",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "label": "N005_s2"
+    },
+    {
+      "config": {
+        "n_particles": 9,
+        "dim": 2,
+        "k_theta_star": 10000.0,
+        "k_bond_star": 1000000.0,
+        "dt_star": 0.0,
+        "n_frames": 200,
+        "prod_tau_bend": 5.0,
+        "equil_tau_bend": 1.0,
+        "seed": 1001,
+        "label": "N009_s1"
+      },
+      "skipped": false,
+      "span_L_star": 8.0,
+      "kappa_star": 6.50953638696769,
+      "kappa_star_se": 6.50953638696769,
+      "kappa_pred_star": 937.5,
+      "ratio_meas_over_pred": 0.006943505479432202,
+      "var_yc_star": 0.15362077121222237,
+      "var_yc_star_se": 0.15362077121222237,
+      "rms_yc_star": 0.3919448573616222,
+      "act_frames": 1.0,
+      "n_frames": 1,
+      "n_eff": 2.0,
+      "dt_star": 1.6180789683422735e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 1.6180789683422735e-06,
+        "max_force_star_measured": 3090.084042759986,
+        "binding": "force"
+      },
+      "steps": {
+        "equil": 659,
+        "prod": 3296,
+        "stride": 16
+      },
+      "wall_s": 0.004,
+      "guards": {
+        "finite": false,
+        "failures": [
+          "frame 0: 결합 길이 위반 max_rel_dev=2.346e+01 (>0.05)"
+        ],
+        "max_step_displacement_sigma": 29.103661794651895,
+        "bond_lengths": {
+          "max_rel_dev": 23.458423565230426,
+          "mean_rel_dev": 14.70251188011386,
+          "worst_bond": 1,
+          "worst_length": 24.458423565230426,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 8
+        },
+        "statistic_fluctuates": false,
+        "statistic_fluctuates_msg": "need >= 2 samples"
+      },
+      "manifest": {
+        "code_hash": "67c7927a3292",
+        "git_rev": "a63de95",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "label": "N009_s1"
+    },
+    {
+      "config": {
+        "n_particles": 9,
+        "dim": 2,
+        "k_theta_star": 10000.0,
+        "k_bond_star": 1000000.0,
+        "dt_star": 0.0,
+        "n_frames": 200,
+        "prod_tau_bend": 5.0,
+        "equil_tau_bend": 1.0,
+        "seed": 1002,
+        "label": "N009_s2"
+      },
+      "skipped": false,
+      "span_L_star": 8.0,
+      "kappa_star": 0.613628617991064,
+      "kappa_star_se": 0.613628617991064,
+      "kappa_pred_star": 937.5,
+      "ratio_meas_over_pred": 0.0006545371925238017,
+      "var_yc_star": 1.6296501999431885,
+      "var_yc_star_se": 1.6296501999431885,
+      "rms_yc_star": 1.276577533854951,
+      "act_frames": 1.0,
+      "n_frames": 1,
+      "n_eff": 2.0,
+      "dt_star": 1.9184283754837264e-06,
+      "dt_info": {
+        "dt_diffusion_gate": 0.00045,
+        "dt_force_gate": 1.9184283754837264e-06,
+        "max_force_star_measured": 2606.30006514539,
+        "binding": "force"
+      },
+      "steps": {
+        "equil": 556,
+        "prod": 2780,
+        "stride": 13
+      },
+      "wall_s": 0.004,
+      "guards": {
+        "finite": false,
+        "failures": [
+          "frame 0: 결합 길이 위반 max_rel_dev=2.814e+01 (>0.05)"
+        ],
+        "max_step_displacement_sigma": 23.372139112172242,
+        "bond_lengths": {
+          "max_rel_dev": 28.143163292546117,
+          "mean_rel_dev": 18.85218632092819,
+          "worst_bond": 4,
+          "worst_length": 29.143163292546117,
+          "target": 1.0,
+          "tol": 0.05,
+          "n_violating": 8
+        },
+        "statistic_fluctuates": false,
+        "statistic_fluctuates_msg": "need >= 2 samples"
+      },
+      "manifest": {
+        "code_hash": "67c7927a3292",
+        "git_rev": "a63de95",
+        "git_dirty": true,
+        "hoomd_version": "7.1.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.5.2-arm64-arm-64bit"
+      },
+      "label": "N009_s2"
+    }
+  ],
+  "failed": [],
+  "n_requested": 4,
+  "batch_wall_s": 0.465,
+  "concurrency": 8
+}

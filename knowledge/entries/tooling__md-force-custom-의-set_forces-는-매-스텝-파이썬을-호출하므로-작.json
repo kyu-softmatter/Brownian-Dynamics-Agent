@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "performance",
+    "trap",
+    "force.Custom"
+  ],
+  "dimensionless": {
+    "steps_per_s_custom": 2339.0
+  },
+  "source": "scratch/bench_chain_bend.py",
+  "lessons": [
+    {
+      "claim": "md.force.Custom 의 set_forces 는 매 스텝 파이썬을 호출하므로 작은 계에서 런 속도를 26배 떨어뜨린다 (n=25 사슬 실측: bond+angle 만 61,264 steps/s → force.Custom 트랩을 더하면 2,339 steps/s). 조화 트랩은 대신 **유령입자 + bond.Harmonic(r0=0)** 로 만들 수 있다 — U=½k r² 로 함수가 정확히 같고 유령을 적분기 filter 에서 빼면 고정 트랩이 된다. 컴파일 경로로 가서 55,551 steps/s (23.7배). chain-bend 스윕이 25일 → 1.16일(7런 병렬 13.7시간)로 바뀌었다. ★ '비싸서 못 돌린다'는 판정을 내리기 전에 구현 비용인지 물리 비용인지 재라.",
+      "kind": "pitfall",
+      "coords": {
+        "steps_per_s_custom": 2339.0
+      }
+    }
+  ],
+  "not_verified": []
+}

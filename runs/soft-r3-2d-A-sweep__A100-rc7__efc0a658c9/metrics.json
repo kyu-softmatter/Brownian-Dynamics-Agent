@@ -1,0 +1,189 @@
+{
+  "run_id": "soft-r3-2d-A-sweep__A100-rc7__efc0a658c9",
+  "case": "soft-r3-2d-A-sweep",
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "d_um": 5.0,
+    "T_K": 300.0,
+    "eta_mPas": 0.851,
+    "N": 400,
+    "phi": 0.35,
+    "tau_B_s": 242.05059977272577,
+    "tau_int_s": 0.8756339787830663,
+    "L_um": 149.79969134027408,
+    "gamma_kg_per_s": 4.01024302230737e-08
+  },
+  "dimensionless": {
+    "Gamma  = U(a_mean)/kT   \uacb0\ud569 vs \uc5f4\uc694\ub3d9 \u2605": 29.748648790272707,
+    "A      = U(d)/kT        \uc811\ucd09 \uacb0\ud569": 100.0,
+    "phi                     \ubc00\uc9d1\ub3c4": 0.35,
+    "a_mean/d                \ud3c9\uade0\uac04\uaca9": 1.4979969134027407,
+    "L/d                     \ubc15\uc2a4 \ud06c\uae30": 29.959938268054813,
+    "r_c/d                   \ucef7\uc624\ud504": 10.485978393819185,
+    "r_c/a_mean              \ucef7\uc624\ud504(\uc774\uc6c3 \uaecd\uc9c8 \uc218)": 7.0,
+    "dt/tau_int              \uc801\ubd84 \ud574\uc0c1": 0.009999999999999998,
+    "T_obs/tau_B             \uad00\uce21\ucc3d": 100.0,
+    "St     = tau_p/tau_B    \uad00\uc131 vs \ud655\uc0b0": 1.3485336132119386e-08
+  },
+  "checks": [
+    {
+      "kind": "\ubaa8\ub378",
+      "name": "\uad00\uc131 \ubb34\uc2dc    \u03c4_p/\u03c4_int",
+      "value": 3.72773759128525e-06,
+      "limit": 0.01,
+      "ok": true,
+      "margin": 2682.5922573998023,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\uc0c1\ud638\uc791\uc6a9 \ud574\uc0c1 dt/\u03c4_int",
+      "value": 0.009999999999999998,
+      "limit": 0.01,
+      "ok": true,
+      "margin": 1.0000000000000002,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucef7\uc624\ud504       r_c/(L/2)",
+      "value": 0.7,
+      "limit": 1.0,
+      "ok": true,
+      "margin": 1.4285714285714286,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ucf54\uc5b4 \uc5ec\uc720    r_table_min/r_min",
+      "value": 0.37277816532214714,
+      "limit": 1.0,
+      "ok": true,
+      "margin": 2.6825605494780542,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "\ud1b5\uacc4",
+      "name": "\uad00\uce21\ucc3d       T_obs/\u03c4_B",
+      "value": 100.0,
+      "limit": 100.0,
+      "ok": true,
+      "margin": 1.0,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "\uae30\ud558",
+      "name": "\ud45c \ud558\ud55c \uc5ec\uc720  r_tab_min/min_sep",
+      "value": 0.4128245467329973,
+      "limit": 1.0,
+      "ok": true,
+      "margin": 2.4223365783691406,
+      "hard": true,
+      "phase": "post_run"
+    },
+    {
+      "kind": "\uc801\ubd84",
+      "name": "\uc124\uacc4 r_min \uc900\uc218 r_min/min_sep",
+      "value": 1.107426842922098,
+      "limit": 1.15,
+      "ok": true,
+      "margin": 1.038443313298752,
+      "hard": true,
+      "phase": "post_run"
+    }
+  ],
+  "observables": [
+    {
+      "name": "\uc5d0\ub108\uc9c0 \uc77c\uad00\uc131 \u27e8U\u27e9/N",
+      "measured": 113.43291620692403,
+      "predicted": 113.44618750451286,
+      "unit": "kT",
+      "err_pct": 0.01169968826739863,
+      "prediction_source": "consistency: HOOMD \ud798 \ud569 vs (\u03c1/2)\u222bU g(r) 2\u03c0r dr"
+    },
+    {
+      "name": "\uc721\ubc29 NN \uac70\ub9ac",
+      "measured": 1.616764443218708,
+      "predicted": 1.6097024411070593,
+      "unit": "d",
+      "err_pct": 0.4387147544357282,
+      "prediction_source": "lattice: a_NN = \u221a(2/\u221a3)\u00b7a_mean (\uc644\uc804 \uc721\ubc29). \u03c8\u2086>0.6 \uc77c \ub54c\ub9cc \uc801\uc6a9"
+    },
+    {
+      "name": "psi6",
+      "measured": 0.8867427778244018,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "prediction_source": "none"
+    },
+    {
+      "name": "U_per_N",
+      "measured": 113.43291620692403,
+      "predicted": null,
+      "unit": "kT",
+      "err_pct": null,
+      "prediction_source": "none"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_over_tau_int": 0.01,
+    "dt_over_tau_B": 3.6175658296457254e-05,
+    "n_eq": 552858,
+    "n_prod": 2764000,
+    "seed": 20260803,
+    "bias_predicted_pct": 0.5,
+    "primary_sem_pct": 0.0018177312102850593,
+    "stat_target_pct": 2.0
+  },
+  "structure": {
+    "psi6": 0.8867427778244018,
+    "psi6_sem": 0.0003834936441063451,
+    "nn_distance_d": 1.616764443218708,
+    "nn_std_rel": 0.06528287159065328,
+    "min_sep_d": 1.2111682891845703,
+    "Gamma": 29.748648790272707,
+    "coord_hist": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      5.625e-05,
+      0.0068125,
+      0.98620625,
+      0.006925,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "state_predicted": "\uacb0\uc815",
+    "u_rms_rel_einstein": 0.05558422051871631
+  },
+  "wall_seconds": 1867.8067309856415,
+  "steps_per_second": 1775.8036444432846
+}

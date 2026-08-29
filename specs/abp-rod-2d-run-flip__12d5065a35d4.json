@@ -1,0 +1,615 @@
+{
+  "schema": "bdbot.nondim/0.1",
+  "case": "abp-rod-2d-run-flip",
+  "label": "abp-rod-2d-run-flip",
+  "tag": null,
+  "run_id": "abp-rod-2d-run-flip__12d5065a35d4",
+  "system": {
+    "label": "abp-rod-2d-run-flip",
+    "derived_from": "observation.yaml",
+    "description": "2D 타원체 액티브 입자의 run-and-tumble 운동. 텀블 사이에는 직선으로 달린다. MSD·MSAD 측정. 뉴턴 유체(물).\n",
+    "dimensions": 2,
+    "particle": {
+      "shape": "ellipsoid",
+      "semi_axes": {
+        "value": [
+          1.0,
+          0.25,
+          0.25
+        ],
+        "unit": "um",
+        "source": "사용자 확정 2026-08-04: 장축 길이 2 µm, 단축 길이 500 nm",
+        "tier": 1
+      },
+      "aspect_ratio": {
+        "value": 4.0,
+        "unit": "dimensionless",
+        "source": "derived: a1/a2 = 1.0/0.25",
+        "tier": 1
+      },
+      "diameter": {
+        "value": 0.7937,
+        "unit": "um",
+        "source": "derived: d_eq = 2(a1 a2 a3)^(1/3), 사용자 확정 형상에서",
+        "tier": 1
+      },
+      "density": {
+        "value": 1050,
+        "unit": "kg/m^3",
+        "source": "★제안: 폴리스티렌류 가정. τ_p(모델 타당성)에만 쓰이고 BD 결과에 영향 없음",
+        "tier": 3
+      },
+      "count": {
+        "value": 1000,
+        "unit": "dimensionless",
+        "source": "★제안: 독립 입자 앙상블로 MSD·MSAD 통계 확보 (1-A와 같은 방식). 스케치엔 1개",
+        "tier": 3
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "water",
+      "temperature": {
+        "value": 300,
+        "unit": "K",
+        "source": "사용자 확정 2026-08-04 '매질은 물'. 온도는 1-A 확인값 승계",
+        "tier": 1
+      },
+      "viscosity": {
+        "value": 0.851,
+        "unit": "mPa*s",
+        "source": "물 @300K 핸드북값. 매질이 물임은 사용자 확정 2026-08-04",
+        "tier": 1
+      }
+    },
+    "geometry": {
+      "kind": "periodic_square_2d",
+      "box_length": {
+        "value": 25.398,
+        "unit": "um",
+        "source": "★제안: L = 32 d_eq. 유한크기 검사 ℓ_p ≤ L/4 를 만족하게 잡음",
+        "tier": 3
+      },
+      "periodic": true
+    },
+    "interactions": "none",
+    "friction": {
+      "source": "scratch/perrin_friction.py — 타원 적분 정의에서 계산, 구 극한에서 6πηR·8πηR³ 재현 (오차 <1e-11%)",
+      "tier": 1,
+      "zeta_parallel": {
+        "value": 6.4081e-09,
+        "unit": "kg/s",
+        "note": "장축 방향"
+      },
+      "zeta_perp": {
+        "value": 8.2471e-09,
+        "unit": "kg/s",
+        "note": "단축 방향, ζ⊥/ζ∥ = 1.287"
+      },
+      "gamma_bar_2d": {
+        "value": 7.2122e-09,
+        "unit": "kg/s",
+        "note": "2D 면내 조화평균 2/(1/ζ∥+1/ζ⊥). ★ BD는 병진 이방성을 재현할 수 없으므로 (bd-hoomd 하드 제약) 등방 평균을 쓴다. 장시간 MSD가 D̄로 정해지도록 조화평균을 택했다 (mater_plan §20 옵션 A).\n"
+      },
+      "gamma_rot_z": {
+        "value": 4.5391e-21,
+        "unit": "kg*m^2/s",
+        "note": "면내 회전(z축). 회전 마찰 텐서는 HOOMD에서 정상 동작 (실측 확인)"
+      }
+    },
+    "active": {
+      "kind": "run_and_tumble",
+      "speed": {
+        "value": 5.0,
+        "unit": "um/s",
+        "source": "sketch 'v : speed. v ≤ 5 µm/s' — 상한값을 씀",
+        "tier": 0
+      },
+      "tumble_interval": {
+        "value": 0.5,
+        "unit": "s",
+        "source": "사용자 확정 2026-08-04 '매 0.5초 정도마다 한번씩 텀블링'",
+        "tier": 1
+      },
+      "tumble_angle": {
+        "value": 0,
+        "unit": "dimensionless",
+        "source": "★제안: 2D 균등 무작위 재배향. 스케치는 'run-and-flip'(180° 반전)이라 적혀 있으나 사용자가 'run-and-tumble'로 확정. 두 경우 τ_eff 가 다르다 (아래 not_verified)",
+        "tier": 3,
+        "note": "균등 무작위면 ⟨v(0)·v(t)⟩ = v² exp(−t/τ_tumble), 180° 반전이면 exp(−2t/τ_tumble)"
+      }
+    },
+    "targets": [
+      {
+        "name": "mean_square_displacement"
+      },
+      {
+        "name": "mean_square_angular_displacement"
+      }
+    ],
+    "derived_scales": {
+      "source": "scratch/propose_3cases.py §A (형상이 비구형이라 구 공식 검증 대상 아님)",
+      "D_bar": {
+        "value": 0.5743,
+        "unit": "um^2/s",
+        "expr": "kT/gamma_bar_2d"
+      },
+      "D_r": {
+        "value": 0.9125,
+        "unit": "1/s",
+        "expr": "kT/gamma_rot_z"
+      },
+      "tau_r": {
+        "value": 1.0959,
+        "unit": "s",
+        "expr": "1/D_r",
+        "role": "열적 회전확산 — 텀블(0.5s)보다 느리다"
+      },
+      "tau_B": {
+        "value": 1.0969,
+        "unit": "s",
+        "expr": "d_eq^2/D_bar",
+        "role": "기준 시간"
+      },
+      "tau_v": {
+        "value": 0.15874,
+        "unit": "s",
+        "expr": "d_eq/v",
+        "role": "★ 가장 빠른 척도 → dt를 정한다"
+      },
+      "tau_p": {
+        "value": 3.81e-08,
+        "unit": "s",
+        "expr": "m/gamma_bar",
+        "role": "모델 검사 전용"
+      },
+      "tau_eff": {
+        "value": 0.3433,
+        "unit": "s",
+        "expr": "1/(1/tau_r + 1/tau_tumble)",
+        "role": "방향 상관"
+      },
+      "l_p": {
+        "value": 1.7167,
+        "unit": "um",
+        "expr": "v*tau_eff",
+        "role": "지속길이 = 2.16 d_eq"
+      }
+    },
+    "dimensionless": {
+      "reference": {
+        "length": "d_eq",
+        "time": "tau_B",
+        "energy": "kT",
+        "strategy": "thermal"
+      },
+      "groups": [
+        {
+          "name": "Pe",
+          "value": 6.91,
+          "expr": "v d_eq/D_bar",
+          "meaning": "이류 vs 확산"
+        },
+        {
+          "name": "D_r*",
+          "value": 1.001,
+          "expr": "D_r tau_B",
+          "meaning": "회전 vs 병진 (구면 3 과 다름 — 타원체)"
+        },
+        {
+          "name": "l_p/d_eq",
+          "value": 2.163,
+          "meaning": "지속길이 = 입자 2.2개분"
+        },
+        {
+          "name": "tau_tumble/tau_r",
+          "value": 0.456,
+          "meaning": "★ 텀블이 회전확산보다 빠르다 → 텀블 지배"
+        },
+        {
+          "name": "p",
+          "value": 4.0,
+          "meaning": "종횡비"
+        },
+        {
+          "name": "L/d_eq",
+          "value": 32.0,
+          "meaning": "박스"
+        },
+        {
+          "name": "St",
+          "value": 3.47e-08,
+          "expr": "tau_p/tau_B"
+        }
+      ]
+    },
+    "numerics": {
+      "dt": {
+        "value": 1.5874,
+        "unit": "ms",
+        "source": "10⁻² × τ_v (가장 빠른 관련 척도). dt·D_r=1.4e-3, dt/τ_tumble=3.2e-3 도 통과",
+        "tier": 1
+      },
+      "production_s": 219,
+      "production_note": "200 × max(τ_r, τ_tumble)",
+      "stat_target_pct": 2.0,
+      "equilibration": "측정으로 판정 (MSD 초기 구간 제외)"
+    },
+    "not_verified": [
+      "텀블 각도 분포가 균등 무작위인지 180° 반전인지 미확정 (tier 3 제안). τ_eff 가 0.343s 대 0.222s로 갈린다",
+      "BD는 병진 이방성을 재현하지 못한다 → **단시간 MSD의 이방성은 나오지 않는다**. MSAD와 장시간 MSD는 정확",
+      "run-and-tumble updater는 HOOMD 내장이 없어 커스텀 Action 필요 (bd-hoomd 스니펫 있음, 이 케이스에서 미검증)",
+      "τ_r=1.096s 가 τ_tumble=0.5s 보다 느리다 → 텀블이 방향 상관을 지배. 열적 회전은 부차적"
+    ]
+  },
+  "reference": {
+    "strategy": "thermal",
+    "rationale": "thermal 규약 고정 (σ=d, E=kT, τ=τ_B). 단위계는 문헌 비교를 위해 계마다 바꾸지 않는다 (bd-physics §1.1). 지배 시간척도는 계마다 다를 수 있고, dt는 그쪽으로 정한다. 기준 길이는 등가부피 구 지름 d_eq — 타원체는 장축/단축이 따로 있으나 무차원화 기준은 하나여야 한다. 병진 마찰은 BD 제약상 등방 평균 γ̄ (조화평균 — 장시간 MSD가 D̄로 정해지도록).",
+    "length": {
+      "symbol": "d_eq",
+      "value": 7.936999999999999e-07,
+      "unit": "meter"
+    },
+    "time": {
+      "symbol": "tau_B",
+      "value": 1.0969226009454005,
+      "unit": "second"
+    },
+    "energy": {
+      "symbol": "kT",
+      "value": 4.141947e-21,
+      "unit": "kilogram * meter ** 2 / second ** 2"
+    }
+  },
+  "back_transform": {
+    "sigma_SI": 7.936999999999999e-07,
+    "sigma_SI_unit": "meter",
+    "tau_SI": 1.0969226009454005,
+    "tau_SI_unit": "second",
+    "energy_SI": 4.141947e-21,
+    "energy_SI_unit": "kilogram * meter ** 2 / second ** 2"
+  },
+  "ledger": {
+    "lengths": [
+      {
+        "symbol": "2a_minor",
+        "value": 5e-07,
+        "unit": "meter",
+        "note": "단축 길이",
+        "role": "",
+        "star": false,
+        "reduced": 0.6299609424215699
+      },
+      {
+        "symbol": "d_eq",
+        "value": 7.936999999999999e-07,
+        "unit": "meter",
+        "note": "등가부피 구 지름 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "l_p",
+        "value": 1.7167358275214335e-06,
+        "unit": "meter",
+        "note": "v·τ_eff 지속길이",
+        "role": "",
+        "star": true,
+        "reduced": 2.162953039588552
+      },
+      {
+        "symbol": "2a_major",
+        "value": 2e-06,
+        "unit": "meter",
+        "note": "장축 길이",
+        "role": "",
+        "star": false,
+        "reduced": 2.5198437696862794
+      },
+      {
+        "symbol": "L",
+        "value": 2.5398e-05,
+        "unit": "meter",
+        "note": "박스",
+        "role": "box",
+        "star": false,
+        "reduced": 31.999496031246068
+      }
+    ],
+    "times": [
+      {
+        "symbol": "tau_p",
+        "value": 3.8114494493927906e-08,
+        "unit": "second",
+        "note": "m/γ̄ 관성",
+        "role": "inertia",
+        "star": false,
+        "reduced": 3.474674918820919e-08
+      },
+      {
+        "symbol": "dt",
+        "value": 0.0015873999999999999,
+        "unit": "second",
+        "note": "적분 스텝 (numerics.dt, 사람이 정함)",
+        "role": "dt",
+        "star": false,
+        "reduced": 0.001447139477873711
+      },
+      {
+        "symbol": "tau_v",
+        "value": 0.15874,
+        "unit": "second",
+        "note": "d_eq/v 이류",
+        "role": "",
+        "star": true,
+        "reduced": 0.1447139477873711
+      },
+      {
+        "symbol": "tau_eff",
+        "value": 0.34334716550428673,
+        "unit": "second",
+        "note": "방향 상관",
+        "role": "",
+        "star": true,
+        "reduced": 0.31300947323755335
+      },
+      {
+        "symbol": "tau_tumble",
+        "value": 0.5,
+        "unit": "second",
+        "note": "텀블 간격",
+        "role": "",
+        "star": false,
+        "reduced": 0.45582067464839077
+      },
+      {
+        "symbol": "tau_r",
+        "value": 1.0958855823118934,
+        "unit": "second",
+        "note": "1/D_r 열적 회전확산",
+        "role": "",
+        "star": false,
+        "reduced": 0.9990546109337036
+      },
+      {
+        "symbol": "tau_B",
+        "value": 1.0969226009454005,
+        "unit": "second",
+        "note": "d_eq²/D̄ 확산 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "T_obs",
+        "value": 219.0,
+        "unit": "second",
+        "note": "관측창",
+        "role": "observation",
+        "star": false,
+        "reduced": 199.64945549599517
+      }
+    ],
+    "energies": [
+      {
+        "symbol": "kT",
+        "value": 4.141947e-21,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "열에너지 (기준)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "fa_d",
+        "value": 2.862161569999999e-20,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "f_a·d_eq 자기추진 일",
+        "role": "",
+        "star": false,
+        "reduced": 6.910183954550841
+      }
+    ]
+  },
+  "ledger_absent": {},
+  "groups": [
+    {
+      "name": "Pe",
+      "value": 6.910183954550842,
+      "expr": "v d_eq/D̄ = τ_B/τ_v",
+      "meaning": "이류 vs 확산",
+      "num": [
+        "times",
+        "tau_B"
+      ],
+      "den": [
+        "times",
+        "tau_v"
+      ]
+    },
+    {
+      "name": "D_r*",
+      "value": 1.000946283672534,
+      "expr": "D_r τ_B",
+      "meaning": "회전 vs 병진",
+      "num": [
+        "times",
+        "tau_B"
+      ],
+      "den": [
+        "times",
+        "tau_r"
+      ]
+    },
+    {
+      "name": "l_p/d_eq",
+      "value": 2.162953039588552,
+      "expr": "",
+      "meaning": "지속길이",
+      "num": [
+        "lengths",
+        "l_p"
+      ],
+      "den": [
+        "lengths",
+        "d_eq"
+      ]
+    },
+    {
+      "name": "p",
+      "value": 4.0,
+      "expr": "a_maj/a_min",
+      "meaning": "종횡비",
+      "num": [
+        "lengths",
+        "2a_major"
+      ],
+      "den": [
+        "lengths",
+        "2a_minor"
+      ]
+    },
+    {
+      "name": "tau_tumble/tau_r",
+      "value": 0.45625201031041396,
+      "expr": "",
+      "meaning": "★ 텀블 vs 회전확산",
+      "num": [
+        "times",
+        "tau_tumble"
+      ],
+      "den": [
+        "times",
+        "tau_r"
+      ]
+    },
+    {
+      "name": "L/d_eq",
+      "value": 31.999496031246068,
+      "expr": "",
+      "meaning": "박스",
+      "num": [
+        "lengths",
+        "L"
+      ],
+      "den": [
+        "lengths",
+        "d_eq"
+      ]
+    },
+    {
+      "name": "T_obs/tau_eff",
+      "value": 637.8383805159614,
+      "expr": "",
+      "meaning": "관측창",
+      "num": [
+        "times",
+        "T_obs"
+      ],
+      "den": [
+        "times",
+        "tau_eff"
+      ]
+    },
+    {
+      "name": "St",
+      "value": 3.474674918820919e-08,
+      "expr": "tau_p/tau_B",
+      "meaning": "관성 vs 확산",
+      "num": [
+        "times",
+        "tau_p"
+      ],
+      "den": [
+        "times",
+        "tau_B"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "kind": "모델",
+      "name": "관성 무시     τ_p/τ_v",
+      "value": 2.401064287131656e-07,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 41648.19764966034,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "이류 해상     dt/τ_v",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "회전 해상     dt·D_r",
+      "value": 0.001448508882333502,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 6.903651142194113,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "적분",
+      "name": "텀블 해상     dt/τ_tumble",
+      "value": 0.0031747999999999998,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 3.1498047121078496,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "기하",
+      "name": "유한크기     ℓ_p/(L/4)",
+      "value": 0.27037338806542777,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 3.6985888557863897,
+      "hard": false,
+      "phase": "design"
+    },
+    {
+      "kind": "통계",
+      "name": "관측창       T_obs/τ_eff",
+      "value": 637.8383805159614,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 6.378383805159614,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "verdict": "PASS",
+  "params": {
+    "N": 1000,
+    "Pe": 6.910183954550842,
+    "Dr_star": 1.000946283672534,
+    "tau_tumble_star": 0.45582067464839077,
+    "L_star": 31.999496031246068
+  },
+  "numerics": {
+    "dt_star": 0.001447139477873711,
+    "dt_over_tau_B": 0.001447139477873711,
+    "n_eq": 1081,
+    "n_prod": 137925,
+    "sample_every": 45,
+    "seed": 20260804
+  },
+  "l3_issues": []
+}

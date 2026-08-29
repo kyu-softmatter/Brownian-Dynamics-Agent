@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "boxresize",
+    "compression",
+    "dlvo",
+    "gelation",
+    "network"
+  ],
+  "dimensionless": {
+    "eps_crit": 0.00703
+  },
+  "source": "scratch/verify_3d_boxresize.py",
+  "lessons": [
+    {
+      "claim": "hoomd.update.BoxResize 는 입자 좌표를 아핀 스케일한다(실측 오차 8.9e-16) — 따라서 압축은 이미 결합된 쌍의 결합길이도 같이 줄인다. DLVO 2차극소처럼 우물이 좁으면 트리거당 선형변형이 (h_min−h_barrier)/ℓ 를 넘는 순간 쌍이 장벽 안쪽으로 밀려 1차극소(접촉)로 **비가역 붕괴**한다. 에러 없이 결합 종류만 조용히 바뀐다. 실측: 예측 문턱 0.703%, ε=0.40%/트리거는 h*=0.007591 유지, 0.80%는 h*=−0.042257(겹침 4.2%)로 붕괴. 압축 전에 원장에서 ε_crit 을 계산해 단계 수를 정할 것.",
+      "kind": "pitfall",
+      "coords": {
+        "eps_crit": 0.00703
+      }
+    }
+  ],
+  "not_verified": []
+}

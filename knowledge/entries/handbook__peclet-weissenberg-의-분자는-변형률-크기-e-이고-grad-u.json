@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "nondim",
+    "peclet",
+    "weissenberg",
+    "convention"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#4.1 ← [L] p.106,p.75,p.107",
+  "lessons": [
+    {
+      "claim": "★ Peclet/Weissenberg 의 분자는 변형률 크기 |E| 이고 |grad u| 가 아니다 (와도는 입자를 균일회전시킬 뿐 등방 평형분포를 바꾸지 못한다). 규약은 |E| = sqrt(2 E:E) — sqrt(E:E) 를 쓰면 sqrt(2)=1.414 배 틀린다. 순수 회전류는 |grad u| 가 커도 Pe=0 이다. 준구(r-1<<1)에서는 옳은 척도가 |E|(r-1)/Dr 이므로 |E|/Dr 로 쓰면 과대평가한다",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

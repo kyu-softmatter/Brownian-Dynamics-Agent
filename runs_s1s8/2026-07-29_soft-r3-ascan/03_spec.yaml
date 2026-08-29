@@ -1,0 +1,259 @@
+{
+  "source": "scripts/soft2d_ascan.py",
+  "provenance": {
+    "code_hash": "79db25218e48",
+    "git_rev": "044c5e0",
+    "git_dirty": true,
+    "env_hash": "eaf847c12616",
+    "env": {
+      "python": "3.12.13",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "hoomd": "7.1.0",
+      "numpy": "2.5.1",
+      "scipy": "1.18.0",
+      "gsd": "5.0.1",
+      "freud": "3.5.0"
+    },
+    "driver": [
+      "scripts/soft2d_ascan.py",
+      "scripts/soft2d_fss.py",
+      "scripts/soft2d_time_series.py"
+    ],
+    "drivers": {
+      "scripts/soft2d_ascan.py": "e17b932024d1",
+      "scripts/soft2d_fss.py": "f52b03fc3a14",
+      "scripts/soft2d_time_series.py": "0c7e64b77244"
+    },
+    "driver_hash": "00d7e2fa5255"
+  },
+  "parent_run": "runs/2026-07-29_soft-r3-fss",
+  "amplitudes": [
+    10.0,
+    13.3,
+    17.8,
+    23.7,
+    31.6
+  ],
+  "n_ladder": [
+    64,
+    144,
+    256,
+    400
+  ],
+  "seeds": [
+    32,
+    33,
+    34,
+    35
+  ],
+  "r_cut_fixed": 3.8,
+  "prod_tau": 10.0,
+  "window": [
+    6.0,
+    10.0
+  ],
+  "n_frames": 200,
+  "gates": [
+    {
+      "amplitude": 10.0,
+      "n_particles": 64,
+      "dt_star": 5.902754994111036e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 169412,
+      "max_force_star": 84.7062093037627,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 144,
+      "dt_star": 5.7318397513444046e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 174464,
+      "max_force_star": 87.23202700890667,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 256,
+      "dt_star": 5.1586419738034305e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 193849,
+      "max_force_star": 96.92473378441372,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441
+    },
+    {
+      "amplitude": 10.0,
+      "n_particles": 400,
+      "dt_star": 5.257471255977147e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 190206,
+      "max_force_star": 95.10275485226036,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.18224230937454441
+    },
+    {
+      "amplitude": 13.3,
+      "n_particles": 64,
+      "dt_star": 4.4381616497075463e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 225319,
+      "max_force_star": 112.65925837400438,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.2423822714681441
+    },
+    {
+      "amplitude": 13.3,
+      "n_particles": 144,
+      "dt_star": 4.309653948379251e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 232037,
+      "max_force_star": 116.0185959218459,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.2423822714681441
+    },
+    {
+      "amplitude": 13.3,
+      "n_particles": 256,
+      "dt_star": 3.878678175792051e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 257820,
+      "max_force_star": 128.90989593327032,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.2423822714681441
+    },
+    {
+      "amplitude": 13.3,
+      "n_particles": 400,
+      "dt_star": 3.952985906749734e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 252973,
+      "max_force_star": 126.4866639535063,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.2423822714681441
+    },
+    {
+      "amplitude": 17.8,
+      "n_particles": 64,
+      "dt_star": 3.316154491073616e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 301554,
+      "max_force_star": 150.7770525606976,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.3243913106866891
+    },
+    {
+      "amplitude": 17.8,
+      "n_particles": 144,
+      "dt_star": 3.2201346917665194e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 310546,
+      "max_force_star": 155.27300807585388,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.3243913106866891
+    },
+    {
+      "amplitude": 17.8,
+      "n_particles": 256,
+      "dt_star": 2.898113468428893e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 345052,
+      "max_force_star": 172.52602613625643,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.3243913106866891
+    },
+    {
+      "amplitude": 17.8,
+      "n_particles": 400,
+      "dt_star": 2.9536355370658132e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 338566,
+      "max_force_star": 169.28290363702342,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.3243913106866891
+    },
+    {
+      "amplitude": 23.7,
+      "n_particles": 64,
+      "dt_star": 2.490613921565839e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 401507,
+      "max_force_star": 200.75371604991753,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.4319142732176703
+    },
+    {
+      "amplitude": 23.7,
+      "n_particles": 144,
+      "dt_star": 2.4184977853773863e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 413480,
+      "max_force_star": 206.7399040111088,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.4319142732176703
+    },
+    {
+      "amplitude": 23.7,
+      "n_particles": 256,
+      "dt_star": 2.176642183039423e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 459423,
+      "max_force_star": 229.7116190690604,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.4319142732176703
+    },
+    {
+      "amplitude": 23.7,
+      "n_particles": 400,
+      "dt_star": 2.2183423021000638e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 450787,
+      "max_force_star": 225.3935289998569,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.4319142732176703
+    },
+    {
+      "amplitude": 31.6,
+      "n_particles": 64,
+      "dt_star": 1.8679604411743787e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 535343,
+      "max_force_star": 267.6716213998901,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.5758856976235603
+    },
+    {
+      "amplitude": 31.6,
+      "n_particles": 144,
+      "dt_star": 1.813873339033039e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 551306,
+      "max_force_star": 275.65320534814515,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.5758856976235603
+    },
+    {
+      "amplitude": 31.6,
+      "n_particles": 256,
+      "dt_star": 1.6324816372795663e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 612564,
+      "max_force_star": 306.2821587587474,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.5758856976235603
+    },
+    {
+      "amplitude": 31.6,
+      "n_particles": 400,
+      "dt_star": 1.6637567265750466e-05,
+      "dominant_gate": "force_displacement",
+      "steps": 601049,
+      "max_force_star": 300.5247053331427,
+      "r_cut": 3.8,
+      "beta_u_at_rcut": 0.5758856976235603
+    }
+  ],
+  "eta6_ceiling": 0.25
+}

@@ -1,0 +1,193 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "chain-bend-2d-dlvo__n25-w10-a632__ae73f23223b9",
+  "case": "chain-bend-2d-dlvo",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "chain",
+    "dlvo",
+    "pair_table",
+    "oscillatory_drive",
+    "no_bending",
+    "hypothesis_test",
+    "structural"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "n_beads": 25,
+    "omega_star": 61.51034378734867,
+    "amp_star": 0.4299319727891157,
+    "k_t_star": 5217.1116627035535,
+    "well_depth_star": -11.715500108658787,
+    "k_bond_star": 1042362.8817700658
+  },
+  "dimensionless": {
+    "well_depth/kT": 11.715500108658787,
+    "k_bond_star": 1042362.8817700656,
+    "k_t/k_bond": 0.005005081967082548,
+    "sigma_bond/h_min": 0.1290032233197044,
+    "a/sigma_bond": 438.94409654191026,
+    "a/L_chain": 0.01777884471455591,
+    "n_beads": 25.0,
+    "De_bond": 5.901048940163355e-05,
+    "De_chain_diff": 35970.010782934485,
+    "De_trap": 0.011790114485583668,
+    "tau_bond/tau_chain_diff": 1.6405468921802583e-09,
+    "dt/tau_bond": 0.01,
+    "n_cycles": 3.0,
+    "St": 2.7062409244729374e-08
+  },
+  "observables": [
+    {
+      "name": "K_prime",
+      "measured": 24.193645612258845,
+      "predicted": 0.0,
+      "unit": "kT/d^2",
+      "err_pct": null,
+      "err_sigma": 0.7471168777301672,
+      "sigma": 32.38267844485338,
+      "prediction_source": "none",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "중심력 U(r), 결합이 자연장 ℓ(U'(ℓ)=0)에 있을 때 횡변위 y_i,y_{i+1}에 대한 결합에너지는 U(ℓ)+U'(ℓ)(y_i-y_{i+1})²/(2ℓ)+O(y⁴) — U'(ℓ)=0이라 O(y²) 항이 사라진다. 비드 수·본드 토폴로지에 무관한 국소 대칭 논증이라 조합 전체(사슬)에도 그대로 성립한다 (극한 조건: 작은 y, 트랩이 사슬을 늘이거나 압축하지 않음).",
+      "tol_pct": null,
+      "tol_sigma": 3.0,
+      "note": "★ 예측 0 — G1(직선사슬+순수중심력+자연장 평형이면 선형 굽힘강성 정확히 0). 유의미하게 0이 아니면 장력/유한변형 효과가 섞인 것"
+    },
+    {
+      "name": "K_doubleprime",
+      "measured": 22.68438560680285,
+      "predicted": null,
+      "unit": "kT/d^2",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": ""
+    },
+    {
+      "name": "K_sem",
+      "measured": 32.38267844485338,
+      "predicted": null,
+      "unit": "kT/d^2",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": ""
+    },
+    {
+      "name": "y_response",
+      "measured": 0.42741105013211717,
+      "predicted": null,
+      "unit": "d",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": ""
+    },
+    {
+      "name": "shape_localization",
+      "measured": 1.7716193890091776,
+      "predicted": null,
+      "unit": "dimensionless",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "max|θ''|/mean|θ''| — 1에 가까우면 매끈한 빔형 곡률, ≫1 이면 국소 꺾임([P1]이 예측한 '삼각형형' 좌굴)"
+    },
+    {
+      "name": "bow_rms_gsd",
+      "measured": 0.668878505558172,
+      "predicted": null,
+      "unit": "d",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "굽음 RMS — GSD 궤적 200프레임에서 사후계산 (scratch/backfill_bow.py). 신규 런의 bow_rms(전 표본)보다 성기다"
+    }
+  ],
+  "numerics": {
+    "dt_star": 9.593587967194994e-09,
+    "n_eq": 20000,
+    "n_prod": 31942000,
+    "n_samples": 2000,
+    "sample_every": 15971,
+    "seed": 1,
+    "steps_done": 31962000,
+    "step_drift_max_sigma": 0.00011482442874496031,
+    "f_max_kT_per_sigma": 11968.87224441984
+  },
+  "diagnostics": {
+    "equilibrium_z": 2.302900882938328,
+    "trend_t": 3.2179565328136657,
+    "first_half": -8.073713542279075,
+    "second_half": -8.022476783146477,
+    "tau_int_samples": 3.680633575962773,
+    "n_eff": 382.1191144770697,
+    "drift_span": 0.12316298957532118,
+    "drift_span_rel_pct": 1.5303386676223887,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 3195
+  },
+  "findings": [
+    "평형 ✓ (전반/후반 z=+2.30, 지표=⟨U⟩/N [kT])",
+    "드리프트 ✗ t=+3.22, 전구간 +1.530%, n_eff=382/3195",
+    "분리 검사 경고: 참고: τ_p/τ_bond = 0.0282 (기준 0.01)",
+    "분리 검사 경고: 관측 주기 수  T_obs/(2π/ω) = 3 (기준 50)",
+    "분리 검사 7종 중 하드 전부 통과 ✓ (여유 부족 3건)",
+    "관측량 1종 0-예측과 통계적으로 일치 ✓ (최대 +0.75σ @ K_prime, 기준 3σ)"
+  ],
+  "outcome": "partial",
+  "failure_modes": [
+    "NUM_DRIFT"
+  ],
+  "not_verified": [
+    "소프트 검사 미충족: 참고: τ_p/τ_bond, 관측 주기 수  T_obs/(2π/ω)",
+    "예측값 없는 관측량 5종 (측정만 기록, 판정 안 함)",
+    "dt_convergence_direct  (dt/2 재실행 안 함)"
+  ],
+  "lessons": [],
+  "artifacts": [
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}
