@@ -52,6 +52,32 @@ def chk_true(kind: str, name: str, cond: bool, note=""):
     return cond
 
 
+KELVIN_0C = 273.15   # 0 °C. ★ 섭씨↔켈빈 변환이 이 파일에서 사는 유일한 곳.
+
+
+def _read_iapws_water_rows() -> dict[float, float]:
+    """`knowledge/wiki/concepts/water-298k.md` 의 IAPWS 표에서 **직접 행만** 읽는다.
+
+    행 형식: `| 293.15 K (20 °C) | **1.0016** | ...`  → {293.15: 1.0016e-3}
+    보간 행(`| 300.00 K | 0.85566¹ | ...`)은 °C 라벨이 없어 자동으로 빠진다 —
+    이 검사가 원하는 것은 **보간이 필요 없는 행**이기 때문이다.
+
+    ★ 켈빈 값을 그대로 믿지 않고 `°C` 라벨에서 재계산해 대조한다. 그래야
+    `25 °C = 298.00 K` 같은 규약 오류가 표 안에 있어도 드러난다.
+    """
+    path = ROOT / "knowledge" / "wiki" / "concepts" / "water-298k.md"
+    rows: dict[float, float] = {}
+    pat = re.compile(r"\|\s*([\d.]+)\s*K\s*\((\d+)\s*°C\)\s*\|\s*\*\*([\d.]+)\*\*")
+    for T_k, c, eta in pat.findall(path.read_text(encoding="utf-8")):
+        T_k, c, eta = float(T_k), int(c), float(eta)
+        derived = KELVIN_0C + c
+        if abs(T_k - derived) > 1e-9:
+            FAIL.append(f"[DOC] water-298k.md: {c}°C 행이 {T_k} K 인데 {derived} K 여야 한다")
+            continue
+        rows[T_k] = eta * 1e-3
+    return rows
+
+
 # ── 증류본에 **인쇄된** 값을 대조한다 ──────────────────────────────────────
 # 2026-08-29: 이게 없어서 typo 가 56/56 을 통과했다. `welty_transport.md` 는
 # log-보간값을 `0.8580 mPa·s` 로 찍었는데 표에서 계산하면 `0.8598` 이다.
@@ -152,19 +178,39 @@ def s1_water_viscosity():
     #   원인 두 개가 같은 방향이었다 — ⓐ 298.15 K 직접행이 있는 IAPWS 대신 [W] 의
     #   20 K 표를 log-보간했고 ⓑ 25 °C 를 298.00 K 로 적었다(참값 298.15 K).
     #   ⟹ "어느 표·어느 기준·어느 온도규약" 셋이 다 숫자를 바꾼다. 셋을 다 고정한다.
-    IAPWS = {293.15: 1.0016e-3, 298.15: 0.8900e-3}   # knowledge/wiki/concepts/water-298k.md
-    for T_real, want_pct in ((298.15, -4.4), (293.15, -15.0)):
+    # ⚠️ 표를 여기에 베껴 적지 않습니다. 그러면 물 점도표의 **네 번째 사본**이 되고,
+    #    이 버그의 원인이 바로 사본이 갈라진 것이었습니다. 인용 출처를 직접 읽습니다.
+    #    그리고 온도는 **°C 에서 유도**합니다 — `298.15` 를 리터럴로 적으면 이번에
+    #    나와 0f 를 둘 다 물린 `25 °C → 298.00 K` 를 다시 쓸 수 있습니다.
+    IAPWS = _read_iapws_water_rows()
+    chk_true("DOC", f"water-298k.md 에서 IAPWS 행을 읽었다 ({len(IAPWS)}행)",
+             len(IAPWS) >= 2, note="0행이면 파싱이 깨진 것 — 조용히 건너뛰면 검사가 무의미하다")
+    for celsius, want_pct in ((25, -4.4), (20, -15.0)):
+        T_real = KELVIN_0C + celsius          # ★ 유도. 리터럴 298.15 를 쓰지 않는다
+        if T_real not in IAPWS:
+            # bare assert 를 쓰지 않습니다 — 크래시하면 나머지 63개 결과와 집계가
+            # 사라지고, 이미 기록된 진단(켈빈↔섭씨 불일치)까지 묻힙니다.
+            # 조용히 통과 < 크래시 < **보고**.
+            FAIL.append(f"[OURS] {celsius}°C = {T_real} K 가 IAPWS 직접 행이 아니다 "
+                        f"(있는 행: {sorted(IAPWS)})")
+            continue
         got = (OURS_ETA - IAPWS[T_real]) / IAPWS[T_real] * 100
-        chk("OURS", f"eta 오차 @T={T_real} K (IAPWS 직접행 기준, 우리 0.851)",
+        chk("OURS", f"eta 오차 @{celsius}°C = {T_real} K (IAPWS 직접행 기준, 우리 0.851)",
             got, want_pct, rtol=2e-2,
-            note="25C=298.15K / 20C=293.15K — 정수 켈빈으로 적으면 0.31% 움직인다")
-    # 증류본 §1.2 표에 인쇄된 두 값이 위 계산과 일치하는가
-    chk_doc("welty_transport.md", r"\*\*298\.15 K\*\*[^|]*\|[^|]*\|\s*\*\*−([\d.]+)%\*\*",
-            abs((OURS_ETA - IAPWS[298.15]) / IAPWS[298.15] * 100), rtol=2e-2,
-            note="§1.2 의 298.15 K 행")
-    chk_doc("welty_transport.md", r"\*\*293\.15 K\*\*[^|]*\|[^|]*\|\s*\*\*−([\d.]+)%\*\*",
-            abs((OURS_ETA - IAPWS[293.15]) / IAPWS[293.15] * 100), rtol=2e-2,
-            note="§1.2 의 293.15 K 행")
+            note=f"{celsius}C 를 {KELVIN_0C + celsius - 0.15:.0f} K 로 적으면 0.3% 움직인다")
+    # 증류본 §1.2 표에 인쇄된 두 값이 위 계산과 일치하는가.
+    # ★ 여기서도 온도를 리터럴로 쓰지 않습니다 — 위 루프에서 리터럴을 뺐는데
+    #   이 두 줄에 `IAPWS[298.15]` 가 남아 있어서 적대적 시험이 KeyError 로
+    #   크래시했습니다 (한 곳만 고치고 두 곳을 놓친 것).
+    for celsius in (25, 20):
+        T_real = KELVIN_0C + celsius
+        if T_real not in IAPWS:
+            FAIL.append(f"[DOC] §1.2 {celsius}°C 행 대조 불가 — IAPWS 직접 행이 없다")
+            continue
+        want = abs((OURS_ETA - IAPWS[T_real]) / IAPWS[T_real] * 100)
+        chk_doc("welty_transport.md",
+                r"\*\*" + f"{T_real:.2f}" + r" K\*\*[^|]*\|[^|]*\|\s*\*\*−([\d.]+)%\*\*",
+                want, rtol=2e-2, note=f"§1.2 의 {celsius}°C ({T_real} K) 행")
 
     # 온도 민감도: %/K. 값 하나만 인용하고 T 를 안 적으면 이만큼 틀릴 수 있다.
     sens = abs(math.log(mu[2] / mu[1])) / (T[2] - T[1]) * 100  # %/K, 293-313 구간
