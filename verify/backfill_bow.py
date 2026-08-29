@@ -1,13 +1,17 @@
-"""완료된 chain-bend-2d-dlvo 런에 `bow`(굽음) 를 GSD 궤적에서 사후 계산해 채운다.
+"""Backfill `bow` into completed chain-bend-2d-dlvo runs, computed after the fact
+from the GSD trajectory.
 
-★ 왜 사후계산이 가능한가: 굽음은 위치만으로 정해지는 기하량이라 궤적에서 정확히 재현된다.
-  (힘 기반 량이었다면 불가능했다 — CLAUDE.md 의 GSD 재생 무효 사례 참조: 시간 의존 구동에서
-   힘을 재계산하면 트랩 앵커가 t=0 에 고정돼 16배 과대평가된다. 굽음은 그 함정이 없다.)
+★ Why post-hoc computation is valid here: bow is a geometric quantity fixed by
+  positions alone, so it is reproduced exactly from the trajectory.
+  (It would have been impossible for a force-based quantity -- see the invalid
+   GSD-replay case in CLAUDE.md: under time-dependent driving, recomputing forces
+   pins the trap anchor at t=0 and overestimates by 16x. Bow has no such trap.)
 
-⚠️ 한계: GSD 는 표본이 성기다(런당 ~200 프레임 vs 원본 표본 2000개). 그래서 여기서 채운
-  값은 `bow_rms_gsd` 로 **이름을 다르게** 넣는다 — 신규 런의 `bow_rms`(전 표본)와 섞으면
-  분해능이 다른 값을 같은 이름으로 비교하게 된다. 락인(bow_drive)은 프레임이 적어 신뢰도가
-  낮으므로 채우지 않는다.
+⚠️ Limitation: GSD is sparsely sampled (~200 frames per run vs 2000 original
+  samples). So the value filled in here goes in under a **different name**,
+  `bow_rms_gsd` -- mixing it with a new run's `bow_rms` (all samples) would mean
+  comparing different resolutions under one name. The lock-in (bow_drive) is not
+  backfilled, because too few frames make it unreliable.
 
     $PY scratch/backfill_bow.py [--dry]
 """
@@ -44,10 +48,12 @@ for d in sorted((ROOT / "runs").glob("chain-bend-2d-dlvo__*")):
         "err_pct": None, "err_sigma": None, "sigma": None,
         "prediction_source": "none", "role": "measurement", "scope": "composite",
         "derivation": "", "tol_pct": None, "tol_sigma": None,
-        "note": f"굽음 RMS — GSD 궤적 {len(traj)}프레임에서 사후계산 "
-                f"(scratch/backfill_bow.py). 신규 런의 bow_rms(전 표본)보다 성기다"})
+        "note": f"bow RMS -- computed after the fact from {len(traj)} GSD frames "
+                f"(scratch/backfill_bow.py). Sparser than a new run's bow_rms "
+                f"(all samples)"})
     if not dry:
         mp.write_text(json.dumps(met, indent=2, ensure_ascii=False))
     n_done += 1
     print(f"  {d.name[:62]:<62} bow_rms_gsd={rms:.5f} d  ({len(traj)}f)")
-print(f"\n채움 {n_done}건 · 건너뜀 {n_skip}건{' (dry-run, 안 씀)' if dry else ''}")
+print(f"\nfilled {n_done} · skipped {n_skip}"
+      f"{' (dry-run, nothing written)' if dry else ''}")

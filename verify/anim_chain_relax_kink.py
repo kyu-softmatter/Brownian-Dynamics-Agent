@@ -1,11 +1,15 @@
-"""애니메이션 — chain-relax-2d-dlvo 킹크 방출을 kT=0(결정론) vs kT=1(실제 열적) 나란히.
+"""Animation -- chain-relax-2d-dlvo kink release, kT=0 (deterministic) side by side
+with kT=1 (the real thermal case).
 
-CLAUDE.md 작업 관행: "kT=0(모드 형태)과 kT>0(열요동에 묻히는 정도)을 나란히 두면 SNR
-문제가 숫자보다 빨리 보인다." G1(선형 굽힘강성=0)이 맞다면 kT=0 패널은 거의 안 움직여야
-한다 — 복원할 힘이 없기 때문이다(정확히 자연장에서 시작해 신장 신호도 없다).
+CLAUDE.md working practice: "putting kT=0 (the mode shape) next to kT>0 (how far
+thermal noise buries it) shows an SNR problem faster than any number." If G1 (linear
+bending stiffness = 0) is right, the kT=0 panel should barely move -- there is no
+restoring force (it starts at exactly the natural length, so there is no stretching
+signal either).
 
-★ 이건 생산 측정이 아니다 — 시각화 전용. kT=1 궤적은 기존 프로덕션 런의 GSD를 그대로
-재사용하고(재실행 안 함), kT=0 만 새로 짧게 돌린다(같은 dt·같은 초기조건·같은 힘).
+★ This is NOT a production measurement -- visualization only. The kT=1 trajectory
+reuses the GSD of an existing production run as-is (nothing is re-run); only kT=0 is
+run fresh and short (same dt, same initial condition, same forces).
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY scratch/anim_chain_relax_kink.py
@@ -30,7 +34,10 @@ KINK_RUN = ROOT / "runs/chain-relax-2d-dlvo__n9-kink-a0.300__1e7b282680f2"
 
 
 def rotate_to_body_frame(pos):
-    """양끝을 잇는 축을 x'축으로 — chain_relax_2d_dlvo.bow_metrics 와 같은 변환."""
+    """Take the axis joining the two ends as x'.
+
+    The same transform as chain_relax_2d_dlvo.bow_metrics.
+    """
     d = pos[-1] - pos[0]
     L = float(np.hypot(d[0], d[1]))
     if L < 1e-9:
@@ -104,17 +111,19 @@ def main():
     matplotlib.rcParams["axes.unicode_minus"] = False
 
     frames_kT1, spec = load_kT1_frames()
-    print(f"kT=1 (실제 런) 프레임 {len(frames_kT1)}개 로드")
+    print(f"kT=1 (the real run): loaded {len(frames_kT1)} frames")
     frames_kT0 = run_kT0(spec, n_frames_target=len(frames_kT1) - 1)
-    print(f"kT=0 (결정론, 신규 짧은 런) 프레임 {len(frames_kT0)}개 생성")
+    print(f"kT=0 (deterministic, fresh short run): generated "
+          f"{len(frames_kT0)} frames")
 
     n_show = min(len(frames_kT0), len(frames_kT1))
     body_kT0 = np.array([rotate_to_body_frame(p) for p in frames_kT0[:n_show]])
     body_kT1 = np.array([rotate_to_body_frame(p) for p in frames_kT1[:n_show]])
 
     period = int(spec["numerics"]["n_prod"]) // (n_show - 1)
-    # dt/tau_bond = C.GATE = 0.01 정확히(설계 상수, build_ledger 의 dt_from_gate) —
-    # tau_B 를 거칠 필요 없이 프레임 간 스텝수만으로 τ_bond 단위 시간이 나온다.
+    # dt/tau_bond = C.GATE = 0.01 exactly (a design constant, dt_from_gate in
+    # build_ledger) -- so time in units of tau_bond follows from the step count
+    # between frames alone, with no need to go via tau_B.
     t_per_frame_tau_bond = period * 0.01
 
     xmax = float(np.max(np.abs(np.concatenate([body_kT0[:, :, 0], body_kT1[:, :, 0]])))) * 1.1
@@ -150,7 +159,7 @@ def main():
     out = ROOT / "runs" / KINK_RUN.name / "kink_release_kT0_vs_kT1.gif"
     ani.save(out, writer="pillow", fps=12)
     plt.close(fig)
-    print("저장:", out)
+    print("saved:", out)
 
 
 if __name__ == "__main__":

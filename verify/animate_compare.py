@@ -30,12 +30,14 @@ ylim_zoom = (pj[:,:,1].min() - 0.005, pj[:,:,1].max() + 0.005)
 fig, axes = plt.subplots(1, 3, figsize=(15.5, 4.6))
 cfg = [
     (axes[0], pd_, "#1f77b4", ylim_shared,
-     "DLVO-only (굽힘항 없음)\n열요동으로 사슬이 크게 흐트러진다"),
+     "DLVO-only (no bending term)\nthermal fluctuation disorders the chain heavily"),
     (axes[1], pj, "#d62728", ylim_shared,
-     "DLVO + JKR 굽힘  ★같은 y축\n거의 직선 — 트랩이 끌어도 안 휜다"),
+     "DLVO + JKR bending  ★same y axis\nnearly straight -- the trap pulls but it "
+     "does not bend"),
     (axes[2], pj, "#d62728", ylim_zoom,
-     f"JKR 확대 (y축 {(ylim_shared[1]-ylim_shared[0])/(ylim_zoom[1]-ylim_zoom[0]):.0f}배 확대)\n"
-     "움직이긴 한다 — 매끈한 빔형 곡률로"),
+     f"JKR zoom (y axis magnified "
+     f"{(ylim_shared[1]-ylim_shared[0])/(ylim_zoom[1]-ylim_zoom[0]):.0f}x)\n"
+     "it does move -- with a smooth beam-like curvature"),
 ]
 arts = []
 for ax, dat, col, yl, title in cfg:
@@ -47,7 +49,8 @@ for ax, dat, col, yl, title in cfg:
     arts.append((ln, dat))
 txt = axes[0].text(0.02, 0.93, "", transform=axes[0].transAxes, fontsize=9)
 
-fig.suptitle("같은 기하·같은 시드·같은 구동 (n=9, ω=3000 rad/s, a=632nm) — 굽힘항만 ON/OFF",
+fig.suptitle("same geometry, same seed, same drive (n=9, omega=3000 rad/s, a=632nm) "
+             "-- only the bending term toggled ON/OFF",
              fontsize=11)
 fig.tight_layout()
 
@@ -58,7 +61,7 @@ def init():
 def update(i):
     for ln, dat in arts:
         ln.set_data(dat[i][:, 0], dat[i][:, 1])
-    txt.set_text(f"frame {i}/{NF}  (20 구동주기)")
+    txt.set_text(f"frame {i}/{NF}  (20 drive periods)")
     return [a[0] for a in arts] + [txt]
 
 ani = animation.FuncAnimation(fig, update, frames=range(NF), init_func=init,
@@ -66,4 +69,5 @@ ani = animation.FuncAnimation(fig, update, frames=range(NF), init_func=init,
 out = "/private/tmp/claude-501/-Users-kyuhwan-Desktop-simulation-auto/7f5025d1-46c3-455c-a0ba-f595731412cc/scratchpad/jkr_vs_dlvo_motion.gif"
 ani.save(out, writer=animation.PillowWriter(fps=20))
 print("saved", out)
-print(f"y범위: DLVO {pd_[:,:,1].ptp():.4f} d   JKR {pj[:,:,1].ptp():.4f} d  → {pd_[:,:,1].ptp()/pj[:,:,1].ptp():.1f}배")
+print(f"y range: DLVO {pd_[:,:,1].ptp():.4f} d   JKR {pj[:,:,1].ptp():.4f} d  -> "
+      f"{pd_[:,:,1].ptp()/pj[:,:,1].ptp():.1f}x")

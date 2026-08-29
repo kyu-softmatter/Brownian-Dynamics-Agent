@@ -76,7 +76,7 @@ for name in ["variant", "trigger", "filter", "write", "custom", "util", "tune",
             inner = getattr(m, s)
             print(f"    .{s}: {', '.join(classes(inner)) or '(none)'}")
 
-section("KEY SIGNATURES (모듈 설계에 직접 필요한 것들)")
+section("KEY SIGNATURES (the ones directly needed for module design)")
 targets = [
     ("md.methods.Brownian", md.methods.Brownian),
     ("md.methods.Langevin", getattr(md.methods, "Langevin", None)),
@@ -110,7 +110,7 @@ for label, cls in targets:
         params = "(introspection failed)"
     print(f"\n  {label}{params}")
 
-section("ANISOTROPIC / SHAPE 관련 (타원체·막대 지원 여부)")
+section("ANISOTROPIC / SHAPE related (is ellipsoid/rod support present)")
 for path in ["md.pair.aniso", "md.constrain"]:
     obj = md
     for part in path.split(".")[1:]:
@@ -119,7 +119,7 @@ for path in ["md.pair.aniso", "md.constrain"]:
             break
     print(f"  {path}: {', '.join(classes(obj)) if obj else '-- ABSENT --'}")
 
-section("VARIANT 종류 (시간 의존 구동)")
+section("VARIANT kinds (time-dependent driving)")
 print("  hoomd.variant:", ", ".join(classes(hoomd.variant)))
 for s in submodules(hoomd.variant):
     print(f"    .{s}:", ", ".join(classes(getattr(hoomd.variant, s))))

@@ -1,11 +1,17 @@
-"""접촉 메커니즘 4종 비교 그림 — 무엇이 굽힘강성을 만들고 무엇이 못 만드는가.
+"""Four-way comparison figure of contact mechanisms.
 
-패널 (a) md.pair.friction 은 DLVO 2차극소에서 항등적으로 0 이고, 접촉해도 구름에 면제된다
-      (b) ★ 판별자 — 강성의 진폭 의존: DLVO 장력은 K ∝ δ², 진짜 굽힘은 δ 무관
-      (c) 구름 저항 ↔ 조화 굽힘의 정확한 등가 (κ_θ,eff = ½k_rR²) 와 방향 동결 효과
-      (d) kT=0 ω 스윕 — 두 모델이 갈리는 주파수
+Which of them produces a bending stiffness and which cannot.
 
-⚠ 라벨은 전부 영어 (CLAUDE.md — matplotlib 한글 폰트에 −·ŷ 가 없다).
+Panel (a) md.pair.friction is identically 0 at the DLVO secondary minimum, and even
+          in contact it is exempt from rolling
+      (b) ★ the discriminator -- amplitude dependence of the stiffness: DLVO tension
+          gives K proportional to delta^2, real bending is delta-independent
+      (c) the exact equivalence between rolling resistance and a harmonic bend
+          (kappa_theta,eff = 0.5*k_r*R^2), and the orientation-freezing effect
+      (d) a kT=0 omega sweep -- the frequency at which the two models diverge
+
+⚠ All labels are in English (CLAUDE.md -- a Hangul matplotlib font has no
+  minus sign or y-hat glyph).
 
     $PY scratch/viz_contact_mechanisms.py
 """
@@ -187,7 +193,8 @@ if rows:
                 color="#ff7f0e", fontsize=8.5, va="center")
     ax.axvline(18453, color="k", lw=1.5, ls="-.")
     ax.text(18453 * 1.15, Ks * 1.6, "production\n$\\omega^*$ = 18453", fontsize=8.5)
-    # 굽힘이 지배하는 구간만 두 모델의 비가 의미 있다 — 그 위는 방사 본드/항력 포화
+    # The ratio of the two models is only meaningful where bending dominates --
+    # above that it is radial-bond / drag saturation
     bend_dom = om[Kh / Ks <= 2.0]
     if len(bend_dom):
         ax.axvspan(om.min() * 0.5, bend_dom.max() * 1.7, color="#2ca02c", alpha=0.07)

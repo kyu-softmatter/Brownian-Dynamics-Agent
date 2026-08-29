@@ -1,12 +1,17 @@
-"""`chain-bend-2d-dlvo` 의 완료 런에 `result.txt`(완료 마커)를 소급해서 채운다.
+"""Retroactively write `result.txt` (the completion marker) into completed
+`chain-bend-2d-dlvo` runs.
 
-★ 왜 필요했나: `result.txt` 는 이 프로젝트의 **완료 마커**인데 `bdbot.run.execute` 가
-  아니라 **케이스 스크립트가** 쓴다 (soft_r3_2d·abp_rod_2d·trap_2d_5um 셋 다 그렇다).
-  `chain_bend_dlvo_2d.py` 를 새로 쓰면서 이걸 빠뜨려서 셋이 조용히 깨졌다:
-    ① `bdbot.cli status` 가 137런을 **0개**로 셌다 (cli.py:133)
-    ② `runid.prepare_outdir` 가 완료를 못 알아봐 같은 런을 계속 재실행했다
-    ③ "미완료 정리" 를 result.txt 기준으로 돌렸다가 **완료 런 6개를 지웠다**
-  케이스 쪽은 고쳤고(2026-08-06), 그 전에 끝난 런은 이 스크립트로 채운다.
+★ Why this was needed: `result.txt` is this project's **completion marker**, but it
+  is written by **the case script**, not by `bdbot.run.execute` (all three of
+  soft_r3_2d, abp_rod_2d and trap_2d_5um do it themselves).
+  Writing `chain_bend_dlvo_2d.py` omitted it, and three things broke silently:
+    (1) `bdbot.cli status` counted 137 runs as **0** (cli.py:133)
+    (2) `runid.prepare_outdir` could not recognise completion and kept re-running
+        the same run
+    (3) a "clean up the incomplete runs" pass keyed on result.txt **deleted 6
+        completed runs**
+  The case side is fixed (2026-08-06); runs that finished before that are filled in
+  by this script.
 
     $PY scratch/backfill_result_txt.py [--dry]
 """
@@ -27,7 +32,7 @@ for d in sorted((ROOT / "runs").glob("chain-bend-2d-dlvo__*")):
     lines = []
     for o in mj.get("observables", []):
         m, p_ = o.get("measured"), o.get("predicted")
-        tail = f"   (예측 {p_:.6g})" if isinstance(p_, (int, float)) else ""
+        tail = f"   (prediction {p_:.6g})" if isinstance(p_, (int, float)) else ""
         lines.append(f"  {o['name']:<22} {m:.6g}{tail}" if m is not None
                      else f"  {o['name']:<22} —")
     l4 = d / "l4.json"
@@ -37,13 +42,14 @@ for d in sorted((ROOT / "runs").glob("chain-bend-2d-dlvo__*")):
             verdict = f"L4: {json.loads(l4.read_text()).get('verdict', '?')}"
         except Exception:
             pass
-    body = "\n".join(["=" * 84, f"결과 — {d.name}", "=" * 84, *lines,
+    body = "\n".join(["=" * 84, f"result — {d.name}", "=" * 84, *lines,
                       "=" * 84, verdict,
-                      "(★ result.txt 는 scratch/backfill_result_txt.py 로 소급 생성. "
-                      "원본 리포트는 이 런에 없다 — 케이스가 당시 안 썼다)"])
+                      "(★ this result.txt was generated retroactively by "
+                      "scratch/backfill_result_txt.py. The original report does not "
+                      "exist for this run -- the case did not write one at the time)"])
     report = (d / "report.txt").read_text() if (d / "report.txt").exists() else ""
     if not dry:
         rp.write_text((report + "\n" if report else "") + body)
     done += 1
 
-print(f"채움 {done}건 · 건너뜀 {skip}건{' (dry-run)' if dry else ''}")
+print(f"filled {done} · skipped {skip} runs{' (dry-run)' if dry else ''}")

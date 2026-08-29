@@ -17,7 +17,7 @@ amp_rows = pickle.load(open(f"{SCRATCH}/amp_sweep_rows.pkl", "rb"))
 
 fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.5))
 
-# ── ① omega 스윕 ──
+# ── (1) omega sweep ──
 ax = axes[0]
 w = np.array([r[0] for r in omega_rows], dtype=float)
 Kp = np.array([r[1] for r in omega_rows]); Kp_sem = np.array([r[2] for r in omega_rows])
@@ -25,32 +25,37 @@ Kpp = np.array([r[3] for r in omega_rows]); Kpp_sem = np.array([r[4] for r in om
 n_seeds = [r[5] for r in omega_rows]
 ax.errorbar(w, Kp, yerr=Kp_sem, fmt="o-", capsize=4, color="#1f77b4", label="K'(ω)")
 ax.errorbar(w, Kpp, yerr=Kpp_sem, fmt="s--", capsize=4, color="#ff7f0e", alpha=0.7, label="K''(ω)")
-ax.axhline(0, color="gray", lw=1.2, label="G1 예측: K'=0")
+ax.axhline(0, color="gray", lw=1.2, label="G1 prediction: K'=0")
 ax.set_xscale("log")
 ax.set_xlabel("ω [rad/s]"); ax.set_ylabel("K [kT/d²]")
-ax.set_title("ω 스윕 (n=9, a=632nm)\n저주파(10~100)에서 0에 가장 가깝고 유의미(4~5σ)\n"
-             "→ 준정적 극한에서 탄성 고원 없음(G1과 일치), 고주파일수록 점탄성적 증가")
+ax.set_title("omega sweep (n=9, a=632nm)\nclosest to 0 and significant (4-5 sigma) at "
+             "low frequency (10-100)\n"
+             "-> no elastic plateau in the quasi-static limit (consistent with G1); "
+             "increasingly viscoelastic at higher frequency")
 for wi, ni, kpi in zip(w, n_seeds, Kp):
     ax.annotate(f"N={ni}", (wi, kpi), textcoords="offset points", xytext=(6, 8), fontsize=7,
                 color="gray")
 ax.legend(fontsize=8); ax.grid(alpha=0.3)
 
-# ── ② amplitude 스윕 ──
+# ── (2) amplitude sweep ──
 ax = axes[1]
 a = np.array([r[0] for r in amp_rows], dtype=float) / 1470.0    # a/d
 Kp2 = np.array([r[1] for r in amp_rows]); Kp2_sem = np.array([r[2] for r in amp_rows])
 n2 = [r[3] for r in amp_rows]
 ax.errorbar(a, Kp2, yerr=Kp2_sem, fmt="o-", capsize=4, color="#2ca02c")
-ax.axhline(0, color="gray", lw=1.2, label="G1 예측: K'=0")
-ax.set_xlabel("a/d (구동진폭 / 입자지름)"); ax.set_ylabel("K' [kT/d²]")
-ax.set_title("진폭 스윕 (n=9, ω=3000 rad/s)\n진폭이 커질수록 K'는 0쪽으로 줄고 SEM도 줄어듦\n"
-             "(작은 진폭=노이즈 지배, 큰 진폭=정밀하게 0에 근접) — G1과 일치")
+ax.axhline(0, color="gray", lw=1.2, label="G1 prediction: K'=0")
+ax.set_xlabel("a/d (drive amplitude / particle diameter)"); ax.set_ylabel("K' [kT/d^2]")
+ax.set_title("amplitude sweep (n=9, omega=3000 rad/s)\nas the amplitude grows K' "
+             "shrinks toward 0 and the SEM shrinks too\n"
+             "(small amplitude = noise dominated, large amplitude = precisely close "
+             "to 0) -- consistent with G1")
 for ai, ni, kpi, semi in zip(a, n2, Kp2, Kp2_sem):
     ax.annotate(f"N={ni}", (ai, kpi), textcoords="offset points", xytext=(6, 8), fontsize=7,
                 color="gray")
 ax.legend(fontsize=8); ax.grid(alpha=0.3)
 
-fig.suptitle("chain-bend-2d-dlvo — DLVO만으로 연결한 사슬의 K'(ω), K'(a) (n=9 고정)", fontsize=11)
+fig.suptitle("chain-bend-2d-dlvo -- K'(omega) and K'(a) for a chain bonded by DLVO "
+             "alone (n=9 fixed)", fontsize=11)
 fig.tight_layout()
 out = f"{SCRATCH}/dlvo_final_sweeps.png"
 fig.savefig(out, dpi=140)
