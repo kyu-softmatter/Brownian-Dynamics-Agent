@@ -1,28 +1,31 @@
-"""soft-r3 `N` 수렴 — `N=256` + `ψ₆` 유한크기 지수로 상을 판별한다.
+"""soft-r3 `N` convergence -- identify the phase from `N=256` plus the finite-size
+exponent of `psi6`.
 
 usage:
-  python scripts/soft2d_nconv.py --gates        # 게이트·비용만 (실행 안 함)
-  python scripts/soft2d_nconv.py                # S5→S7 전부
+  python scripts/soft2d_nconv.py --gates        # gates and cost only (does not run)
+  python scripts/soft2d_nconv.py                # all of S5 through S7
   python scripts/soft2d_nconv.py --analyze-only
 
-## 두 가지를 한 번에 닫는다
+## Two things closed at once
 
-**① 카드 §9** — `N=100` 은 `A=10` 의 `r_cut` 요구(`N ≥ 252`)를 만족하지 않았다.
-   `N=256` 에서 `βU(r_cut)` 이 `0.0904 → 0.0216 kT` 로 내려간다.
+**(1) Card §9** -- `N=100` did not satisfy `A=10`'s `r_cut` requirement (`N >= 252`).
+   At `N=256`, `beta*U(r_cut)` drops from `0.0904` to `0.0216 kT`.
 
-**② 카드 §10** — `g₆(r)` 지수 `η₆` 미구현. `|⟨ψ₆⟩| ~ N^{-p}` 의 `p` 에서
-   `η₆ = 4p` 를 얻는다. **`g₆(r)` 을 적합하지 않고** 두 계 크기만으로.
+**(2) Card §10** -- the `g6(r)` exponent `eta6` was unimplemented. It is obtained as
+   `eta6 = 4p` from the `p` in `|<psi6>| ~ N^{-p}`. **Without fitting `g6(r)`** --
+   from two system sizes alone.
 
-## 이 스크립트가 조심하는 것
+## What this script is careful about
 
-**① 부모 런을 다시 돌리지 않는다.** `N=100` 값은 커밋된
-   `runs/2026-07-29_soft-r3-time-resolved/metrics.json` 에서 읽는다.
+**(1) It does not re-run the parent run.** The `N=100` values are read from the
+   committed `runs/2026-07-29_soft-r3-time-resolved/metrics.json`.
 
-**② 시드를 겹치지 않게 한다** (`21–24`). 부모 런은 `5–8`, 완화 스윕은 `5–1540` 이다.
+**(2) It keeps the seeds disjoint** (`21-24`). The parent run used `5-8` and the
+   relaxation sweep used `5-1540`.
 
-**③ 배위수 종류는 집계 추정량으로 센다.** 프레임별 문턱은 `N` 에 의존한다 —
-   입자 1개가 `N=100` 에서 `1 %`, `N=256` 에서 `0.39 %` 다.
-   근거: `findings/fraction-threshold-flips-meaning-between-per-frame-and-aggregate.md`
+**(3) It counts coordination kinds with an aggregate estimator.** A per-frame threshold
+   depends on `N` -- one particle is `1 %` at `N=100` but `0.39 %` at `N=256`.
+   Basis: `findings/fraction-threshold-flips-meaning-between-per-frame-and-aggregate.md`
 """
 from __future__ import annotations
 
@@ -110,20 +113,21 @@ def print_gates(geo: dict, rows: list[dict], policy, pred: dict) -> None:
     k = policy.concurrency("default")
     eff = policy.efficiency(k)
     ref = geometry(N_REF)
-    print(f"## 기하  N: {N_REF} → {N_NEW}\n"
+    print(f"## geometry  N: {N_REF} -> {N_NEW}\n"
           f"  L*: {ref['L_star']:.0f} → {geo['L_star']:.0f}  ·  "
           f"L: {ref['L_si']*1e6:.0f} → {geo['L_si']*1e6:.0f} µm  ·  "
-          f"커버리지 {geo['coverage']:.4%} (**N 에 무관 — n* = 1**)\n"
-          f"  τ_d = {geo['tau_d_si']:.1f} s = {geo['tau_d_si']/60:.2f} 분 "
-          f"(N 에 무관: d 가 σ 로만 정해진다)\n")
+          f"coverage {geo['coverage']:.4%} (**independent of N -- n* = 1**)\n"
+          f"  tau_d = {geo['tau_d_si']:.1f} s = {geo['tau_d_si']/60:.2f} min "
+          f"(independent of N: d is set by sigma alone)\n")
     hdr = (f"{'A':>6} {'Γ':>7} {'r_cut':>7} {'βU(rc)':>8} {'N=100 βU':>9} "
-           f"{'max|F*|':>9} {'지배':<22} {'dt*':>10} {'steps':>10} {'예상 wall':>9}")
+           f"{'max|F*|':>9} {'governing':<22} {'dt*':>10} {'steps':>10} "
+           f"{'est. wall':>9}")
     print(hdr); print("-" * len(hdr))
     sealed = {it["quantity"]: it["value"] for it in pred["items"]}
     total = 0.0
     for r in rows:
         A = r["amplitude"]
-        wall = N_NEW * r["steps"] / (lam * eff) * 3.4      # 프레임 오버헤드 계수
+        wall = N_NEW * r["steps"] / (lam * eff) * 3.4      # frame-overhead factor
         total = max(total, wall)
         key = f"beta_u_at_rcut__A{A:g}__N256"
         ref_bu = {0.1: 0.0009, 1.0: 0.0090, 10.0: 0.0904}[A]
@@ -131,17 +135,18 @@ def print_gates(geo: dict, rows: list[dict], policy, pred: dict) -> None:
               f"{r['beta_u_at_rcut']:>8.4f} {ref_bu:>9.4f} "
               f"{r['max_force_star']:>9.2f} {r['dominant_gate']:<22} "
               f"{r['dt_star']:>10.3g} {r['steps']:>10d} {wall:>8.0f}s")
-        #  ★ 봉인된 예측과 어긋나면 멈춘다
+        #  ★ stop if it disagrees with the sealed prediction
         if key in sealed and abs(r["beta_u_at_rcut"] - sealed[key]) > 5e-4:
-            raise SystemExit(f"⛔ {key}: 봉인 {sealed[key]} vs 실측 "
-                             f"{r['beta_u_at_rcut']:.4f} — 설계가 갈라졌다")
-    print(f"\n  ✅ βU(r_cut) 이 봉인된 예측과 일치한다")
+            raise SystemExit(f"⛔ {key}: sealed {sealed[key]} vs measured "
+                             f"{r['beta_u_at_rcut']:.4f} -- the design has diverged")
+    print(f"\n  ✅ beta*U(r_cut) agrees with the sealed prediction")
     budget = policy.wall_budget_s
-    print(f"  런 {len(rows)*len(SEEDS)}개 · 동시 {k} (효율 {eff:.2f}) · "
-          f"최장 런 예상 {total:.0f} s "
-          f"{'≤' if total <= budget else '>'} 예산 {budget:.0f} s")
+    print(f"  {len(rows)*len(SEEDS)} runs . concurrency {k} "
+          f"(efficiency {eff:.2f}) . "
+          f"longest run estimated {total:.0f} s "
+          f"{'<=' if total <= budget else '>'} budget {budget:.0f} s")
     if total > budget:
-        raise SystemExit("⛔ 예산 초과 — 실행하지 않고 보고한다")
+        raise SystemExit("⛔ over budget -- reporting without running")
 
 
 def _one(args) -> dict:
@@ -162,7 +167,7 @@ def run_batch(rd: RunDir, rows: list[dict], policy) -> dict:
                 n_frames=N_FRAMES, seed=s, label=label)
             jobs.append((asdict(cfg), str(rd.raw / label)))
     k = policy.concurrency("default")
-    print(f"\n## S5 — {len(jobs)} 런 (동시 {k})")
+    print(f"\n## S5 -- {len(jobs)} runs (concurrency {k})")
     t0 = time.perf_counter()
     done, failed = [], []
     with ProcessPoolExecutor(max_workers=k) as ex:
@@ -182,7 +187,7 @@ def run_batch(rd: RunDir, rows: list[dict], policy) -> dict:
                 failed.append({"label": label, "error": repr(e)})
                 print(f"  ⛔ {label}: {e!r}")
     wall = time.perf_counter() - t0
-    print(f"\n  배치 wall {wall:.1f} s · 실패 {len(failed)}")
+    print(f"\n  batch wall {wall:.1f} s . failed {len(failed)}")
     return {"done": done, "failed": failed, "batch_wall_s": wall,
             "concurrency": k, "n_jobs": len(jobs), "seeds": list(SEEDS),
             "n_particles": N_NEW}
@@ -195,7 +200,7 @@ def analyze(rd: RunDir) -> dict:
         dirs = sorted(p for p in rd.raw.glob(f"A{A:g}_N{N_NEW}_s*")
                       if (p / "samples.npz").exists())
         if not dirs:
-            raise SystemExit(f"⛔ A={A} 런이 없다")
+            raise SystemExit(f"⛔ no runs for A={A}")
         lo, hi = WINDOW[A]
         per_seed, agg_frac, n_tot, min_seps, late_frames = [], None, 0, [], []
         for d in dirs:
@@ -211,7 +216,8 @@ def analyze(rd: RunDir) -> dict:
             per_seed.append({"psi6_global": float(s.psi6_global[m].mean()),
                              "psi6_local": float(s.psi6_local[m].mean()),
                              "defect_fraction": float(s.defect_fraction[m].mean())})
-            #  집계 히스토그램 (프레임별 문턱은 N 의존이므로 쓰지 않는다)
+            #  aggregate histogram (a per-frame threshold is N-dependent, so it is
+            #  not used)
             f = s.coord_fraction[m].sum(axis=0)
             agg_frac = f if agg_frac is None else agg_frac + f
             n_tot += int(m.sum())
@@ -278,8 +284,10 @@ def figures(rd: RunDir, metrics: dict) -> FigureSet:
     plot_finite_size_scaling(fs, data, local_data=local,
                              exponent_liquid=LIQUID_EXPONENT_P,
                              exponent_hexatic=KTHNY_ETA6_HEXATIC_LIQUID / 4.0)
-    fs.skip("voronoi", "결함의 성격은 부모 런이 이미 냈다 — 이 런은 N 의존성만 본다")
-    fs.skip("early_transient", "과도구간은 완화 스윕이 시드 1513개로 이미 닫았다")
+    fs.skip("voronoi", "the parent run already characterised the defects -- this run "
+                       "looks only at N dependence")
+    fs.skip("early_transient", "the relaxation sweep already closed the transient with "
+                               "1513 seeds")
     return fs
 
 
@@ -314,9 +322,11 @@ def check(pred: dict, metrics: dict, rows: list[dict]) -> list[dict]:
         if isinstance(cv, (int, float)) and v is not None:
             d_pred = abs(v - float(it["value"]))
             d_comp = abs(v - float(cv))
-            note = (f"경쟁가설 `{cv:.5g}` 과의 거리 `{d_comp:.4g}` vs 예측과 "
+            note = (f"competing hypothesis `{cv:.5g}` at distance `{d_comp:.4g}` "
+                    f"vs "
                     f"`{d_pred:.4g}` → "
-                    + ("**예측 쪽**" if d_pred < d_comp else "**경쟁 쪽**"))
+                    + ("**favours the prediction**" if d_pred < d_comp
+                       else "**favours the competitor**"))
         rows_out.append({"quantity": q, "predicted": it["value"],
                          "tolerance": tol, "measured": v, "verdict": verdict,
                          "competing_value": cv, "note": note,
@@ -346,11 +356,11 @@ def main() -> int:
                                "total_tau": TOTAL_TAU, "n_frames": N_FRAMES,
                                "window": {str(k): v for k, v in WINDOW.items()}})
         seal = write_seal(rd)
-        print(f"\n  🔒 봉인 {seal.name} — "
-              f"{len(seal.read_text().splitlines())}개 문서 (실행 전)")
+        print(f"\n  🔒 sealed {seal.name} -- "
+              f"{len(seal.read_text().splitlines())} documents (before running)")
         rd.write_json("manifest", run_batch(rd, rows, policy))
 
-    print("\n## S7 — 유한크기 분석")
+    print("\n## S7 -- finite-size analysis")
     metrics = analyze(rd)
     metrics["_provenance_at_analysis"] = provenance(DRIVERS)
     fs = figures(rd, metrics)
@@ -359,8 +369,9 @@ def main() -> int:
     metrics["_checks"] = checks
     rd.write_json("metrics", metrics)
 
-    print("\n## 예측 대조 (판정은 제안이다 — confirmed_by: null)")
-    hdr = f"{'항목':<38} {'예측':>10} {'경쟁':>10} {'측정':>10} 판정"
+    print("\n## prediction comparison (the verdict is a proposal -- "
+          "confirmed_by: null)")
+    hdr = f"{'item':<38} {'predicted':>10} {'competing':>10} {'measured':>10} verdict"
     print(hdr); print("-" * (len(hdr) + 6))
     for c in checks:
         cv = c["competing_value"]
