@@ -1,4 +1,4 @@
-"""S6 + S7 — 트랩 배치의 시각화와 분석.
+"""S6 + S7 -- visualization and analysis of the trap batch.
 
 usage: python scripts/trap_analyze.py <run_dir>
 """
@@ -33,7 +33,7 @@ run_dir = Path(sys.argv[1])
 figs = run_dir / "figs"
 figs.mkdir(parents=True, exist_ok=True)
 
-# --- 로드 ---------------------------------------------------------------
+# --- load ---------------------------------------------------------------
 runs: dict[tuple[int, float, int], dict] = {}
 for d in DIMS:
     for dt in DTS:
@@ -42,16 +42,16 @@ for d in DIMS:
             if p.exists():
                 runs[(d, dt, s)] = load_run(p)
 
-print(f"# 로드 {len(runs)} 런\n")
+print(f"# loaded {len(runs)} runs\n")
 
 # =========================================================================
-# 1. <x*^2> — 시드 앙상블 + EM 편향 대조
+# 1. <x*^2> -- seed ensemble plus the EM-bias comparison
 # =========================================================================
 print("=" * 76)
-print("P1/P2/P8  <x*^2> — 등분배와 Euler-Maruyama 편향")
+print("P1/P2/P8  <x*^2> -- equipartition and the Euler-Maruyama bias")
 print("=" * 76)
-print(f"{'dim':>4} {'dt*':>8} {'측정':>10} {'±SE':>8} {'시드산포':>9} | "
-      f"{'EM예측':>9} {'exact':>7} | {'EM에서':>8} {'판별력':>7}")
+print(f"{'dim':>4} {'dt*':>8} {'measured':>10} {'±SE':>8} {'seed spread':>9} | "
+      f"{'EM pred':>9} {'exact':>7} | {'from EM':>8} {'power':>7}")
 print("-" * 76)
 
 var_summary = {}
@@ -69,14 +69,14 @@ for d in DIMS:
               f"{em:>9.5f} {1.0:>7.3f} | {dev_em:>7.2f}σ {power:>6.2f}σ")
 
 # =========================================================================
-# 2. MSD 피팅
+# 2. MSD fit
 # =========================================================================
 print()
 print("=" * 76)
-print("P4/P5/P6  MSD = 2d(1 - exp(-t/tau))  — plateau 와 완화시간")
+print("P4/P5/P6  MSD = 2d(1 - exp(-t/tau))  -- plateau and relaxation time")
 print("=" * 76)
-print(f"{'dim':>4} {'dt*':>8} | {'plateau':>9} {'±':>7} {'예측':>6} | "
-      f"{'tau':>8} {'±':>7} {'예측':>5} | {'R^2':>8}")
+print(f"{'dim':>4} {'dt*':>8} | {'plateau':>9} {'±':>7} {'pred':>6} | "
+      f"{'tau':>8} {'±':>7} {'pred':>5} | {'R^2':>8}")
 print("-" * 76)
 
 msd_summary = {}
@@ -97,14 +97,14 @@ for d in DIMS:
               f"{at.mean:>8.4f} {at.se:>7.4f} {1.0:>5.1f} | {np.mean(r2s):>8.6f}")
 
 # =========================================================================
-# 3. 위치 분포
+# 3. position distribution
 # =========================================================================
 print()
 print("=" * 76)
-print("P7  위치 분포 — 균일 노이즈가 CLT 로 Gaussian 이 되는가")
+print("P7  position distribution -- does uniform noise become Gaussian by the CLT?")
 print("=" * 76)
-print(f"{'dim':>4} {'dt*':>8} | {'독립프레임':>9} {'n_eff':>7} {'KS':>8} {'p값':>7} | "
-      f"{'첨도':>7} {'예측':>7} {'±SE':>6} {'편차':>6}")
+print(f"{'dim':>4} {'dt*':>8} | {'ind frames':>9} {'n_eff':>7} {'KS':>8} {'p':>7} | "
+      f"{'kurtosis':>7} {'pred':>7} {'±SE':>6} {'dev':>6}")
 print("-" * 76)
 dist_summary = {}
 for d in DIMS:
@@ -121,7 +121,7 @@ for d in DIMS:
             nf, ne, kpred, kse = c.n_independent_frames, c.n_effective_samples, \
                 c.kurtosis_predicted, c.kurtosis_se
         kmean = float(np.mean(ku))
-        # 시드 4개 평균이므로 SE 는 sqrt(4) 만큼 줄어든다
+        # averaged over 4 seeds, so the SE shrinks by sqrt(4)
         kse_agg = kse / np.sqrt(len(ku))
         dev = abs(kmean - kpred) / kse_agg
         dist_summary[(d, dt)] = (np.mean(ks), np.min(ps), kmean, kpred, kse_agg, dev)
@@ -130,11 +130,11 @@ for d in DIMS:
               f"{dev:>5.2f}σ")
 
 # =========================================================================
-# 4. 물리 단위 환산
+# 4. conversion to physical units
 # =========================================================================
 print()
 print("=" * 76)
-print("물리 단위 환산 (봉인된 02_prediction.md 대조)")
+print("conversion to physical units (against the sealed 02_prediction.md)")
 print("=" * 76)
 phys = {}
 for d in DIMS:
@@ -149,16 +149,16 @@ for d in DIMS:
     phys[d] = dict(var_x=var_x_nm2, se_x=se_x_nm2, var_r=var_r_nm2,
                    plateau=plateau_nm2, tau=tau_ms, tau_se=tau_se_ms)
     print(f"  dim={d}:  <x^2> = {var_x_nm2:7.2f} ± {se_x_nm2:.2f} nm^2 "
-          f"(예측 {p.var_per_component_si*1e18:.2f})")
+          f"(predicted {p.var_per_component_si*1e18:.2f})")
     print(f"          <r^2> = {var_r_nm2:7.2f} nm^2 "
-          f"(예측 {d*p.var_per_component_si*1e18:.2f})")
+          f"(predicted {d*p.var_per_component_si*1e18:.2f})")
     print(f"          MSD plateau = {plateau_nm2:8.2f} nm^2 "
-          f"(예측 {p.msd_plateau_si*1e18:.2f})")
+          f"(predicted {p.msd_plateau_si*1e18:.2f})")
     print(f"          tau_trap = {tau_ms:.4f} ± {tau_se_ms:.4f} ms "
-          f"(예측 {p.tau_trap_si*1e3:.4f})")
+          f"(predicted {p.tau_trap_si*1e3:.4f})")
 
 # =========================================================================
-# 그림  (글자는 영문 — matplotlib 한글 글리프 없음)
+# Figures (text in English -- matplotlib has no Hangul glyphs)
 # =========================================================================
 plt.rcParams.update({"font.size": 9, "figure.dpi": 130,
                      "axes.grid": True, "grid.alpha": 0.25})
@@ -247,9 +247,9 @@ fig.savefig(figs / "04_A1_discriminator.png", bbox_inches="tight")
 plt.close(fig)
 
 print()
-print(f"# 그림 4개 저장: {figs}")
+print(f"# saved 4 figures: {figs}")
 
-# --- 요약 JSON ---
+# --- summary JSON ---
 out = {
     "var_x_star": {f"d{d}_dt{dt:g}": dict(
         mean=var_summary[(d, dt)][0].mean, se=var_summary[(d, dt)][0].se,
@@ -274,4 +274,4 @@ out = {
     "physical_units": phys,
 }
 (run_dir / "metrics.json").write_text(json.dumps(out, indent=2, default=float))
-print(f"# metrics.json 저장")
+print(f"# metrics.json saved")

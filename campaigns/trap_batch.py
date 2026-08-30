@@ -1,9 +1,10 @@
-"""첫 손그림 배치 실행 — 모호성 A1(차원) 판별 + dt 래더를 한 번에.
+"""First hand-sketch batch run -- resolves ambiguity A1 (dimensionality) and walks the
+dt ladder in one go.
 
-    d ∈ {2, 3}  ×  dt* ∈ {5e-3, 2.5e-3}  ×  seed ∈ {1,2,3,4}  =  16 런
+    d ∈ {2, 3}  ×  dt* ∈ {5e-3, 2.5e-3}  ×  seed ∈ {1,2,3,4}  =  16 runs
 
-동시 실행 k=8 (config/run_policy.yaml 기본값). HOOMD 는 단일스레드이므로
-독립 런 동시 실행이 유일한 병렬화 경로다.
+Concurrency k=8 (the default in config/run_policy.yaml). HOOMD is single-threaded, so
+running independent runs concurrently is the only route to parallelism.
 
 usage:
     python scripts/trap_batch.py <run_dir>
@@ -54,7 +55,7 @@ def main() -> None:
         return
 
     jobs = [(d, dt, s) for d in DIMS for dt in DTS for s in SEEDS]
-    print(f"# {len(jobs)} 런, 동시 {CONCURRENCY}", flush=True)
+    print(f"# {len(jobs)} runs, concurrency {CONCURRENCY}", flush=True)
     t0 = time.perf_counter()
     results, pending = [], list(jobs)
     running: list[tuple[subprocess.Popen, tuple]] = []
@@ -74,7 +75,7 @@ def main() -> None:
             so, se = p.communicate()
             line = next((l for l in so.splitlines() if l.strip().startswith("{")), None)
             if line is None:
-                print(f"  !! {j} 실패\n{se[-1500:]}", flush=True)
+                print(f"  !! {j} failed\n{se[-1500:]}", flush=True)
                 continue
             r = json.loads(line)
             results.append(r)
@@ -89,7 +90,7 @@ def main() -> None:
     (run_dir / "05_batch_results.json").write_text(
         json.dumps({"jobs": results, "batch_wall_s": wall,
                     "concurrency": CONCURRENCY}, indent=2))
-    print(f"\n# 배치 완료: {wall:.1f}s (동시 {CONCURRENCY})", flush=True)
+    print(f"\n# batch done: {wall:.1f}s (concurrency {CONCURRENCY})", flush=True)
 
 
 if __name__ == "__main__":
