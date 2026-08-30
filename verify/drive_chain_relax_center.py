@@ -1,21 +1,28 @@
-"""탐색 — chain-relax-2d-dlvo 사슬의 중앙 비드를 y(t)=A sin(ωt) 로 직접 강제.
+"""Exploration -- drive the centre bead of the chain-relax-2d-dlvo chain directly as
+y(t) = A sin(omega*t).
 
-chain-relax-2d-dlvo(마찰 없음, DLVO 인력만, 명시적 굽힘 없음, **양끝도 트랩 없이 자유**)
-에 국소 구동 하나만 얹어 "이 구동이 사슬을 따라 얼마나 전파되는가"를 본다.
-chain-bend-2d-dlvo 의 `--drive-mode position` 과 같은 강제 방식(트랩이 아니라 비드
-위치를 직접 씀, `_move_ghost_action` 재사용)이지만 **양끝을 트랩으로 잡지 않는다** —
-그래서 트랩 컴플라이언스가 변위를 흡수해주지 않는다. G1(중심력+자연장 ⟹ 횡방향 결합에너지가
-O(y⁴))에 의해, 작은 진폭에서는 이웃 결합의 신장이 O(y²)로만 늘어난다 — 즉 **진폭이
-작으면 구동이 거의 전파되지 않을 것**이라는 예측이 나온다(사전 예측, `--amp` 로 확인).
+Takes chain-relax-2d-dlvo (no friction, DLVO attraction only, no explicit bending,
+**and both ends free with no traps either**), adds a single local drive, and asks
+"how far does that drive propagate along the chain?".
+The forcing is the same as chain-bend-2d-dlvo's `--drive-mode position` (the bead
+position is written directly rather than moving a trap, reusing
+`_move_ghost_action`), but **the ends are NOT held by traps** -- so no trap
+compliance absorbs the displacement. By G1 (central forces + natural bond length =>
+transverse bond energy is O(y^4)), at small amplitude the neighbouring bonds stretch
+only as O(y^2) -- which predicts that **at small amplitude the drive should barely
+propagate at all** (a prior prediction, checkable with `--amp`).
 
-★★ 진폭 안전 한계 — 트랩 컴플라이언스가 없어 100% 가 결합 신장으로 간다:
-    induced stretch ≈ amp² / (2·ell)   (기하, O(y²))
-    F_max 여유(h_min→h_min+3.46nm) 안에 있어야 파단하지 않는다
-    amp=50nm → stretch 0.84nm (안전) / amp=632nm(chain-bend-2d-dlvo 관례값) → 134.8nm (파단)
-→ 기본 진폭을 **50nm**로 낮춰 잡았다 (사용자가 큰 진폭을 원하면 --amp 로 올리되 파단
-가능성을 감수해야 한다 — 그 자체도 결과다).
+★★ Amplitude safety limit -- with no trap compliance, 100% of it goes into bond
+   stretching:
+    induced stretch ~ amp^2 / (2*ell)   (geometry, O(y^2))
+    it must stay inside the F_max margin (h_min -> h_min+3.46nm) or the bond fails
+    amp=50nm -> stretch 0.84nm (safe) /
+    amp=632nm (the chain-bend-2d-dlvo convention) -> 134.8nm (fails)
+-> the default amplitude was lowered to **50nm**. A larger amplitude is available via
+--amp, but it accepts the possibility of bond failure -- which is itself a result.
 
-★ 시각화/탐색 전용 스크립트다 — L3 스펙·health 게이트를 거치지 않는다(생산 런 아님).
+★ This is a visualization/exploration script -- it does NOT pass through the L3 spec
+or the health gates (it is not a production run).
 
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
     $PY scratch/drive_chain_relax_center.py --omega 3000 --amp 50 --cycles 20
@@ -61,18 +68,24 @@ def main():
     ap.add_argument("--cycles", type=float, default=20.0)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--eq-tau-bond", type=float, default=200.0)
-    ap.add_argument("--kT", type=float, default=1.0, help="0.0 = 결정론(OverdampedViscous), "
-                    "1.0 = 실제 열적(Brownian) — kT=0 vs kT=1 나란히 비교하려면 두 번 실행")
+    ap.add_argument("--kT", type=float, default=1.0, help="0.0 = deterministic (OverdampedViscous), "
+                    "1.0 = really thermal (Brownian) -- run twice to compare kT=0 "
+                    "against kT=1 side by side")
     ap.add_argument("--vdw-amp", type=float, default=None,
-                    help="vdW 진폭 재조정(무차원, = A_H/(12kT)). 기본은 문헌값(0.2113). "
-                         "0.2000 이면 U(h*=0.1)=-1.00kT (장벽·2차극소 유지 확인됨, "
-                         "barrier=427.6kT well=-10.98kT). edl_amp/kappa_star(이온강도)는 그대로 둔다")
+                    help="rescale the vdW amplitude (reduced, = A_H/(12kT)). Default "
+                         "is the literature value (0.2113). At 0.2000, "
+                         "U(h*=0.1)=-1.00kT (barrier and secondary minimum confirmed "
+                         "to survive: barrier=427.6kT, well=-10.98kT). "
+                         "edl_amp and kappa_star (ionic strength) are left alone")
     ap.add_argument("--r-cut", type=float, default=None,
-                    help="표 컷오프 r*=r/d 재조정(기본 1.06). h=1d 까지 닿으려면 2.0")
+                    help="rescale the table cutoff r*=r/d (default 1.06). Use 2.0 to "
+                         "reach out to h=1d")
     ap.add_argument("--r-min", type=float, default=None,
-                    help="표 하한 r*(기본 1.000001, 함정11: r<r_min 이면 F=0). ★ 장벽이 없는 "
-                         "vdw_amp(예: 2.0)와 같이 쓸 때 필수 — 그 근처 힘이 h→0 로 발산해서 "
-                         "r_min 을 물리 접촉(1.0)에서 살짝 띄워야 dt 가 유한해진다(예: 1.01)")
+                    help="table lower bound r* (default 1.000001; trap 11: F=0 for "
+                         "r<r_min). ★ Required when used with a barrier-free vdw_amp "
+                         "(e.g. 2.0) -- the force there diverges as h->0, so r_min "
+                         "must sit slightly outside physical contact (1.0) for dt to "
+                         "stay finite (e.g. 1.01)")
     args = ap.parse_args()
 
     sys_ = load_physics()
@@ -89,38 +102,43 @@ def main():
 
     no_barrier_mode = args.r_min is not None
     if no_barrier_mode:
-        # ★★ 장벽이 없으면(2차극소도 없음) find_well() 의 k_bond_star 는 무의미하다 —
-        #   테이블 하한(r_min)에서의 최대 힘으로 직접 dt 를 역산한다(안전여유 1%,
-        #   bd-hoomd Guard 의 step_disp_max 관례와 같은 정신). r_min 을 물리 접촉(r*=1)
-        #   보다 살짝 바깥에 둬서 진짜 h→0 발산을 안 만나게 한다(그 근처는 WCA+표 하한의
-        #   "죽은 구간"이 대신 막아준다 — 표는 r<r_min 에서 F=0, WCA 는 r<1 에서만 반발).
+        # ★★ With no barrier (and hence no secondary minimum), find_well()'s
+        #   k_bond_star is meaningless -- dt is instead back-computed from the maximum
+        #   force at the table's lower bound (r_min), with a 1% safety margin, in the
+        #   same spirit as bd-hoomd Guard's step_disp_max convention. r_min sits
+        #   slightly outside physical contact (r*=1) so the true h->0 divergence is
+        #   never met; that region is covered instead by the "dead zone" of the table
+        #   plus WCA (the table gives F=0 for r<r_min, and WCA only repels for r<1).
         r_min_star = args.r_min
         F_at_rmin = abs(float(F_h_star(r_min_star - 1.0, p)))
         dt = 0.01 / F_at_rmin
         ell_star = r_min_star
-        print(f"장벽 없음 모드 — r_min*={r_min_star:.4f} 에서 |F|={F_at_rmin:.2f} kT/d, "
-             f"dt(1%% 여유)={dt:.4e} τ_B")
+        print(f"barrier-free mode -- at r_min*={r_min_star:.4f}, "
+              f"|F|={F_at_rmin:.2f} kT/d, "
+              f"dt(1%% margin)={dt:.4e} tau_B")
     else:
         h_min_star = w["h_min"]
         ell_star = 1.0 + h_min_star
         k_bond = Q(w["k_bond_star"], "dimensionless") * b["kT"] / d ** 2
         tau_bond = (gamma / k_bond).to("s")
-        dt_star = 1e-2                                  # dt/tau_bond, 이 계의 게이트와 동일
+        dt_star = 1e-2                                  # dt/tau_bond, same as this
+                                                        # system's gate
         dt = dt_star * float((tau_bond / tau_B).to("dimensionless").magnitude)  # dt*=dt/tau_B
 
     omega_star = float((Q(args.omega, "1/s") * tau_B).to("dimensionless").magnitude)
     amp_star = float((Q(args.amp, "nm") / d).to("dimensionless").magnitude)
 
-    tau_period_star = 2 * math.pi / omega_star     # 주기(τ_B 단위)
+    tau_period_star = 2 * math.pi / omega_star     # the period, in tau_B
     period_steps = int(round(tau_period_star / dt))
     n_cycles = args.cycles
     n_prod = int(round(n_cycles * tau_period_star / dt))
     frames_per_cycle = 24
     n_frames = int(round(n_cycles * frames_per_cycle))
     capture_every = max(1, n_prod // n_frames)
-    # ZOH(bd-hoomd 함정17) 비율 UPDATE_EVERY/period_steps 을 1% 이하로 — dt 가 계마다
-    # 크게 달라져서(장벽 없음 모드는 100배 큼) 고정값 50은 period_steps 가 작을 때
-    # 사인파를 계단으로 뭉갠다(실측: period=332 에서 50이면 한 주기에 6~7번만 갱신).
+    # Keep the ZOH ratio (bd-hoomd trap 17) UPDATE_EVERY/period_steps below 1% -- dt
+    # varies enormously between systems (barrier-free mode is 100x larger), so a fixed
+    # 50 flattens the sine into a staircase when period_steps is small (measured: at
+    # period=332, a value of 50 updates only 6-7 times per cycle).
     UPDATE_EVERY = max(1, min(50, period_steps // 100))
 
     n, mid = args.n, args.n // 2
@@ -135,7 +153,8 @@ def main():
     r_cut_star = args.r_cut if args.r_cut is not None else 1.0 + 0.06
     r_min_used = args.r_min if args.r_min is not None else 1.0 + 1e-6
     box_star = max(4.0 * (n - 1) * ell_star, 4.0 * r_cut_star)
-    pos0 = kink_positions(n, ell_star, 0.0)             # 직선, 자연장(또는 r_min)에서 시작
+    pos0 = kink_positions(n, ell_star, 0.0)             # straight, starting at the
+                                                        # natural length (or r_min)
     sim = SIM.make_sim(SIM.frame_2d(pos0, box_star), seed=args.seed)
 
     cell = md.nlist.Cell(buffer=0.2)
@@ -146,7 +165,8 @@ def main():
     wca = md.pair.LJ(nlist=cell, default_r_cut=SIGMA_CORE_STAR * 2 ** (1 / 6), mode="shift")
     wca.params[("A", "A")] = dict(epsilon=1.0, sigma=SIGMA_CORE_STAR)
 
-    # ── ① 짧은 평형화 — 전 입자 자유(구동 아직 없음). kT=0 이면 뜻이 없어 건너뛴다 ──
+    # ── (1) short equilibration -- all particles free, no drive yet. Meaningless at
+    #        kT=0, so skipped there ──
     n_eq = 0
     if args.kT > 0:
         bd_all = md.methods.Brownian(filter=hoomd.filter.All(), kT=args.kT, default_gamma=1.0)
@@ -154,23 +174,26 @@ def main():
         integ.integrate_rotational_dof = False
         sim.operations.integrator = integ
         if no_barrier_mode:
-            # tau_bond 개념이 없다(2차극소가 없어 k_bond_star 도 없음) — r_min 경계의
-            # "죽은 구간"(표 F=0 · WCA F=0) 안에서 자리잡는 데 필요한 스텝수를 그냥
-            # dt 배수로 잡는다(고정, ★탐색적 어림 — 엄밀한 시간척도 아님)
-            # ★ 짧게 — 초기 배치(정확히 r_min 경계)의 국소 지터만 재우는 목적이다.
-            #   길게 두면(예: 2e4) 굽힘강성이 없는 사슬이 그 사이에 이미 랜덤 코일로
-            #   재배열해버려서(실측: bead 위치가 ±400nm 로 흩어짐 — 개별 결합의 죽은
-            #   구간 0.01d 폭보다 훨씬 큼, 다관절 누적 회전 탓) 구동 실험의 "직선에서
-            #   시작" 전제가 깨진다.
+            # There is no tau_bond here (no secondary minimum, hence no k_bond_star)
+            # -- the number of steps needed to settle inside the "dead zone" at the
+            # r_min boundary (table F=0, WCA F=0) is just taken as a multiple of dt
+            # (fixed, ★an exploratory guess -- NOT a rigorous timescale).
+            # ★ Keep it SHORT -- the point is only to damp the local jitter of the
+            #   initial placement (exactly on the r_min boundary).
+            #   Run it long (say 2e4) and a chain with no bending stiffness has
+            #   already rearranged into a random coil in the meantime (measured: bead
+            #   positions spread over ±400nm -- far wider than an individual bond's
+            #   0.01d dead zone, due to accumulated multi-joint rotation), which
+            #   breaks the drive experiment's premise of "starting from straight".
             n_eq = int(args.eq_tau_bond * 2)
         else:
             n_eq = int(round(args.eq_tau_bond
                             * (tau_bond / (dt * tau_B)).to("dimensionless").magnitude))
         sim.run(n_eq)
-    print(f"평형화 {n_eq:,} 스텝 완료 (⟨U⟩/N 안정화용, 구동 없음)"
-         + (" — kT=0 이라 건너뜀" if args.kT == 0 else ""))
+    print(f"equilibration of {n_eq:,} steps done (to settle ⟨U⟩/N, no drive)"
+          + (" -- skipped, kT=0" if args.kT == 0 else ""))
 
-    # ── ② 중앙 비드를 적분에서 빼고 위치를 직접 강제 ─────────────────────
+    # ── (2) remove the centre bead from integration and write its position directly ──
     bd_filter = hoomd.filter.SetDifference(hoomd.filter.All(), hoomd.filter.Tags([mid]))
     if args.kT > 0:
         bd = md.methods.Brownian(filter=bd_filter, kT=args.kT, default_gamma=1.0)
@@ -183,7 +206,7 @@ def main():
         action=_move_ghost_action(mid, amp_star, omega_star, dt),
         trigger=hoomd.trigger.Periodic(UPDATE_EVERY)))
 
-    # ── ③ 구동 구간 — 프레임 캡처 ─────────────────────────────────────
+    # ── (3) drive phase -- capture frames ─────────────────────────────
     frames = [np.array(sim.state.get_snapshot().particles.position, dtype=float)[:, :2].copy()]
     done = 0
     while done < n_prod:
@@ -195,11 +218,12 @@ def main():
         img = np.array(snap.particles.image, dtype=float)[:, :2]
         frames.append(pos + img * box_star)
     frames = np.array(frames)
-    print(f"구동 완료 — 프레임 {len(frames)}개 캡처")
+    print(f"drive done -- captured {len(frames)} frames")
 
-    t_star = np.arange(len(frames)) * capture_every * dt          # τ_B 단위
+    t_star = np.arange(len(frames)) * capture_every * dt          # in tau_B
     t_over_period = t_star / tau_period_star
-    y_all = frames[:, :, 1] - frames[:1, :, 1].mean()              # 대략 중심 보정(정보용)
+    y_all = frames[:, :, 1] - frames[:1, :, 1].mean()              # rough centring,
+                                                                   # informational only
 
     out_dir = ROOT / "runs" / "_scratch_drive_chain_relax"
     out_dir.mkdir(exist_ok=True)
@@ -223,7 +247,7 @@ def make_plots(frames, t_over_period, mid, n, args, out_dir, tag):
     d_nm = 1470.0
     y_nm = frames[:, :, 1] * d_nm
 
-    # ① y_i(t) — 비드마다, 중앙에서 가장자리로 갈수록 색을 옅게
+    # (1) y_i(t) -- per bead, fading in colour from the centre outwards
     fig1, ax1 = plt.subplots(figsize=(10, 5))
     cmap = plt.cm.viridis
     for i in range(n):
@@ -240,7 +264,8 @@ def make_plots(frames, t_over_period, mid, n, args, out_dir, tag):
     fig1.savefig(out_dir / f"{tag}_y_of_t.png", dpi=140)
     plt.close(fig1)
 
-    # ② 진폭 전파 — 각 비드의 y 진폭(정상상태 구간 RMS*sqrt(2)) vs |i-mid|
+    # (2) amplitude propagation -- each bead's y amplitude (steady-state RMS*sqrt(2))
+    #     against |i-mid|
     steady = t_over_period > t_over_period.max() * 0.4
     amp_meas = y_nm[steady].std(axis=0) * math.sqrt(2)
     fig2, ax2 = plt.subplots(figsize=(6, 4.5))
@@ -253,9 +278,11 @@ def make_plots(frames, t_over_period, mid, n, args, out_dir, tag):
     fig2.tight_layout()
     fig2.savefig(out_dir / f"{tag}_propagation.png", dpi=140)
     plt.close(fig2)
-    print("전파 진폭 [nm] vs |Δi|:", dict(zip(dist.tolist(), np.round(amp_meas, 3).tolist())))
+    print("propagated amplitude [nm] vs |di|:",
+          dict(zip(dist.tolist(), np.round(amp_meas, 3).tolist())))
 
-    # ③ 애니메이션 — 몸좌표계(양끝 대신, 구동 비드를 원점으로) 라벨과 함께
+    # (3) animation -- in the body frame (origin at the driven bead rather than the
+    #     ends), with labels
     xmax = float(np.abs(frames[:, :, 0] - frames[:, mid:mid+1, 0]).max()) * 1.15
     ymax = max(args.amp / d_nm * 1.4, float(np.abs(y_nm).max()) / d_nm * 1.15)
     fig3, ax3 = plt.subplots(figsize=(7, 3.6))
@@ -278,7 +305,8 @@ def make_plots(frames, t_over_period, mid, n, args, out_dir, tag):
     ani = anim.FuncAnimation(fig3, update, frames=len(frames), interval=60, blit=False)
     ani.save(out_dir / f"{tag}_anim.gif", writer="pillow", fps=15)
     plt.close(fig3)
-    print("저장:", out_dir / f"{tag}_y_of_t.png", "/", out_dir / f"{tag}_propagation.png",
+    print("saved:", out_dir / f"{tag}_y_of_t.png", "/",
+          out_dir / f"{tag}_propagation.png",
          "/", out_dir / f"{tag}_anim.gif")
 
 
