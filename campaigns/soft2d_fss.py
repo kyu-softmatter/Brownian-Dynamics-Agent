@@ -1,14 +1,16 @@
-"""soft-r3 유한크기 사다리 (S17) — `ψ₆ ~ N^{-p}` 의 **형태**를 검증한다.
+"""soft-r3 finite-size ladder (S17) -- verify the **functional form** of
+`psi6 ~ N^{-p}`.
 
 usage:
   python scripts/soft2d_fss.py --gates
   python scripts/soft2d_fss.py
   python scripts/soft2d_fss.py --analyze-only
 
-## 왜 새 런인가 — `r_cut` 을 고정해야 한다
+## Why a new run -- `r_cut` has to be held fixed
 
-`runs/2026-07-29_soft-r3-nconv` 는 두 점(`N=100, 256`)으로 `p` 를 얻었다. 형태를
-검증하려면 점이 셋 이상이어야 하는데, 상자를 줄이면 **`r_cut` 도 함께 줄어든다**:
+`runs/2026-07-29_soft-r3-nconv` obtained `p` from two points (`N=100, 256`).
+Verifying the form needs three or more, but shrinking the box **shrinks `r_cut`
+along with it**:
 
     N     L*   r_cut   βU(r_cut) at A=10
    64   8.00   3.820   0.1794
@@ -16,20 +18,23 @@ usage:
   256  16.00   7.740   0.0216
   400  20.00   9.700   0.0110
 
-⇒ 자연 `r_cut` 으로 사다리를 만들면 `ψ₆(N)` 기울기에 **절단오차 8배 변화가 섞인다.**
-그러면 측정한 `p` 가 유한크기 효과인지 절단오차 추세인지 구별할 수 없다.
+=> building the ladder with the natural `r_cut` mixes an **8-fold change in truncation
+error** into the `psi6(N)` slope, and then the measured `p` cannot be told apart from
+a truncation-error trend.
 
-**해법: `r_cut = 3.80` 을 전 `N` 에 고정한다.** 가장 작은 상자(`N=64`, `L/2 = 4.0`)가
-허용하는 값이다. 절단오차는 `0.182 kT` 로 커지지만 **모든 `N` 에서 동일**하므로
-거짓 기울기를 만들 수 없다. `S16` 이 절단오차 4.2배 변화에도 관측량이 `3σ` 이내로
-같음을 보였으므로 이 선택은 방어된다 — 그리고 이 런의 `N=256` 점이 자연 `r_cut`
-런과 일치하는지가 그것을 한 번 더 검사한다 (`8배` 여행).
+**Solution: fix `r_cut = 3.80` across every `N`.** That is the value the smallest box
+(`N=64`, `L/2 = 4.0`) permits. The truncation error grows to `0.182 kT`, but it is
+**identical at every `N`**, so it cannot manufacture a false slope. `S16` showed the
+observables agree within `3 sigma` across a 4.2-fold change in truncation error, which
+defends this choice -- and whether this run's `N=256` point matches the natural-`r_cut`
+run checks it once more (an `8-fold` excursion).
 
-## 런 길이
+## Run length
 
-`prod_tau = 30 τ_d`, 분석창 `[20, 30]`. `τ_relax ≈ 0.098 τ_d` (§8.4) 이므로
-`20 τ_d` 는 완화시간의 **200배**다 — 충분하다. `80 τ_d` 를 쓰면 `A=10`·`N=400` 이
-예산(`600 s/런`)을 넘는다.
+`prod_tau = 30 tau_d`, analysis window `[20, 30]`. Since
+`tau_relax ~ 0.098 tau_d` (§8.4), `20 tau_d` is **200x** the relaxation time --
+sufficient. Using `80 tau_d` would push `A=10` at `N=400` past the budget
+(`600 s/run`).
 """
 from __future__ import annotations
 
@@ -68,16 +73,20 @@ DRIVERS = [Path(__file__), Path(TS.__file__)]
 
 N_LADDER = (64, 144, 256, 400)
 AMPLITUDES = (0.1, 1.0, 10.0)
-#  ★ **전 N 에서 초기배치가 성공하는 시드**로 선별했다 (paired 설계).
-#    `min_sep = 0.8 d` 기각표집은 시드마다 실패한다 — 실측 성공률 (시드 31–90):
+#  ★ Seeds were selected so that **initial placement succeeds at every N** (a paired
+#    design).
+#    `min_sep = 0.8 d` rejection sampling fails for some seeds -- measured success
+#    rate (seeds 31-90):
 #      N=64 98.3 % · N=144 95.0 % · N=256 100 % · N=400 100 %
-#    (60표본이라 N 의존성은 유의하지 않다. 시드 31 은 N=144 에서 실패했다.)
-#    시드가 N 마다 다르면 ψ₆(N) 비교에 다른 초기배치 앙상블이 섞인다 → 짝지어야 한다.
+#    (With 60 samples the N dependence is not significant. Seed 31 failed at N=144.)
+#    Different seeds per N would mix different initial-placement ensembles into the
+#    psi6(N) comparison -> they must be paired.
 SEEDS = (32, 33, 34, 35)
-R_CUT_FIXED = 3.80                 # ★ 전 N 공통. N=64 의 L/2 = 4.0 이 허용하는 값
+R_CUT_FIXED = 3.80                 # ★ common to every N. The value N=64's L/2 = 4.0
+                                   # permits
 PROD_TAU, N_FRAMES = 30.0, 300     # stride 0.1 tau_d
 WINDOW = (20.0, 30.0)
-CHI2_MAX = 3.0                     # 형태 판독 문턱 (사전등록)
+CHI2_MAX = 3.0                     # threshold for reading the form (pre-registered)
 
 
 def gate_table(policy) -> tuple[dict, list[dict]]:
@@ -118,10 +127,10 @@ def print_gates(rows: list[dict], policy) -> None:
     lam = float(policy.get("hardware.throughput_particle_steps_per_s", 6.3e6))
     k = policy.concurrency("default")
     eff = policy.efficiency(k)
-    print(f"## 게이트 — `r_cut = {R_CUT_FIXED}` 전 N 고정 · prod {PROD_TAU:g} τ_d "
-          f"/ 창 {WINDOW}\n")
+    print(f"## gates -- `r_cut = {R_CUT_FIXED}` fixed across every N . "
+          f"prod {PROD_TAU:g} tau_d / window {WINDOW}\n")
     hdr = (f"{'A':>6} {'N':>5} {'L*':>6} {'r_cut':>7} {'βU(rc)':>8} "
-           f"{'max|F*|':>9} {'지배':<22} {'dt*':>10} {'steps':>9} {'예상':>7}")
+           f"{'max|F*|':>9} {'governing':<22} {'dt*':>10} {'steps':>9} {'est':>7}")
     print(hdr); print("-" * len(hdr))
     worst, bu = 0.0, set()
     for r in rows:
@@ -132,22 +141,23 @@ def print_gates(rows: list[dict], policy) -> None:
               f"{r['r_cut']:>7.3f} {r['beta_u_at_rcut']:>8.4f} "
               f"{r['max_force_star']:>9.2f} {r['dominant_gate']:<22} "
               f"{r['dt_star']:>10.3g} {r['steps']:>9d} {wall:>6.0f}s")
-    #  ★ 절단오차가 A 마다 하나씩(N 에 무관) 이어야 한다 — 그것이 이 설계의 요점
+    #  ★ There must be one truncation error per A, independent of N -- that is the
+    #    whole point of this design
     per_A = {A: {round(r["beta_u_at_rcut"], 6) for r in rows
                  if r["amplitude"] == A} for A in AMPLITUDES}
     for A, s in per_A.items():
         if len(s) != 1:
-            raise SystemExit(f"⛔ A={A}: βU(r_cut) 이 N 마다 다르다 {s} — "
-                             f"r_cut 고정이 깨졌다")
-    print(f"\n  ✅ βU(r_cut) 이 각 A 에서 N 에 무관하다: "
+            raise SystemExit(f"⛔ A={A}: beta*U(r_cut) differs across N {s} -- "
+                             f"the fixed r_cut has broken")
+    print(f"\n  ✅ beta*U(r_cut) is independent of N at each A: "
           f"{ {A: s.pop() for A, s in per_A.items()} }")
     budget = policy.wall_budget_s
     n = len(rows) * len(SEEDS)
-    print(f"  런 {n}개 (A {len(AMPLITUDES)} × N {len(N_LADDER)} × 시드 "
-          f"{len(SEEDS)}) · 동시 {k} · 최장 런 {worst:.0f} s "
-          f"{'≤' if worst <= budget else '>'} 예산 {budget:.0f} s")
+    print(f"  {n} runs ({len(AMPLITUDES)} amplitudes x {len(N_LADDER)} N x "
+          f"{len(SEEDS)} seeds) . concurrency {k} . longest run {worst:.0f} s "
+          f"{'<=' if worst <= budget else '>'} budget {budget:.0f} s")
     if worst > budget:
-        raise SystemExit("⛔ 예산 초과 — 실행하지 않고 보고한다")
+        raise SystemExit("⛔ over budget -- reporting without running")
 
 
 def _one(args) -> dict:
@@ -169,7 +179,7 @@ def run_batch(rd: RunDir, rows: list[dict], policy) -> dict:
                 seed=s, label=label)
             jobs.append((asdict(cfg), str(rd.raw / label)))
     k = policy.concurrency("default")
-    print(f"\n## S5 — {len(jobs)} 런 (동시 {k})")
+    print(f"\n## S5 -- {len(jobs)} runs (concurrency {k})")
     t0 = time.perf_counter()
     done, failed = [], []
     with ProcessPoolExecutor(max_workers=k) as ex:
@@ -188,7 +198,7 @@ def run_batch(rd: RunDir, rows: list[dict], policy) -> dict:
             if i % 12 == 0 or i == len(jobs):
                 print(f"  {i}/{len(jobs)} …")
     wall = time.perf_counter() - t0
-    print(f"  배치 wall {wall:.1f} s · 실패 {len(failed)}")
+    print(f"  batch wall {wall:.1f} s . failed {len(failed)}")
     return {"done": len(done), "failed": failed, "batch_wall_s": wall,
             "concurrency": k, "n_jobs": len(jobs), "seeds": list(SEEDS),
             "n_ladder": list(N_LADDER), "r_cut_fixed": R_CUT_FIXED}
@@ -203,7 +213,7 @@ def analyze(rd: RunDir) -> dict:
             dirs = sorted(p for p in rd.raw.glob(f"A{A:g}_N{N}_s*")
                           if (p / "samples.npz").exists())
             if not dirs:
-                raise SystemExit(f"⛔ A={A} N={N} 런이 없다")
+                raise SystemExit(f"⛔ no runs for A={A} N={N}")
             per = []
             for d in dirs:
                 z = np.load(d / "samples.npz")
@@ -264,20 +274,22 @@ def figures(rd: RunDir, metrics: dict) -> FigureSet:
         fs, data, local_data=local, exponent_liquid=LIQUID_EXPONENT_P,
         exponent_hexatic=KTHNY_ETA6_HEXATIC_LIQUID / 4.0,
         name="01_fss_ladder")
-    fs.skip("voronoi", "결함의 성격은 부모 런이 이미 냈다")
-    fs.skip("early_transient", "완화는 시드 1513개로 이미 닫았다 (§8.4)")
+    fs.skip("voronoi", "the parent run already characterised the defects")
+    fs.skip("early_transient", "relaxation was already closed with 1513 seeds (§8.4)")
     return fs
 
 
 def check(pred: dict, metrics: dict) -> list[dict]:
-    """봉인 예측 대조. 측정값은 `metrics` 에서만 읽는다."""
+    """Compare against the sealed prediction. Measurements are read from `metrics`
+    only."""
     got: dict = {}
     for A in AMPLITUDES:
         m = metrics[f"A{A:g}"]
         f = m["finite_size"]
         got[f"chi2_reduced__A{A:g}"] = f["chi2_reduced"]
         got[f"psi6_exponent_p__A{A:g}"] = f["p"]
-        #  N=256 점을 앞 런(자연 r_cut)과 대조 — 사다리에서 뽑아낸다
+        #  Compare the N=256 point against the earlier run (natural r_cut) -- pulled
+        #  out of the ladder
         i = m["n_ladder"].index(256)
         got[f"psi6_global__A{A:g}__N256"] = m["psi6_global"][i]
     f10 = metrics["A10"]["finite_size"]
@@ -304,12 +316,12 @@ def check(pred: dict, metrics: dict) -> list[dict]:
 
 
 def residual_diagnosis(metrics: dict, A: float) -> dict:
-    """`χ²` 초과가 **휘어서**인가 **오차막대가 좁아서**인가.
+    """Is an excess `chi^2` due to **curvature** or to **error bars being too narrow**?
 
-    ★ 휘어 있으면 잔차 부호가 단조 패턴을 만든다 (예: `−,+,+,−` 가 아니라
-      `+,+,−,−`). 흩어져 있으면 부호가 자주 바뀐다.
-      `χ² ∝ 1/SE²` 이므로 SE 를 2배 과소추정하면 `χ²` 가 4배가 된다 —
-      4시드 SE 는 자체 불확실성이 41 % 다
+    ★ Curvature makes the residual signs form a monotone pattern (e.g. `+,+,-,-`
+      rather than `-,+,+,-`). Scatter makes the sign flip often.
+      Since `chi^2 ~ 1/SE^2`, underestimating SE by 2x inflates `chi^2` 4x -- and a
+      4-seed SE has 41 % uncertainty of its own.
       ([[tolerance-from-a-4-seed-se-is-not-a-3-sigma-test]]).
     """
     m = metrics[f"A{A:g}"]
@@ -317,18 +329,18 @@ def residual_diagnosis(metrics: dict, A: float) -> dict:
     r = np.asarray(f["residuals"])
     se = np.asarray(m["psi6_global_se"])
     y = np.asarray(m["psi6_global"])
-    z = r / (se / y)                              # 로그 잔차 / 로그 오차
+    z = r / (se / y)                              # log residual / log error
     signs = np.sign(r)
     flips = int(np.sum(signs[:-1] != signs[1:]))
-    #  SE 를 몇 배로 늘리면 χ²/dof = 1 이 되는가
+    #  By what factor must SE grow to bring chi^2/dof to 1?
     inflate = float(np.sqrt(f["chi2_reduced"])) if np.isfinite(
         f["chi2_reduced"]) else float("nan")
     return {"amplitude": A, "z_residuals": [float(x) for x in z],
             "sign_flips": flips, "n_points": int(r.size),
             "relative_se": [float(x) for x in se / y],
             "se_inflation_for_chi2_unity": inflate,
-            "reading": ("휘어 있다 (형태 문제)" if flips <= 1
-                        else "흩어져 있다 (오차막대 과소추정 쪽)")}
+            "reading": ("curved (a problem with the form)" if flips <= 1
+                        else "scattered (points to underestimated error bars)")}
 
 
 def main() -> int:
@@ -353,11 +365,11 @@ def main() -> int:
                                "window": list(WINDOW), "chi2_max": CHI2_MAX,
                                "thresholds": thresholds, "gates": rows})
         seal = write_seal(rd)
-        print(f"\n  🔒 봉인 {seal.name} — "
-              f"{len(seal.read_text().splitlines())}개 문서 (실행 전)")
+        print(f"\n  🔒 sealed {seal.name} -- "
+              f"{len(seal.read_text().splitlines())} documents (before running)")
         rd.write_json("manifest", run_batch(rd, rows, policy))
 
-    print("\n## S7 — 유한크기 사다리 (4점)")
+    print("\n## S7 -- finite-size ladder (4 points)")
     metrics = analyze(rd)
     metrics["_provenance_at_analysis"] = provenance(DRIVERS)
     fs = figures(rd, metrics)
@@ -369,8 +381,9 @@ def main() -> int:
     metrics["_residual_diagnosis"] = diag
     rd.write_json("metrics", metrics)
 
-    print("\n## 예측 대조 (판정은 제안이다 — confirmed_by: null)")
-    hdr = f"{'항목':<32} {'예측':>10} {'허용':>10} {'측정':>10} 판정"
+    print("\n## prediction comparison (the verdict is a proposal -- "
+          "confirmed_by: null)")
+    hdr = f"{'item':<32} {'predicted':>10} {'tolerance':>10} {'measured':>10} verdict"
     print(hdr); print("-" * (len(hdr) + 6))
     for c in checks:
         print(f"{c['quantity']:<32} {float(c['predicted']):>10.4g} "
@@ -380,20 +393,20 @@ def main() -> int:
 
     fails = [c for c in checks if c["verdict"] == "FAIL"]
     if fails:
-        print("\n## FAIL 진단 — 휘어서인가 오차막대가 좁아서인가")
+        print("\n## FAIL diagnosis -- curvature, or error bars too narrow?")
         for c in fails:
             if not c["quantity"].startswith("chi2_reduced__"):
                 continue
             A = float(c["quantity"].split("__A")[1])
             d = diag[f"A{A:g}"]
-            print(f"  A={A:g}: 잔차/σ = " +
+            print(f"  A={A:g}: residual/sigma = " +
                   " ".join(f"{x:+.2f}" for x in d["z_residuals"]))
-            print(f"    부호 전환 {d['sign_flips']}/{d['n_points']-1} → "
+            print(f"    sign flips {d['sign_flips']}/{d['n_points']-1} -> "
                   f"**{d['reading']}**")
-            print(f"    상대 SE = " +
+            print(f"    relative SE = " +
                   " ".join(f"{x:.1%}" for x in d["relative_se"]))
-            print(f"    SE 를 {d['se_inflation_for_chi2_unity']:.2f}배로 늘리면 "
-                  f"χ²/dof = 1 이 된다 (4시드 SE 의 자체 불확실성은 41 %)")
+            print(f"    inflating SE by {d['se_inflation_for_chi2_unity']:.2f}x "
+                  f"brings chi^2/dof to 1 (a 4-seed SE has 41 % uncertainty itself)")
     print(f"\n→ {rd.path.relative_to(REPO)}")
     return 0
 
