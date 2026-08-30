@@ -1,56 +1,65 @@
-"""soft-r3 `η₆(A)` 스캔 — 액체→결정 전이를 **우리 계에서** 브래킷한다.
+"""soft-r3 `eta6(A)` scan -- bracket the liquid->crystal transition **in our own
+system**.
 
 usage:
   python scripts/soft2d_ascan.py --gates
   python scripts/soft2d_ascan.py
   python scripts/soft2d_ascan.py --analyze-only
 
-## ★ 왜 Zahn 의 좁은 창(`A = 10.03–10.75`)을 훑지 않았는가
+## ★ Why Zahn's narrow window (`A = 10.03-10.75`) was not swept
 
-`runs/2026-07-29_soft-r3-fss` 가 `η₆` 를 세 `A` 에서 쟀다: `A=0.1` → `2.03`,
-`A=1` → `1.86`, `A=10` → `1.27`. `A=10` 은 Zahn hexatic 경계(`Γ=55.87`, `A=10.03`)의
-**`−0.3 %`** 인데 `η₆` 가 상한 `0.25` 의 **5.1배**다. 경계 바로 아래라면 `0.25`
-근처여야 한다 — 긴장이다. 그리고 `A=100` 은 이미 결정이다 (카드 §8.1).
-⇒ **전이는 `A = 10–100` 사이이고 좁은 창이 아니다.**
+`runs/2026-07-29_soft-r3-fss` measured `eta6` at three `A`: `A=0.1` -> `2.03`,
+`A=1` -> `1.86`, `A=10` -> `1.27`. `A=10` is **`-0.3 %`** from Zahn's hexatic
+boundary (`Gamma=55.87`, `A=10.03`), yet its `eta6` is **5.1x** the upper bound
+`0.25`. Just below the boundary it ought to be near `0.25` -- that is a tension. And
+`A=100` is already a crystal (card §8.1).
+=> **the transition lies between `A = 10` and `100`, and is not a narrow window.**
 
-## 설계 — `A` 를 로그로 훑는다
+## Design -- sweep `A` logarithmically
 
-`A = 10, 13.3, 17.8, 23.7, 31.6` (사분-decade). 각 `A` 마다 `N` 사다리
-`64·144·256·400` 으로 지수를 얻는다. `r_cut = 3.80` 고정 · 시드 `32–35` — S17 규약.
-`prod_tau = 10 τ_d`, 창 `[6, 10]` (`τ_relax ≈ 0.098 τ_d` 의 60배).
-`A = 10` 이 S17(`30 τ_d`)과 겹쳐 **런 길이 단축의 영향을 검사한다.**
+`A = 10, 13.3, 17.8, 23.7, 31.6` (quarter-decade). At each `A` the exponent comes from
+an `N` ladder of `64, 144, 256, 400`. `r_cut` fixed at `3.80`, seeds `32-35` -- the
+S17 convention. `prod_tau = 10 tau_d`, window `[6, 10]` (60x
+`tau_relax ~ 0.098 tau_d`).
+`A = 10` overlaps S17 (`30 tau_d`), which **tests the effect of the shortened run
+length.**
 
-## ★★ 스캔 상한은 예산이 아니라 절단오차가 정한다
+## ★★ The scan's upper limit is set by truncation error, not by budget
 
-`βU(r_cut) = A/r_cut³` 이므로 `A` 에 **비례**한다. `r_cut = 3.80` 고정에서
-`A=100` 은 `1.82 kT` — 퍼텐셜을 아직 열에너지 규모인 곳에서 자른다.
-`r_cut` 은 최소 상자(`N=64`, `L/2 = 4.0`)가 상한이라 키울 수 없다.
-⇒ `A ≤ 31.6` (`βU ≤ 0.58`) 까지만. 그 위는 **더 큰 상자가 필요하다.**
+`beta*U(r_cut) = A/r_cut^3`, so it is **proportional** to `A`. With `r_cut` fixed at
+`3.80`, `A=100` gives `1.82 kT` -- cutting the potential where it is still of thermal
+scale. `r_cut` cannot be raised because the smallest box (`N=64`, `L/2 = 4.0`) bounds
+it.
+=> only up to `A <= 31.6` (`beta*U <= 0.58`). Beyond that **a larger box is
+required.**
 
-## ★★★ `η₆ ≤ 1/4` 를 hexatic 이라고 읽으면 안 된다
+## ★★★ `eta6 <= 1/4` must NOT be read as hexatic
 
-**결정도 `η₆ ≈ 0` 을 만족한다** (`ψ₆ → const` 이므로 `p = 0`).
-첫 판본이 이 구별 없이 `A ≥ 13.3` 의 **결정을 "hexatic 가능" 으로 출력했다.**
-갈리는 것은 `ψ₆` 의 **크기**다 — 결정은 `O(1)`, hexatic 은 작고 느리게 감소.
-⇒ `analysis.structure.phase_from_finite_size` 가 두 축으로 읽는다.
+**A crystal also satisfies `eta6 ~ 0`** (`psi6 -> const`, hence `p = 0`).
+The first version lacked this distinction and **reported the crystals at `A >= 13.3`
+as "possibly hexatic".**
+What separates them is the **magnitude** of `psi6` -- `O(1)` for a crystal, small and
+slowly decaying for a hexatic.
+=> `analysis.structure.phase_from_finite_size` reads both axes.
 
-## 결과 요약
+## Results summary
 
-    A       Γ    ψ₆(400)        η₆      χ²/dof   상
-   10    55.68     0.144   +1.40±0.22     0.04   등방 액체
-   13.3  74.06     0.688   −0.19±0.04    46.9    결정
-   17.8  99.12     0.778   −0.22±0.01   106      결정
-   23.7 131.97     0.833   −0.41±0.01    24.8    결정
-   31.6 175.96     0.872   −0.25±0.01   322      결정
+    A     Gamma  psi6(400)      eta6      chi2/dof  phase
+   10    55.68     0.144   +1.40±0.22     0.04   isotropic liquid
+   13.3  74.06     0.688   -0.19±0.04    46.9    crystal
+   17.8  99.12     0.778   -0.22±0.01   106      crystal
+   23.7 131.97     0.833   -0.41±0.01    24.8    crystal
+   31.6 175.96     0.872   -0.25±0.01   322      crystal
 
-액체→결정이 `A = 10–13.3` (33 % 폭) 안에 있다. Zahn 결정 경계 `Γ = 59.88`
-(`A = 10.75`) 가 **그 브래킷 안**이다. hexatic 창(7 % 폭)은 브래킷 안에 숨어
-있어 **이 스캔으로는 분해되지 않는다.**
+Liquid->crystal lies within `A = 10-13.3` (33 % width). Zahn's crystal boundary
+`Gamma = 59.88` (`A = 10.75`) is **inside that bracket**. The hexatic window (7 %
+width) hides inside the bracket and is therefore **not resolved by this scan.**
 
-`A ≥ 13.3` 의 `χ²` 가 거대하고 `p` 가 음수인 것은 결정에서 멱함수가 성립하지
-않기 때문이다 (`ψ₆` 가 `1` 에 포화). `N=64` 는 `L = 8 d` 로 결정이 제대로
-형성되지 않아 유독 낮다 (`0.394` vs `N=144` 의 `0.672`) — 그것이 `p` 를 음수로
-만든다. **결정 영역에서 이 지수는 물리량이 아니다.**
+The huge `chi^2` and negative `p` at `A >= 13.3` are because a power law does not hold
+in a crystal (`psi6` saturates at `1`). `N=64` has `L = 8 d`, too small for a crystal
+to form properly, so it comes out unusually low (`0.394` against `N=144`'s `0.672`) --
+and that is what drives `p` negative. **In the crystal region this exponent is not a
+physical quantity.**
 """
 from __future__ import annotations
 
@@ -86,17 +95,21 @@ RUN_ID = "2026-07-29_soft-r3-ascan"
 SRC = REPO / "examples" / "soft-r3-ascan"
 DRIVERS = [Path(__file__), Path(FSS.__file__), Path(TS.__file__)]
 
-#  ★★ 스캔 상한은 **절단오차**가 정한다, 예산이 아니다.
-#  `βU(r_cut) = A/r_cut³` 이므로 `A` 에 **비례**한다. `r_cut = 3.80` 고정에서:
+#  ★★ The scan's upper limit is set by **truncation error**, not by budget.
+#  `beta*U(r_cut) = A/r_cut^3`, so it is **proportional** to `A`. With `r_cut` fixed
+#  at 3.80:
 #      A=10 → 0.18 kT · A=31.6 → 0.58 · A=56.2 → 1.02 · A=100 → 1.82
-#  `A=100` 은 퍼텐셜을 아직 `1.8 kT` 인 곳에서 자른다 — 구조가 틀린다.
-#  `r_cut` 을 키우려면 최소 상자를 키워야 하는데 (`r_cut+buffer ≤ L/2`), 그러면
-#  사다리의 아래쪽 점을 버려야 하고 `N` 레버암이 사라진다.
-#  ⇒ **`A ≤ 31.6` 까지만 훑는다** (사분-decade 5점). 그 위는 더 큰 상자가 필요하다.
-#    (예산 게이트도 A=100·N=400 을 665 s > 600 s 로 기각했다 — 두 제약이 같은 방향)
-AMPLITUDES = (10.0, 13.3, 17.8, 23.7, 31.6)       # 사분-decade, 10 → 10^1.5
+#  `A=100` cuts the potential where it is still `1.8 kT` -- the structure comes out
+#  wrong. Raising `r_cut` requires a larger smallest box (`r_cut+buffer <= L/2`),
+#  which means discarding the bottom of the ladder and losing the `N` lever arm.
+#  => **sweep only up to `A <= 31.6`** (5 quarter-decade points). Above that a larger
+#    box is needed.
+#    (the budget gate also rejected A=100 at N=400, 665 s > 600 s -- the two
+#     constraints point the same way)
+AMPLITUDES = (10.0, 13.3, 17.8, 23.7, 31.6)       # quarter-decade, 10 -> 10^1.5
 N_LADDER = FSS.N_LADDER                            # 64·144·256·400
-SEEDS = FSS.SEEDS                                  # 32–35 (전 N 성공 선별)
+SEEDS = FSS.SEEDS                                  # 32-35 (selected to succeed at
+                                                   # every N)
 R_CUT_FIXED = FSS.R_CUT_FIXED                      # 3.80
 PROD_TAU, N_FRAMES = 10.0, 200                     # stride 0.05 tau_d
 WINDOW = (6.0, 10.0)
@@ -137,10 +150,10 @@ def print_gates(rows, policy) -> float:
     lam = float(policy.get("hardware.throughput_particle_steps_per_s", 6.3e6))
     k = policy.concurrency("default")
     eff = policy.efficiency(k)
-    print(f"## 게이트 — r_cut = {R_CUT_FIXED} 고정 · prod {PROD_TAU:g} τ_d / "
-          f"창 {WINDOW}\n")
+    print(f"## gates -- r_cut fixed at {R_CUT_FIXED} . prod {PROD_TAU:g} tau_d / "
+          f"window {WINDOW}\n")
     print(f"{'A':>7} {'Γ':>8} {'βU(rc)':>8} {'N=400 dt*':>10} "
-          f"{'steps':>9} {'N=400 예상':>11}")
+          f"{'steps':>9} {'N=400 est':>11}")
     print("-" * 60)
     worst, total = 0.0, 0.0
     for A in AMPLITUDES:
@@ -156,13 +169,13 @@ def print_gates(rows, policy) -> float:
               f"{r4['steps']:>9d} {w4:>10.0f}s")
     budget = policy.wall_budget_s
     n = len(rows) * len(SEEDS)
-    print(f"\n  런 {n}개 (A {len(AMPLITUDES)} × N {len(N_LADDER)} × 시드 "
+    print(f"\n  {n} runs (A {len(AMPLITUDES)} x N {len(N_LADDER)} x seeds "
           f"{len(SEEDS)})")
-    print(f"  최장 런 {worst:.0f} s {'≤' if worst <= budget else '>'} 예산 "
-          f"{budget:.0f} s · 총 작업 {total/60:.0f} 분 → 동시 {k} 에서 "
-          f"약 {total/k/60:.0f} 분")
+    print(f"  longest run {worst:.0f} s {'<=' if worst <= budget else '>'} budget "
+          f"{budget:.0f} s . total work {total/60:.0f} min -> at concurrency {k}, "
+          f"about {total/k/60:.0f} min")
     if worst > budget:
-        raise SystemExit("⛔ 예산 초과 — 실행하지 않고 보고한다")
+        raise SystemExit("⛔ over budget -- reporting without running")
     return total
 
 
@@ -185,7 +198,7 @@ def run_batch(rd: RunDir, rows, policy) -> dict:
                 seed=s, label=label)
             jobs.append((asdict(cfg), str(rd.raw / label)))
     k = policy.concurrency("default")
-    print(f"\n## S5 — {len(jobs)} 런 (동시 {k})")
+    print(f"\n## S5 -- {len(jobs)} runs (concurrency {k})")
     t0 = time.perf_counter()
     done, failed = [], []
     with ProcessPoolExecutor(max_workers=k) as ex:
@@ -204,7 +217,7 @@ def run_batch(rd: RunDir, rows, policy) -> dict:
             if i % 20 == 0 or i == len(jobs):
                 print(f"  {i}/{len(jobs)} … ({time.perf_counter()-t0:.0f} s)")
     wall = time.perf_counter() - t0
-    print(f"  배치 wall {wall:.1f} s · 실패 {len(failed)}")
+    print(f"  batch wall {wall:.1f} s . failed {len(failed)}")
     return {"done": len(done), "failed": failed, "batch_wall_s": wall,
             "concurrency": k, "n_jobs": len(jobs), "seeds": list(SEEDS),
             "amplitudes": list(AMPLITUDES), "n_ladder": list(N_LADDER)}
@@ -219,7 +232,7 @@ def analyze(rd: RunDir) -> dict:
             dirs = sorted(p for p in rd.raw.glob(f"A{A:g}_N{N}_s*")
                           if (p / "samples.npz").exists())
             if not dirs:
-                raise SystemExit(f"⛔ A={A} N={N} 없다")
+                raise SystemExit(f"⛔ missing A={A} N={N}")
             per = []
             for d in dirs:
                 z = np.load(d / "samples.npz")
@@ -252,9 +265,9 @@ def analyze(rd: RunDir) -> dict:
                 "amplitude_fit": fit.amplitude,
                 "form_verdict": fit.form_verdict(CHI2_MAX)},
         }
-        #  ★ 지수만으로 판정하지 않는다 — 결정도 η₆ ≈ 0 을 만족한다.
-        #    ψ₆ 의 크기를 함께 봐야 한다 (2026-07-29 에 이 구별 없이 결정을
-        #    "hexatic 가능" 으로 출력했다).
+        #  ★ The verdict is never from the exponent alone -- a crystal also satisfies
+        #    eta6 ~ 0. The magnitude of psi6 must be read alongside (on 2026-07-29,
+        #    lacking this distinction, crystals were reported as "possibly hexatic").
         ph = phase_from_finite_size(fit, psi[-1])
         out[f"A{A:g}"]["phase"] = ph
         print(f"  A={A:<6g} Γ={zahn_phase(A)['gamma']:>7.2f}  "
@@ -263,17 +276,19 @@ def analyze(rd: RunDir) -> dict:
               f"χ²/dof={fit.chi2_reduced:>7.2f}  **{ph['phase']}**")
         if ph["exponent_alone_would_say"] == "hexatic-or-below" \
                 and ph["phase"] == "crystal":
-            print(f"           ⚠ 지수만 보면 'hexatic 이하' 다 — ψ₆ 크기가 "
-                  f"결정으로 갈랐다")
+            print(f"           ⚠ by exponent alone this reads as 'at or below "
+                  f"hexatic' -- the psi6 magnitude settled it as crystal")
     return out
 
 
 def transition_bracket(metrics: dict) -> dict:
-    """상이 바뀌는 `A` **구간**을 찾는다.
+    """Find the `A` **interval** across which the phase changes.
 
-    ★ 이전 판본은 `η₆` 가 `0.25` 를 지나는 곳을 찾아 "hexatic 경계" 라고 불렀다.
-      **틀렸다** — 결정도 `η₆ ≈ 0` 이라 그 교차점은 액체→결정 경계였다.
-      상은 `phase_from_finite_size` 가 (지수, `ψ₆` 크기) 두 축으로 읽는다.
+    ★ An earlier version looked for where `eta6` crosses `0.25` and called that the
+      "hexatic boundary". **That was wrong** -- a crystal also has `eta6 ~ 0`, so that
+      crossing was the liquid->crystal boundary.
+      The phase is read by `phase_from_finite_size` on two axes: the exponent and the
+      `psi6` magnitude.
     """
     As = [metrics[f"A{A:g}"]["amplitude"] for A in AMPLITUDES]
     ph = [metrics[f"A{A:g}"]["phase"]["phase"] for A in AMPLITUDES]
@@ -287,12 +302,12 @@ def transition_bracket(metrics: dict) -> dict:
                            "width_pct": 100.0 * (b - a) / a}
                           for a, b, f, t in changes]
     if not changes:
-        out["note"] = f"스캔 전체가 {ph[0]} — 전이가 스캔 밖이다"
+        out["note"] = f"the entire scan is {ph[0]} -- the transition lies outside it"
     else:
         out["note"] = " · ".join(
-            f"{f} → {t} 가 A = {a:g}–{b:g} 사이 ({100*(b-a)/a:.0f} % 폭)"
+            f"{f} -> {t} between A = {a:g} and {b:g} ({100*(b-a)/a:.0f} % width)"
             for a, b, f, t in changes)
-    #  hexatic 이 관측됐는가
+    #  was a hexatic observed?
     out["hexatic_observed"] = any(x == "hexatic-candidate" for x in ph)
     return out
 
@@ -319,26 +334,27 @@ def main() -> int:
                                "n_frames": N_FRAMES, "gates": rows,
                                "eta6_ceiling": KTHNY_ETA6_HEXATIC_LIQUID})
         seal = write_seal(rd)
-        print(f"\n  🔒 봉인 {seal.name} — "
-              f"{len(seal.read_text().splitlines())}개 문서 (실행 전)")
+        print(f"\n  🔒 sealed {seal.name} -- "
+              f"{len(seal.read_text().splitlines())} documents (before running)")
         rd.write_json("manifest", run_batch(rd, rows, policy))
 
-    print(f"\n## S7 — η₆(A) 스캔 (사다리 {list(N_LADDER)}, 창 {WINDOW})")
+    print(f"\n## S7 -- eta6(A) scan (ladder {list(N_LADDER)}, window {WINDOW})")
     metrics = analyze(rd)
     cr = transition_bracket(metrics)
     metrics["_transition_bracket"] = cr
     metrics["_provenance_at_analysis"] = provenance(DRIVERS)
     rd.write_json("metrics", metrics)
-    print(f"\n## 상 전이 브래킷")
+    print(f"\n## phase-transition bracket")
     print(f"  {cr['note']}")
     for t in cr["transitions"]:
         g_lo = zahn_phase(t["A_lo"])["gamma"]
         g_hi = zahn_phase(t["A_hi"])["gamma"]
         print(f"  → A = {t['A_lo']:g}–{t['A_hi']:g}  (Γ = {g_lo:.1f}–{g_hi:.1f})")
-        print(f"    Zahn 결정 경계 Γ = 59.88 (A = 10.75) → "
-              f"{'브래킷 **안**' if g_lo <= 59.88 <= g_hi else '브래킷 밖'}")
-    print(f"  hexatic 관측? {'예' if cr['hexatic_observed'] else '**아니다**'} — "
-          f"Zahn 창 A = 10.03–10.75 (7 % 폭) 은 위 브래킷 안에 숨어 있다")
+        print(f"    Zahn's crystal boundary Gamma = 59.88 (A = 10.75) -> "
+              f"{'**inside** the bracket' if g_lo <= 59.88 <= g_hi else 'outside it'}")
+    print(f"  hexatic observed? "
+          f"{'yes' if cr['hexatic_observed'] else '**no**'} -- "
+          f"Zahn's window A = 10.03-10.75 (7 % width) hides inside the bracket above")
     print(f"\n→ {rd.path.relative_to(REPO)}")
     return 0
 
