@@ -1,24 +1,33 @@
 #!/usr/bin/env python
-"""`network` 케이스 실행 전 능력조사 — 3D BD + `update.BoxResize` (CLAUDE.md 규칙 4·7).
+"""Capability survey before running the `network` case -- 3D BD + `update.BoxResize`
+(CLAUDE.md rules 4 and 7).
 
-왜 필요한가: 이 프로젝트의 기존 6개 케이스는 **전부 2D** 이고, 박스 압축
-(`hoomd.update.BoxResize`)은 **한 번도 써본 적이 없습니다** (skill `bd-hoomd` ·
-docs/hoomd_capabilities.md 에 항목 없음 → intake/network/observation.yaml N4·N6).
+Why this is needed: all six existing cases in this project are **2D**, and box
+compression (`hoomd.update.BoxResize`) had **never been used here** (no entry in
+skill `bd-hoomd` or docs/hoomd_capabilities.md -> intake/network/observation.yaml
+N4 and N6).
 
-검사 5종 —
-  ① 3D 자유확산 단독:  ⟨r²⟩ = 6·D·t          (격리 검증. N4)
-  ② BoxResize 가 입자 좌표를 정말 **아핀 스케일** 하는가 (문서 주장의 실측)
-  ③ BoxResize + Brownian + pair.Table + WCA 가 함께 도는가 (셀리스트·유한성)
-  ④ ★ **압축이 DLVO 결합을 부수는 문턱** — 이게 겔화 프로토콜의 설계 수치다.
-       예측: 트리거당 선형변형 ε_crit = (h_min* − barrier_h*)/ℓ*
-       (아핀 스텝이 결합을 장벽 안쪽으로 밀어넣으면 1차극소로 떨어져 비가역)
-  ⑤ 비용: 겔화 구성의 steps/s 와 그로부터 나오는 벽시계 (N3 — 판정 전에 재라)
+Five checks --
+  (1) 3D free diffusion alone:  <r^2> = 6*D*t   (isolation check. N4)
+  (2) does BoxResize really **affinely scale** particle coordinates?
+      (measuring the documented claim)
+  (3) do BoxResize + Brownian + pair.Table + WCA run together?
+      (cell list, finiteness)
+  (4) ★ **the threshold at which compression breaks a DLVO bond** -- this IS the
+      design number for the gelation protocol.
+      prediction: linear strain per trigger
+      eps_crit = (h_min* - barrier_h*)/l*
+      (if an affine step pushes a bond inside the barrier it falls to the primary
+       minimum, irreversibly)
+  (5) cost: steps/s for the gelation configuration and the wall-clock that follows
+      (N3 -- measure it before deciding)
 
-단위: d=1, kT=1, γ=1  ⟹ D_t=1, τ_B = d²/D_t = 1.
-DLVO 축약 파라미터는 `cases/chain_bend_dlvo_2d.py` 에서 그대로 가져옵니다
-(같은 물리를 두 번 적지 않기 위해 — 그 케이스에서 SI로 검증된 식입니다).
+Units: d=1, kT=1, gamma=1  =>  D_t=1, tau_B = d^2/D_t = 1.
+The reduced DLVO parameters are taken directly from
+`cases/chain_bend_dlvo_2d.py` (so the same physics is not written twice -- those
+expressions were verified in SI in that case).
 
-실행:  $PY scratch/verify_3d_boxresize.py [--quick]
+Run:  $PY verify/verify_3d_boxresize.py [--quick]
 """
 from __future__ import annotations
 
@@ -53,7 +62,7 @@ def check(ok: bool, label: str, detail: str = "") -> None:
 
 
 def cpu(seed: int) -> hoomd.Simulation:
-    # ★ seed < 65536 (bd-hoomd 함정 12 — 16비트로 잘린다)
+    # ★ seed < 65536 (bd-hoomd trap 12 -- it is truncated to 16 bits)
     return hoomd.Simulation(device=hoomd.device.CPU(), seed=seed)
 
 
@@ -65,7 +74,7 @@ def frame_3d(pos, L, types=("A",), typeid=None):
     f.particles.typeid = [0] * len(pos) if typeid is None else list(typeid)
     f.particles.types = list(types)
     f.particles.mass = [1.0] * len(pos)
-    f.configuration.box = [L, L, L, 0, 0, 0]      # ★ 3D: Lz=L (2D 는 Lz=0 — 함정 9)
+    f.configuration.box = [L, L, L, 0, 0, 0]      # ★ 3D: Lz=L (2D uses Lz=0 -- trap 9)
     f.configuration.dimensions = 3
     return f
 
@@ -80,10 +89,10 @@ def unwrapped(sim, L=None):
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# ① 3D 자유확산 — ⟨r²⟩ = 6 D t   (해석해. 격리 검증)
+# (1) 3D free diffusion -- <r^2> = 6 D t   (analytic. isolation check)
 # ═══════════════════════════════════════════════════════════════════════
 def check_free_diffusion_3d(n_part=800, dt=1e-4, n_steps=20_000):
-    print("\n① 3D 자유확산 (상호작용 없음) — ⟨r²⟩ = 6·D·t")
+    print("\n(1) 3D free diffusion (no interactions) -- <r^2> = 6*D*t")
     L = 40.0
     rng = np.random.default_rng(3)
     pos = rng.uniform(-L / 2, L / 2, size=(n_part, 3))
@@ -103,28 +112,32 @@ def check_free_diffusion_3d(n_part=800, dt=1e-4, n_steps=20_000):
     rel = msd / pred - 1.0
     sem = float(((r1 - r0) ** 2).sum(axis=1).std(ddof=1) / math.sqrt(n_part)) / pred
     check(abs(rel) < 4 * sem + 0.02,
-          "3D 자유확산이 6Dt 와 일치",
-          f"측정 {msd:.5f} / 예측 {pred:.5f} = {1+rel:.4f}  ({rel*100:+.2f}%, SEM {sem*100:.2f}%)")
+          "3D free diffusion agrees with 6Dt",
+          f"measured {msd:.5f} / predicted {pred:.5f} = {1+rel:.4f}  "
+          f"({rel*100:+.2f}%, SEM {sem*100:.2f}%)")
 
-    # 성분별 등방성 — 3D 로 넘어오며 축 하나를 빠뜨리는 실수를 잡는다
+    # Per-component isotropy -- catches the mistake of dropping one axis when
+    # moving to 3D
     per_axis = ((r1 - r0) ** 2).mean(axis=0)
     iso = per_axis / (2.0 * t)
     check(np.all(np.abs(iso - 1) < 0.12),
-          "세 축이 각각 ⟨Δx²⟩=2Dt (축 누락 없음)",
+          "each of the three axes gives <dx^2>=2Dt (no axis dropped)",
           f"x/y/z = {iso[0]:.3f} / {iso[1]:.3f} / {iso[2]:.3f}")
     return msd, pred
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# ② BoxResize 가 좌표를 아핀 스케일 하는가
+# (2) does BoxResize affinely scale the coordinates?
 # ═══════════════════════════════════════════════════════════════════════
 def check_boxresize_affine():
-    print("\n② BoxResize — 입자 좌표를 아핀 스케일 하는가 (문서 주장 실측)")
+    print("\n(2) BoxResize -- does it affinely scale particle coordinates? "
+          "(measuring the documented claim)")
     L0, s = 10.0, 0.5
     pos = np.array([[1.0, 2.0, 3.0], [-4.0, 0.5, -2.5], [0.0, 0.0, 0.0]])
     sim = cpu(12)
     sim.create_state_from_snapshot(frame_3d(pos, L0))
-    # 적분기 없이 updater 만 — 좌표 변화의 원인을 BoxResize 하나로 격리한다
+    # The updater with no integrator -- isolates BoxResize as the only possible
+    # cause of a coordinate change
     bd = md.methods.Brownian(filter=hoomd.filter.All(), kT=0.0, default_gamma=1.0)
     integ = md.Integrator(dt=1e-12, methods=[bd], forces=[])
     integ.integrate_rotational_dof = False
@@ -141,16 +154,16 @@ def check_boxresize_affine():
 
     got = np.array(sim.state.get_snapshot().particles.position, copy=True)
     box = sim.state.get_snapshot().configuration.box
-    check(abs(box[0] - L0 * s) < 1e-9, "박스가 목표 크기로 줄었다",
-          f"Lx {box[0]:.6f} (목표 {L0*s:.6f})")
+    check(abs(box[0] - L0 * s) < 1e-9, "the box shrank to the target size",
+          f"Lx {box[0]:.6f} (target {L0*s:.6f})")
     err = np.abs(got - pos * s).max()
-    check(err < 1e-9, "★ 좌표가 정확히 아핀 스케일된다 (r → s·r)",
-          f"최대 오차 {err:.3e} — 즉 **결합길이도 같이 줄어든다**")
+    check(err < 1e-9, "★ coordinates are scaled exactly affinely (r -> s*r)",
+          f"max error {err:.3e} -- meaning **bond lengths shrink along with it**")
     return err
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# DLVO 표 + WCA 코어 (chain-bend-2d-dlvo 와 동일 관례)
+# DLVO table + WCA core (same convention as chain-bend-2d-dlvo)
 # ═══════════════════════════════════════════════════════════════════════
 def dlvo_forces(nlist, P, extra_types=()):
     r_min = 1.0 + 1e-4
@@ -166,10 +179,10 @@ def dlvo_forces(nlist, P, extra_types=()):
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# ③ BoxResize + Brownian + 페어힘이 함께 도는가
+# (3) do BoxResize + Brownian + the pair forces run together?
 # ═══════════════════════════════════════════════════════════════════════
 def check_boxresize_with_pair(P):
-    print("\n③ BoxResize + Brownian + pair.Table + WCA (셀리스트·유한성)")
+    print("\n(3) BoxResize + Brownian + pair.Table + WCA (cell list, finiteness)")
     n_side, L0 = 6, 18.0
     a = L0 / n_side
     pos = np.array([[(i + .5) * a - L0 / 2, (j + .5) * a - L0 / 2, (k + .5) * a - L0 / 2]
@@ -197,45 +210,48 @@ def check_boxresize_with_pair(P):
         ran = True
     except Exception as e:                                     # noqa: BLE001
         ran = False
-        print(f"      크래시: {type(e).__name__}: {e}")
-    check(ran, "압축 중 크래시 없음")
+        print(f"      crash: {type(e).__name__}: {e}")
+    check(ran, "no crash during compression")
     if not ran:
         return None
     pe = thermo.potential_energy
     box = sim.state.get_snapshot().configuration.box
-    check(pe is not None and math.isfinite(pe), "퍼텐셜 에너지가 유한",
+    check(pe is not None and math.isfinite(pe), "the potential energy is finite",
           f"PE = {pe:.4f} kT (N={len(pos)})")
-    check(abs(box[0] - L1) < 1e-6, "압축이 목표에서 정확히 멈춘다",
-          f"Lx {box[0]:.6f} (목표 {L1})")
-    check(r_cut < box[0] / 2, "압축 후에도 r_cut < L/2 (함정 6)",
+    check(abs(box[0] - L1) < 1e-6, "compression stops exactly at the target",
+          f"Lx {box[0]:.6f} (target {L1})")
+    check(r_cut < box[0] / 2, "r_cut < L/2 still holds after compression (trap 6)",
           f"r_cut {r_cut:.4f} < L/2 {box[0]/2:.4f}")
     return pe
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# ④ ★ 압축이 DLVO 결합을 부수는 문턱
+# (4) ★ the threshold at which compression breaks a DLVO bond
 # ═══════════════════════════════════════════════════════════════════════
 def check_crush_threshold(P, W, quick=False):
-    print("\n④ ★ 압축이 DLVO 2차극소 결합을 부수는 문턱")
+    print("\n(4) ★ the threshold at which compression breaks a DLVO "
+          "secondary-minimum bond")
     h_min, h_bar = W["h_min"], W["barrier_h"]
     ell = 1.0 + h_min
     eps_crit = (h_min - h_bar) / ell
     tau_bond = 1.0 / W["k_bond_star"]
-    print(f"   원장: h_min*={h_min:.6f}  barrier*={h_bar:.6f}  ℓ*={ell:.6f}")
+    print(f"   ledger: h_min*={h_min:.6f}  barrier*={h_bar:.6f}  l*={ell:.6f}")
     print(f"         k_bond*={W['k_bond_star']:.4g} kT/d²   τ_bond*={tau_bond:.4g} τ_B")
-    print(f"   예측 문턱 ε_crit = (h_min*−barrier*)/ℓ* = {eps_crit:.6f}  ({eps_crit*100:.3f}%/트리거)")
+    print(f"   predicted threshold eps_crit = (h_min*-barrier*)/l* = "
+          f"{eps_crit:.6f}  ({eps_crit*100:.3f}% per trigger)")
 
     dt = 1e-8                       # dt/τ_bond ≈ 0.0104
-    T = 2000                        # 트리거 간격 → 이완시간 T·dt = 21 τ_bond
+    T = 2000                        # trigger interval -> relaxation time
+                                    # T*dt = 21 tau_bond
     L0 = 6.0
-    s_tot = 0.95                    # 총 5% 선형 압축
+    s_tot = 0.95                    # 5% total linear compression
     eps_list = [0.002, 0.004, 0.006, 0.008, 0.012, 0.020]
     if quick:
         eps_list = [0.004, 0.008, 0.020]
 
-    print(f"   dt={dt:g} (dt/τ_bond={dt/tau_bond:.4f}) · 트리거 간격 {T} 스텝"
-          f" (= {T*dt/tau_bond:.0f} τ_bond 이완)")
-    print("   ε/트리거     최종 h*        판정")
+    print(f"   dt={dt:g} (dt/tau_bond={dt/tau_bond:.4f}) . trigger interval {T} steps"
+          f" (= {T*dt/tau_bond:.0f} tau_bond of relaxation)")
+    print("   eps/trigger   final h*       verdict")
     rows = []
     for eps in eps_list:
         t_ramp = max(int(round((1.0 - s_tot) * T / eps)), T)
@@ -244,7 +260,8 @@ def check_crush_threshold(P, W, quick=False):
             frame_3d([[-ell / 2, 0, 0], [ell / 2, 0, 0]], L0))
         nl = md.nlist.Cell(buffer=0.2)
         forces, _ = dlvo_forces(nl, P)
-        # kT=0 결정론적 — 잡음이 문턱을 흐리지 않게 (bd-physics: 적분기 가정 시험은 kT=0)
+        # kT=0, deterministic -- so noise cannot blur the threshold
+        # (bd-physics: test an integrator assumption at kT=0)
         bd = md.methods.Brownian(filter=hoomd.filter.All(), kT=0.0, default_gamma=1.0)
         integ = md.Integrator(dt=dt, methods=[bd], forces=forces)
         integ.integrate_rotational_dof = False
@@ -259,32 +276,38 @@ def check_crush_threshold(P, W, quick=False):
         p = np.array(sim.state.get_snapshot().particles.position, copy=True)
         sep = float(np.linalg.norm(p[1] - p[0]))
         h_end = sep - 1.0
-        survived = h_end > h_bar * 3          # 장벽 훨씬 밖 = 2차극소에 남음
+        survived = h_end > h_bar * 3          # well outside the barrier = still in
+                                              # the secondary minimum
         rows.append((eps, h_end, survived))
         print(f"   {eps*100:6.2f}%   {h_end:12.6f}   "
-              f"{'2차극소 유지' if survived else '★ 붕괴(1차극소/접촉)'}")
+              f"{'secondary min held' if survived else '★ collapsed (primary min/contact)'}")
 
     ok = [e for e, _, s in rows if s]
     bad = [e for e, _, s in rows if not s]
-    check(bool(ok) and bool(bad), "문턱이 스윕 범위 안에 있다 (양쪽 다 관측됨)",
-          f"유지 ≤{max(ok)*100:.2f}% · 붕괴 ≥{min(bad)*100:.2f}%" if ok and bad else "")
+    check(bool(ok) and bool(bad),
+          "the threshold lies inside the swept range (both outcomes observed)",
+          f"held <={max(ok)*100:.2f}% . collapsed >={min(bad)*100:.2f}%"
+          if ok and bad else "")
     if ok and bad:
         lo, hi = max(ok), min(bad)
         inside = lo <= eps_crit <= hi or abs(eps_crit - lo) / eps_crit < 0.5
-        check(inside, "★ 실측 문턱이 해석 예측 ε_crit 과 정합",
-              f"실측 {lo*100:.2f}~{hi*100:.2f}% · 예측 {eps_crit*100:.3f}%")
+        check(inside,
+              "★ the measured threshold is consistent with the analytic eps_crit",
+              f"measured {lo*100:.2f}-{hi*100:.2f}% . predicted {eps_crit*100:.3f}%")
     return eps_crit, rows
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# ⑤ 비용 — 겔화 구성의 steps/s → 벽시계
+# (5) cost -- steps/s for the gelation configuration -> wall-clock
 # ═══════════════════════════════════════════════════════════════════════
 def check_cost(P, W, n_part=1528, phi0=0.02, phi1=0.10, bench_steps=3000):
-    print("\n⑤ 비용 — 겔화 구성 steps/s 와 벽시계 (N3: 판정 전에 재라)")
+    print("\n(5) cost -- steps/s for the gelation configuration and the wall-clock "
+          "(N3: measure before deciding)")
     tau_bond = 1.0 / W["k_bond_star"]
-    dt = 1e-2 * tau_bond                          # 설계 관례 dt/τ_fast = 1e-2
+    dt = 1e-2 * tau_bond                          # design convention
+                                                  # dt/tau_fast = 1e-2
     out = {}
-    for tag, phi in (("초기(묽음)", phi0), ("최종(압축후)", phi1)):
+    for tag, phi in (("initial (dilute)", phi0), ("final (compressed)", phi1)):
         L = (n_part * math.pi / (6.0 * phi)) ** (1 / 3)
         n_side = int(math.ceil(n_part ** (1 / 3)))
         a = L / n_side
@@ -299,7 +322,8 @@ def check_cost(P, W, n_part=1528, phi0=0.02, phi1=0.10, bench_steps=3000):
         integ = md.Integrator(dt=dt, methods=[bd], forces=forces)
         integ.integrate_rotational_dof = False
         sim.operations.integrator = integ
-        sim.run(200)                                          # 워밍업(셀리스트·오토튠)
+        sim.run(200)                                          # warm-up (cell list,
+                                                              # autotuner)
         t0 = time.perf_counter()
         sim.run(bench_steps)
         rate = bench_steps / (time.perf_counter() - t0)
@@ -311,27 +335,30 @@ def check_cost(P, W, n_part=1528, phi0=0.02, phi1=0.10, bench_steps=3000):
     for tau_target in (1.0, 5.0, 10.0):
         steps = tau_target / dt
         hours = steps / rate_min / 3600
-        print(f"   겔화 {tau_target:4.1f} τ_B  →  {steps:.3g} 스텝  →  "
-              f"{hours:8.1f} 시간/시드 (최저 steps/s 기준)")
-    check(True, "비용 측정 완료 (판정은 위 표로)", f"최저 {rate_min:.0f} steps/s")
+        print(f"   gelation {tau_target:4.1f} tau_B  ->  {steps:.3g} steps  ->  "
+              f"{hours:8.1f} hours/seed (at the lowest steps/s)")
+    check(True, "cost measured (decide from the table above)",
+          f"lowest {rate_min:.0f} steps/s")
     return out, dt
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quick", action="store_true", help="④ 스윕 점 수를 줄인다")
+    ap.add_argument("--quick", action="store_true", help="reduce the number of sweep points in (4)")
     args = ap.parse_args()
 
     print("=" * 78)
-    print("network 능력조사 — 3D BD + BoxResize   (규칙 4: 감으로 쓰지 않는다)")
+    print("network capability survey -- 3D BD + BoxResize   "
+          "(rule 4: never from intuition)")
     print("=" * 78)
-    print(f"hoomd {hoomd.version.version} · CPU · 단위 d=kT=γ=1 (τ_B=1)")
+    print(f"hoomd {hoomd.version.version} . CPU . units d=kT=gamma=1 (tau_B=1)")
 
     sys_ = load_system(ROOT / "intake/chain-bend-2d-dlvo/system.yaml")
     P = dlvo_reduced_params(sys_)
     W = find_well(P)
-    print(f"DLVO 원장 승계: 장벽 {W['barrier_U']:.2f} kT @ h*={W['barrier_h']:.5f} · "
-          f"2차극소 {W['U_min']:.3f} kT @ h*={W['h_min']:.5f}")
+    print(f"DLVO ledger inherited: barrier {W['barrier_U']:.2f} kT @ "
+          f"h*={W['barrier_h']:.5f} . "
+          f"secondary min {W['U_min']:.3f} kT @ h*={W['h_min']:.5f}")
 
     check_free_diffusion_3d()
     check_boxresize_affine()
@@ -340,9 +367,10 @@ def main() -> int:
     check_cost(P, W)
 
     print("\n" + "=" * 78)
-    print(f"{'✓ PASS' if not FAIL else '✗ FAIL'} — {len(PASS)}/{len(PASS)+len(FAIL)} 정상")
+    print(f"{'✓ PASS' if not FAIL else '✗ FAIL'} -- "
+          f"{len(PASS)}/{len(PASS)+len(FAIL)} OK")
     for f in FAIL:
-        print(f"   실패: {f}")
+        print(f"   failed: {f}")
     print("=" * 78)
     return 1 if FAIL else 0
 
