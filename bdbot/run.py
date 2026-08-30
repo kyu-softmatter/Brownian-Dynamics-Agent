@@ -54,7 +54,7 @@ import numpy as np
 from . import metrics as MET
 from . import runid as RID
 from . import stats as ST
-from .health import check_finite
+from .health import STEP_DISP_MAX, check_finite, step_displacement_verdict
 
 SCHEMA = "bdbot.run/0.1"
 
@@ -176,7 +176,7 @@ class StepGuard:
     dt_star: float
     n_particles: int
     pe_abs_max: float = 1e8          # |PE|/N [kT] -- above this it is a blow-up, not physics
-    step_disp_max: float = 0.1       # [σ]
+    step_disp_max: float = STEP_DISP_MAX     # [σ] -- bdbot.health
     trips: list = field(default_factory=list)
     # * The **worst value over the whole run.** Keeping only the last sample misses
     #   the worst moment in between -- measured, the peak force was 1062.9 against
@@ -205,11 +205,11 @@ class StepGuard:
         disp = self.dt_star * fmax
         self.f_max_seen = max(self.f_max_seen, fmax)
         self.step_disp_seen = max(self.step_disp_seen, disp)
-        if disp > self.step_disp_max:
+        # one definition of the bound (bdbot.health); this half **raises** on it
+        ok, why = step_displacement_verdict(disp, self.step_disp_max)
+        if not ok:
             raise Diverged(DIVERGED, step,
-                           f"single-step force displacement dt*|F|max = {disp:.4g} sigma "
-                           f"exceeds the bound {self.step_disp_max} sigma "
-                           f"(|F|max = {fmax:.4g} kT/sigma). Reduce dt")
+                           f"{why} (|F|max = {fmax:.4g} kT/sigma)")
         self.trips.append({"step": step, "pe_per_n": pe_per_n, "f_max": fmax,
                            "step_disp": disp})
 

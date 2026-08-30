@@ -108,7 +108,7 @@ Recording these because a merge that claims to be seamless is lying.
 
 | Seam | State | Consequence |
 |---|---|---|
-| **Two engines** | `bdbot/` (live, 8 cases) and `simbot/` (S2/S7/S8, tested) — **the dependency is now one-way, `simbot → bdbot`**, but neither drives the other's pipeline | a case run through `bdbot` gets a health verdict but **no sealed prediction**; a case run through `cli.py` gets sealing but cannot use `bdbot`'s cases. Unchanged by the 2026-08-29 dedup — that pass merged shared primitives, not the pipelines |
+| ~~**Two engines**~~ | **Closed 2026-08-29** — see [5.2](#52--the-pipeline-level-merge) | one command surface, one data-model crossing, one guard bound. What is *not* unified is the two serialisations, and that is deliberate |
 | **Two knowledge schemas** | `wiki/` Markdown vs `entries/` JSON | a lesson can be filed in either and found by only one |
 | ~~**`dt` gate logic duplicated**~~ | **fixed 2026-08-29.** The gate equations live once, in [`bdbot/dt.py`](../bdbot/dt.py); `simbot.nondim` and `bdbot.checks` re-export them | it was worse than "duplicated": the two copies used **different criteria** — displacement in `simbot`, timescale ratio (`dt = 1e-2·τ`) in `bdbot.checks`, and [overdamped-stability](../.claude/rules/overdamped-stability.md) forbids the second. `bdbot.dt.compare_criteria` now reports both. The `bool(spec.pair)` bug below is separate and still open |
 | **`choose_dt` keys its displacement gate off `bool(spec.pair)`** | open. `SystemSpec` has no bond/angle field | **a bond-only system silently turns the gate off** — and the measurement that needed it (`max|F*| = 1037.7`, `dt` cut 100×) came from exactly such a system. `campaigns/chain_bend.py:113` still inlines its own thresholds |
@@ -195,6 +195,58 @@ pre-existing test depends on an edit here, and none was deleted to make room.
 >    work makes it 48 (`method__` goes 44 → 45). The count is deliberately quoted
 >    against the **committed** tree, so it is right today and wrong the moment
 >    these land.
+
+### 5.2 · The pipeline-level merge
+
+The three seams §5 listed as "two engines" were merged on 2026-08-29, after the
+shared-primitive pass. They are listed separately because the *method* had to be
+different: these are the input sides of two **content-addressed archives**, so the
+naive merge — one data model — renames one archive or breaks the other's seals.
+
+| | Duplicate | What was done | Evidence |
+|---|---|---|---|
+| ① | `bdbot.physical.PhysicalSystem` vs `simbot.spec.SystemSpec` | **not** collapsed. New [`simbot/bridge.py`](../simbot/bridge.py) is a verified crossing: one tier↔provenance map, leaf converters, `physical_to_systemspec()` | all **8** real `system.yaml` files derive `kT, γ, D, τ_B, m, τ_p` **bit-identically** down both paths (`rtol=0`) |
+| ② | `bdbot.run.StepGuard` vs `simbot.run.run_trap`/`run_soft2d` | one **bound** (`bdbot.health.step_displacement_verdict`), two **reactions** — bdbot raises, simbot reports | executed: the guard fires at `dt*=0.05` (`0.2074 > 0.1`) and passes at `5e-3` (`0.0198`) |
+| ③ | `bdbot/cli.py` vs root `cli.py` | one entry point. Implementation moved to `simbot/cli.py`; `bdbot.cli pipeline` delegates lazily; root `cli.py` is a re-export shim | b4's token comparator: the move changed **exactly one** code token pair, `.parent` → `.parent.parent` |
+
+**Three defects were found by building the crossing, none of them visible before.**
+
+1. **A 1000× unit error, on 5 of 8 cases.** The two halves have different unit
+   contracts: `bdbot` carries the unit *with* the value (pint), while `simbot`
+   names its fields `*_si` and `Quantity.si` does **no conversion** — so the value
+   must already be SI. Handing over `(0.851, "mPa*s")` reads back as `0.851 Pa·s`:
+   γ 1000× high, `D` 1000× low, every timescale 1000× off. Caught by the
+   bit-identity check on the first run of it.
+2. **`bdbot`'s L2 admits a parameter sweep inside a leaf; `SystemSpec` does not.**
+   `chain-bend-2d-dlvo` has `particle.count = [5, 9, 15, 25]`. That is a
+   *structural* asymmetry, not formatting — 3 of 8 cases hit it. The crossing now
+   **refuses** rather than taking element 0, because picking one silently is
+   choosing a physical system by accident.
+3. **Both `simbot` runners measured the force-driven step displacement and never
+   judged it.** `max_step_displacement_l_trap` went into the manifest,
+   `force_displacement_star` into `guards`, and nothing compared either to a
+   threshold — while `bdbot` aborts on exactly that quantity. `check_finite`
+   passes on a box escape, which is the failure
+   [overdamped-stability](../.claude/rules/overdamped-stability.md) was written
+   for. `run_trap` had no force guard at all; it now computes `|F| = k·|r|`.
+
+**What is deliberately still two things**, and why each is not an oversight:
+
+- **The serialisations.** `system.yaml` + `Provenanced` on one side, dataclasses +
+  `Quantity` on the other. Unifying renames 278 specs / 263 run directories, or
+  breaks `SEALED.sha256`.
+- **The tier↔provenance map is lossy.** Ten `provenance` kinds collapse onto four
+  `tier` values, so the round trip cannot be faithful. Written down once and
+  pinned, rather than each call site re-guessing — re-guessing is the
+  "never invent a value" failure (rule 3).
+- **The two reactions to a violated bound.** `bdbot.run` drives one run and aborts
+  it; `simbot.run` drives a batch over seeds where one diverging seed must not
+  discard the others' work.
+
+Pinned by [`tests/test_bridge_equivalence.py`](../tests/test_bridge_equivalence.py)
+(21 tests, each of the five new checkers deliberately broken and confirmed to
+fire). Test count 1004 → **1025**; `278 specs checked, 0 hash mismatches`
+throughout.
 
 Fixed during the merge rather than carried: `cases/network_3d.py` existed and
 had produced runs but was missing from `bdbot/cli.py`'s `CASE_SCRIPTS`, so

@@ -21,6 +21,7 @@ import numpy as np
 from .build import trap_snapshot
 from .estimators import euler_maruyama_trap_variance_bias
 from .forces import HarmonicTrap
+from bdbot.health import step_displacement_verdict
 from .guards import check_finite, configurational_temperature
 from .io import provenance as _provenance
 
@@ -117,6 +118,7 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
     indep_every = max(1, cfg.sample_interval_steps // stride)
     guard_fail: list[str] = []
     max_disp = 0.0
+    max_force_star = 0.0
     prev = pos()
 
     for f in range(n_frames):
@@ -130,6 +132,18 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
             break
         max_disp = max(max_disp, float(np.abs(p - prev).max()))
         prev = p
+        #  ★ The force-driven step displacement, which this runner did not track.
+        #    `max_disp` above is the **total** displacement over a stride --
+        #    thermal + force, over many steps -- so bdbot's bound does not apply to
+        #    it. The comparable quantity is `dt*|F|/gamma`, and in a harmonic trap
+        #    `|F| = k*|r|` is computable from the positions we already have
+        #    (reduced units: gamma = 1).
+        #    Before this, `max_step_displacement_l_trap` went into the manifest and
+        #    **nothing ever compared it to a threshold** -- the quiet-box-escape
+        #    gap in .claude/rules/overdamped-stability.md. `check_finite` passes on
+        #    a box escape.
+        max_force_star = max(max_force_star,
+                             cfg.k_star * float(np.linalg.norm(p, axis=1).max()))
 
         if f % indep_every == 0:
             indep_var.append(float(np.mean(p**2)))          # 성분별 <x*^2>
@@ -172,10 +186,22 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
         "em_bias_expected": euler_maruyama_trap_variance_bias(cfg.dt_star),
         **(extra_manifest or {}),
     }
+    #  ⚠ **Reports, does not raise** -- deliberately, and the asymmetry with
+    #    `bdbot.run.StepGuard` is by design, not an oversight: this is a batch
+    #    runner over seeds, and one diverging seed must not discard the others'
+    #    work. What the two halves must share is the **bound**, not the reaction.
+    #    `bdbot.health.step_displacement_verdict` is that one bound.
+    force_disp_star = cfg.dt_star * max_force_star
+    fd_ok, fd_why = step_displacement_verdict(force_disp_star, unit="l_trap")
+    if not fd_ok:
+        guard_fail.append(f"{fd_why} (|F*|max = {max_force_star:.4g} kT/l_trap)")
     guards = {
-        "finite": not guard_fail,
+        "finite": not any("non-finite" in g or "비유한값" in g for g in guard_fail),
         "failures": guard_fail,
         "max_step_displacement_l_trap": max_disp,
+        "max_force_star": max_force_star,
+        "force_displacement_star": force_disp_star,
+        "force_displacement_ok": fd_ok,
         "n_independent_snapshots": len(indep_var),
     }
 
@@ -464,14 +490,28 @@ def run_soft2d(cfg: Soft2DRunConfig, *, outdir: Path | None = None,
             f"최소분리 {sep:.4f} < r_min {cfg.r_min} — Table 표를 벗어났다. "
             f"U(r) 가 조용히 틀렸을 수 있다")
 
+    #  ★ This runner already **measured** `force_displacement_star` and never
+    #    compared it to anything. Same bound as `bdbot.run.StepGuard`
+    #    (`bdbot.health.step_displacement_verdict`), same quantity `dt*|F|max`,
+    #    different reaction -- report, because this is a batch over seeds.
+    #    ⚠ Judged on the **production** maximum, not the initial one. The initial
+    #      configuration is not where the worst force occurs: measured elsewhere in
+    #      this project, the peak was 1062.9 against 244.2 kT/sigma for the last
+    #      sample, a factor of 4.4.
+    force_disp_prod = float(max_force[:k + 1].max()) * cfg.dt_star
+    fd_ok, fd_why = step_displacement_verdict(force_disp_prod)
+    if not fd_ok:
+        guard_fail.append(fd_why)
     guards = {
-        "finite": not any("비유한값" in g for g in guard_fail),
+        "finite": not any("non-finite" in g or "비유한값" in g for g in guard_fail),
         "failures": guard_fail,
         "min_separation": sep,
         "min_separation_over_r_min": sep / cfg.r_min,
         "max_force_initial": max_force_initial,
         "max_force_production": float(max_force[:k + 1].max()),
         "force_displacement_star": max_force_initial * cfg.dt_star,
+        "force_displacement_production_star": force_disp_prod,
+        "force_displacement_ok": fd_ok,
         "thermal_displacement_star": float(np.sqrt(2 * cfg.dt_star)),
         "n_frames": int(k + 1),
     }

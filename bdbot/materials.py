@@ -12,14 +12,28 @@ This is the **pint-carrying** face of the medium properties. The float face is
 [`bdbot.constants`](constants.py) -- one table, not two. Before that merge the two
 copies had already drifted 0.545 % at 300 K.
 
-**The formulas are deliberately NOT routed through a shared float kernel.**
-`gamma = 3*pi*eta*d` here and `gamma = 6*pi*eta*a` in `simbot.units` are the same
-relation in two conventions, and collapsing them would mean stripping and
-re-attaching pint units on a quantity that feeds `run_id` hashes and a 1e-12
-round-trip check -- a last-bit change for no gain. What kills the drift instead is
-`tests/test_cross_package_equivalence.py`, which asserts the two agree exactly.
-⚠ `sphere_drag` takes a **diameter**, `simbot.units.stokes_drag_si` takes a
-  **radius**. That is the factor-2 trap the equivalence test exists to pin down.
+**Which formulas are routed through a shared kernel, and which are not.** The rule
+is whether a last-bit change can move a hash:
+
+    sphere_mass    -> `bdbot.constants.sphere_mass_si`. Routed, because the two
+                      halves were **1 ULP apart** (`rho*(pi/6)*d^3` here vs
+                      `rho*(4/3)*pi*a^3` in `simbot.spec`) and mass reaches no
+                      hash: it lands at `.system.derived_scales.tau_p`, and
+                      `derived_scales` is in `bdbot.runid.DOC_KEYS`, so
+                      `physics_only()` strips it. Verified, 278 specs, 0 mismatches
+                      before and after.
+    sphere_drag,   -> NOT routed. `gamma = 3*pi*eta*d` here and `6*pi*eta*a` in
+    diffusion,        `simbot.units` are the same relation in two conventions, but
+    brownian_time     these feed `run_id` and a 1e-12 round-trip check. Stripping
+                      and re-attaching pint for a cosmetic win would risk a
+                      last-bit move in a hashed quantity. What kills the drift
+                      instead is `tests/test_cross_package_equivalence.py`, which
+                      asserts the two agree exactly.
+
+⚠ `sphere_drag` and `sphere_mass` take a **diameter**; `simbot`'s
+  `stokes_drag_si` and `Species.radius_si` are **radii**. That is the factor-2
+  surface the equivalence test exists to pin down, and `simbot.bridge` halves the
+  diameter explicitly when it crosses.
 """
 from __future__ import annotations
 
@@ -49,7 +63,12 @@ def brownian_time(d, D_t):
 
 
 def sphere_mass(rho_p, d):
-    return (rho_p * (math.pi / 6) * d**3).to("kg")
+    """m = rho*(pi/6)*d^3. The expression lives in `bdbot.constants.sphere_mass_si`
+    so `simbot` computes the identical float -- they were 1 ULP apart before
+    (merged 2026-08-29; mass reaches no hash, verified on all 278 specs).
+    """
+    return Q(_const.sphere_mass_si(rho_p.to("kg/m^3").magnitude, d.to("m").magnitude),
+             "kg")
 
 
 def momentum_time(m, gamma):
