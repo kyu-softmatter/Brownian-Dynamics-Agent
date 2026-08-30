@@ -1,21 +1,26 @@
 #!/usr/bin/env python
-"""intake/network 스케치의 전사를 재현한다 (L0 감사용).
+"""Reproduce the transcription of the intake/network sketch (for L0 audit).
 
-무엇을 하는가:
-  ① EXIF orientation 보정 + 90° CCW 회전 (원본은 눕혀 찍힘)
-  ② 그림에서 센 비드 21개의 위치·반지름을 **박아넣고** 원본 위에 겹쳐 그린다
-  ③ 접촉 판정으로 링크를 재구성해 위상(고리 수·분기점·자유단)을 출력한다
+What it does:
+  (1) correct EXIF orientation + rotate 90 deg CCW (the original was shot sideways)
+  (2) **hard-code** the positions and radii of the 21 beads counted in the image and
+      overlay them on the original
+  (3) reconstruct the links by a contact test and print the topology (loop count,
+      branch points, free ends)
 
-★ 비드 좌표는 자동 검출이 아니라 **사람(=이 스크립트를 쓴 세션)이 눈으로 읽은 값**이다.
-  자동 Hough 검출은 이 환경에 opencv/skimage 가 없어 못 썼다. 그래서 이 스크립트의
-  역할은 "세었다"가 아니라 **"센 결과를 남에게 검증받을 수 있게 만든다"** 이다 —
-  out/network_sketch_annotated.png 를 원본과 나란히 보면 빠뜨림·중복이 눈에 보인다.
+★ The bead coordinates are NOT automatic detection -- they were **read by eye by a
+  person** (the session that wrote this script). Automatic Hough detection was
+  unavailable because this environment has neither opencv nor skimage. So this
+  script's job is not "I counted them" but **"make the count auditable by someone
+  else"** -- putting out/network_sketch_annotated.png next to the original makes any
+  omission or duplicate visible.
 
-  전사 규칙(skill bd-intake §1): 입자 수가 적으면(≲50) 정확히 세고, 많으면 세지 말고
-  적절히 많은 N 을 제안한다. 여기서는 21개라 **정확히 셌다**. 다만 그 21이
-  시뮬레이션의 N 이라는 뜻은 아니다 — observation.yaml A6 참조.
+  Transcription rule (skill bd-intake §1): if the particle count is small (<~50),
+  count it exactly; if large, do not count, propose a suitably large N instead. Here
+  there are 21, so it **was counted exactly**. That does not mean 21 is the
+  simulation's N -- see observation.yaml A6.
 
-실행:
+Run:
   $PY scratch/read_network_sketch.py
 """
 from __future__ import annotations
@@ -29,32 +34,36 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "intake/network/KakaoTalk_Photo_2026-08-06-14-36-42.jpeg"
 OUT = ROOT / "intake/network/transcription_annotated.png"
 
-# 회전·크롭 규약: exif_transpose → ROTATE_90(CCW) → crop(260,600,1920,2260)
-# 이 좌표계(1660x1660)에서 읽은 비드 (x, y, r).  r 은 눈대중 — 접촉 판정에만 쓴다.
+# Rotation/crop convention: exif_transpose -> ROTATE_90(CCW) ->
+# crop(260,600,1920,2260)
+# Beads (x, y, r) read in that coordinate system (1660x1660). r is eyeballed -- it is
+# used only for the contact test.
 CROP = (260, 600, 1920, 2260)
 BEADS = [
-    (700, 260, 150), (795, 510, 155),                                   # 위쪽 가지
-    (1070, 665, 95), (1215, 570, 80), (1335, 520, 85),                  # 우상 가지
-    (940, 730, 105), (1015, 975, 105), (775, 865, 75), (650, 975, 80),  # 중앙
-    (505, 1075, 65), (425, 1035, 45), (370, 1015, 35),                  # 좌 가지
+    (700, 260, 150), (795, 510, 155),                                   # upper branch
+    (1070, 665, 95), (1215, 570, 80), (1335, 520, 85),                  # upper-right branch
+    (940, 730, 105), (1015, 975, 105), (775, 865, 75), (650, 975, 80),  # centre
+    (505, 1075, 65), (425, 1035, 45), (370, 1015, 35),                  # left branch
     (305, 975, 55), (185, 950, 72),
-    (395, 1205, 62), (320, 1330, 58),                                   # 좌하 가지
-    (1105, 1175, 100), (1225, 1150, 65), (1345, 1055, 62), (1465, 1000, 68),  # 우하 가지
-    (1160, 1420, 100),                                                  # 아래 가지
+    (395, 1205, 62), (320, 1330, 58),                                   # lower-left branch
+    (1105, 1175, 100), (1225, 1150, 65), (1345, 1055, 62), (1465, 1000, 68),  # lower-right branch
+    (1160, 1420, 100),                                                  # lower branch
 ]
-# 링크(접한 원 쌍)도 **눈으로 읽은 데이터**다. 1-based 번호쌍, 위 BEADS 순서 기준.
-# ⚠️ 자동(중심거리 < r_i+r_j) 재구성은 이 좌표로 **작동하지 않는다** — 아래 참조.
+# The links (pairs of touching circles) are **also read by eye**. 1-based index pairs,
+# ordered as BEADS above.
+# ⚠️ Automatic reconstruction (centre distance < r_i+r_j) **does not work** with these
+# coordinates -- see below.
 LINKS_READ = [
-    (1, 2), (2, 6), (6, 3), (3, 4), (4, 5),          # 위쪽 + 우상 가지
-    (6, 7), (6, 8),                                   # 6 = 4갈래 분기점
-    (8, 9), (9, 10), (10, 11), (11, 12), (12, 13), (13, 14),   # 좌 가지
-    (10, 15), (15, 16),                               # 10 = 3갈래 분기점
-    (7, 17), (17, 18), (18, 19), (19, 20), (17, 21),  # 17 = 3갈래 분기점
+    (1, 2), (2, 6), (6, 3), (3, 4), (4, 5),          # upper + upper-right branch
+    (6, 7), (6, 8),                                   # 6 = 4-way branch point
+    (8, 9), (9, 10), (10, 11), (11, 12), (12, 13), (13, 14),   # left branch
+    (10, 15), (15, 16),                               # 10 = 3-way branch point
+    (7, 17), (17, 18), (18, 19), (19, 20), (17, 21),  # 17 = 3-way branch point
 ]
 
 
 def contact_ratio(beads, i, j):
-    """중심거리 / (r_i + r_j). 1 미만이면 원이 겹친다."""
+    """Centre distance / (r_i + r_j). Below 1, the circles overlap."""
     xi, yi, ri = beads[i]
     xj, yj, rj = beads[j]
     return ((xi - xj) ** 2 + (yi - yj) ** 2) ** 0.5 / (ri + rj)
@@ -62,7 +71,7 @@ def contact_ratio(beads, i, j):
 
 def main() -> int:
     if not SRC.exists():
-        print(f"원본 없음: {SRC}", file=sys.stderr)
+        print(f"original not found: {SRC}", file=sys.stderr)
         return 1
 
     img = ImageOps.exif_transpose(Image.open(SRC)).transpose(Image.ROTATE_90)
@@ -74,7 +83,7 @@ def main() -> int:
         deg[i] += 1
         deg[j] += 1
 
-    # 연결성분 (union-find 없이 BFS 한 번 — 21개짜리라 충분)
+    # Connected components (one BFS, no union-find -- fine for 21 nodes)
     adj = {i: [] for i in range(len(BEADS))}
     for i, j in lk:
         adj[i].append(j)
@@ -93,45 +102,51 @@ def main() -> int:
             stack.extend(v for v in adj[u] if v not in seen)
 
     n, e = len(BEADS), len(lk)
-    loops = e - n + comps          # 순환 차원 (Betti-1)
+    loops = e - n + comps          # cycle rank (Betti-1)
 
-    print(f"비드            {n}")
-    print(f"링크            {e}   (그림에서 읽음)")
-    print(f"연결성분        {comps}")
-    print(f"독립 고리       {loops}   ← 0 이면 트리 (응력 나르는 닫힌 경로 없음)")
-    print(f"자유단(deg=1)   {sum(1 for d in deg if d == 1)}")
-    print(f"3갈래(deg=3)    {sum(1 for d in deg if d == 3)}")
-    print(f"4갈래(deg=4)    {sum(1 for d in deg if d == 4)}")
-    print(f"평균 배위수 z   {2 * e / n:.3f}")
+    print(f"beads              {n}")
+    print(f"links              {e}   (read from the image)")
+    print(f"components         {comps}")
+    print(f"independent loops  {loops}   <- 0 means a tree "
+          f"(no closed path to carry stress)")
+    print(f"free ends (deg=1)  {sum(1 for d in deg if d == 1)}")
+    print(f"3-way (deg=3)      {sum(1 for d in deg if d == 3)}")
+    print(f"4-way (deg=4)      {sum(1 for d in deg if d == 4)}")
+    print(f"mean coordination z {2 * e / n:.3f}")
 
-    # ── 자동 재구성은 왜 못 쓰는가 (TOL 을 맞추는 대신 **재서 보고한다**) ──────
+    # ── Why automatic reconstruction is unusable (instead of tuning TOL, it is
+    #    **measured and reported**) ──────
     lset = {frozenset(p) for p in lk}
     lr = sorted(contact_ratio(BEADS, i, j) for i, j in lk)
     nr = sorted(contact_ratio(BEADS, i, j)
                 for i in range(n) for j in range(i + 1, n)
                 if frozenset((i, j)) not in lset)
-    print("\n중심거리/(r_i+r_j) — 눈대중 반지름의 품질 진단")
-    print(f"  링크인 쌍  ({len(lr):2d}개)  최소 {lr[0]:.2f} · 중앙 {lr[len(lr)//2]:.2f} · 최대 {lr[-1]:.2f}")
-    print(f"  아닌 쌍   ({len(nr):3d}개)  최소 {nr[0]:.2f}")
-    print(f"  → 링크 최대({lr[-1]:.2f}) {'>' if lr[-1] > nr[0] else '<'} 비링크 최소({nr[0]:.2f}) "
-          f": 거리 하나로는 {'분리 불가' if lr[-1] > nr[0] else '분리 가능'}")
-    print("  ★ BEADS 의 r 은 **번호를 얹으려고 작게** 잡은 값이라 그려진 타원의 반축이")
-    print("    아니다. 그래서 접촉 판정을 자동화하면 링크를 놓친다 — TOL 을 올려")
-    print("    맞추면 원하는 답에 끼워맞추는 것이 되므로, 링크는 눈으로 읽고")
-    print("    이 진단만 남긴다 (CLAUDE.md 규칙 6).")
+    print("\ncentre distance/(r_i+r_j) -- quality diagnostic for the eyeballed radii")
+    print(f"  linked pairs     ({len(lr):2d})  min {lr[0]:.2f} . "
+          f"median {lr[len(lr)//2]:.2f} . max {lr[-1]:.2f}")
+    print(f"  non-linked pairs ({len(nr):3d})  min {nr[0]:.2f}")
+    print(f"  -> max linked ({lr[-1]:.2f}) "
+          f"{'>' if lr[-1] > nr[0] else '<'} min non-linked ({nr[0]:.2f})"
+          f": distance alone is "
+          f"{'NOT separable' if lr[-1] > nr[0] else 'separable'}")
+    print("  ★ BEADS' r was chosen **small, to fit the index labels on top**, so it")
+    print("    is not the semi-axis of the drawn ellipse. Automating the contact test")
+    print("    therefore misses links, and raising TOL to fit would be fitting the")
+    print("    answer we wanted -- so links are read by eye (CLAUDE.md rule 6).")
 
     dr = ImageDraw.Draw(dia)
     try:
         font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 52)
     except OSError:
         font = None
-    for i, j in lk:                                    # 링크 먼저 (비드 아래로)
+    for i, j in lk:                                    # links first (drawn under the
+                                                       # beads)
         dr.line([BEADS[i][:2], BEADS[j][:2]], fill=(0, 120, 255), width=7)
     for idx, (x, y, r) in enumerate(BEADS):
         dr.ellipse([x - r, y - r, x + r, y + r], outline=(255, 0, 0), width=5)
         dr.text((x - 18, y - 26), str(idx + 1), fill=(0, 150, 0), font=font)
     dia.save(OUT)
-    print(f"\n주석 그림 → {OUT.relative_to(ROOT)}")
+    print(f"\nannotated figure -> {OUT.relative_to(ROOT)}")
     return 0
 
 
