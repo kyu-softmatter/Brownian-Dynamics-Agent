@@ -1,30 +1,36 @@
-"""`trap-drag` 속도 스윕 재분석 — **시드 앙상블 오차막대로**.
+"""`trap-drag` velocity-sweep re-analysis -- **with seed-ensemble error bars**.
 
-## 왜 다시 내는가
+## Why this is being reissued
 
-기존에 발표된 v-스윕 결과(CLAUDE.md: 항복력 `F(v→0) = 35~45 kT/d`, "0에서 11~20σ",
-전단 담화 `F/γv` 16.9→1.87, 결함 수 v-무관)는 **속도마다 단일 런**이고 오차로
-**블록 SEM**을 썼습니다. 그런데 시드 앙상블에서 블록 SEM 이 실현 간 산포를
-과소평가한다는 것이 측정됐습니다 — γv=24.21 에서 **ΔU/입자 2.35× · F_drag 1.37×**
-(`trap_drag_ensemble.py`). ⚠️ 배수는 **관측량마다 다릅니다**. 널리 인용된 2.35 는
-ΔU/입자 값이고, 여기서 다루는 끌림힘은 1.37 이었습니다 — 섞어 쓰면 안 됩니다.
-어느 쪽이든 기존 유의도(11~20σ)는 과신입니다.
+The previously published v-sweep results (CLAUDE.md: yield force
+`F(v->0) = 35-45 kT/d`, "11-20 sigma from 0", shear thinning `F/gamma*v`
+16.9 -> 1.87, defect count independent of v) used **a single run per velocity** and
+took **block SEM** as the error. But it has since been measured that in a seed
+ensemble, block SEM underestimates the spread between realisations -- at
+gamma*v=24.21 by **2.35x for dU/particle and 1.37x for F_drag**
+(`trap_drag_ensemble.py`). ⚠️ The factor **differs per observable**. The widely
+quoted 2.35 is the dU/particle figure; the drag force treated here was 1.37 --
+the two must not be interchanged. Either way, the old significances (11-20 sigma)
+are overconfident.
 
-이제 7속도 × 9시드가 모두 있으므로 **실현 간 산포**로 다시 냅니다. 두 오차를
-나란히 찍어 과소평가 배수가 속도에 따라 어떻게 변하는지도 봅니다.
+Now that all 7 velocities x 9 seeds exist, the numbers are reissued using **the
+spread between realisations**. Both errors are plotted side by side, so how the
+underestimation factor varies with velocity is also visible.
 
-⚠️ 이 스크립트는 **수치를 다시 내는 것**이고 물리 해석을 바꾸지 않습니다.
-   `f_drag_kT_per_d` 등은 각 런의 `metrics.json["result"]` 에 이미 있는 값을 씁니다 —
-   여기서 재계산하면 케이스 코드와 갈라질 수 있습니다.
+⚠️ This script **reissues numbers** and does not change any physical
+   interpretation. `f_drag_kT_per_d` and the rest are taken from the values already
+   in each run's `metrics.json["result"]` -- recomputing them here could drift away
+   from the case code.
 
-## 항복력에 대한 태도
+## The stance on yield force
 
-`F(v→0)` 은 **외삽**이라 함수형에 의존합니다. 하나만 고르지 않고 셋을 다 냅니다:
-최저속 실측값 · 로그선형 외삽 · Herschel–Bulkley 꼴 적합. 셋이 갈리면 그게 결론입니다
-(원칙: 단정하지 않고 무엇에 의존하는지 보여준다).
+`F(v->0)` is an **extrapolation**, so it depends on the functional form. Rather than
+picking one, all three are reported: the lowest-velocity measurement, a log-linear
+extrapolation, and a Herschel-Bulkley fit. If the three disagree, that disagreement
+IS the conclusion (the principle: do not assert, show what the answer depends on).
 
     $PY scratch/trap_drag_vsweep.py
-    $PY scratch/trap_drag_vsweep.py --include-legacy   # 옛 코드 런도 섞기 (비권장)
+    $PY scratch/trap_drag_vsweep.py --include-legacy   # also include old-code runs (not recommended)
 """
 from __future__ import annotations
 
@@ -44,7 +50,11 @@ OUT = ROOT / "runs" / "trap-drag-2d-hex300__ENSEMBLE"
 
 
 def is_current(p: Path) -> bool:
-    """현재 코드로 돈 런인가 — 판별자는 `step_drift_max_sigma` (L4 측정 배선 이후)."""
+    """Was this run produced by the current code?
+
+    The discriminator is `step_drift_max_sigma`, present only after the L4
+    measurement was wired in.
+    """
     try:
         m = json.loads((p / "metrics.json").read_text())
         return "step_drift_max_sigma" in m.get("numerics", {})
@@ -53,7 +63,11 @@ def is_current(p: Path) -> bool:
 
 
 def collect(include_legacy: bool) -> dict:
-    """속도 → 런 목록. `v_star`(무차원 γv)로 묶습니다 — 태그 문자열보다 신뢰할 수 있습니다."""
+    """velocity -> list of runs.
+
+    Grouped by `v_star` (the reduced gamma*v), which is more reliable than the tag
+    string.
+    """
     by_v: dict[float, list] = {}
     skipped = []
     for p in sorted((ROOT / "runs").glob("trap-drag-2d-hex300__tr0.117647*")):
@@ -69,12 +83,13 @@ def collect(include_legacy: bool) -> dict:
             m = json.loads((p / "metrics.json").read_text())
             r = m["result"]
         except Exception as e:
-            skipped.append(f"{p.name} (읽기 실패: {e})")
+            skipped.append(f"{p.name} (read failed: {e})")
             continue
-        # 예열/평형/이완 구간 설정이 기본과 다른 변형 런은 스윕에서 제외 (w2e3r10 등)
+        # Exclude variant runs whose warm-up/equilibration/relaxation phase settings
+        # differ from the defaults (w2e3r10 and similar)
         tag = p.name.split("__")[1]
         if "-w" in tag:
-            skipped.append(f"{p.name} (구간 설정 변형)")
+            skipped.append(f"{p.name} (variant phase settings)")
             continue
         by_v.setdefault(float(spec.params["v_star"]), []).append({
             "name": p.name,
@@ -106,21 +121,22 @@ def main() -> int:
 
     by_v, skipped = collect(a.include_legacy)
     if skipped:
-        print(f"⚠ 제외 {len(skipped)}런 (옛 코드 또는 변형 설정) — 조용히 버리지 않습니다:")
+        print(f"⚠ excluded {len(skipped)} run(s) (old code or variant settings) -- "
+              f"never dropped silently:")
         for s in skipped[:10]:
             print(f"    - {s}")
         if len(skipped) > 10:
-            print(f"    … 외 {len(skipped)-10}건")
+            print(f"    ... and {len(skipped)-10} more")
     if len(by_v) < 3:
-        print(f"속도 점이 부족합니다 ({len(by_v)}개)", file=sys.stderr)
+        print(f"not enough velocity points ({len(by_v)})", file=sys.stderr)
         return 1
 
     vs = sorted(by_v)
     print("=" * 104)
-    print(f"trap-drag v-스윕 재분석 — 속도 {len(vs)}점 · 시드 앙상블")
+    print(f"trap-drag v-sweep re-analysis -- {len(vs)} velocities, seed ensemble")
     print("=" * 104)
-    print(f"{'γv':>8}{'시드':>5}{'⟨F⟩':>9}{'앙상블SEM':>11}{'블록SEM':>10}"
-          f"{'과소평가':>9}{'F/γv':>8}{'결함':>7}{'ψ6':>7}{'회복%':>7}")
+    print(f"{'gam.v':>8}{'seeds':>5}{'<F>':>9}{'ensSEM':>11}{'blkSEM':>10}"
+          f"{'underest':>9}{'F/gam.v':>8}{'defect':>7}{'psi6':>7}{'recov%':>7}")
     rows = []
     for v in vs:
         g = by_v[v]
@@ -136,29 +152,33 @@ def main() -> int:
               f"{ratio:>9.2f}{F['mean']/v:>8.2f}{nd['mean']:>7.2f}{ps['mean']:>7.3f}"
               f"{100*rc['mean']:>7.1f}")
 
-    # ── 블록 SEM 과소평가 배수 ─────────────────────────────────────────
+    # ── block-SEM underestimation factor ───────────────────────────────
     rr = np.array([r["ratio"] for r in rows], float)
     rr = rr[np.isfinite(rr)]
     print("-" * 104)
-    # ⚠️ 비교 기준을 관측량별로 정확히: 단일-v 앙상블(γv=24.21)의 과소평가 배수는
-    #    **ΔU/입자 2.35× · F_drag 1.37×** 였습니다. 여기서 재는 것은 F_drag 이므로
-    #    1.37 과 비교해야 합니다. 2.35 와 비교하면 다른 관측량을 섞는 것입니다.
-    print(f"블록 SEM 과소평가 배수 (F_drag): 중앙 {np.median(rr):.2f}× · "
-          f"범위 {rr.min():.2f}~{rr.max():.2f}×")
-    print(f"  대조 — 단일-v 앙상블(γv=24.21): F_drag 1.37× · ΔU/입자 2.35× "
-          f"(관측량마다 다르다)")
+    # ⚠️ Compare per observable, exactly: the single-v ensemble (gamma*v=24.21) gave
+    #    underestimation factors of **2.35x for dU/particle and 1.37x for F_drag**.
+    #    What is measured here is F_drag, so it must be compared against 1.37.
+    #    Comparing it against 2.35 would be mixing two different observables.
+    print(f"block-SEM underestimation factor (F_drag): median {np.median(rr):.2f}x, "
+          f"range {rr.min():.2f}-{rr.max():.2f}x")
+    print(f"  reference -- single-v ensemble (gamma*v=24.21): F_drag 1.37x, "
+          f"dU/particle 2.35x (it differs per observable)")
 
-    # ── 항복력 — 외삽 3종 ─────────────────────────────────────────────
+    # ── yield force -- three extrapolations ────────────────────────────
     V = np.array([r["v"] for r in rows])
     FM = np.array([r["F"]["mean"] for r in rows])
     FE = np.array([r["F"]["sem"] for r in rows])
     print()
-    print("항복력 F(v→0) — **외삽이라 함수형에 의존합니다. 셋을 다 냅니다**")
+    print("yield force F(v->0) -- **an extrapolation, so it depends on the "
+          "functional form. All three are reported**")
     lo = int(np.argmin(V))
-    print(f"  ⓐ 최저속 실측      γv={V[lo]:.2f} 에서 F = {FM[lo]:.1f} ± {FE[lo]:.1f} kT/d"
-          f"   → 0 에서 {FM[lo]/FE[lo]:.1f}σ   (외삽 없음, 가장 방어 가능)")
+    print(f"  (a) lowest-v measured   at gamma*v={V[lo]:.2f}, "
+          f"F = {FM[lo]:.1f} ± {FE[lo]:.1f} kT/d"
+          f"   -> {FM[lo]/FE[lo]:.1f} sigma from 0   "
+          f"(no extrapolation, most defensible)")
 
-    # ⓑ 로그선형: F = a + b·ln(γv)  — 저속 3점
+    # (b) log-linear: F = a + b*ln(gamma*v)  -- the three lowest velocities
     k = min(3, len(V))
     idx = np.argsort(V)[:k]
     A = np.vstack([np.ones(k), np.log(V[idx])]).T
@@ -166,11 +186,14 @@ def main() -> int:
     good = np.isfinite(w)
     if good.sum() >= 2:
         coef, *_ = np.linalg.lstsq(A[good] * w[good, None], FM[idx][good] * w[good], rcond=None)
-        # v→0 은 ln→-inf 로 발산 → 이 꼴은 항복력을 정의하지 못한다는 것이 결론
-        print(f"  ⓑ 로그선형 적합    F = {coef[0]:.1f} + {coef[1]:.1f}·ln(γv)  "
-              f"→ v→0 에서 **발산**(정의 안 됨). 로그 꼴은 항복력을 주지 못합니다")
+        # v->0 sends ln -> -inf and diverges; the conclusion is that this form
+        # cannot define a yield force at all
+        print(f"  (b) log-linear fit      "
+              f"F = {coef[0]:.1f} + {coef[1]:.1f}*ln(gamma*v)  "
+              f"-> **diverges** as v->0 (undefined). A log form cannot give a "
+              f"yield force")
 
-    # ⓒ Herschel–Bulkley: F = F_y + c·(γv)^n  — 전 구간, n 을 격자로 탐색
+    # (c) Herschel-Bulkley: F = F_y + c*(gamma*v)^n -- whole range, n scanned on a grid
     best = None
     for n_ in np.linspace(0.1, 1.5, 141):
         X = np.vstack([np.ones(len(V)), V ** n_]).T
@@ -186,30 +209,34 @@ def main() -> int:
     if best:
         chi2, n_, c = best
         dof = max(1, int(np.isfinite(FE).sum()) - 3)
-        # F_y 불확실도: 가중 최소제곱 공분산
+        # Uncertainty on F_y: the weighted least-squares covariance
         X = np.vstack([np.ones(len(V)), V ** n_]).T
         ww = 1.0 / np.where(FE > 0, FE, np.nan)
         m_ = np.isfinite(ww)
         XtX = (X[m_] * ww[m_, None]).T @ (X[m_] * ww[m_, None])
         cov = np.linalg.inv(XtX) * max(1.0, chi2 / dof)
         sF = float(np.sqrt(cov[0, 0]))
-        print(f"  ⓒ Herschel–Bulkley  F = F_y + c·(γv)^n,  n={n_:.2f} 최적 "
-              f"→ F_y = {c[0]:.1f} ± {sF:.1f} kT/d   → 0 에서 {abs(c[0])/sF:.1f}σ"
+        print(f"  (c) Herschel-Bulkley    F = F_y + c*(gamma*v)^n,  "
+              f"n={n_:.2f} optimal "
+              f"-> F_y = {c[0]:.1f} ± {sF:.1f} kT/d   "
+              f"-> {abs(c[0])/sF:.1f} sigma from 0"
               f"   (χ²/dof = {chi2/dof:.2f})")
 
     print()
-    print("전단 담화 F/γv")
+    print("shear thinning F/gamma*v")
     print(f"  γv={V[lo]:.2f}: {FM[lo]/V[lo]:.2f}  →  γv={V[-1]:.2f}: {FM[-1]/V[-1]:.2f}"
-          f"   ({(FM[lo]/V[lo])/(FM[-1]/V[-1]):.1f}배 감소)")
+          f"   ({(FM[lo]/V[lo])/(FM[-1]/V[-1]):.1f}x reduction)")
 
     nd_m = np.array([r["nd"]["mean"] for r in rows])
     nd_e = np.array([r["nd"]["sem"] for r in rows])
     print()
-    print("결함 수 — v 에 의존하는가")
-    print(f"  범위 {nd_m.min():.2f}~{nd_m.max():.2f} · 앙상블 SEM 평균 {np.nanmean(nd_e):.2f}")
+    print("defect count -- does it depend on v?")
+    print(f"  range {nd_m.min():.2f}-{nd_m.max():.2f}, "
+          f"mean ensemble SEM {np.nanmean(nd_e):.2f}")
     spread = (nd_m.max() - nd_m.min()) / np.nanmean(nd_e)
-    print(f"  최대-최소 = {spread:.1f}·SEM → "
-          + ("**v 의존성 있음**" if spread > 3 else "v 무관과 구별 안 됨"))
+    print(f"  max-min = {spread:.1f}*SEM -> "
+          + ("**v-dependent**" if spread > 3
+             else "indistinguishable from v-independent"))
 
     _plot(rows, V, FM, FE, best)
     _save(rows, best)
@@ -220,8 +247,7 @@ def _plot(rows, V, FM, FE, best) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    # ★ 한글 + '−'(U+2212) 를 모두 갖춘 것은 Arial Unicode MS 뿐 (CLAUDE.md)
-    matplotlib.rcParams["font.family"] = ["Arial Unicode MS", "AppleGothic", "DejaVu Sans"]
+    matplotlib.rcParams["font.family"] = ["DejaVu Sans"]     # * labels in English (CLAUDE.md)
     matplotlib.rcParams["axes.unicode_minus"] = False
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -230,55 +256,58 @@ def _plot(rows, V, FM, FE, best) -> None:
 
     a = ax[0, 0]
     a.errorbar(V, FM, yerr=FE, fmt="o-", capsize=4, lw=1.8, color="tab:red",
-               label="앙상블 SEM (시드 간)")
+               label="ensemble SEM (between seeds)")
     a.errorbar(V, FM, yerr=blk, fmt="none", capsize=8, lw=1.0, color="tab:blue",
-               alpha=.8, label="블록 SEM (단일 런) — 과소평가")
-    a.plot(V, V, "k--", lw=1.2, label="맨 Stokes γv")
+               alpha=.8, label="block SEM (single run) -- underestimates")
+    a.plot(V, V, "k--", lw=1.2, label=r"bare Stokes $\gamma v$")
     if best:
         _, n_, c = best
         vv = np.geomspace(V.min() * .5, V.max() * 1.2, 100)
         a.plot(vv, c[0] + c[1] * vv ** n_, ":", color="darkgreen", lw=1.6,
-               label=f"HB 적합 (n={n_:.2f}, $F_y$={c[0]:.0f})")
+               label=f"HB fit (n={n_:.2f}, $F_y$={c[0]:.0f})")
         a.axhline(c[0], color="darkgreen", ls="-.", lw=1.0, alpha=.6)
     a.set(xscale="log", xlabel=r"$\gamma v$ [kT/d]", ylabel=r"$\langle F_x\rangle$ [kT/d]",
-          title="① 끌림힘 vs 속도 — 두 오차 비교")
+          title="(1) drag force vs velocity -- the two errors compared")
     a.legend(fontsize=8); a.grid(alpha=.3, which="both")
 
     a = ax[0, 1]
     a.plot(V, FM / V, "o-", lw=1.8, color="tab:purple")
-    a.axhline(1, color="k", ls="--", lw=1.2, label="맨 Stokes (=1)")
+    a.axhline(1, color="k", ls="--", lw=1.2, label="bare Stokes (=1)")
     a.set(xscale="log", yscale="log", xlabel=r"$\gamma v$ [kT/d]",
-          ylabel=r"$F/\gamma v$", title="② 전단 담화 — 유효 항력 배수")
+          ylabel=r"$F/\gamma v$",
+          title="(2) shear thinning -- effective drag multiplier")
     a.legend(fontsize=8); a.grid(alpha=.3, which="both")
 
     a = ax[1, 0]
     nd = np.array([r["nd"]["mean"] for r in rows])
     nde = np.array([r["nd"]["sem"] for r in rows])
     a.errorbar(V, nd, yerr=nde, fmt="s-", capsize=4, lw=1.8, color="tab:orange")
-    a.set(xscale="log", xlabel=r"$\gamma v$ [kT/d]", ylabel="구동 중 결함 수",
-          title="③ 결함 수 — v 의존성")
+    a.set(xscale="log", xlabel=r"$\gamma v$ [kT/d]",
+          ylabel="defect count while driven",
+          title="(3) defect count -- v dependence")
     a.grid(alpha=.3, which="both")
 
     a = ax[1, 1]
     ratio = np.array([r["ratio"] for r in rows])
     a.plot(V, ratio, "D-", lw=1.8, color="tab:green")
-    a.axhline(1, color="k", ls="--", lw=1.2, label="일치 (=1)")
+    a.axhline(1, color="k", ls="--", lw=1.2, label="agreement (=1)")
     a.axhline(1.37, color="tab:red", ls=":", lw=1.4,
-              label=r"단일-v 측정 $F_{drag}$ 1.37×")
+              label=r"single-v measurement, $F_{drag}$ 1.37x")
     a.set(xscale="log", xlabel=r"$\gamma v$ [kT/d]",
-          ylabel="실현간 std / 블록 SEM", title="④ 블록 SEM 과소평가 배수")
+          ylabel="std across realisations / block SEM",
+          title="(4) block-SEM underestimation factor")
     a.legend(fontsize=8); a.grid(alpha=.3, which="both")
 
     fig.tight_layout()
     p = OUT / "vsweep_ensemble.png"
     fig.savefig(p, dpi=130)
-    print(f"\n그림: {p}")
+    print(f"\nfigure: {p}")
 
 
 def _save(rows, best) -> None:
     out = {"schema": "bdbot.trap_drag_vsweep/0.2",
-           "note": "시드 앙상블 오차막대. 오차는 실현 간 산포(앙상블 SEM)이며 "
-                   "블록 SEM 이 아니다.",
+           "note": "Seed-ensemble error bars. The error is the spread between "
+                   "realisations (ensemble SEM), NOT block SEM.",
            "points": [{"v_star": r["v"], "n_seeds": r["F"]["n"],
                        "F_mean": r["F"]["mean"], "F_ensemble_sem": r["F"]["sem"],
                        "F_realization_std": r["F"]["std"], "F_block_sem_mean": r["blk"],
@@ -292,7 +321,7 @@ def _save(rows, best) -> None:
         out["herschel_bulkley"] = {"n": n_, "F_yield": c[0], "c": c[1]}
     p = OUT / "vsweep_ensemble.json"
     p.write_text(json.dumps(out, indent=2, ensure_ascii=False))
-    print(f"데이터: {p}")
+    print(f"data: {p}")
 
 
 if __name__ == "__main__":
