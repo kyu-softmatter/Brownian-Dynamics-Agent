@@ -1,29 +1,39 @@
-"""`trap-drag` 앙상블을 **현재 코드로** 새로 돌린다 — 스텝 해상 측정을 포함해서.
+"""Re-run the `trap-drag` ensemble **with the current code**, including the
+step-resolution measurement.
 
-## 왜 새로 돌리나
+## Why re-run at all
 
-레거시 런 79개는 `step_drift_max_sigma`(L4→L3 되먹임의 입력)를 갖고 있지 않고,
-**소급 측정이 불가능**합니다 — `run_id` 가 콘텐츠 주소라 재실행하면 다른 id 의 새 런이
-생기고, GSD 재생 우회는 시간 의존 구동(이동 트랩)에서 16배 과대로 무효입니다
-(`scratch/probe_gsd_replay.py`). 그래서 커버리지를 채우는 유일한 길은 새 앙상블입니다.
+The 79 legacy runs do not carry `step_drift_max_sigma` (the input to the L4->L3
+feedback), and it **cannot be measured retroactively** -- `run_id` is a content
+address, so re-running produces a new run under a different id, and the GSD-replay
+workaround is invalid under time-dependent driving (a moving trap), overestimating
+by 16x (`verify/probe_gsd_replay.py`). So a fresh ensemble is the only way to fill
+the coverage.
 
-## 설계 (기존 63런에서 복원)
+## Design (reconstructed from the existing 63 runs)
 
-    traverse = 0.117647           박스 횡단 1회 (T_obs 배율). 기존 앙상블과 동일
-    v        = 0.05 0.1 0.5 1.5 4 12 32   µm/s  (L2 `external.drag_velocity` 7점)
-    seed     = 기본(20260804) + 1…8       → 속도당 9런, 전체 63런
+    traverse = 0.117647           one box traverse (T_obs multiplier). Same as the
+                                  existing ensemble
+    v        = 0.05 0.1 0.5 1.5 4 12 32   µm/s  (the 7 points in L2
+                                  `external.drag_velocity`)
+    seed     = default (20260804) + 1..8   -> 9 runs per velocity, 63 in total
 
-기존 63런의 벽시계 합계는 **72.5시간**이었습니다. 그래서:
+The existing 63 runs totalled **72.5 hours** of wall-clock. Hence:
 
-  · **긴 것부터** 넣습니다 (v=0.05 가 런당 1.9h, v=0.5 는 0.3h). 짧은 것을 먼저 돌리면
-    마지막에 긴 것만 남아 코어가 놀고 makespan 이 늘어납니다 (LPT 스케줄링).
-  · 병렬도는 기본 6. 이 기계는 성능코어 4 + 효율코어 6 이라 6을 넘기면 성능코어를
-    서로 빼앗습니다. HOOMD 는 런당 단일 스레드입니다 (MPI 없음).
-  · **재시작 가능**: 완료된 런(`result.txt` 존재)은 건너뜁니다. 중단해도 이어서 돌립니다.
+  . **longest first** (v=0.05 is 1.9h per run, v=0.5 is 0.3h). Running the short ones
+    first leaves only long ones at the end, so cores idle and the makespan grows
+    (LPT scheduling).
+  . Concurrency defaults to 6. This machine has 4 performance + 6 efficiency cores,
+    so going above 6 makes runs steal performance cores from each other. HOOMD is
+    single-threaded per run (no MPI).
+  . **Restartable**: completed runs are skipped. Interrupting it is safe -- it
+    resumes. (See `measured()` below for what "completed" actually means here; it is
+    NOT result.txt.)
 
     $PY scratch/run_trap_drag_ensemble.py --jobs 6
-    $PY scratch/run_trap_drag_ensemble.py --dry-run     # 계획만
-    $PY scratch/run_trap_drag_ensemble.py --wait-for chain_bend_2d   # 끝나길 기다린 뒤 시작
+    $PY verify/run_trap_drag_ensemble.py --dry-run     # plan only
+    $PY verify/run_trap_drag_ensemble.py --wait-for chain_bend_2d
+                                                      # wait for that to finish first
 """
 from __future__ import annotations
 
@@ -43,15 +53,17 @@ LOG = ROOT / "verify" / "trap_drag_ensemble_run.log"
 
 TRAVERSE = 0.117647
 VELOCITIES = [0.05, 0.1, 0.5, 1.5, 4.0, 12.0, 32.0]
-SEEDS = [None, 1, 2, 3, 4, 5, 6, 7, 8]        # None = 케이스 기본 시드(20260804)
+SEEDS = [None, 1, 2, 3, 4, 5, 6, 7, 8]        # None = the case's default seed
+                                              # (20260804)
 
-# 기존 앙상블에서 측정한 런당 벽시계 [h] — 긴 것부터 넣기 위한 순서용 (정확도 불필요)
+# Wall-clock per run [h] measured from the existing ensemble -- used only to order
+# longest-first, so accuracy does not matter
 COST_H = {0.05: 1.86, 0.1: 1.33, 1.5: 1.17, 4.0: 1.15, 12.0: 1.14, 32.0: 1.13, 0.5: 0.29}
 
 
 def jobs_plan() -> list[dict]:
     out = []
-    for v in sorted(VELOCITIES, key=lambda x: -COST_H.get(x, 1.0)):    # 긴 것부터
+    for v in sorted(VELOCITIES, key=lambda x: -COST_H.get(x, 1.0)):    # longest first
         for s in SEEDS:
             args = ["--traverse", repr(TRAVERSE), "--v", f"{v:g}"]
             if s is not None:
@@ -61,7 +73,10 @@ def jobs_plan() -> list[dict]:
 
 
 def spec_of(job: dict) -> tuple[str, Path] | tuple[None, None]:
-    """`--spec` 로 run_id 를 먼저 확정한다 (실행하지 않음). 완료 여부 판정에 씀."""
+    """Pin down run_id up front via `--spec` (without running).
+
+    Used to decide whether a run is already complete.
+    """
     p = subprocess.run([PY, str(CASE), *job["args"], "--spec"],
                        capture_output=True, text=True, cwd=ROOT)
     m = re.search(r"(specs/\S+\.json)", p.stdout)
@@ -72,17 +87,19 @@ def spec_of(job: dict) -> tuple[str, Path] | tuple[None, None]:
 
 
 def already_done(run_id: str) -> bool:
-    """완료 판정. ⚠️ **`result.txt` 로 판정하면 안 됩니다.**
+    """Completion test. ⚠️ **Do NOT test this with `result.txt`.**
 
-    `trap-drag` 는 `RUN.execute` 경로라 `result.txt` 를 **쓰지 않습니다**
-    (l4.json·metrics.json·observables.npz·spec.json·traj_A.gsd 만 남깁니다).
-    result.txt 로 판정했다가 두 가지가 깨졌습니다:
-      ① 이 함수가 항상 False → "이미 완료 0런" 으로 보고했고, 실제로는 **레거시 런과
-         run_id 가 같아서** `runid.prepare_outdir` 가 `record.json` 만 남기고 나머지를
-         지우고 덮어썼습니다 (레거시 33런 손실 — 2026-08-06).
-      ② 재시작이 멱등하지 않아 끝난 런을 처음부터 다시 돌립니다.
-    이 케이스의 진짜 완료 신호는 `metrics.json` 이고, **측정까지** 됐는지가 이 앙상블의
-    목적이므로 둘을 같이 봅니다.
+    `trap-drag` goes through the `RUN.execute` path, which **does not write**
+    `result.txt` (it leaves only l4.json, metrics.json, observables.npz, spec.json
+    and traj_A.gsd). Testing on result.txt broke two things:
+      (1) this function was always False -> it reported "0 runs already complete",
+          and because the **run_id matched a legacy run**,
+          `runid.prepare_outdir` kept only `record.json` and deleted and overwrote
+          the rest (33 legacy runs lost -- 2026-08-06).
+      (2) restarts stopped being idempotent, so finished runs were re-run from
+          scratch.
+    The real completion signal for this case is `metrics.json`, and since the point
+    of this ensemble is whether the **measurement** happened too, both are checked.
     """
     return (ROOT / "runs" / run_id / "metrics.json").exists() and measured(run_id)
 
@@ -106,7 +123,8 @@ def log(msg: str) -> None:
 
 def run_one(job: dict) -> dict:
     t0 = time.time()
-    label = f"v={job['v']:g}" + (f" s={job['seed']}" if job["seed"] is not None else " s=기본")
+    label = f"v={job['v']:g}" + (f" s={job['seed']}" if job["seed"] is not None
+                                 else " s=default")
     p = subprocess.run([PY, str(CASE), *job["args"]],
                        capture_output=True, text=True, cwd=ROOT)
     dt = time.time() - t0
@@ -116,16 +134,20 @@ def run_one(job: dict) -> dict:
     if p.returncode != 0:
         tail = "\n".join((p.stdout + p.stderr).strip().splitlines()[-6:])
     log(f"{'✓' if ok else '✗'} {label:<16} {dt/3600:5.2f}h  {rid}"
-        + ("" if ok else f"\n    rc={p.returncode} 측정={measured(rid)}\n    {tail}"))
+        + ("" if ok else f"\n    rc={p.returncode} measured={measured(rid)}\n"
+                         f"    {tail}"))
     return {**job, "ok": ok, "wall_h": dt / 3600, "rc": p.returncode}
 
 
 def wait_for(pattern: str, poll: int = 60) -> None:
-    """해당 패턴의 프로세스가 사라질 때까지 기다린다 (다른 세션 작업과 코어 다툼 방지).
+    """Wait until processes matching the pattern are gone.
 
-    ★ **자기 자신을 세면 안 됩니다.** 이 스크립트의 명령줄에 `--wait-for <pattern>` 이
-      들어 있어서 `pgrep -f <pattern>` 이 자기 프로세스를 잡습니다 → 영원히 기다립니다.
-      (같은 함정을 이 세션에서 monitor 로 한 번 겪었습니다.) 자기 PID 를 뺍니다.
+    Avoids fighting another session's work for cores.
+
+    ★ **Must not count itself.** This script's own command line contains
+      `--wait-for <pattern>`, so `pgrep -f <pattern>` matches its own process ->
+      it would wait forever. (The same trap was hit once with a monitor in this
+      session.) Its own PID is excluded.
     """
     import os
     me = {os.getpid(), os.getppid()}
@@ -134,17 +156,21 @@ def wait_for(pattern: str, poll: int = 60) -> None:
         r = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True)
         pids = {int(x) for x in r.stdout.split() if x.strip().isdigit()} - me
         if not pids:
-            log(f"'{pattern}' 종료 확인 — 앙상블 시작")
+            log(f"'{pattern}' confirmed finished -- starting the ensemble")
             return
         if first:
-            log(f"'{pattern}' {len(pids)}개 실행 중 — 끝나길 기다립니다 ({poll}s 간격) "
+            log(f"'{pattern}': {len(pids)} still running -- waiting for them "
+                f"(every {poll}s) "
                 f"pids={sorted(pids)[:8]}")
             first = False
         time.sleep(poll)
 
 
 def procs_matching(pattern: str) -> set[int]:
-    """패턴에 맞는 **남의** 프로세스 PID. 자기 자신은 뺀다 (명령줄에 패턴이 들어 있다)."""
+    """PIDs of **other** processes matching the pattern.
+
+    Excludes this process, whose own command line contains the pattern.
+    """
     import os
     r = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True)
     return ({int(x) for x in r.stdout.split() if x.strip().isdigit()}
@@ -153,44 +179,48 @@ def procs_matching(pattern: str) -> set[int]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--jobs", type=int, default=6, help="동시 실행 수 (성능코어 4 + 효율코어 6)")
+    ap.add_argument("--jobs", type=int, default=6, help="concurrency (4 performance + 6 efficiency cores)")
     ap.add_argument("--jobs-max", type=int, default=None,
-                    help="--ramp-when-clear 가 비면 이 값까지 올린다")
+                    help="raise concurrency to this once --ramp-when-clear is clear")
     ap.add_argument("--ramp-when-clear", default=None,
-                    help="이 패턴의 프로세스가 사라지면 병렬도를 --jobs-max 로 올린다 "
-                         "(기다리지 않고 바로 시작한다 — 코어를 나눠 쓰다가 이후 전부 쓴다)")
+                    help="raise concurrency to --jobs-max once processes matching "
+                         "this pattern are gone (starts immediately rather than "
+                         "waiting -- shares cores first, then takes all of them)")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--wait-for", default=None, help="이 패턴의 프로세스가 끝나길 먼저 기다림")
+    ap.add_argument("--wait-for", default=None, help="wait for processes matching this pattern to finish first")
     a = ap.parse_args()
 
     plan = jobs_plan()
     log("=" * 76)
-    log(f"trap-drag 앙상블 — {len(plan)}런 (traverse={TRAVERSE}, 속도 {len(VELOCITIES)} × "
-        f"시드 {len(SEEDS)})")
-    log(f"기존 앙상블 기준 예상 합계 {sum(j['cost_h'] for j in plan):.1f}h · "
-        f"병렬 {a.jobs} → makespan 대략 {sum(j['cost_h'] for j in plan)/a.jobs:.1f}h")
+    log(f"trap-drag ensemble -- {len(plan)} runs (traverse={TRAVERSE}, "
+        f"{len(VELOCITIES)} velocities x {len(SEEDS)} seeds)")
+    log(f"expected total {sum(j['cost_h'] for j in plan):.1f}h based on the existing "
+        f"ensemble . concurrency {a.jobs} -> makespan roughly "
+        f"{sum(j['cost_h'] for j in plan)/a.jobs:.1f}h")
     log("=" * 76)
 
-    # run_id 를 먼저 확정 (스펙 생성은 실행이 아니라 싸다) → 이미 끝난 것 건너뛰기
+    # Pin down run_id first (generating a spec is cheap, it is not a run) -> so
+    # already-finished runs can be skipped
     todo, skip = [], []
     for j in plan:
         rid, sp = spec_of(j)
         if rid is None:
-            log(f"✗ 스펙 생성 실패 — v={j['v']} seed={j['seed']} (건너뜀)")
+            log(f"✗ spec generation failed -- v={j['v']} seed={j['seed']} (skipped)")
             continue
         j["run_id"] = rid
         (skip if already_done(rid) else todo).append(j)
-    log(f"실행 대상 {len(todo)}런 · 이미 완료 {len(skip)}런")
+    log(f"{len(todo)} run(s) to do . {len(skip)} already complete")
     for j in skip:
-        log(f"  · 건너뜀 {j['run_id']}  (측정={'O' if measured(j['run_id']) else 'X'})")
+        log(f"  . skipped {j['run_id']}  "
+            f"(measured={'Y' if measured(j['run_id']) else 'N'})")
 
     if a.dry_run:
-        log("--dry-run — 여기서 멈춥니다")
+        log("--dry-run -- stopping here")
         for j in todo:
-            log(f"  → {j['run_id']}  예상 {j['cost_h']:.2f}h")
+            log(f"  -> {j['run_id']}  expected {j['cost_h']:.2f}h")
         return 0
     if not todo:
-        log("할 일이 없습니다")
+        log("nothing to do")
         return 0
 
     if a.wait_for:
@@ -198,10 +228,11 @@ def main() -> int:
 
     t0 = time.time()
     done, failed = [], []
-    # ★ 병렬도를 **실행 중에 올릴 수 있게** 직접 스케줄합니다. ThreadPoolExecutor 는
-    #   max_workers 를 나중에 못 바꿉니다. 다른 세션 작업(chain-bend)과 코어를 나눠 쓰며
-    #   지금 시작하고, 그쪽이 끝나면 남은 큐를 전부 쓰는 병렬도로 올립니다 —
-    #   나중에 재시작해서 올리면 **진행 중인 런이 버려집니다**(런당 최대 1.9h).
+    # ★ Scheduling is done by hand so concurrency can be **raised while running**.
+    #   ThreadPoolExecutor cannot change max_workers after construction. This starts
+    #   now, sharing cores with another session's work (chain-bend), and raises
+    #   concurrency for the remaining queue once that finishes -- restarting later to
+    #   raise it would **throw away runs in progress** (up to 1.9h each).
     limit = a.jobs
     ramped = a.ramp_when_clear is None or a.jobs_max is None
     queue, running = list(todo), {}
@@ -211,7 +242,8 @@ def main() -> int:
         if not ramped and not procs_matching(a.ramp_when_clear):
             limit = a.jobs_max
             ramped = True
-            log(f"'{a.ramp_when_clear}' 종료 확인 → 병렬도 {a.jobs} → {limit} 로 올립니다")
+            log(f"'{a.ramp_when_clear}' confirmed finished -> raising concurrency "
+                f"{a.jobs} -> {limit}")
         while queue and len(running) < limit:
             j = queue.pop(0)
             running[pool.submit(run_one, j)] = j
@@ -224,16 +256,18 @@ def main() -> int:
             n_done += 1
             (done if r["ok"] else failed).append(r)
             el = (time.time() - t0) / 3600
-            log(f"    진행 {n_done}/{len(todo)} · 경과 {el:.2f}h · 성공 {len(done)} "
-                f"실패 {len(failed)} · 병렬 {limit} · 대기 {len(queue)}")
+            log(f"    progress {n_done}/{len(todo)} . elapsed {el:.2f}h . "
+                f"ok {len(done)} failed {len(failed)} . concurrency {limit} . "
+                f"queued {len(queue)}")
     pool.shutdown()
 
     log("=" * 76)
-    log(f"완료 — 성공 {len(done)} · 실패 {len(failed)} · 총 {(time.time()-t0)/3600:.2f}h")
+    log(f"done -- ok {len(done)} . failed {len(failed)} . "
+        f"total {(time.time()-t0)/3600:.2f}h")
     for r in failed:
         log(f"  ✗ v={r['v']:g} seed={r['seed']} rc={r['rc']}")
-    log("다음: $PY -m bdbot.cli health --all      (스텝 커버리지 확인)")
-    log("      $PY scratch/trap_drag_ensemble.py  (앙상블 재분석)")
+    log("next: $PY -m bdbot.cli health --all      (check step coverage)")
+    log("      $PY verify/trap_drag_ensemble.py   (re-analyse the ensemble)")
     log("=" * 76)
     return 1 if failed else 0
 
