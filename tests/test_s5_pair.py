@@ -231,7 +231,7 @@ def test_random_respects_min_sep(random_config):
 
 def test_random_builder_refuses_impossible_density(hoomd_mod):
     """겹친 배치를 조용히 돌려주지 않는다 — 폭발의 원인이 된다."""
-    with pytest.raises(RuntimeError, match="넣지 못했다"):
+    with pytest.raises(RuntimeError, match="could not place"):
         random_2d_snapshot(hoomd_mod, n=300, box=square_box_for(300),
                            min_sep=1.5, seed=1, max_tries=300)
 

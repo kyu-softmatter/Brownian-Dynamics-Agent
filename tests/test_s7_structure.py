@@ -626,7 +626,7 @@ def test_coverage_does_not_touch_the_reduced_config_at_all():
 def test_box_for_coverage_refuses_a_ratio_that_breaks_the_ceiling():
     """Even when `d/σ` is given directly, exceeding the coverage cap is
     **rejected.**"""
-    with pytest.raises(ValueError, match="커버리지"):
+    with pytest.raises(ValueError, match="coverage"):
         box_si_for_coverage(n_particles=100, sigma_si=5e-6, coverage_max=0.10,
                             d_over_sigma_round=2.0)
     with pytest.raises(ValueError, match=r"\(0, 1\]"):
