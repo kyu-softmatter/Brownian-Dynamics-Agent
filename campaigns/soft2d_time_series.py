@@ -1,30 +1,35 @@
-"""soft-r3 `A` 스윕 — **시간분해**. `g(r)`·Voronoi·결함구조가 언제 만들어지는가.
+"""soft-r3 `A` sweep -- **time-resolved**. When do `g(r)`, the Voronoi structure
+and the defect structure get made?
 
 usage:
-  python scripts/soft2d_time_series.py --gates        # 게이트·비용만 (실행 안 함)
-  python scripts/soft2d_time_series.py                # S5→S7 전부
-  python scripts/soft2d_time_series.py --analyze-only # 이미 있는 raw/ 로 재분석
+  python scripts/soft2d_time_series.py --gates        # gates and cost only (no run)
+  python scripts/soft2d_time_series.py                # all of S5→S7
+  python scripts/soft2d_time_series.py --analyze-only # re-analyse an existing raw/
 
-## 선행 런과 무엇이 다른가
+## What differs from the prior run
 
-`runs/2026-07-29_soft-r3-2d-A-sweep` 은 **평형화 구간을 버리고** 프로덕션 후반
-절반만 분석했다. 그것은 "무엇이 되었는가" 에 답하고 **"언제 되었는가" 에는 답하지
-않는다.** 이 런은 `equil_tau = 0` 으로 `t = 0` 부터 전 구간을 표집한다.
+`runs/2026-07-29_soft-r3-2d-A-sweep` **threw the equilibration window away** and
+analysed only the second half of production. That answers "what did it become"
+and **does not answer "when did it become that."** This run sets
+`equil_tau = 0` and samples the whole thing from `t = 0`.
 
-## 이 스크립트가 조심하는 것
+## What this script is careful about
 
-**① 게이트 임계값을 다시 쓰지 않는다.** `simbot.nondim.dt_max_*` 를 축약 단위
-   (`d = 1`, `D₀ = 1`, `γ = 1`) 로 호출한다. 문턱은 `config/run_policy.yaml` 에서
-   읽는다 — 스크립트에 박아 두면 정책이 바뀌어도 따라오지 않는다 (2026-07-28 전례).
+**① It does not re-write the gate thresholds.** It calls
+   `simbot.nondim.dt_max_*` in reduced units (`d = 1`, `D₀ = 1`, `γ = 1`), and
+   reads the thresholds from `config/run_policy.yaml` -- nailed into the script
+   they would not follow a policy change (precedent: 2026-07-28).
 
-**② `max|F|` 를 실제로 계산한다.** 추정 금지 (master_plan §5.4). 무작위 초기배치에서
-   재고, 프로덕션 중 최댓값도 함께 기록한다 — 대칭 배치에서는 `max|F| = 0` 이 되어
-   게이트가 무력해지기 때문이다 (카드 §7).
+**② It actually computes `max|F|`.** Estimating it is forbidden (master_plan
+   §5.4). It is measured on the random initial placement, and the maximum during
+   production is recorded too -- because on a symmetric placement `max|F| = 0`,
+   which makes the gate toothless (card §7).
 
-**③ 봉인을 실행 **전에** 한다.** 실행 후 봉인은 아무것도 보증하지 않는다.
+**③ It seals **before** running.** A seal made after the run guarantees nothing.
 
-**④ 시드를 선행 런과 갈랐다** (`1–4` → `5–8`). HOOMD `Brownian` 은 같은 시드에서
-   비트 단위로 재현되므로, 같은 시드를 쓰면 후반 창 비교가 **산술 항등식**이 된다.
+**④ The seeds were split off from the prior run** (`1–4` → `5–8`). HOOMD
+   `Brownian` reproduces bit-for-bit on the same seed, so reusing the seeds would
+   turn the late-window comparison into an **arithmetic identity**.
 """
 from __future__ import annotations
 
@@ -56,51 +61,54 @@ from simbot.viz import (FigureSet, plot_early_transient,               # noqa: E
                         plot_rdf_evolution, plot_structure_timeseries,
                         plot_voronoi_timelapse)
 
-# --- 사용자 지시 (S1 델타 D1–D4) --------------------------------------------
+# --- user directives (S1 delta D1–D4) ---------------------------------------
 RUN_ID = "2026-07-29_soft-r3-time-resolved"
 SRC = REPO / "examples" / "soft-r3-time-resolved"
-AMPLITUDES = (0.1, 1.0, 10.0)          # D1 — A=100 제외
-BOX_SHAPE = "square"                   # D2 — L_x = L_y 고정
-INIT = "random"                        # D2 — 정사각 상자에서 hex 는 인공 결함
+AMPLITUDES = (0.1, 1.0, 10.0)          # D1 — A=100 excluded
+BOX_SHAPE = "square"                   # D2 — L_x = L_y fixed
+INIT = "random"                        # D2 — in a square box hex is an artefact
 SIGMA_SI = 5.0e-6                      # D3
 D_OVER_SIGMA = 3.0                     # D3 — coverage 8.73 % < 10 %
 COVERAGE_MAX = 0.10
 T_SI = 298.15
 N_PARTICLES = 100
-SEEDS = (5, 6, 7, 8)                   # ★ 선행 런(1–4)과 갈랐다
-TOTAL_TAU = 80.0                       # D4 — 전 구간 표집 (선행 런과 같은 총량)
+SEEDS = (5, 6, 7, 8)                   # ★ split off from the prior run (1–4)
+TOTAL_TAU = 80.0                       # D4 — sample all of it (prior run's total)
 N_FRAMES = 400                         # stride = 0.2 tau_d
-R_MIN = 0.05                           # Table 하한
+R_MIN = 0.05                           # Table lower bound
 MIN_SEP_INIT = 0.8
 NLIST_BUFFER = 0.1
 N_RDF_WINDOWS = 4
-VORONOI_TIMES = (0.0, 1.0, 10.0, 40.0, 80.0)   # [tau_d] 타임랩스 시점 (근사)
+VORONOI_TIMES = (0.0, 1.0, 10.0, 40.0, 80.0)   # [tau_d] timelapse times (approx)
 
-#  ★ 초기 과도구간 전용 패스 (2026-07-29 추가)
-#  본 패스의 stride = 80/400 = 0.2 τ_d 다. 그런데 초기배치의 배제부피 껍질
-#  (`min_sep = 0.8 d`) 이 메워지는 시간은 자유확산으로 `t* ≈ 0.3²/4 = 0.023 τ_d` —
-#  **첫 프레임보다 9배 빠르다.** 즉 본 패스는 과도구간을 전부 첫 프레임 안에
-#  삼켜 버리고 "처음부터 정상상태" 로 보이게 만든다.
-#  ⇒ 같은 시드로 짧고 촘촘한 패스를 따로 돌린다. 비용은 본 패스의 1/40 이다.
+#  ★ A pass dedicated to the early transient (added 2026-07-29)
+#  The main pass's stride is 80/400 = 0.2 τ_d. But the time for the initial
+#  placement's excluded-volume shell (`min_sep = 0.8 d`) to fill in is, by free
+#  diffusion, `t* ≈ 0.3²/4 = 0.023 τ_d` -- **9x faster than the first frame.**
+#  That is, the main pass swallows the whole transient inside its first frame and
+#  makes it look like "steady state from the start".
+#  ⇒ Run a short, dense pass separately on the same seeds. It costs 1/40 of the
+#  main pass.
 EARLY_TAU = 2.0
 EARLY_FRAMES = 400                             # stride = 0.005 tau_d
-#  ★ 시드 16개. 12런 3.9 s 였으므로 48런도 ~16 s 다 — **오차막대가 공짜인 구간**
-#    (CLAUDE.md §자원 정책). 완화시간의 A 의존성이 이 런의 유일한 새 주장이므로
-#    거기에 시드를 쓴다. 본 패스는 A=10 이 65 s/런이라 같은 선택을 할 수 없다.
+#  ★ 16 seeds. 12 runs took 3.9 s, so 48 runs is ~16 s -- **the regime where
+#    error bars are free** (CLAUDE.md §resource policy). The A dependence of the
+#    relaxation time is this run's only new claim, so that is where the seeds go.
+#    The main pass cannot make the same choice: A=10 costs 65 s/run.
 EARLY_SEEDS = tuple(range(5, 21))
 
 
 # =============================================================================
-# S4 — dt 게이트 (축약 단위: d = 1, D0 = 1, gamma = 1, kT = 1)
+# S4 — dt gates (reduced units: d = 1, D0 = 1, gamma = 1, kT = 1)
 # =============================================================================
 def gate_table(policy) -> tuple[dict, list[dict]]:
-    """`A` 마다 `dt*` 와 지배 게이트. **`max|F|` 를 실제로 계산한다.**"""
+    """`dt*` and the dominant gate per `A`. **`max|F|` is actually computed.**"""
     ts = policy.timestep
     delta_th = float(ts.get("max_thermal_displacement_sigma", 0.03))
     delta_F = float(ts.get("max_force_displacement_sigma", 0.005))
     hard_floor = float(ts.get("hard_floor", 1e-7))
 
-    dt_th = dt_max_thermal(delta_th, sigma=1.0, D0=1.0)      # 축약: d=1, D0=1
+    dt_th = dt_max_thermal(delta_th, sigma=1.0, D0=1.0)      # reduced: d=1, D0=1
     rows = []
     for A in AMPLITUDES:
         probe = Soft2DRunConfig(
@@ -146,20 +154,21 @@ def print_gates(geo: dict, thresholds: dict, rows: list[dict], policy) -> float:
     lam = float(policy.get("hardware.throughput_particle_steps_per_s", 6.3e6))
     k = policy.concurrency("default")
     eff = policy.efficiency(k)
-    print(f"## 기하 (사용자 지시 D3)\n"
+    print(f"## geometry (user directive D3)\n"
           f"  σ = {geo['sigma_si']*1e6:.2f} µm · d/σ = {geo['d_over_sigma']:.3f} → "
           f"d = {geo['d_si']*1e6:.3f} µm · L = {geo['L_si']*1e6:.2f} µm "
           f"(L* = {geo['L_star']:.1f})\n"
-          f"  **커버리지 = {geo['coverage']:.4%}** (상한 {COVERAGE_MAX:.1%}) · "
+          f"  **coverage = {geo['coverage']:.4%}** (cap {COVERAGE_MAX:.1%}) · "
           f"σ/d = {geo['sigma_over_d']:.6g}\n"
           f"  η = {geo['eta_si']*1e3:.4f} mPa·s · D₀ = {geo['D0_si']*1e12:.5f} µm²/s · "
-          f"**τ_d = {geo['tau_d_si']:.1f} s = {geo['tau_d_si']/60:.2f} 분**\n"
-          f"  → {TOTAL_TAU:g} τ_d = {TOTAL_TAU*geo['tau_d_si']/3600:.1f} 시간의 "
-          f"실제 실험 시간\n")
-    print(f"## dt 게이트 (변위 기준, 축약 단위)  문턱: 열 {thresholds['delta_thermal']} d · "
-          f"힘 {thresholds['delta_force']} d\n")
+          f"**τ_d = {geo['tau_d_si']:.1f} s = {geo['tau_d_si']/60:.2f} min**\n"
+          f"  → {TOTAL_TAU:g} τ_d = {TOTAL_TAU*geo['tau_d_si']/3600:.1f} hours "
+          f"of real experiment time\n")
+    print(f"## dt gates (displacement criterion, reduced units)  thresholds: "
+          f"thermal {thresholds['delta_thermal']} d · "
+          f"force {thresholds['delta_force']} d\n")
     hdr = (f"{'A':>6} {'Γ':>7} {'Zahn':<16} {'max|F*|':>9} {'dt_th':>10} "
-           f"{'dt_F':>10} {'지배':<22} {'dt*':>10} {'steps':>10} {'βU(rcut)':>9}")
+           f"{'dt_F':>10} {'dominant':<22} {'dt*':>10} {'steps':>10} {'βU(rcut)':>9}")
     print(hdr); print("-" * len(hdr))
     total = 0.0
     for r in rows:
@@ -171,24 +180,25 @@ def print_gates(geo: dict, thresholds: dict, rows: list[dict], policy) -> float:
               f"{r['dt_star']:>10.3g} {r['steps']:>10d} {r['beta_u_at_rcut']:>9.4f}")
     n_runs = len(rows) * len(SEEDS)
     per_seed = total * len(SEEDS)
-    print(f"\n## 비용  런 {n_runs}개 = A {len(rows)}개 × 시드 {len(SEEDS)}개 · "
-          f"동시 {k} (효율 {eff:.2f})")
-    print(f"  Λ = {lam:.3g} 입자·스텝/s → 적분 예상 {per_seed:.0f} s "
-          f"(= {per_seed/60:.1f} 분, 동시실행 감안 전)")
-    print(f"  ⚠ 예상은 적분만이다. 프레임 {N_FRAMES}개의 스냅샷 추출 오버헤드가 "
-          f"선행 런에서 컸다 (A=10: 적분 20 s vs 실측 67 s)")
+    print(f"\n## cost  {n_runs} runs = {len(rows)} A × {len(SEEDS)} seeds · "
+          f"concurrency {k} (efficiency {eff:.2f})")
+    print(f"  Λ = {lam:.3g} particle·steps/s → integration estimate "
+          f"{per_seed:.0f} s (= {per_seed/60:.1f} min, before concurrency)")
+    print(f"  ⚠ the estimate is integration only. Snapshot-extraction overhead "
+          f"for {N_FRAMES} frames was large in the prior run "
+          f"(A=10: integration 20 s vs measured 67 s)")
     budget = policy.wall_budget_s
-    worst = max(N_PARTICLES * r["steps"] / lam for r in rows) * 3.4   # 오버헤드 계수
+    worst = max(N_PARTICLES * r["steps"] / lam for r in rows) * 3.4   # overhead factor
     if worst > budget:
-        print(f"\n  ⛔ 최장 런 예상 {worst:.0f} s > 예산 {budget:.0f} s/런 — "
-              f"실행하지 않고 보고한다 (CLAUDE.md §자원 정책)")
+        print(f"\n  ⛔ longest run estimate {worst:.0f} s > budget {budget:.0f} s/run "
+              f"-- reporting without running (CLAUDE.md §resource policy)")
     else:
-        print(f"  ✅ 최장 런 예상 {worst:.0f} s ≤ 예산 {budget:.0f} s/런")
+        print(f"  ✅ longest run estimate {worst:.0f} s ≤ budget {budget:.0f} s/run")
     return total
 
 
 # =============================================================================
-# S5 — 실행
+# S5 — run
 # =============================================================================
 def _one(args) -> dict:
     cfg_dict, outdir = args
@@ -211,14 +221,14 @@ def run_batch(rd: RunDir, rows: list[dict], policy, *, early: bool = False) -> d
                 amplitude=r["amplitude"], n_particles=N_PARTICLES, init=INIT,
                 box_shape=BOX_SHAPE, r_min=R_MIN, nlist_buffer=NLIST_BUFFER,
                 min_sep_init=MIN_SEP_INIT, dt_star=r["dt_star"],
-                equil_tau=0.0,                       # ★ D4 — t=0 부터 표집
+                equil_tau=0.0,                       # ★ D4 — sample from t=0
                 prod_tau=prod_tau, n_frames=n_frames, seed=s, label=label)
             jobs.append((asdict(cfg), str(outroot / label)))
 
     k = policy.concurrency("default")
-    tag = "초기 과도구간" if early else "본"
-    print(f"\n## S5 — {tag} 패스 {len(jobs)} 런 시작 (동시 {k}, "
-          f"prod {prod_tau:g} τ_d / {n_frames} 프레임 → "
+    tag = "early-transient" if early else "main"
+    print(f"\n## S5 — starting the {tag} pass, {len(jobs)} runs "
+          f"(concurrency {k}, prod {prod_tau:g} τ_d / {n_frames} frames → "
           f"stride {prod_tau/n_frames:.4g} τ_d)")
     t0 = time.perf_counter()
     done, failed = [], []
@@ -240,17 +250,18 @@ def run_batch(rd: RunDir, rows: list[dict], policy, *, early: bool = False) -> d
                 failed.append({"label": label, "error": repr(e)})
                 print(f"  ⛔ {label:<12} {e!r}")
     wall = time.perf_counter() - t0
-    print(f"\n  배치 wall {wall:.1f} s")
+    print(f"\n  batch wall {wall:.1f} s")
     return {"done": done, "failed": failed, "batch_wall_s": wall,
             "concurrency": k, "n_jobs": len(jobs), "early": early,
             "prod_tau": prod_tau, "n_frames": n_frames}
 
 
 # =============================================================================
-# S7b — 초기 과도구간: 완화가 **있는가**, 있으면 얼마인가
+# S7b — the early transient: is there a relaxation **at all**, and how long
 # =============================================================================
 def analyze_early(rd: RunDir, geo: dict) -> dict:
-    """짧고 촘촘한 패스. 초기배치(`t = 0`)를 시계열 앞에 붙여서 본다."""
+    """The short dense pass. The initial placement (`t = 0`) is prepended to
+    the front of the time series."""
     root = rd.path / "raw_early"
     dirs = sorted(p for p in root.glob("A*_s*") if (p / "samples.npz").exists())
     if not dirs:
@@ -262,7 +273,8 @@ def analyze_early(rd: RunDir, geo: dict) -> dict:
     for d in dirs:
         r = load_run(d)
         A = float(r["cfg"]["amplitude"])
-        #  ★ 초기배치를 t=0 프레임으로 앞에 붙인다 — 러너는 첫 stride 뒤부터 표집한다
+        #  ★ Prepend the initial placement as the t=0 frame -- the runner only
+        #    starts sampling after the first stride
         frames = np.concatenate([r["init_pos"][None].astype(np.float32), r["traj"]])
         t = np.concatenate([[0.0], r["t_star"]])
         ser = hex_order_series(frames, Lx=r["Lx"], Ly=r["Ly"], t_star=t,
@@ -273,7 +285,7 @@ def analyze_early(rd: RunDir, geo: dict) -> dict:
         t = sers[0].t_star
         mat = np.array([s.defect_fraction for s in sers])
         mean = mat.mean(axis=0)
-        #  잡음 = 후반 절반의 프레임 간 표준편차 (시드 평균 곡선에서)
+        #  noise = frame-to-frame SD over the second half (of the seed-mean curve)
         tail = mean[t >= 0.5 * t[-1]]
         noise = float(tail.std(ddof=1)) if tail.size > 2 else None
         fit = fit_relaxation(t, mean, noise=noise)
@@ -295,15 +307,15 @@ def analyze_early(rd: RunDir, geo: dict) -> dict:
             "stride_tau_d": float(t[2] - t[1]),
             "n_frames": int(t.size),
         }
-        print(f"  A={A:<5g} 결함 t=0 {mean[0]:.4f} → 후반 {tail.mean():.4f} "
-              f"(프레임 SD {noise:.4f}) · τ = {fit.tau:.4g} τ_d "
-              f"({'채택' if fit.converged else '거부'}) "
+        print(f"  A={A:<5g} defects t=0 {mean[0]:.4f} → late {tail.mean():.4f} "
+              f"(frame SD {noise:.4f}) · τ = {fit.tau:.4g} τ_d "
+              f"({'accepted' if fit.converged else 'rejected'}) "
               f"{'· ' + fit.note if fit.note else ''}")
     return {"series_by_A": series_by_A, "fits": fits, "summary": summary}
 
 
 # =============================================================================
-# S7 — 시간분해 분석
+# S7 — time-resolved analysis
 # =============================================================================
 def load_run(d: Path) -> dict:
     man = json.loads((d / "manifest.json").read_text())
@@ -311,7 +323,8 @@ def load_run(d: Path) -> dict:
     cfg = man["config"]
     stride = int(z["stride"][0])
     n = z["traj"].shape[0]
-    #  프레임 k 는 (k+1)*stride 스텝 뒤다 (러너가 먼저 run(stride) 한 뒤 표집한다)
+    #  frame k is (k+1)*stride steps in -- the runner calls run(stride) first,
+    #  then samples
     t_star = (np.arange(1, n + 1) * stride * cfg["dt_star"])
     return {"man": man, "cfg": cfg, "traj": z["traj"], "energy": z["energy"],
             "max_force": z["max_force"], "init_pos": z["init_pos"],
@@ -322,7 +335,7 @@ def load_run(d: Path) -> dict:
 def analyze(rd: RunDir, geo: dict) -> dict:
     dirs = sorted(p for p in rd.raw.glob("A*_s*") if (p / "samples.npz").exists())
     if not dirs:
-        raise SystemExit(f"⛔ {rd.raw} 에 런이 없다")
+        raise SystemExit(f"⛔ no runs in {rd.raw}")
 
     by_A: dict[float, list[dict]] = {}
     for d in dirs:
@@ -331,11 +344,11 @@ def analyze(rd: RunDir, geo: dict) -> dict:
         ser = hex_order_series(r["traj"], Lx=r["Lx"], Ly=r["Ly"],
                                t_star=r["t_star"], coord_range=(3, 12))
         by_A.setdefault(A, []).append({"run": r, "series": ser, "dir": d})
-        print(f"  분석 {d.name:<12} 프레임 {ser.n_frames} · "
-              f"ψ₆(마지막) {ser.psi6_global[-1]:.4f}")
+        print(f"  analysing {d.name:<12} frames {ser.n_frames} · "
+              f"ψ₆(last) {ser.psi6_global[-1]:.4f}")
 
-    #  --- 후반 창: 선행 런의 후반 절반과 같은 시각으로 잡는다 ---
-    #      선행 총 길이가 A 마다 달랐다 (A ≤ 1 은 30 τ_d, A = 10 은 80 τ_d)
+    #  --- late window: the same times as the prior run's second half ---
+    #      the prior total length differed per A (A ≤ 1 ran 30 τ_d, A = 10 ran 80)
     prior_window = {0.1: (20.0, 30.0), 1.0: (20.0, 30.0), 10.0: (60.0, 80.0)}
     metrics: dict = {}
     windows_by_A, series_by_A, energy_by_A = {}, {}, {}
@@ -349,7 +362,7 @@ def analyze(rd: RunDir, geo: dict) -> dict:
         wins = [s.window_mean(lo, hi) for s in sers]
         agg = {m: aggregate_seeds([w[m] for w in wins])
                for m in ("psi6_global", "psi6_local", "defect_fraction")}
-        #  에너지: 같은 창에서 시드별 평균
+        #  energy: per-seed mean over the same window
         e_pp = []
         for x in runs:
             r = x["run"]
@@ -358,13 +371,15 @@ def analyze(rd: RunDir, geo: dict) -> dict:
         agg["energy_pp"] = aggregate_seeds(e_pp)
         energy_by_A[A] = (t, [x["run"]["energy"] / N_PARTICLES for x in runs])
 
-        #  최종 창의 배위수 종류·5-7 불균형 (시드 평균)
+        #  coordination kinds and 5-7 imbalance in the final window (seed mean)
         kinds = [float(s.coord_kinds[(s.t_star >= lo) & (s.t_star < hi)].mean())
                  for s in sers]
-        #  ★ 선행 런과 **같은 방식**의 배위수 종류 수: 프레임·시드를 전부 집계한
-        #    히스토그램에서 분율 > 0.5 % 인 종류를 센다. 프레임별로 세면 다른 수가
-        #    나온다 — `N = 100` 에서 입자 1개가 이미 1 % 이므로 프레임 문턱이
-        #    "존재하기만 하면 통과" 로 무력해진다. 두 추정량을 함께 보고한다.
+        #  ★ Coordination-kind count the **same way** as the prior run: count the
+        #    kinds whose fraction is > 0.5 % in a histogram aggregated over all
+        #    frames and seeds. Counting per frame gives a different number -- at
+        #    `N = 100` a single particle is already 1 %, so a per-frame threshold
+        #    degenerates into "passes if it exists at all". Both estimators are
+        #    reported.
         agg_frac = np.zeros(sers[0].coord_labels.size)
         n_tot = 0
         for s in sers:
@@ -376,16 +391,16 @@ def analyze(rd: RunDir, geo: dict) -> dict:
         bal = [float(s.five_seven_balance[(s.t_star >= lo) & (s.t_star < hi)].mean())
                for s in sers]
 
-        #  t90 — 후반 창 평균의 90 % 에 처음 도달하는 시각 (시드 평균 곡선에서)
+        #  t90 — first time the seed-mean curve reaches 90 % of the late-window mean
         psi_mat = np.array([s.psi6_global for s in sers])
         psi_mean = psi_mat.mean(axis=0)
         target = 0.9 * agg["psi6_global"].mean
         reached = np.nonzero(psi_mean >= target)[0]
         t90 = float(t[reached[0]]) if reached.size else float("nan")
-        #  ★ 액체는 t=0 부터 이미 목표 위에 있다 (무작위 배치가 이미 액체 배치다)
-        #    → t90 ≈ 첫 프레임. 그 사실 자체가 결과다
+        #  ★ A liquid is already above the target at t=0 (a random placement IS a
+        #    liquid placement) → t90 ≈ the first frame. That fact is a result
 
-        #  시간창 g(r) — 시드를 모아서 창마다 (프레임 수 = 4 시드 × 100 프레임)
+        #  time-windowed g(r) — seeds pooled per window (frames = 4 seeds × 100)
         all_traj = np.concatenate([x["run"]["traj"] for x in runs], axis=0)
         all_t = np.concatenate([x["run"]["t_star"] for x in runs])
         order = np.argsort(all_t, kind="stable")
@@ -394,9 +409,9 @@ def analyze(rd: RunDir, geo: dict) -> dict:
                                       t_star=all_t[order],
                                       n_windows=N_RDF_WINDOWS, bins=200)
 
-        #  최소분리 (전 궤적) · σ 환산
+        #  minimum separation (whole trajectory) · converted to σ
         min_sep = min(x["run"]["man"]["guards"]["min_separation"] for x in runs)
-        #  S(k) 후반 창 — 상자 모양이 같으므로 A 끼리 비교 가능
+        #  S(k) over the late window — same box shape, so A values are comparable
         late = np.concatenate([x["run"]["traj"][(x["run"]["t_star"] >= lo)
                                                & (x["run"]["t_star"] < hi)]
                                for x in runs], axis=0)
@@ -430,7 +445,7 @@ def analyze(rd: RunDir, geo: dict) -> dict:
                                 for x in runs),
         }
 
-        #  --- P4: 초기조건 껍질(min_sep = 0.8 d)이 채워지는가 ---
+        #  --- P4: does the initial-condition shell (min_sep = 0.8 d) fill in? ---
         w = windows_by_A[A]
         i_half = int(np.argmin(np.abs(w.r - 0.5)))
         metrics[f"A{A:g}"]["g_at_0.5d_by_window"] = w.g[:, i_half].tolist()
@@ -443,7 +458,7 @@ def analyze(rd: RunDir, geo: dict) -> dict:
 
 
 # =============================================================================
-# S6 — 그림
+# S6 — figures
 # =============================================================================
 def figures(rd: RunDir, res: dict, geo: dict, early: dict | None = None
             ) -> FigureSet:
@@ -454,7 +469,7 @@ def figures(rd: RunDir, res: dict, geo: dict, early: dict | None = None
                        sigma_over_d=geo["sigma_over_d"])
 
     for i, (A, runs) in enumerate(sorted(res["by_A"].items())):
-        r = runs[0]["run"]                       # 시드 1개의 타임랩스 (배치가 아니다)
+        r = runs[0]["run"]                       # one seed's timelapse, not the batch
         t = r["t_star"]
         idx = [int(np.argmin(np.abs(t - tv))) for tv in VORONOI_TIMES if tv > 0]
         frames = [voronoi_frame(r["init_pos"], Lx=r["Lx"], Ly=r["Ly"])]
@@ -462,7 +477,8 @@ def figures(rd: RunDir, res: dict, geo: dict, early: dict | None = None
         for j in idx:
             frames.append(voronoi_frame(r["traj"][j], Lx=r["Lx"], Ly=r["Ly"]))
             times.append(float(t[j]))
-        #  ★ 프레임별 요동 폭을 캡션에 넣는다 — 패널 간 차이를 완화로 읽지 않게
+        #  ★ Put the per-frame fluctuation width in the caption -- so a
+        #    panel-to-panel difference is not read as relaxation
         sd = float(np.mean([s.defect_fraction.std(ddof=1)
                             for s in res["series_by_A"][A]]))
         plot_voronoi_timelapse(
@@ -476,16 +492,16 @@ def figures(rd: RunDir, res: dict, geo: dict, early: dict | None = None
                              fits=early["fits"])
     else:
         fs.skip("06_early_transient",
-                "초기 과도구간 패스(raw_early/)가 없다 — `--early` 로 돌릴 것")
+                "no early-transient pass (raw_early/) — run it with `--early`")
 
-    fs.skip("snapshots_3d", "2D 계다 — 3D 레이트레이싱(fresnel)은 설치하지 않았다")
-    fs.skip("msd", "이 카드의 목적동역학은 평형 구조다. 수송량은 묻지 않았다 "
-                   "(카드 §2 관측량 목록에 MSD 가 없다)")
+    fs.skip("snapshots_3d", "a 2D system — 3D ray tracing (fresnel) is not installed")
+    fs.skip("msd", "this card's target dynamics is the equilibrium structure. No "
+                   "transport quantity was asked (§2's observable list has no MSD)")
     return fs
 
 
 # =============================================================================
-# S7 — 봉인 검증 + 예측 대조
+# S7 — seal verification + prediction comparison
 # =============================================================================
 def check_predictions(pred: dict, metrics: dict, geo: dict) -> list[dict]:
     rows = []
@@ -500,27 +516,29 @@ def check_predictions(pred: dict, metrics: dict, geo: dict) -> list[dict]:
                      "energy_per_particle": "energy_pp"}[base]
             m = metrics[akey]
             measured = m[field]["mean"]
-            #  ★ 허용오차는 **선행 런의 SE 만으로** 세워졌다 (봉인 시점에 새 SE 를
-            #    알 수 없었으므로). 실제 SE_diff 로 다시 재면 몇 σ 인지 함께 적는다 —
-            #    "허용오차를 넘었다" 와 "유의하게 다르다" 는 다른 말이다.
+            #  ★ The tolerance was built from **the prior run's SE alone** (the
+            #    new SE was unknowable at sealing time). Re-measured against the
+            #    real SE_diff, how many σ it comes to is recorded alongside --
+            #    "it exceeded the tolerance" and "it differs significantly" are
+            #    two different statements.
             se_new = m[field]["se"]
             se_prior = float(str(item["tolerance"]).lstrip("±")) / (3.0 * 2 ** 0.5)
             se_diff = float(np.hypot(se_new, se_prior))
             sig = abs(measured - float(item["value"])) / se_diff if se_diff else None
-            note = (f"SE_new = {se_new:.4g} (시드 {m['n_seeds']}개) · "
-                    f"SE_prior = {se_prior:.4g} · **실제 {sig:.2f}σ**"
+            note = (f"SE_new = {se_new:.4g} ({m['n_seeds']} seeds) · "
+                    f"SE_prior = {se_prior:.4g} · **actually {sig:.2f}σ**"
                     if sig is not None else f"SE = {se_new:.4g}")
         elif q.startswith("coord_kinds__"):
             akey = q.split("__")[1]
             measured = metrics[akey]["coord_kinds"]["mean"]
-            note = f"시드별 {metrics[akey]['coord_kinds']['values']}"
+            note = f"per seed {metrics[akey]['coord_kinds']['values']}"
         elif q.startswith("min_separation_over_sigma__"):
             akey = q.split("__")[1]
             measured = metrics[akey]["min_separation_over_sigma"]
             note = f"= {metrics[akey]['min_separation_d']:.4g} d"
         elif q == "rdf_at_0.5d__A0.1__first_window":
             measured = metrics["A0.1"]["g_at_0.5d_by_window"][0]
-            note = "첫 시간창 g(0.5 d)"
+            note = "first time window g(0.5 d)"
         elif q == "t90_ordering":
             t = {k: metrics[k]["t90_tau_d"] for k in metrics}
             measured = t
@@ -534,7 +552,7 @@ def check_predictions(pred: dict, metrics: dict, geo: dict) -> list[dict]:
 
 
 def verdict_for(item: dict, measured) -> str:
-    """PASS/FAIL/INCONCLUSIVE. **판정을 제안만 한다** — 확정은 사람이 한다."""
+    """PASS/FAIL/INCONCLUSIVE. **It only proposes a verdict** — a human confirms."""
     tol, pred = str(item["tolerance"]).strip(), item["value"]
     if measured is None:
         return "NOT_EVALUATED"
@@ -548,7 +566,7 @@ def verdict_for(item: dict, measured) -> str:
         return "PASS" if float(measured) > float(tol[1:]) else "FAIL"
     if tol.startswith("<"):
         return "PASS" if float(measured) < float(tol[1:]) else "FAIL"
-    if isinstance(measured, dict):                     # t90 순서 예측
+    if isinstance(measured, dict):                     # the t90 ordering prediction
         keys = sorted(measured, key=lambda k: float(k[1:]))
         vals = [measured[k] for k in keys]
         return "PASS" if vals[-1] >= max(vals[:-1]) else "FAIL"
@@ -565,51 +583,55 @@ def main() -> int:
 
     rd = RunDir.create(REPO / "runs", RUN_ID)
     analyze_only = "--analyze-only" in sys.argv
-    #  --early: 본 패스가 이미 있는 상태에서 초기 과도구간 패스만 추가한다
+    #  --early: with the main pass already there, add only the early-transient pass
     early_only = "--early" in sys.argv
 
     if early_only:
         batch = run_batch(rd, rows, policy, early=True)
-        #  실측 wall 은 배치 요약(`05_run_manifest.json`)에 둔다 — 리포트가 본 패스와
-        #  비용을 대조할 때 마크다운을 되읽지 않게
+        #  the measured wall goes in the batch summary (`05_run_manifest.json`) --
+        #  so the report need not re-read markdown to compare cost against the
+        #  main pass
         if rd.exists("manifest"):
             man = json.loads(rd.file("manifest").read_text())
             man["early_batch"] = batch
             rd.write_json("manifest", man)
-        #  07b 는 마크다운 문서다 — `write_json` 을 쓰면 `.md` 안에 JSON 이 들어간다
+        #  07b is a markdown document — `write_json` would put JSON inside the `.md`
         rd.write("sensitivity", "\n".join([
-            "# S7b — 초기 과도구간 패스 (표집 간격 민감도)", "",
-            f"본 패스의 stride(`{TOTAL_TAU/N_FRAMES:.3g} τ_d`) 가 완화시간보다 굵어서 "
-            f"과도구간을 첫 프레임 안에 삼켰다. 같은 시드로 짧고 촘촘한 패스를 "
-            f"따로 돌린 기록이다.", "",
-            "| 항목 | 값 |", "|---|---|",
-            f"| 런 수 | {batch['n_jobs']} (`A` {len(rows)}개 × 시드 "
-            f"{len(EARLY_SEEDS)}개) |",
-            f"| `prod_tau` | `{batch['prod_tau']:g} τ_d` (본 패스 "
+            "# S7b — the early-transient pass (sampling-interval sensitivity)", "",
+            f"The main pass's stride (`{TOTAL_TAU/N_FRAMES:.3g} τ_d`) is coarser "
+            f"than the relaxation time, so it swallowed the transient inside the "
+            f"first frame. This is the record of running a short, dense pass "
+            f"separately on the same seeds.", "",
+            "| item | value |", "|---|---|",
+            f"| runs | {batch['n_jobs']} (`A` {len(rows)} × "
+            f"{len(EARLY_SEEDS)} seeds) |",
+            f"| `prod_tau` | `{batch['prod_tau']:g} τ_d` (main pass "
             f"`{TOTAL_TAU:g}`) |",
-            f"| 프레임 | `{batch['n_frames']}` → stride "
+            f"| frames | `{batch['n_frames']}` → stride "
             f"`{batch['prod_tau']/batch['n_frames']:.4g} τ_d` |",
-            f"| 동시 실행 | {batch['concurrency']} |",
-            f"| 배치 wall | `{batch['batch_wall_s']:.1f} s` |",
-            f"| 실패 | {len(batch['failed'])} |", "",
-            "> **시드를 16개로 올린 이유** — 이 패스는 12런에 4초다. 완화시간의 `A` "
-            "의존성이 이 런의 유일한 새 주장이므로 거기에 시드를 쓴다. 본 패스는 "
-            "`A=10` 이 `65 s/런` 이라 같은 선택을 할 수 없다 "
-            "(CLAUDE.md §\"오차 막대는 공짜다\").", "",
-            "결과 표와 완화시간 적합: [`07_validation.md`](07_validation.md) §4b · "
-            "그림 [`figs/06_early_transient.png`](figs/06_early_transient.png)", "",
-            "근거: [[coarse-sampling-hides-the-whole-transient]]", "",
+            f"| concurrency | {batch['concurrency']} |",
+            f"| batch wall | `{batch['batch_wall_s']:.1f} s` |",
+            f"| failed | {len(batch['failed'])} |", "",
+            "> **Why the seed count went to 16** — this pass is 4 seconds for 12 "
+            "runs. The `A` dependence of the relaxation time is this run's only "
+            "new claim, so that is where the seeds go. The main pass cannot make "
+            "the same choice, because `A=10` costs `65 s/run` "
+            "(CLAUDE.md §\"error bars are free\").", "",
+            "Result table and relaxation fit: "
+            "[`07_validation.md`](07_validation.md) §4b · figure "
+            "[`figs/06_early_transient.png`](figs/06_early_transient.png)", "",
+            "Basis: [[coarse-sampling-hides-the-whole-transient]]", "",
         ]))
 
     if not analyze_only and not early_only:
-        # --- 봉인: 실행 **전에** ---
+        # --- seal: **before** the run ---
         shutil.copy2(SRC / "01_intake.md", rd.file("intake"))
         pred = yaml.safe_load((SRC / "prediction.yaml").read_text())
         rd.write("prediction", (SRC / "prediction.yaml").read_text())
         rd.write_json("prediction_json", pred)
-        #  ★ 드라이버를 **이름이 아니라 해시로** 봉인한다. 이름만 적으면 나중에
-        #    스크립트가 바뀌어도 spec 이 그대로여서 "무엇이 이 런을 만들었나" 에
-        #    답할 수 없다 (2026-07-29 이 런에서 실제로 구멍이었다).
+        #  ★ Seal the driver **by hash, not by name**. With only the name, a later
+        #    change to the script leaves the spec unchanged, so "what made this
+        #    run" becomes unanswerable (an actual hole in this run, 2026-07-29).
         rd.write_json("spec", {"source": "scripts/soft2d_time_series.py",
                                "provenance": provenance(__file__),
                                "geometry": geo, "thresholds": thresholds,
@@ -620,17 +642,18 @@ def main() -> int:
                                "early_seeds": list(EARLY_SEEDS),
                                "box_shape": BOX_SHAPE, "init": INIT})
         seal = write_seal(rd)
-        print(f"\n  🔒 봉인 {seal.name} — {len(seal.read_text().splitlines())}개 문서")
+        print(f"\n  🔒 sealed {seal.name} — "
+              f"{len(seal.read_text().splitlines())} documents")
         batch = run_batch(rd, rows, policy)
         rd.write_json("manifest", batch)
 
     pred = yaml.safe_load(rd.file("prediction").read_text())
-    print("\n## S7 — 시간분해 분석")
+    print("\n## S7 — time-resolved analysis")
     res = analyze(rd, geo)
 
     early = None
     if (rd.path / "raw_early").exists():
-        print("\n## S7b — 초기 과도구간 (촘촘한 패스)")
+        print("\n## S7b — early transient (the dense pass)")
         early = analyze_early(rd, geo) or None
 
     fs = figures(rd, res, geo, early)
@@ -638,17 +661,19 @@ def main() -> int:
     metrics = dict(res["metrics"])
     if early:
         metrics["_early_transient"] = early["summary"]
-    #  ★ 분석 시점의 provenance. 궤적 manifest 의 해시는 *궤적 생성 시점*이고
-    #    분석은 `--analyze-only` 로 따로 돌 수 있다 — 이 블록이 없으면
-    #    metrics.json 이 어느 분석 코드·어느 freud 에서 나왔는지 알 수 없다.
+    #  ★ Provenance at analysis time. The trajectory manifest's hash is from
+    #    *trajectory-generation* time, and the analysis can be re-run separately
+    #    with `--analyze-only` — without this block there is no way to tell which
+    #    analysis code and which freud produced metrics.json.
     metrics["_provenance_at_analysis"] = provenance(__file__)
     rd.write_json("metrics", metrics)
 
     checks = check_predictions(pred, res["metrics"], geo)
     rd.write_json("prediction_json", {"items": pred["items"], "checks": checks})
 
-    print("\n## 예측 대조 (판정은 제안이다 — confirmed_by: null)")
-    hdr = f"{'항목':<44} {'예측':>14} {'측정':>14} {'허용':>12} 판정"
+    print("\n## prediction comparison (the verdict is a proposal — "
+          "confirmed_by: null)")
+    hdr = f"{'quantity':<44} {'predicted':>14} {'measured':>14} {'tol':>12} verdict"
     print(hdr); print("-" * (len(hdr) + 8))
     for c in checks:
         mv = c["measured"]
@@ -662,7 +687,7 @@ def main() -> int:
     n_pass = sum(1 for c in checks if c["verdict"] == "PASS")
     n_fail = sum(1 for c in checks if c["verdict"] == "FAIL")
     print(f"\n  PASS {n_pass} · FAIL {n_fail} · "
-          f"미평가 {len(checks) - n_pass - n_fail}")
+          f"not evaluated {len(checks) - n_pass - n_fail}")
     print(f"\n→ {rd.path.relative_to(REPO)}")
     return 0
 
