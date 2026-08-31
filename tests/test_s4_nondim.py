@@ -456,7 +456,7 @@ def test_policy_rejects_number_parsed_as_string(tmp_path):
     p = tmp_path / "policy.yaml"
     p.write_text("hardware:\n  throughput_particle_steps_per_s: 6.3e6\n",
                  encoding="utf-8")
-    with pytest.raises(ValueError, match="문자열로 파싱"):
+    with pytest.raises(ValueError, match="parsed as a string"):
         load_policy(p)
 
 
@@ -485,7 +485,7 @@ def test_efficiency_table_is_a_step_function(policy):
 
 
 def test_unknown_tier_raises_with_options(policy):
-    with pytest.raises(KeyError, match="있는 것"):
+    with pytest.raises(KeyError, match="available"):
         policy.tier("turbo")
 
 
