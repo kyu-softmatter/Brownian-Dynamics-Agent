@@ -21,10 +21,10 @@ What a translation is allowed to change: **the words**. What it must not change:
                 a translation. Percent signs, exponents and separators are kept
                 attached so that 1e-2, 1.65% and 1,255 stay distinguishable.
                 One exception, and it is measured rather than assumed: a numeral
-                IMMEDIATELY followed by a Hangul character is part of a Korean
-                word, not a measurement -- the 2 of `2차극소` is the "second" of
-                "secondary minimum", the 3 of `3종` is "three", the 1 of `1개` is
-                "one". Those become English words, so they are censused
+                IMMEDIATELY ADJACENT to a Hangul character on either side is part
+                of a Korean word, not a measurement -- the 2 of `2차극소` is the
+                "second" of "secondary minimum", the 3 of `3종` is "three", the 1
+                of `1개` is "one", the 1 of `게이트1` is the gate's number. Those become English words, so they are censused
                 separately and EXEMPTED in both directions: such a numeral may
                 vanish (`2차극소` -> "secondary minimum") or persist (`28종` ->
                 "28 isotropic"), and neither is a finding. What is still a
@@ -67,6 +67,9 @@ HEADING = re.compile(r"^(#{1,6})\s")
 LINK = re.compile(r"!?\[[^\]]*\]\(([^)]*)\)")
 # numeric literals, sign and exponent and trailing % kept attached
 NUM = re.compile(r"(?<![\w.])[+\-−]?\d[\d,]*(?:\.\d+)?(?:[eE][+\-]?\d+)?%?")
+# the same, without the lookbehind, so that a numeral GLUED to a Hangul word
+# (`게이트1`) is findable at all -- NUM cannot see it, because Hangul is \w
+NUM_ANY = re.compile(r"[+\-−]?\d[\d,]*(?:\.\d+)?(?:[eE][+\-]?\d+)?%?")
 MARKERS = "★⭐⚠⛔✅❌⟹→" + "".join(
     chr(c) for c in range(0x2460, 0x2474))
 BOLD = re.compile(r"\*\*[^*\n]+\*\*")
@@ -120,14 +123,30 @@ def parse(text: str) -> dict:
         "fences": fences,
         "tables": tables,
         "links": LINK.findall(text),
-        "numbers": Counter(m.group(0) for m in NUM.finditer(text)
-                           if not KO.match(text, m.end())),
-        "_ko_numerals": Counter(m.group(0) for m in NUM.finditer(text)
-                                if KO.match(text, m.end())),
+        **_number_census(text),
         "markers": Counter(ch for ch in text if ch in MARKERS),
         "bold": len(BOLD.findall(text)),
         "_fence_ko": fence_ko,
     }
+
+
+def _number_census(text: str) -> dict:
+    """Split the numerals into the ones a translation must preserve and the ones
+    it is free to turn into words.
+
+    A numeral adjacent to Hangul on EITHER side belongs to a Korean word, so it
+    is exempt. A numeral in the middle of a longer token (the `0` of `7.1.0`) is
+    neither -- it is not a separate number and is dropped from both.
+    """
+    census, exempt = Counter(), Counter()
+    for m in NUM_ANY.finditer(text):
+        before = text[m.start() - 1] if m.start() else ""
+        if (before and KO.match(before)) or KO.match(text, m.end()):
+            exempt[m.group(0)] += 1
+        elif NUM.match(text, m.start()):
+            census[m.group(0)] += 1
+        # else: a digit run inside a longer token -- not a number of its own
+    return {"numbers": census, "_ko_numerals": exempt}
 
 
 def _seq_diff(name: str, a: list, b: list) -> list:
@@ -209,6 +228,9 @@ SELFTESTS = [
     ("but an unaccounted new numeral is a finding", "등방 페어 28종\n",
      "28 isotropic pairs over 3 runs\n", True),
     ("and it is only exempt up to its count", "2차극소 하나\n", "2 and 2 minima\n", True),
+    ("hangul-PREFIXED numeral may appear", "게이트1 통과\n", "gate 1 passed\n", False),
+    ("mid-token digit is not a number", "hoomd 7.1.0\n", "hoomd 7.1.0 build\n", False),
+    ("but a version bump is", "hoomd 7.1.0\n", "hoomd 7.2.0\n", True),
     ("link target changed", "[x](a.md)\n", "[y](b.md)\n", True),
     ("link label only", "[한국어](a.md)\n", "[English](a.md)\n", False),
     ("code line changed", "```py\nx = 1\n```\n", "```py\nx = 2\n```\n", True),
