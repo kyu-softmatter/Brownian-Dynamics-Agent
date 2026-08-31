@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "goals",
+    "blocker"
+  ],
+  "dimensionless": {},
+  "source": "intake/trap-2d-5um/observation.yaml#A3",
+  "lessons": [
+    {
+      "claim": "If the observation goal is absent from the sketch, that is itself a blocker. trap-2d-5um had an empty stated_goals (abp-rod had 'measure MSD, MSAD'), and without knowing the goal neither T_obs nor the sampling interval nor the success criterion can be fixed. In fact it was only after deciding to look at the PSD that T_obs=2000 tau_k and a sampling interval of tau_k/10 got settled -- do not classify it as a choice; ask the human",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

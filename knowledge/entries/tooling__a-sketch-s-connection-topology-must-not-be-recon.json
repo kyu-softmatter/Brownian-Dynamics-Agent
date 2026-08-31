@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "transcription",
+    "topology",
+    "tooling"
+  ],
+  "dimensionless": {
+    "link_ratio_max": 1.34
+  },
+  "source": "scratch/read_network_sketch.py",
+  "lessons": [
+    {
+      "claim": "A sketch's connection topology must not be reconstructed automatically from eyeballed circle coordinates plus radii. Measured on intake/network's 21 beads: the centre distance/(r_i+r_j) is 0.73~1.34 (median 1.02) over the 20 real link pairs while the minimum over the 190 non-link pairs is 1.26, so **the distributions overlap and one distance cannot separate them**. The cause is that the radii were drawn smaller than the drawn ellipse semi-axes in order to fit the numbering on. Raising the threshold (TOL) to make it work would be fitting to the desired answer, so the links are **stated as read data** just like the coordinates and the distance diagnostic is output only as a quality indicator.",
+      "kind": "method_note",
+      "coords": {
+        "link_ratio_max": 1.34
+      }
+    }
+  ],
+  "not_verified": []
+}

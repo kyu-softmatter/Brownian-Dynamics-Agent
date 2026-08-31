@@ -9,7 +9,7 @@
   "source": "verify/verify_bdbot.py#verdict",
   "lessons": [
     {
-      "claim": "A checker that string-matches a human-facing message is coupled to prose, and prose changes. verify/verify_bdbot.py asserted v == 'PASS (경고 1건)' against the verdict returned by bdbot/checks.py; checks.py was translated in c0074a2 (2026-08-28) and has emitted 'PASS (1 warnings)' ever since, so the assertion could never be true and the script FAILed silently for a day. It is not in the pytest suite, so the suite stayed green throughout. Fix at the level of the proposition, not the wording: assert v.startswith('PASS') and not hard_failures and len(soft_failures) == 1. Sixth instance in one day of a check that cannot distinguish 'I looked and it was fine' from 'I never looked'; the others are listed in verify/verify_translation_safety.py's docstring.",
+      "claim": "A checker that string-matches a human-facing message is coupled to prose, and prose changes. verify/verify_bdbot.py asserted v == 'PASS (warning 1)' against the verdict returned by bdbot/checks.py; checks.py was translated in c0074a2 (2026-08-28) and has emitted 'PASS (1 warnings)' ever since, so the assertion could never be true and the script FAILed silently for a day. It is not in the pytest suite, so the suite stayed green throughout. Fix at the level of the proposition, not the wording: assert v.startswith('PASS') and not hard_failures and len(soft_failures) == 1. Sixth instance in one day of a check that cannot distinguish 'I looked and it was fine' from 'I never looked'; the others are listed in verify/verify_translation_safety.py's docstring.",
       "kind": "pitfall",
       "coords": {}
     }

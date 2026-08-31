@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "checks",
+    "tautology",
+    "lattice"
+  ],
+  "dimensionless": {},
+  "source": "cases/trap_drag_2d.py#build_ledger · scratch/verify_l3_two_cases.py",
+  "lessons": [
+    {
+      "claim": "Recomputing a derived value from that derivation's own input and comparing **passes identically** -- it is a check that does not run. In trap-drag, φ was recomputed from the lattice (L_x·L_y) and compared, but L_x·L_y is derived from φ, so changing φ to 0.30 still passed. Caught by an adversarial check. A meaningful comparison is against **a value that is written down independently** -- here L2's box_length_x/y (the same attitude as physical.verify recomputing derived_scales).",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

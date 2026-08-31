@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "GSD",
+    "replay",
+    "force",
+    "time-dependent-driving",
+    "L4",
+    "retroactive-measurement"
+  ],
+  "dimensionless": {},
+  "source": "scratch/probe_gsd_replay.py",
+  "lessons": [
+    {
+      "claim": "The 'retroactive measurement' of replaying a stored GSD trajectory and recomputing only the forces is **invalid for a system with time-dependent driving**. In trap-drag (a moving trap) the replayed |F|max = 17041 against the guard's true value of 1062.9, a **16.03x overestimate**, and since the median of the per-frame distribution is already 1.58e4 it is a systematic error and not 'a rare maximum being caught'. The cause: the trap anchor depends on sim.timestep, and on replay the timestep is fixed at 0 so the probe sits far outside the trap (decomposed and confirmed as HarmonicTrap 1.64e4 vs pair forces 14~77). `sim.timestep` cannot be set after state creation ('State must not be set to change timestep'), so restoring the per-frame timestep is not possible either without fixing the builder. It may be valid for a static trap or a pure pair-force system, but before using it, **calibrate it on a run that has the guard's true value**.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

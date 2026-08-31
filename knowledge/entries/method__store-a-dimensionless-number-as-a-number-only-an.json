@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "nondim",
+    "verification",
+    "ledger",
+    "L3"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/nondim.py#Group.mismatch",
+  "lessons": [
+    {
+      "claim": "Store a dimensionless number as a number only and nobody can catch 'the name says dt/τ_int but the value is something else'. Have Group(name, value, num=(cat,symbol), den=(cat,symbol)) point at the ledger entries and have validate() recompute the ratio and compare, and a label error gets caught. It caught 1 on the very first real use: soft-r3's ledger wrote U(d) as 'A kT' when it is actually (A+ε_WCA)kT -- at r=d the WCA gives exactly ε (4ε(1−1)+ε). At A=100 that is 101, a 1% discrepancy.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

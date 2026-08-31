@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "gate",
+    "soft-warning",
+    "wiring"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/health.py#gate",
+  "lessons": [
+    {
+      "claim": "The pre-run gate treated a soft warning as a hard failure and falsely rejected 80 of 83 specs (0 genuine hard failures). The cause: it judged on verdict != 'PASS' while checks.verdict() returns 'PASS (N warnings)' whenever a soft check fires. bd-physics §4 defines statistics and finite size as ⚠. run.execute looked at startswith('FAIL') correctly, and the reason the two were out of step with nobody knowing is that execute does not call gate() -- **a checker that is not wired up does not reveal itself when it is wrong**. The lesson: a checker must not be implemented differently in two places, and a warning that does not block still has to be printed for the gate to mean anything.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L5",
+    "migration",
+    "observable-definition",
+    "regression",
+    "trap-drag"
+  ],
+  "dimensionless": {},
+  "source": "scratch/verify_trap_drag_generations.py",
+  "lessons": [
+    {
+      "claim": "The L5 migration (the @RUN.builder contract of bdbot.run) was confirmed by an 8-seed comparison not to have changed trap-drag's observable definitions: 55 metrics.result scalars + 152 observables.npz arrays (across 8 seeds) are all bit-identical (relative difference <1e-12) and steps_done is the same too (2,330,846). Only the wall clock got 1.64~1.68x faster. The comparison was possible because the legacy survived for the v=0.5 group alone, and that is because external.drag_velocity in the L2 system.yaml changed from the single value 0.5 to a 7-point list, so the spec hash differed -- params and numerics have 0 differences. The lesson is the converse case of 'a documentation field must not enter the hash' -- drag_velocity is a field that fixes the physics so it is right for it to be in the hash, and thanks to that the legacy happened to be preserved and this regression comparison was possible.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

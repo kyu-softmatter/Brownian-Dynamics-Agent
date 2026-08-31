@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "trap-drag",
+    "defect",
+    "yield-force",
+    "shear-thinning",
+    "ensemble",
+    "correction"
+  ],
+  "dimensionless": {
+    "Gamma": 29.7
+  },
+  "source": "scratch/trap_drag_vsweep.py · runs/trap-drag-2d-hex300__ENSEMBLE/vsweep_ensemble.json",
+  "lessons": [
+    {
+      "claim": "Re-running the trap-drag v-sweep as 7 velocities x 9 seeds = 63 runs overturned two of the published conclusions. ① The defect count is not independent of v -- it peaks at 9.43 at gv=24.2 and falls to 6.8~7.0 at both ends (2.42, 1549), a non-monotonic bump (max-min = 5.2 ensemble SEMs). 'There is no critical velocity' holds but 'independent of v' was wrong. ② The monotonic increase of the recovery rate to 67% was also wrong -- that is one realization's value, and the ensemble mean peaks at 36% at gv=72.6 and then decreases (non-monotonic). What held: a yield force of 34~41 kT/d (though the significance goes 11~20σ → 9.5~12.6σ) and shear thinning 16.8→1.84. The cause is a single run per velocity + an underestimated block SEM.",
+      "kind": "phase_boundary",
+      "coords": {
+        "Gamma": 29.7
+      }
+    }
+  ],
+  "not_verified": []
+}

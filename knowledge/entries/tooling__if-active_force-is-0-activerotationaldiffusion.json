@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "abp",
+    "active"
+  ],
+  "dimensionless": {},
+  "source": "hoomd 7.1.0 md.update.ActiveRotationalDiffusion",
+  "lessons": [
+    {
+      "claim": "If active_force is 0, ActiveRotationalDiffusion does not operate at all. The orientational-correlation decay rate becomes exactly 0 (in 2D and 3D, for both values of D_r). An isolation attempt that turns the active force off to look at the rotational statistics alone is blocked by this",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

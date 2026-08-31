@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "epistemics",
+    "roles",
+    "composition"
+  ],
+  "dimensionless": {},
+  "source": "mater_plan.md principle 9.1",
+  "lessons": [
+    {
+      "claim": "A module alone and the whole combination have different epistemological status. In the minimal configuration the existing theory is my model, so implementation_check is justified; but a combination usually has no analytic solution, so holding an existing theory up against it turns into 'it matches, so it is verified' or 'it does not match, so the theory does not hold in this region' -- and either way nothing is learned. To use an existing theory in a combination, register it as a hypothesis and report a mismatch as a result",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

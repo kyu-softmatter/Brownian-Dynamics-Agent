@@ -1,0 +1,26 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "ambiguity",
+    "triage"
+  ],
+  "dimensionless": {
+    "k_star": 60360.0
+  },
+  "source": "intake/trap-2d-5um/observation.yaml#A1",
+  "lessons": [
+    {
+      "claim": "Write down an ambiguity's impact split per observable. Whether R=5um was the radius or the diameter was ambiguous, but the impact on the equilibrium observables is 0 (kT/k is independent of d) and only tau_k was off by exactly a factor of 2. Thanks to that, the golden-test design could be finished while waiting for the confirmation. Write not 'affected / not affected' but how much, per observable",
+      "kind": "method_note",
+      "coords": {
+        "k_star": 60360.0
+      }
+    }
+  ],
+  "not_verified": []
+}

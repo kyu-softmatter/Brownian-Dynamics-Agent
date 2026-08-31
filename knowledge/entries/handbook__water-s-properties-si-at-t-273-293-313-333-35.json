@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "water",
+    "viscosity",
+    "parameter_source",
+    "tier1"
+  ],
+  "dimensionless": {
+    "eta_300K_mPas": 0.858
+  },
+  "source": "docs/books/welty_transport.md#1 ← [W] Welty 5th ed. Appendix I p.686",
+  "lessons": [
+    {
+      "claim": "Water's properties (SI): at T=273/293/313/333/353/373 K, mu = 1794/993/658/472/352/278 uPa*s and rho = 999.3/998.2/992.2/983.2/971.8/958.4 kg/m3 (the table itself is self-consistent to within 0.1% in nu=mu/rho). Log-linear interpolation to 300 K gives 0.8598 mPa*s, supporting the 0.851 mPa*s our 5 cases use to +1.03% (linear interpolation gives +2.91% -- ★ the interpolation method changes the result, so use log-linear)",
+      "kind": "parameter",
+      "coords": {
+        "eta_300K_mPas": 0.858
+      }
+    }
+  ],
+  "not_verified": []
+}

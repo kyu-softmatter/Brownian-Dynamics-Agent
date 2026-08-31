@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "power",
+    "deterministic",
+    "kT=0",
+    "integrator",
+    "inertia"
+  ],
+  "dimensionless": {
+    "det_diff_pct": 0.159
+  },
+  "source": "scratch/verify_chain_bend_gates.py#gate-B-prime",
+  "lessons": [
+    {
+      "claim": "When looking at whether an integrator assumption (with or without inertia and so on) changes an observable, **a kT=0 deterministic difference** is overwhelmingly stronger than a thermal comparison. In chain-bend, Brownian vs Langevin (kT=1) could not exclude a difference below 47~51% at 3σ (the observed K″ difference was 18~19% -- no verdict possible), whereas OverdampedViscous vs Langevin (kT=0) had 0 statistical error and settled it at a maximum of **0.159%** across all 7 ω. ★ With no noise the SNR problem disappears, and since the two integrators share the same transient the common mode cancels. For a thermal comparison, compute the power first.",
+      "kind": "method_note",
+      "coords": {
+        "det_diff_pct": 0.159
+      }
+    }
+  ],
+  "not_verified": []
+}

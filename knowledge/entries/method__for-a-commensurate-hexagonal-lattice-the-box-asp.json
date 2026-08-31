@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "lattice",
+    "commensurate",
+    "hexagonal",
+    "box"
+  ],
+  "dimensionless": {
+    "N": 306.0
+  },
+  "source": "cases/trap_drag_2d.py#build_ledger",
+  "lessons": [
+    {
+      "claim": "For a commensurate hexagonal lattice the box aspect ratio **is not chosen; commensurability sets it**. L_x=n_x·a_NN, L_y=n_y·(√3/2)a_NN, N=n_x·n_y, with n_y even (the staggered rows have a period of 2 rows). A square L=a_mean√N gets only φ right and the lattice does not match at the seam, injecting defects. trap-drag has N~300 → 17×18=306 (aspect ratio 1.091; the alternatives were 15×20=300/0.866 and 16×18=288/1.026). ★ Take the drag direction along the nearest-neighbour (row) direction -- dragging perpendicular to the rows makes the spatial period 2 rows=√3 a_NN and reduces the number of periods in the same box from 17 to 10.",
+      "kind": "pitfall",
+      "coords": {
+        "N": 306.0
+      }
+    }
+  ],
+  "not_verified": []
+}

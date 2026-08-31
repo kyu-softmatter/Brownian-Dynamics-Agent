@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "validation",
+    "design"
+  ],
+  "dimensionless": {},
+  "source": "cases/abp_rod_2d.py result block",
+  "lessons": [
+    {
+      "claim": "When designing a case, write down separately the list of 'the assumptions the simulation imposes' and 'the assumptions the theory adds'. If the latter is empty the case is for validation and has no discovery. To make abp-rod a discovery case, something like a finite density or confinement has to be added (translational anisotropy is impossible in BD)",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

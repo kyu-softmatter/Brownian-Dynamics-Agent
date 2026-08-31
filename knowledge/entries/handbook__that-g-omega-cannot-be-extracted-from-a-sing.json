@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "moduli",
+    "single_chain",
+    "scope"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#3.2 ← [L] (2.7),(2.13),(2.18),(2.19) pp.30-32",
+  "lessons": [
+    {
+      "claim": "★ That G'(omega) cannot be extracted from a single trapped chain is not a circumstance of the measurement but a theorem -- a bulk stress is by definition (a) a volume average containing statistically many particles and (b) Batchelor's formula presupposes that the particles are force- and torque-free. A trap is an external force so it breaks (b) (an external torque even creates an antisymmetric stress), and a single chain breaks (a). The K' and K'' we measure are stiffnesses and not stresses, and renaming them G makes them wrong. For a real G' you have to impose shear with periodic boundaries + a network of chains + no traps and compute the stress with Kramers/virial",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

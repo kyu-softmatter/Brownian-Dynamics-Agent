@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "abp",
+    "3d",
+    "convention"
+  ],
+  "dimensionless": {
+    "lambda_over_D_r": 1.0
+  },
+  "source": "hoomd 7.1.0 rotational_diffusion convention",
+  "lessons": [
+    {
+      "claim": "HOOMD's rotational_diffusion is the director decay rate itself. It was measured as Lambda/D_r = 1.00 in both 2D and 3D and is not the standard theory's (d-1)D_r. To reproduce the physical D_r in 3D you have to put in twice the value. The free-ABP effective diffusion is D_eff = D_t + v0^2/(d*Lambda), and the commonly used v0^2/(2(d-1)D_r) is only coincidentally right in 2D (a measured +29~31% in 3D)",
+      "kind": "pitfall",
+      "coords": {
+        "lambda_over_D_r": 1.0
+      }
+    }
+  ],
+  "not_verified": []
+}

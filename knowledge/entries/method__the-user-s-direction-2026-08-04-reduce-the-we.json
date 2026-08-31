@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "direction",
+    "L4",
+    "verification",
+    "numerical-health"
+  ],
+  "dimensionless": {},
+  "source": "mater_plan.md#direction-reinforced-2026-08-04",
+  "lessons": [
+    {
+      "claim": "The user's direction (2026-08-04): reduce the weight of scientific/physical verification after a run and look only at numerical errors (divergence, NaN/Inf, convergence to a strange value). Because it differs per system and the system may not be one that has been reported. The rigour is invested on the sketch → parameters → non-dimensionalization side. → So L4 is built as a numerical-health judge and not as a physics verifier.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

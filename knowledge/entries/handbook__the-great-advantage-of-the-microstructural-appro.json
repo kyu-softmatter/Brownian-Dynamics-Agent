@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "constitutive",
+    "time_derivative",
+    "theory_frame"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#2 ← [L] pp.492,494",
+  "lessons": [
+    {
+      "claim": "The great advantage of the microstructural approach is that the correct objective time derivative comes out automatically -- a near-sphere rotates with the vorticity so the Jaumann (corotational) derivative falls out, and a dumbbell deforms affinely like a material line element so the upper-convected (codeformational) derivative falls out. The continuum approach cannot decide in principle which invariant derivative to use, so Oldroyd-A/B had to be chosen between by experiment",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

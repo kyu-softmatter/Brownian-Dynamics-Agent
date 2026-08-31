@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "dt",
+    "measurement",
+    "thermal-noise",
+    "L4"
+  ],
+  "dimensionless": {},
+  "source": "scratch/verify_health.py#②b",
+  "lessons": [
+    {
+      "claim": "When measuring dt/τ_fast after the fact, use the **force-based** form (dt·|F|max/γ, with dimensionless γ=1). It is itself dt/τ_fast so there is nothing to subtract. A position difference (the rms of two snapshots) has to have the thermal noise √(2·dim·dt) subtracted in quadrature, and if the drift is at the 0.5% level of the thermal noise then in a finite sample (N=1000) the sample rms comes out below its expectation and the drift gets truncated to 0 (measured). And the worst value over the whole run has to be kept -- storing only the last guard sample gave a maximum force of 1062.9 against a last value of 244.2 kT/σ, a 4.4x difference.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "sphere",
+    "pair_distribution",
+    "shear",
+    "case_candidate"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#6.2 ← [L] (3.80),(3.81) p.75",
+  "lessons": [
+    {
+      "claim": "★ Flow raises the pair distribution in the compressional quadrant and lowers it in the extensional one -- g = g_eq[1 + Pe*g1], g1 = -(e_r.Ehat.e_r) f(r) with f>0 and monotonically decreasing (Batchelor 1977). A sign prediction directly measurable with 2D BD, and a kind of verification we do not have (the flow distortion of a spatial correlation). But Pe->inf (non-Brownian) simple shear is a singular limit where g is undetermined because of the closed orbits, so 'raise Pe and look at the limit' does not work",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/abp_rod_2d.py build()",
+  "lessons": [
+    {
+      "claim": "The RUN.builder contract's pe_per_particle() asks for 'a scalar that is both the equilibrium indicator and the frozen watchdog', and an active system with neither pair interactions nor a trap (abp-rod) has no potential energy. Instead the orientational correlation against the previous call, ⟨cos(θ_now-θ_prev)⟩, was used -- when normal, every call is a different noise realization so it is never exactly constant (no false FROZEN), and if the rotational diffusion dies it locks to exactly 1.0 (a real FROZEN detection). A pattern reusable when moving a system with no PE/N onto RUN.builder.",
+      "kind": "method",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "visualization",
+    "matplotlib",
+    "font",
+    "hangul",
+    "result-check"
+  ],
+  "dimensionless": {
+    "fonts_missing_minus": 3.0
+  },
+  "source": "scratch/viz_chain_bend.py",
+  "lessons": [
+    {
+      "claim": "Using Hangul in a result figure breaks the font **from both sides**. matplotlib's default DejaVu Sans has no Hangul glyphs so the labels all become □, and conversely the Hangul fonts have no symbols -- measured, AppleGothic · Apple SD Gothic Neo · NanumGothic, **all three**, lack U+2212 (−) and ŷ (U+0177). The only one on macOS with both Hangul and the symbols was **Arial Unicode MS** (confirmed by querying the cmap directly with fontTools). ★ rcParams['axes.unicode_minus']=False fixes **only the tick labels** and the − in a string literal still breaks. After generating, it has to be confirmed that the 'missing from font' / 'does not have a glyph' warnings on stderr are 0 -- ignore a warning and you end up presenting as a result a picture a human cannot read. ffmpeg is not in this environment so animations are written with PillowWriter (GIF).",
+      "kind": "pitfall",
+      "coords": {
+        "fonts_missing_minus": 3.0
+      }
+    }
+  ],
+  "not_verified": []
+}

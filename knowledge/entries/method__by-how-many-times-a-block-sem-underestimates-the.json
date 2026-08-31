@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "block-SEM",
+    "ensemble",
+    "error",
+    "observable-dependent"
+  ],
+  "dimensionless": {},
+  "source": "runs/trap-drag-2d-hex300__ENSEMBLE/vsweep_ensemble.json",
+  "lessons": [
+    {
+      "claim": "By how many times a block SEM underestimates the scatter between realizations **differs per observable and per condition** -- it must not be cited as a single factor. In the same run set (trap-drag, gv=24.21), dU/particle gave 2.35x and F_drag gave 1.37x. Across the whole v-sweep, F_drag's factor is 1.09~2.28x (median 1.63) and grows with the velocity (1.1 at low speed → 2.28 at high). The widely cited 2.35 is the dU/particle value and was being used as it stood for the drag-force error too. The lesson: measure the underestimation factor on the very observable you are going to cite.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

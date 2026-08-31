@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "tooling",
+    "yaml"
+  ],
+  "dimensionless": {},
+  "source": "intake/abp-rod-2d-run-flip/observation.yaml (the 2026-08-04 incident)",
+  "lessons": [
+    {
+      "claim": "Patching structured YAML with a regular expression quietly fixes the wrong node. Even with a lookahead, R's answer went into D1's resolution slot. Replace by a unique anchor string, and always parse and check for duplicates after patching",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

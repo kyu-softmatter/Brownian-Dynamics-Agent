@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "force",
+    "stick_slip",
+    "phase_folding",
+    "microrheology"
+  ],
+  "dimensionless": {
+    "Gamma": 29.7
+  },
+  "source": "runs/trap-drag-2d-hex300__ENSEMBLE#ensemble_force.png",
+  "lessons": [
+    {
+      "claim": "The lattice-period modulation of the probe force (stick-slip) is large, 35% of the mean (±36 kT/d). A single sample's noise, k*·ℓ_k = 248 kT/d, is larger than the signal (98) so it is invisible in the raw data and only emerges after **period folding** (making a phase from the position mod a_NN and averaging like phases together) reduces it 32-fold. The shape is a sawtooth -- force builds as it pushes a lattice row and is released as it goes over. ⚠️ The folding assumes 'the conditions are the same in every cell', but dislocations accumulate so the first cell differs from a later one (this effect may be mixed into the larger ±49 modulation seen with 17 lattice cells). 2 sanity checks passed: F_y = −5.4±4.4 (1.2σ) · the stationary-trap control F_x = +3.3±6.2 (0.5σ).",
+      "kind": "method_note",
+      "coords": {
+        "Gamma": 29.7
+      }
+    }
+  ],
+  "not_verified": []
+}

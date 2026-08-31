@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "scratch/hamaker_crosscheck.py",
+  "lessons": [
+    {
+      "claim": "The PMMA-water-PMMA Hamaker constant: computing the Tabor-Winterton approximation (the electrostatic term + the UV dispersion term) with handbook permittivities and refractive indices (ε=3.0/78.5, n=1.49/1.33, ν_e=3e15 Hz) gives A=9.40e-21 J. It agrees with the web-search citation of 1.05e-20 J to -10.5%, and across the PMMA literature range (ε 2.6~3.6) it stays stable at 8.90~10.16e-21. The same order as the polystyrene-water literature values (5e-21~1.5e-20 J). ★ Sensitivity: changing A by 4x (5e-21->2e-20) keeps the DLVO secondary-minimum depth in 10mM MgCl2 within the -4.9 to -25.5 kT range, so for no value of A does it come within an order of magnitude of the JKR bending stiffness (~1.4e6 kT/d²) -- the conclusion 'a central-force bond is weak' is stable against the uncertainty in A.",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

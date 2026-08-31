@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "eigenvalue",
+    "dt",
+    "chain",
+    "bending"
+  ],
+  "dimensionless": {},
+  "source": "cases/chain_bend_2d.py#bond_matrix",
+  "lessons": [
+    {
+      "claim": "A discrete chain's λ_max is **the larger** of the bending and stretching blocks and not their sum. In a straight chain the stretching (x) and the bending (y) separate at linear order, so adding them in one matrix overestimates λ_max (in chain-bend, 0.0500 N/m instead of 0.0423 → dt 18% too small, purely a cost increase). The upper bound λ_max(A+B) ≤ λ_max(A)+λ_max(B) must not be used as it stands for dt.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "protocol",
+    "relaxation",
+    "drift"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/run.py#Phase · judge",
+  "lessons": [
+    {
+      "claim": "A system with a driving protocol has to have its run split into **phases**, and 'is a steady state expected' differs per phase. trap-drag has four phases -- preheat, equilibrate, drag and relax -- and in the relax phase **the energy changing is the physics**, so running the drift check as it stands calls a discovery a warning (rule 7'). Phase.expect_steady=False turns the drift verdict off for that phase alone. Conversely a drift warning in the equilibration phase is real -- starting from a perfect-lattice IC makes ⟨U⟩ rise, so whether the preheat is sufficient has to be settled by measurement.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

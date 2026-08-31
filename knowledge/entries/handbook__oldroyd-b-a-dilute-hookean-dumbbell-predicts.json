@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "polymer",
+    "oldroyd_b",
+    "dumbbell",
+    "model_limit"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#5 ← [L] (11.20),(11.21) p.496",
+  "lessons": [
+    {
+      "claim": "Oldroyd-B (= a dilute Hookean dumbbell) predicts no shear thinning at all -- confirmed by execution: eta_p has a scatter of 6e-14 across 4 decades of gdot. N1 = 2 eta_p lambda_p gdot^2 and N2 = 0. Being derived for dilute linear chains only, it must not be used as a general polymer-fluid model, and if shear thinning appears it is not the model but the system that is different",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

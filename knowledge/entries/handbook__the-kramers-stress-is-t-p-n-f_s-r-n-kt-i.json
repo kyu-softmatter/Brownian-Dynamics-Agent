@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "stress",
+    "kramers",
+    "polymer",
+    "golden_test"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#3.4 ← [L] (11.15b) p.494",
+  "lessons": [
+    {
+      "claim": "The Kramers stress is T^(p) = n<F_s R> - n kT I, and leaving out the -nkT I term means it does not go to 0 at equilibrium, which gets misread as 'residual elasticity'. Whether the stress is exactly 0 at equilibrium is the golden test of the sign and prefactor conventions (for a Hookean, <RR>_eq=(kT/w0)I so it cancels exactly -- confirmed by execution, max|T|=0 to machine precision)",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

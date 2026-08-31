@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "checks",
+    "SNR",
+    "observable",
+    "tautology"
+  ],
+  "dimensionless": {
+    "snr_overestimate": 60.0
+  },
+  "source": "cases/chain_bend_2d.py#analyze_scales",
+  "lessons": [
+    {
+      "claim": "The numerator of the SNR check has to be **the observable's response amplitude and not the driving amplitude**. The chain-bend spec checked a/ℓ_k = 9.83 and passed with a 3.3x margin, but the actual observable is the driven bead's response |ŷ(ω)|, and with the chain and the drag resisting, |ŷ|/ℓ_k falls with ω -- measured at the highest ω it is 0.165, **6x smaller than the thermal fluctuation** (1/60 of the checked value). As a result the Brownian vs Langevin comparison did not even have the power to exclude a difference below 47%. After the fix, 6 of the 7 points turned out to have SNR<3 and 4 of them SNR<1. It is the same hole as trap-drag's 'all 7 hard checks pass and yet the statistics do not come out'.",
+      "kind": "pitfall",
+      "coords": {
+        "snr_overestimate": 60.0
+      }
+    }
+  ],
+  "not_verified": []
+}

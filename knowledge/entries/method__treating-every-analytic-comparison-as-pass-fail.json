@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "validation",
+    "epistemics"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/metrics.py ROLES · cases/abp_rod_2d.py (2026-08-04, pointed out by the user)",
+  "lessons": [
+    {
+      "claim": "Treating every analytic comparison as 'PASS/FAIL' calls a discovery a failure. It has to be split by whether the prediction (a) is derived from the model I implemented (implementation_check -- a mismatch is a bug) or (b) rests on an assumption the simulation does not impose (hypothesis -- a mismatch is a result). All 5 of abp-rod's verifications were (a) and hypothesis verification was 0 -- the code was verified but no physics was tested at all",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "this classification was not applied to trap-drag or chain-bend (the next task)"
+  ]
+}

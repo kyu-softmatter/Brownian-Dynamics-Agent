@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "stress",
+    "viscoelastic",
+    "theory_frame"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#2.2 ← [L] Leal 2026 pp.33,35,180",
+  "lessons": [
+    {
+      "claim": "★ Viscoelasticity (memory and elasticity) comes entirely from the thermodynamic component -- in creeping flow the hydrodynamic stress is a linear function of the instantaneous velocity gradient, so it becomes exactly 0 the moment the flow is cut off. So for a degree of freedom to produce elasticity it needs all three of (1) a preferred equilibrium configuration (2) a restoring mechanism resisting that deformation mode (3) tau_c*|E|=O(1). A degree of freedom with no restoring mechanism does not contribute to the stress -- our DLVO chain coming out at 0.996x the dissipation (= the bead alone) is an instance of this theorem",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

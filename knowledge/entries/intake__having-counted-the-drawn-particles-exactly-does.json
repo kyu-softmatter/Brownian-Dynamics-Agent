@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "network",
+    "intake",
+    "topology",
+    "transcription"
+  ],
+  "dimensionless": {},
+  "source": "intake/network/observation.yaml#A6",
+  "lessons": [
+    {
+      "claim": "Having counted the drawn particles exactly does not mean 'that is the simulation's N'. The intake/network sketch drew 21 circles countably, but the topology is a tree (20 links, 0 independent loops, 6/21 free ends). The goals are G'(ω) and stress propagation = bulk/ensemble quantities, and a tree has no closed path to carry stress so G'(ω→0)→0 and the goal is not defined. The criterion is not 'was it countable' but 'is the target observable defined at that N' -- if it is not, the drawing is a schematic and N has to be proposed separately at the size the observable requires.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "the verdict that the drawing is a schematic is itself an inference (the A6 lean). The possibility remains that the user intended 'the 21 as drawn, a tree', in which case this case becomes a repetition of the chain-bend-2d-dlvo conclusion."
+  ]
+}

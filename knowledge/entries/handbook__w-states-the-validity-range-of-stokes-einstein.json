@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "diffusion",
+    "stokes_einstein",
+    "validity"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/welty_transport.md#3 ← [W] (24-50),(24-52) pp.416-417",
+  "lessons": [
+    {
+      "claim": "[W] states the validity range of Stokes-Einstein D = kT/(6 pi r mu) explicitly -- when 'a colloidal particle or a large spherical molecule' diffuses 'through a solvent that behaves as a continuum with respect to the diffusing species'. Our systems (1.47~5 um PMMA in water) are in the middle of that condition. A small-molecule solute uses Wilke-Chang D*mu/T = 7.4e-8 (Phi_B M_B)^0.5 / V_A^0.6 (cgs, cP) instead, and an electrolyte ion is neither, so appendix J's table has to be consulted",
+      "kind": "parameter",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

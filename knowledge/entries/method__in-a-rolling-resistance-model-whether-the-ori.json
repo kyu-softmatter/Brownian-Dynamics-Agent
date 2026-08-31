@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "contact",
+    "rolling",
+    "frequency",
+    "orientation"
+  ],
+  "dimensionless": {
+    "omega_c_star": 8347000.0
+  },
+  "source": "scratch/verify_rolling_contact.py#G5",
+  "lessons": [
+    {
+      "claim": "In a rolling-resistance model, **whether the orientational degree of freedom relaxes** changes the physics. Letting theta relax penalizes the curvature (theta_bend), but freezing theta penalizes the bond's **absolute rotation** phi_k (U_r = k_r R^2 sum phi_k^2) -- the 3-point bending stiffness becomes (n^2-2n+3)/3 times stiffer (measured n=5/9/15 → 6.0000/22.0002/66.0003, agreeing with the closed form). The crossover frequency is omega_c = 1/tau_rot with tau_rot = gamma_r/(k_r R^2). With the chain-bend-2d-dlvo values (gamma_r=4a^2/3=1/3, k_r=1.113e7, R=0.5), tau_rot=1.198e-7 so omega_c=8.35e6, and at the production run's omega*=18453 we have omega*tau_rot=2.2e-3 ≪1 -- **being quasi-static it is indistinguishable from harmonic bending**. That is, implementing rolling resistance in this system does not change the conclusion but only makes the mechanism explicit (in exchange it creates a place to put the M_c yield on top).",
+      "kind": "method_note",
+      "coords": {
+        "omega_c_star": 8347000.0
+      }
+    }
+  ],
+  "not_verified": []
+}

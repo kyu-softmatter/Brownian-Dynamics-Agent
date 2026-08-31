@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "3-point-bending",
+    "boundary-condition",
+    "trap",
+    "κ_center"
+  ],
+  "dimensionless": {
+    "kappa_drive_over_center": 0.682
+  },
+  "source": "cases/chain_bend_2d.py#driven_static_stiffness",
+  "lessons": [
+    {
+      "claim": "In optical-tweezer 3-point bending, the beam formula κ_center = 48EI/L³ is the **rigidly clamped** value. If both ends are finite-stiffness traps the chain translates bodily and the static stiffness the driving trap feels drops to 0.682x (at n=25 and κ_end/k_t=0.463, 4830.7 → 3294.2 kT/d²). The chain-bend spec wrote 48EI/L³ as 'the value the driving trap feels' and was 32% wrong. ★ The cause is that it starred κ_end/k_t ~ 1 as 'inside the measurement window' itself and yet derived the boundary condition as rigid -- deliberately putting the stiffness ratio near 1 guarantees that the boundary-condition assumption breaks.",
+      "kind": "parameter",
+      "coords": {
+        "kappa_drive_over_center": 0.682
+      }
+    }
+  ],
+  "not_verified": []
+}

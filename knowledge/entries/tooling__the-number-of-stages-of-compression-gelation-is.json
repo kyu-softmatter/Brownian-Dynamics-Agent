@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "cost",
+    "gelation",
+    "network",
+    "compression",
+    "dt"
+  ],
+  "dimensionless": {
+    "steps_per_s": 6384.0
+  },
+  "source": "docs/hoomd_capabilities.md#5.5",
+  "lessons": [
+    {
+      "claim": "The number of stages of compression gelation is set by the physics (ε_crit) and the relaxation time per stage by the purpose -- mix the two and the cost verdict is wrong. Measured on network: φ 0.02→0.10 is a total linear strain of 41.5%, so at ε_crit=0.4% it is at least 134 stages. Making each stage quasi-static (≫τ_B) gives ~400 τ_B = 4.2e10 steps = 1800 hours (6384 steps/s, N=1528), which is **impossible**, while relaxing only on the τ_bond scale gives 2.7e5 steps = 42 seconds, which is possible but is an **affinely compressed initial arrangement** with no diffusion intervening -- different physics. What sets dt is the bond well's curvature (k_bond*=1.042e6 kT/d² → τ_bond*=9.594e-7 τ_B), and at dt=1e-2·τ_bond, 1 τ_B of gelation is 4.5 hours per seed.",
+      "kind": "method_note",
+      "coords": {
+        "steps_per_s": 6384.0
+      }
+    }
+  ],
+  "not_verified": []
+}

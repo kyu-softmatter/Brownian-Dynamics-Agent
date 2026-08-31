@@ -1,0 +1,30 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "statistics",
+    "ensemble",
+    "block_sem",
+    "error_bars"
+  ],
+  "dimensionless": {
+    "N": 306.0
+  },
+  "source": "runs/trap-drag-2d-hex300__ENSEMBLE · scratch/trap_drag_ensemble.py",
+  "lessons": [
+    {
+      "claim": "★★ A single trajectory's block SEM **underestimated the scatter between realizations by 2.35x** (trap-drag, 2 lattice cells, 8 seeds: the between-realization std of ΔU is 0.0352 vs a mean run SEM of 0.0150). For F_drag it is 1.37x. A block average corrects only the correlations **inside** a trajectory, and this system has a slow degree of freedom that differs per realization -- 'which dislocation appears where' -- which it cannot capture. So a single run was reported as 'ΔU = 0.238 ± 0.012 → 19σ' and then corrected to ≈7σ from the ensemble. **The lesson: in a system that creates stochastic defects or structure, citing an error without a seed ensemble is overconfidence.**",
+      "kind": "method_note",
+      "coords": {
+        "N": 306.0
+      }
+    }
+  ],
+  "not_verified": [
+    "whether the 2.35x is specific to this system and this observable, or applies to systems that create stochastic structure generally, is unconfirmed"
+  ]
+}

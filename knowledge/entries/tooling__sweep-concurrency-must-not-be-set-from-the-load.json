@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "parallel",
+    "sweep",
+    "cost",
+    "HOOMD",
+    "thread",
+    "TBB"
+  ],
+  "dimensionless": {},
+  "source": "scratch/run_trap_drag_ensemble.py (measured 2026-08-05)",
+  "lessons": [
+    {
+      "claim": "Sweep concurrency must not be set from the load average but **measured by throughput**. Measured: a trap-drag (N=306) process launches 11 threads (HOOMD's internal TBB) -- hoomd 7.1's device.CPU signature has **no num_cpu_threads so it cannot be turned off**, and setting all of OMP/OPENBLAS/VECLIB/MKL/NUMEXPR_NUM_THREADS=1 still left 11 threads (meaning it is not numpy BLAS). So launching only 3 processes sends the load up to 77, but **that is not a saturation signal** -- under the same background load, 1 smoke run took 84.7s against 124s for 3 concurrent, a throughput of 2.05x (68% efficiency). By contrast chain-bend (n=25) launches only 2 threads -- the thread count depends on the system size, so it has to be measured per case.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "performance",
+    "trap",
+    "force.Custom"
+  ],
+  "dimensionless": {
+    "steps_per_s_custom": 2339.0
+  },
+  "source": "scratch/bench_chain_bend.py",
+  "lessons": [
+    {
+      "claim": "md.force.Custom's set_forces calls into Python every step, so it drops the run speed 26-fold on a small system (measured on an n=25 chain: bond+angle alone gives 61,264 steps/s → adding a force.Custom trap gives 2,339 steps/s). A harmonic trap can instead be made with **a ghost particle + bond.Harmonic(r0=0)** -- the function is exactly the same, U=½k r², and excluding the ghost from the integrator's filter makes it a fixed trap. Going onto the compiled path gives 55,551 steps/s (23.7x). It turned the chain-bend sweep from 25 days into 1.16 days (7 runs in parallel, 13.7 hours). ★ Before ruling 'too expensive to run', measure whether the cost is in the implementation or in the physics.",
+      "kind": "pitfall",
+      "coords": {
+        "steps_per_s_custom": 2339.0
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "epistemics",
+    "prediction",
+    "preregistration"
+  ],
+  "dimensionless": {},
+  "source": "scratch/standalone_abp_diffusion.py post-mortem",
+  "lessons": [
+    {
+      "claim": "When registering a prediction, the parameter-mapping assumptions have to be registered with it. In the ABP verification the pre-registered D_eff expression failed by +90 percent in 3D, and what was wrong was not the physics expression but the invisible assumption Lambda=(d-1)D_r. 'The D_r of this expression is the same as the tool's rotational_diffusion' is an assumption too",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

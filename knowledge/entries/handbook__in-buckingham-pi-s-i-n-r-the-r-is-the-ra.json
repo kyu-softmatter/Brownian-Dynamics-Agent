@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "nondim",
+    "buckingham",
+    "pitfall",
+    "bd"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/welty_transport.md#4.1 ← [W] (11-8) p.128",
+  "lessons": [
+    {
+      "claim": "★ In Buckingham pi's i = n - r, the r is 'the rank of the dimensional matrix' and not the number of base dimensions. A counter-example was measured -- the variables (v, gdot, L) have 3 base dimensions (M,L,t) but M appears in no variable, so the rank is 2, i=1, and that dimensionless number is gdot*L/v. Counting by 'the 3 base dimensions' gives i=0 and misjudges that there is no dimensionless number. ★ A BD dimensionless system is overdamped so the mass often disappears, which puts it in exactly this situation",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

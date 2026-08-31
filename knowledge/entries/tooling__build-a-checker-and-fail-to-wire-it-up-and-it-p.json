@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "health",
+    "coverage",
+    "dt",
+    "feedback"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/health.py#step_health · tools/health.py",
+  "lessons": [
+    {
+      "claim": "Build a checker and fail to wire it up and it 'passes silently'. health.py's step_health (the L4→L3 feedback, which the module itself calls 'the core of this module') did not execute in any of 81 runs -- run.Guard put dt·|F|max only inside l4 while tools/health.py was looking for numerics['step_rms_sigma'] (a name mismatch). When absent it printed 'not measured' and returned HEALTHY, so 82/82 HEALTHY read like coverage. The remedy: report the number of unmeasured runs separately, and state that that HEALTHY means only 'no divergence, no freezing, no collapse' and not 'dt is small enough'.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

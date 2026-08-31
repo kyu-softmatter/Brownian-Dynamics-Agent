@@ -16,7 +16,7 @@
   "source": "Pantina & Furst, Langmuir 24, 1141-1146 (2008) eq.4-7, Fig.4-6",
   "lessons": [
     {
-      "claim": "κ₀ = 3πa_c⁴E/(4a³), a_c = (3πa²W_SL/2K)^(1/3) (JKR). 계면활성제로 W_SL을 낮추면 κ₀가 한 자릿수 감소. 곧은 사슬은 d_b=1 이므로 κ(s)=κ₀(a/s)³. 맨 입자 κ₀=0.21 N/m @250mM MgCl₂",
+      "claim": "κ₀ = 3πa_c⁴E/(4a³), a_c = (3πa²W_SL/2K)^(1/3) (JKR). Lowering W_SL with a surfactant reduces κ₀ by an order of magnitude. A straight chain has d_b=1 so κ(s)=κ₀(a/s)³. For a bare particle κ₀=0.21 N/m @250mM MgCl₂",
       "kind": "scaling",
       "coords": {
         "kappa0_bare_N_per_m": 0.21
@@ -24,6 +24,6 @@
     }
   ],
   "not_verified": [
-    "우리 시뮬레이션으로 재현하지 않았다 (tier 2)"
+    "not reproduced with our own simulation (tier 2)"
   ]
 }

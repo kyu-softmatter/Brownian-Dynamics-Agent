@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "ledger",
+    "separation-check",
+    "L3"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/scales.py#MANDATORY_ROLES",
+  "lessons": [
+    {
+      "claim": "A scale missing from the scale ledger is 'a check that does not run'. 1-B did not put dt and T_obs in the ledger but passed them separately as arguments, so neither appeared in the timescale alignment table -- which halves the ledger's purpose, that 'line them up and a separation violation becomes visible'. The required roles (box, dt, observation, inertia) have to be enforced, with declare_absent(role, reason) required when one is absent. The enforcement has to be by role and not by symbol: the ellipsoid case's reference length is not d but d_eq.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

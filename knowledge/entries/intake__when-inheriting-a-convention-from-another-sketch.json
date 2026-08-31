@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "convention",
+    "intake"
+  ],
+  "dimensionless": {},
+  "source": "intake/abp-rod-2d-run-flip/observation.yaml#D1,D2",
+  "lessons": [
+    {
+      "claim": "When inheriting a convention from another sketch in the same notebook, self-consistency has to be checked case by case. Applying the 'R=5µm' convention to abp-rod puts the sketch's τ_R=0.5s 160x out from the Stokes prediction -- the actual answer was an ellipsoid with a 2µm major axis",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

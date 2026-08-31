@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "verification",
+    "energy",
+    "force",
+    "potential",
+    "lesson"
+  ],
+  "dimensionless": {
+    "energy_pass_force_fail": 1.0
+  },
+  "source": "scratch/verify_angle_matrix.py + scratch/verify_angle_force_small_theta.py",
+  "lessons": [
+    {
+      "claim": "★★ **Verifying a potential by its energy alone is not verifying its force.** It actually bit -- verify_angle_matrix.py measured the bending stiffness as k = 2U/δ², got a 0.55% agreement with HOOMD and PASSed, while in the same configuration **the force was up to 96% wrong** (the sinθ clamp of angle.Harmonic). The energy was computed straight from arccos and was exact; only the force broke, on the 1/sinθ route. ★ The irony is that the **reason** for choosing the energy was right -- the per-particle force array may not be in tag order because of ParticleSorter, so the scalar energy was chosen to avoid the ordering problem. That choice hid the trap. The rule: for a new potential or force, **compare the force directly against the numerical gradient of the energy (Richardson extrapolation)**. Solve the ordering problem by inverse-permuting with the local snapshot's tags (out[tags]=F) rather than avoiding it. An auxiliary check: for an internal potential the forces must sum to 0.",
+      "kind": "method_note",
+      "coords": {
+        "energy_pass_force_fail": 1.0
+      }
+    }
+  ],
+  "not_verified": []
+}

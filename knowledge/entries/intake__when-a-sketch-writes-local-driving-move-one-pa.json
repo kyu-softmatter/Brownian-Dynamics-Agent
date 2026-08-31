@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "network",
+    "intake",
+    "microrheology",
+    "moduli"
+  ],
+  "dimensionless": {},
+  "source": "intake/network/observation.yaml#A1",
+  "lessons": [
+    {
+      "claim": "When a sketch writes local driving ('move one particle') and a bulk observable (G'(ω), G''(ω)) on the same page, those two are not the same quantity -- it has to be raised as an ambiguity at intake. Single-point driving gives a local response K*(ω) [N/m], and the GSER conversion G*=K*/(6πa) has already been measured to be invalid in this family (what the bead feels is not a medium but its neighbouring beads). The only reading that gives all four of the sketch's goals (G', G'', the response time, stress propagation) from one measurement is **two-point microrheology** (shake one particle and watch the correlated displacements of distant particles) -- G* is legitimate in the long-wavelength limit and the phase lag with distance is the stress propagation itself.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "the only grounds that the two-point reading is the user's intent is the consistency that 'all 4 goals come out of one measurement'. Reporting the single-point K*(ω) is a legitimate choice too, and since the driving is the same both can be extracted from the same run, so they may not need to be separated."
+  ]
+}

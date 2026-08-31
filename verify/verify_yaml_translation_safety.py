@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""Prove that translating a YAML file changed ONLY string values.
+"""Prove that translating a YAML or JSON file changed ONLY string values.
 
-The Python token checker cannot help here, so this is the YAML analogue: parse
-both files, walk them in lockstep, and require that
+The Python token checker cannot help here, so this is the structured-data
+analogue: parse both files, walk them in lockstep, and require that
 
   - the key sets match at every level, in the same order
   - every non-string leaf (int, float, bool, None) is byte-identical
@@ -13,11 +13,24 @@ structural change and is reported. That is exactly the class of mistake a
 translation must not make -- and unlike prose, it is silently load-bearing here:
 these files feed spec hashes and gate declarations.
 
+JSON is handled by the same walk. It is dispatched on the extension rather than
+left to `yaml.safe_load` (which does parse JSON, JSON being a YAML subset)
+because YAML 1.1 coerces differently -- it would read the JSON `y` as True and
+an unquoted `1_000` as 1000 -- and a checker that normalises its two inputs the
+same wrong way cannot see the difference it was built to see.
+
     $PY yamlsafe.py before.yaml after.yaml
+    $PY yamlsafe.py before.json after.json
 """
+import json
 import sys
 
 import yaml
+
+
+def load(path: str):
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh) if path.endswith(".json") else yaml.safe_load(fh)
 
 
 def walk(a, b, path=""):
@@ -55,8 +68,7 @@ def walk(a, b, path=""):
 
 
 def main(p1: str, p2: str) -> int:
-    a = yaml.safe_load(open(p1, encoding="utf-8"))
-    b = yaml.safe_load(open(p2, encoding="utf-8"))
+    a, b = load(p1), load(p2)
     bad = walk(a, b)
     ko = sum(1 for line in open(p2, encoding="utf-8")
              if any("가" <= c <= "힣" for c in line))

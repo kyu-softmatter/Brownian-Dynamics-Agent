@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "scope",
+    "abp",
+    "active",
+    "microrheology"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#0,#3.3 ← [L] p.36,(2.18)",
+  "lessons": [
+    {
+      "claim": "[L] Leal's frame (a) does not treat microrheology or GSER at all (0 hits in a full-text search) and (b) does not treat active matter -- because the thermodynamic component is defined as 'the mechanism that returns it to equilibrium' and (2.18)-(2.19) presuppose no external torque. So abp-rod is outside this book's frame, and our using <cos dtheta> instead of pe_per_particle was the practical reflection of that fact. It neither conflicts with nor supports our GSER-invalid conclusion (a different subject)",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

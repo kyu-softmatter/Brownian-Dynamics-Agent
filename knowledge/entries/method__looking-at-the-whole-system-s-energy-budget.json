@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "scratch/system_moduli.py",
+  "lessons": [
+    {
+      "claim": "Looking at the whole system's **energy budget** makes the conclusion stronger than fitting individual beads (n=9, ω=3000, a=1d, k_t×100). Measuring the total dissipation per period, K''_total = ∮F·dy/(π|ŷ|²): the driven bead alone (no chain) ωγ=18453 / attaching the DLVO chain still gives 18380 = **0.996x** / JKR gives 75590 = 4.10x (the chain accounts for 75.8% of the dissipation). ★★ That is, the DLVO chain is **rheologically invisible** -- looked at as a whole system, the dissipation is the same as just shaking one bead in water. ★ A cross-check with no free parameters: the energy integral agrees with (the lock-in K''_chain + ωγ) to DLVO -0.11% and JKR -0.17%. Because bdbot.lockin.k_star subtracts -iωγ by definition to give the chain's stiffness alone -- at first the two values looked -43%/+32% apart and the difference was exactly ωγ. On the storage side, from the 2ω component of the whole system's U, K'_sys = 4|Û_2ω|/|ŷ|²: JKR is 1.13x the driving-point K' (the bending is stored across the whole chain), while DLVO stores 641 even though the driving-point K'≈0 (the bonds do stretch, but it is not converted into a transverse restoring force).",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

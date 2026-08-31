@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "scratch/viz_three_cond.py / runs/chain-bend-2d-dlvo__n9-w3000-a1470*",
+  "lessons": [
+    {
+      "claim": "★★ The 3 driving protocols synthesized (n=9, ω=3000 rad/s, a=1d, 6 seeds) -- the conclusion that the DLVO chain's stiffness is 0 is protocol-independent. It in fact gets sharper the better the following: trap default (following 27%) K'=105.7±46.3 = 2.28σ from 0 / trap k_t×100 (following 100%) K'=-9.2±10.9 = 0.84σ / position forcing (following 100%) K_transfer'=1.52±2.30 = 0.66σ. ★ That is, the 'finite K'' visible with the default trap was not real elasticity but **an artefact created by the following failure**. JKR is 400~12000x larger and significant in all three conditions (3404σ at k_t×100). ⚠ The trap's K' (the driving-point stiffness) and position's K_transfer (the transfer stiffness) are physically different quantities, so comparing absolute values across conditions is forbidden -- only the DLVO/JKR contrast within each condition is valid.",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

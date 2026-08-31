@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "epistemics",
+    "prediction",
+    "post_hoc"
+  ],
+  "dimensionless": {},
+  "source": "mater_plan.md principle 9.2",
+  "lessons": [
+    {
+      "claim": "If the interpretation has to change after seeing the results, the new interpretation has to be independently confirmed by an observable other than the one that failed. In the ABP case, Lambda was measured from the director autocorrelation rather than the MSD, which is what distinguished it from curve fitting. The three grounds are: a different observable as the source, 0 free parameters, and simultaneous agreement across several conditions. And the fact that the original prediction failed is left in the record",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

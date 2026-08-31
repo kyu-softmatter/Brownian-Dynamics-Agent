@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/trap_2d_5um.py,cases/soft_r3_2d.py,cases/abp_rod_2d.py build()",
+  "lessons": [
+    {
+      "claim": "When migrating to RUN.builder, if a value the original main() passed straight into simulate() (seed, L_star, Dr_star, tau_tumble_star and so on) is missing from spec.params/numerics, build(spec) has no way of obtaining it -- because build() reads only the spec and does not re-read the case YAML. Before migrating, the argument list of the simulate() call in main() has to be compared against the key list of spec.params/numerics to find what is missing. All three cases were missing at least one each (seed or a Dr_star-like value). Adding these values changes the run_id (they are fields included in the physics hash) but is safe -- the existing run_id directories remain as they are.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

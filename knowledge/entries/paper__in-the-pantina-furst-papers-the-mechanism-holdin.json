@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "paper",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "intake/chain-bend-2d-dlvo/PhysRevLett.94.138301.pdf#p2",
+  "lessons": [
+    {
+      "claim": "In the Pantina&Furst papers the mechanism holding the colloids together is not a DLVO well but JKR adhesive contact. MgCl2 (10~500mM) only screens the double-layer repulsion to bring the particles to contact distance, and the actual bond is the finite contact area (a_c≈40nm) the vdW makes by elastically deforming the solid once the surfaces touch. That contact sustains a torque, which is why the chain bends like a beam -- PRL p.2: 'DLVO interactions between particles, which are centro-symmetric. If particles did undergo free rotations, we would expect... trianglelike structure'. Yielding is not spring rupture but de-pinning of the contact line (nanoscale surface-roughness pinning). The papers also state explicitly that the divalent-ion-induced excess attraction is 'a phenomenon Poisson-Boltzmann (the basis of DLVO) cannot hold' (p.3).",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

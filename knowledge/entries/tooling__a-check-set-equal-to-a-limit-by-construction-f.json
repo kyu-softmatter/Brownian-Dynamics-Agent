@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "floating_point",
+    "checks"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/checks.py#Check.ok",
+  "lessons": [
+    {
+      "claim": "A check set 'equal' to a limit by construction fails by accident because of floating point. chain-bend defines T_obs ≡ 100·(2π/ω) and (100x)/x came out as 99.99999999999999, so 'the number of observed periods ≥ 100' raised a false warning. The same spec's dt/τ_fast ≤ 1e-2 happened to divide exactly and passed -- that coincidence must not be relied on. Fixed by putting a relative tolerance of 1e-12 into Check.ok (the same intent as bdbot.nondim.RATIO_RTOL).",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

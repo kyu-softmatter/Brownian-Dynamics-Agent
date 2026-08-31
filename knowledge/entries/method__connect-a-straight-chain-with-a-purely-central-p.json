@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py#G1",
+  "lessons": [
+    {
+      "claim": "Connect a straight chain with a purely central pair potential (a DLVO secondary minimum and the like) and put the bonds at their natural length (U'(ℓ)=0), and the transverse (bending) linear stiffness is exactly 0 -- the coefficient of the O(y²) term is U'(ℓ), which vanishes at the natural length, and the restoring force starts from O(y³). Confirmed by measurement: n=9 3-point-bending oscillation, ω 10~30000 rad/s (7 points) and amplitude a/d 0.07~1.0 (5 points), with ensembles of 6~9 seeds. The cleaner the condition (low frequency ω=10: K'=42±9; large amplitude a=d: K'=106±46) the closer it converges to 0, and across the whole range it is more than 1000x smaller than the JKR model's bending stiffness (κ_θ*≈1.4e6 kT/d²). It agrees with what Pantina&Furst PRL 94 138301 p.2 predicted: 'DLVO being centro-symmetric → free rotation → triangle-like buckling'.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

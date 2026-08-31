@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "saos",
+    "lockin",
+    "normal_stress",
+    "measurement"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#4.3 ← [L] p.183,(5.120),(5.122)",
+  "lessons": [
+    {
+      "claim": "★ In SAOS the normal stress difference oscillates at twice the frequency of the shear stress and the imposed flow (2 omega) -- lock in at omega only and the normal stress cannot be seen in principle (our lockin.k_star is an omega channel so it sees the shear component only). And eta' = G''/omega, eta'' = G'/omega are crossed over, so reversing the order is a common mistake",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

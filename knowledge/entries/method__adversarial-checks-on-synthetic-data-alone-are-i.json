@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "validation",
+    "testing",
+    "adversarial"
+  ],
+  "dimensionless": {},
+  "source": "scratch/verify_health.py",
+  "lessons": [
+    {
+      "claim": "Adversarial checks on synthetic data alone are insufficient. The L4 judge was tested on 25 synthetic cases and passed them all, and applying it to 33 real runs immediately exposed 2 bugs (a false positive on a cumulative quantity, and the time axis of a logarithmic interval). Have the regression tests point at the data that actually broke",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

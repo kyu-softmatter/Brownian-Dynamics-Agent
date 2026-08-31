@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "rod",
+    "relaxation",
+    "saos"
+  ],
+  "dimensionless": {
+    "De_peak": 6.0
+  },
+  "source": "docs/books/leal_microstructural_rheology.md#4.2 ← [L] (5.121b) pp.180,183",
+  "lessons": [
+    {
+      "claim": "The orientational relaxation time of a dilute axisymmetric-particle suspension is 1/(6 Dr) -- neither 1/Dr nor 1/(2Dr). The loss term is De/(36+De^2) (De=omega/Dr) so the pole is at De=6, and this function is exactly the same as a single Maxwell mode with lambda=1/(6Dr) up to one proportionality constant (deviation <1e-12). That is, this system's linear viscoelasticity is exactly a single Maxwell mode. ★ But the 6 is the coefficient of the 3D l=2 (stress) mode, so applying it to a first moment or to a 2D angular correlation (abp-rod's <cos dtheta>) is wrong",
+      "kind": "scaling",
+      "coords": {
+        "De_peak": 6.0
+      }
+    }
+  ],
+  "not_verified": [
+    "the 2D coefficient was not confirmed from this book"
+  ]
+}

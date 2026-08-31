@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "rod",
+    "effective_diffusion",
+    "pitfall"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#7 ← [L] p.219",
+  "lessons": [
+    {
+      "claim": "A model in which 'the effective rotational diffusion is proportional to the shear rate' (the Folgar-Tucker family) has no relaxation mechanism at all when there is no flow -- it cannot predict the elasticity or relaxation of a system at rest. Such a model must not be used for an observable that needs equilibrium relaxation",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

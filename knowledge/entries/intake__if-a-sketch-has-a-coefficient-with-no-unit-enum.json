@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "dimensional_analysis"
+  ],
+  "dimensionless": {},
+  "source": "intake/soft-r3-2d-A-sweep/observation.yaml#A1",
+  "lessons": [
+    {
+      "claim": "If a sketch has a coefficient with no unit, enumerate every dimensionally possible reading, pick the one that does not contradict the sketch's goal, and state that it is 'an inference from the goal'. Only the dimensionless reading of soft-r3's A was consistent with the structural observation goal (under the µm³ reading, Γ≤0.24 and no structure appears at all)",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
