@@ -1,11 +1,12 @@
-"""S5 — HOOMD BD 러너. 조화 트랩 계.
+"""S5 — the HOOMD BD runner. The harmonic-trap system.
 
-산출물:
-  - `samples.npz`   : 평형 위치 표본 + MSD 용 시계열 (float32)
-  - `manifest.json` : 재현에 필요한 전부 (spec/예측 해시, seed, 버전, 가드 결과)
+Artefacts:
+  - `samples.npz`   : equilibrium position samples + the MSD time series (float32)
+  - `manifest.json` : everything reproduction needs (spec/prediction hashes, seed,
+                      versions, guard results)
 
-설계 원칙: **러너는 판정하지 않는다.** 수치를 내놓고 가드 위반만 보고한다.
-판정은 S7 이 하고, 확정은 사람이 한다 (CLAUDE.md §판정).
+Design principle: **the runner does not judge.** It produces numbers and reports
+guard violations only. S7 judges, and a human confirms (CLAUDE.md §verdicts).
 """
 from __future__ import annotations
 
@@ -28,15 +29,16 @@ from .io import provenance as _provenance
 
 @dataclass
 class TrapRunConfig:
-    """조화 트랩 런 1회의 완전 명세. 축약 단위 (l_trap, kT, tau_trap)."""
+    """The complete specification of one harmonic-trap run. Reduced units
+    (l_trap, kT, tau_trap)."""
 
     dim: int = 2
     n_particles: int = 1000
     dt_star: float = 5.0e-3
-    equil_tau: float = 10.0            # 평형화 길이 [tau_trap]
-    prod_tau: float = 40.0             # 프로덕션 길이 [tau_trap]
-    sample_interval_tau: float = 2.0   # 독립 표본 간격 [tau_trap]
-    msd_frames: int = 500              # MSD 용 시계열 프레임 수
+    equil_tau: float = 10.0            # equilibration length [tau_trap]
+    prod_tau: float = 40.0             # production length [tau_trap]
+    sample_interval_tau: float = 2.0   # independent-sample spacing [tau_trap]
+    msd_frames: int = 500              # frames in the MSD time series
     box_over_l_trap: float = 200.0
     k_star: float = 1.0
     seed: int = 1
@@ -66,7 +68,7 @@ class TrapRunConfig:
 @dataclass
 class TrapRunResult:
     config: dict
-    # 평형 표본 (독립 시점들)
+    # equilibrium samples (independent time points)
     n_independent_snapshots: int
     var_per_component_star: float          # <x*^2>
     var_per_component_se: float
@@ -77,7 +79,7 @@ class TrapRunResult:
     # MSD
     msd_lags_tau: list[float]
     msd_star: list[float]
-    # 실행 정보
+    # run information
     wall_s: float
     guards: dict
     manifest: dict
@@ -85,7 +87,7 @@ class TrapRunResult:
 
 def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
              extra_manifest: dict | None = None) -> TrapRunResult:
-    """조화 트랩 BD 런 1회."""
+    """One harmonic-trap BD run."""
     import hoomd
 
     t0 = time.perf_counter()
@@ -106,10 +108,10 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
         s = sim.state.get_snapshot()
         return np.array(s.particles.position[:, :cfg.dim], dtype=np.float64)
 
-    # --- 평형화 ---
+    # --- equilibration ---
     sim.run(cfg.equil_steps)
 
-    # --- 프로덕션: MSD 시계열 + 독립 표본 동시 수집 ---
+    # --- production: collect the MSD series and independent samples together ---
     stride = cfg.msd_stride
     n_frames = cfg.prod_steps // stride
     traj = np.empty((n_frames, cfg.n_particles, cfg.dim), dtype=np.float32)
@@ -146,25 +148,25 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
                              cfg.k_star * float(np.linalg.norm(p, axis=1).max()))
 
         if f % indep_every == 0:
-            indep_var.append(float(np.mean(p**2)))          # 성분별 <x*^2>
+            indep_var.append(float(np.mean(p**2)))          # per-component <x*^2>
             indep_kT.append(configurational_temperature(
                 cfg.k_star * p, laplacian_U_total=cfg.dim * cfg.k_star))
 
     wall = time.perf_counter() - t0
 
-    # --- 집계 ---
+    # --- aggregation ---
     def mean_se(a: list[float]) -> tuple[float, float]:
         arr = np.asarray(a, dtype=np.float64)
         if arr.size < 2:
-            return float(arr.mean()), float("nan")   # 표본 1개면 오차를 주장할 수 없다
+            return float(arr.mean()), float("nan")   # 1 sample claims no error
         return float(arr.mean()), float(arr.std(ddof=1) / np.sqrt(arr.size))
 
     var_c, var_c_se = mean_se(indep_var)
     kTc, kTc_se = mean_se(indep_kT)
-    # <r*^2> = dim * <x*^2>  (등방)
+    # <r*^2> = dim * <x*^2>  (isotropic)
     var_r, var_r_se = cfg.dim * var_c, cfg.dim * var_c_se
 
-    # --- MSD (다중 시간원점) ---
+    # --- MSD (multiple time origins) ---
     max_lag = min(n_frames - 1, int(round(10.0 / (stride * cfg.dt_star))))
     lags = np.unique(np.geomspace(1, max(max_lag, 2), 40).astype(int))
     msd = []
@@ -174,10 +176,10 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
 
     manifest = {
         "run_hash": cfg.hash(),
-        **_provenance(),                    # code_hash·git·env_hash·env — 한 곳에서
-        #  ★ `hoomd_version`·`python` 은 `env` 안에도 있다. 남겨 두는 이유는
-        #    **이미 디스크에 있는 manifest 들이 이 키를 쓰기 때문**이다 —
-        #    리더(`report`·분석 스크립트)가 옛 런과 새 런을 함께 읽어야 한다.
+        **_provenance(),                    # code_hash·git·env_hash·env — one place
+        #  ★ `hoomd_version` and `python` are also inside `env`. They are kept
+        #    because **the manifests already on disk use these keys** -- the readers
+        #    (`report`, the analysis scripts) have to read old and new runs together.
         "hoomd_version": __import__("hoomd").version.version,
         "python": platform.python_version(),
         "platform": platform.platform(),
@@ -196,7 +198,7 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
     if not fd_ok:
         guard_fail.append(f"{fd_why} (|F*|max = {max_force_star:.4g} kT/l_trap)")
     guards = {
-        "finite": not any("non-finite" in g or "비유한값" in g for g in guard_fail),
+        "finite": not any("non-finite" in g for g in guard_fail),
         "failures": guard_fail,
         "max_step_displacement_l_trap": max_disp,
         "max_force_star": max_force_star,
@@ -228,16 +230,18 @@ def run_trap(cfg: TrapRunConfig, *, outdir: Path | None = None,
 
 
 # =============================================================================
-# 배치 — 독립 런 동시 실행
+# Batch — running independent runs concurrently
 # =============================================================================
-#  HOOMD 는 완전 단일스레드다 (v3+ 에서 TBB 제거, MPI 빌드 없음). 따라서 **독립 런
-#  동시 실행이 유일한 병렬화 경로**다. 프로세스로 띄우는 이유도 그것이다.
-#  근거: knowledge/wiki/findings/local-cpu-parallelism.md
+#  HOOMD is entirely single-threaded (TBB was removed in v3+, and this is not an MPI
+#  build). So **running independent runs concurrently is the only parallelization
+#  path**, which is also why they are launched as processes.
+#  Basis: knowledge/wiki/findings/local-cpu-parallelism.md
 def run_trap_batch(configs: list[TrapRunConfig], outroot: Path,
                    concurrency: int = 8, *, on_done=None) -> dict:
-    """`configs` 를 동시 `concurrency` 개씩 실행. 실패한 런은 버리지 않고 기록한다.
+    """Run `configs` `concurrency` at a time. A failed run is recorded, not dropped.
 
-    조용히 빠진 런이 있으면 "시드 4개"라고 적힌 오차막대가 실제로는 3개짜리가 된다.
+    A run that goes missing quietly turns an error bar labelled "4 seeds" into one
+    that actually had 3.
     """
     import subprocess
     import sys
@@ -305,33 +309,35 @@ if __name__ == "__main__":
 
 
 # =============================================================================
-# 2D 소프트 반발계 러너 — `A/r^p`
+# The 2D soft-repulsive runner — `A/r^p`
 # =============================================================================
-#  카드: knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md
-#  축약 단위: 길이 `d = n^{-1/2}` · 에너지 `kT` · 시간 `tau_d = d^2/D0`
+#  Card: knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md
+#  Reduced units: length `d = n^{-1/2}` · energy `kT` · time `tau_d = d^2/D0`
 #  ⇒ kT* = 1, gamma* = 1, D* = 1, n* = 1, tau_d* = 1
 @dataclass
 class Soft2DRunConfig:
-    """`U = A/r^p` 2D 계 런 1회의 완전 명세 (축약 단위)."""
+    """The complete specification of one `U = A/r^p` 2D run (reduced units)."""
 
     amplitude: float = 100.0            # A = beta*U(r=d)
     exponent: float = 3.0
     n_particles: int = 100
-    density_star: float = 1.0           # 정의상 1 (길이 단위가 n^{-1/2})
-    r_cut: float = 0.0                  # 0 이면 L/2 * 0.99 로 자동
-    r_min: float = 0.2                  # Table 하한
-    nlist_buffer: float = 0.1           # Cell 버퍼 (절대 거리). r_cut+buffer <= L/2
+    density_star: float = 1.0           # 1 by definition (length unit is n^{-1/2})
+    r_cut: float = 0.0                  # 0 means automatic, L/2 * 0.99
+    r_min: float = 0.2                  # the Table's lower bound
+    nlist_buffer: float = 0.1           # cell buffer (absolute). r_cut+buffer <= L/2
     init: str = "random"                # random | hex
     box_shape: str = "auto"             # auto | square | hex_commensurate
-                                        # ★ auto 는 init 에 따라 갈린다 → 초기조건 비교를
-                                        #   교란한다. 비교할 때는 명시할 것 (아래 참조)
+                                        # ★ auto branches on init → it contaminates
+                                        #   an initial-condition comparison. State it
+                                        #   explicitly when comparing (see below)
     dt_star: float = 2.0e-5
     equil_tau: float = 10.0             # [tau_d]
     prod_tau: float = 20.0
     n_frames: int = 200
     min_sep_init: float = 0.5
-    max_tries_init: int = 20000         # 기각표집 시도 한도. n*=1 에서 min_sep=0.8 은
-                                        # 200 회로 실패한다 (실측) — 마지막 몇 개가 어렵다
+    max_tries_init: int = 20000         # rejection-sampling try limit. At n*=1,
+                                        # min_sep=0.8 fails within 200 tries
+                                        # (measured) — the last few are the hard ones
     seed: int = 1
     label: str = ""
 
@@ -353,19 +359,22 @@ class Soft2DRunConfig:
 
 
 def build_soft2d(hoomd, cfg: Soft2DRunConfig):
-    """스냅샷 + 쌍 포텐셜 + 상자 정보. 러너와 `max|F|` 측정이 공유한다."""
+    """Snapshot + pair potential + box info. Shared by the runner and the `max|F|`
+    measurement."""
     from .build import (hex_2d_snapshot, hex_tiling_for, random_2d_snapshot,
                         square_box_for)
     from .forces import power_law_table
 
-    # ★★ 상자 모양을 초기조건과 **분리한다** (2026-07-29).
-    #  처음에는 `hex` → 육방정합 상자(종횡비 1.1547), `random` → 정사각(1.0) 으로
-    #  묶어 두었다. 그러면 hex vs random 비교가 초기조건 외에
-    #    ① 상자 종횡비  ② r_cut (= min(L)/2 에서 파생되므로 4.46 vs 4.80)
-    #  까지 함께 바꾼다. 실측 결과 `A=0.1` 의 S(k) 6겹 변조가 hex 상자에서
-    #  0.215–0.461, 정사각에서 0.004–0.008 로 **50배** 갈렸다 — 육방정합 상자에서는
-    #  Bragg k-벡터가 허용 k-격자에 정확히 놓이기 때문이다 (측정량이 상자 모양에 의존).
-    #  ⇒ 초기조건을 비교하려면 `box_shape` 를 **같게 고정**해야 한다.
+    # ★★ The box shape is **decoupled** from the initial condition (2026-07-29).
+    #  Originally they were tied together: `hex` → a hex-commensurate box (aspect
+    #  1.1547), `random` → square (1.0). That made a hex vs random comparison also
+    #  change
+    #    ① the box aspect ratio  ② r_cut (derived from min(L)/2, so 4.46 vs 4.80)
+    #  Measured: the S(k) 6-fold modulation at `A=0.1` came out 0.215–0.461 in the
+    #  hex box and 0.004–0.008 in the square one -- **50x apart** -- because in a
+    #  hex-commensurate box the Bragg k-vectors land exactly on the allowed k-grid
+    #  (the measurement depends on the box shape).
+    #  ⇒ To compare initial conditions, `box_shape` has to be **fixed the same**.
     shape = cfg.box_shape
     if shape == "auto":
         shape = "hex_commensurate" if cfg.init == "hex" else "square"
@@ -380,15 +389,17 @@ def build_soft2d(hoomd, cfg: Soft2DRunConfig):
         geom = {"Lx": Lx, "Ly": Ly, "a_nn": None, "aspect": 1.0,
                 "n_particles": cfg.n_particles, "density_star": cfg.density_star}
     else:
-        raise ValueError(f"box_shape {shape!r} 는 'square' 또는 "
-                         f"'hex_commensurate' 여야 한다")
+        raise ValueError(f"box_shape {shape!r} must be 'square' or "
+                         f"'hex_commensurate'")
 
     if cfg.init == "hex":
         if shape != "hex_commensurate":
             raise ValueError(
-                "육방 초기배치는 육방정합 상자에서만 완벽하다. "
-                f"box_shape={shape!r} 로는 주기경계가 격자를 끊어 인공 결함이 생긴다 "
-                "(test_s5_pair.py::test_rotating_a_periodic_crystal... 참조)")
+                "a hexagonal initial placement is only perfect in a "
+                "hex-commensurate box. "
+                f"With box_shape={shape!r} the periodic boundary cuts the lattice "
+                f"and creates artificial defects "
+                "(see test_s5_pair.py::test_rotating_a_periodic_crystal...)")
         nx, ny = hex_tiling_for(cfg.n_particles)
         snap, geom = hex_2d_snapshot(hoomd, n_x=nx, n_y=ny,
                                      density_star=cfg.density_star)
@@ -397,17 +408,17 @@ def build_soft2d(hoomd, cfg: Soft2DRunConfig):
                                   min_sep=cfg.min_sep_init, seed=cfg.seed,
                                   max_tries=cfg.max_tries_init)
     else:
-        raise ValueError(f"init {cfg.init!r} 는 'random' 또는 'hex' 여야 한다")
+        raise ValueError(f"init {cfg.init!r} must be 'random' or 'hex'")
     info = {**geom, "box_shape": shape}
 
-    # ★ HOOMD 는 `r_cut + buffer <= L/2` 를 요구한다 (r_cut 만이 아니다).
-    #   버퍼 자리를 남기고 r_cut 을 정한다.
+    # ★ HOOMD requires `r_cut + buffer <= L/2` (not r_cut alone).
+    #   r_cut is chosen leaving room for the buffer.
     half = min(Lx, Ly) / 2
     r_cut = cfg.r_cut or (0.98 * half - cfg.nlist_buffer)
     if r_cut + cfg.nlist_buffer > half:
         raise ValueError(
             f"r_cut({r_cut:.4f}) + buffer({cfg.nlist_buffer:.4f}) > L/2({half:.4f}) "
-            f"— 최소이미지 위반. N 을 늘리거나 r_cut/buffer 를 줄일 것")
+            f"— minimum-image violation. Raise N, or reduce r_cut/buffer")
     pair, pinfo = power_law_table(hoomd, amplitude=cfg.amplitude,
                                  exponent=cfg.exponent, r_cut=r_cut,
                                  r_min=cfg.r_min, buffer=cfg.nlist_buffer)
@@ -415,10 +426,12 @@ def build_soft2d(hoomd, cfg: Soft2DRunConfig):
 
 
 def measure_max_force_soft2d(cfg: Soft2DRunConfig) -> dict:
-    """초기배치에서 **실제 힘을 계산한다.** 추정 금지 (master_plan §5.4).
+    """**Computes the actual force** on the initial placement. Estimating is
+    forbidden (master_plan §5.4).
 
-    힘 변위 제약 `max|F|Δt ≤ δ_F` 를 걸려면 이 값이 필요하고, 이 계에서는
-    **힘 제약이 열 변위 제약을 이긴다** (`A=100` 에서 최근접 힘이 `~225 kT/d`).
+    This value is needed to impose the force-displacement constraint
+    `max|F|Δt ≤ δ_F`, and in this system **the force constraint beats the thermal
+    displacement one** (the nearest-neighbour force at `A=100` is `~225 kT/d`).
     """
     import hoomd
 
@@ -429,7 +442,7 @@ def measure_max_force_soft2d(cfg: Soft2DRunConfig) -> dict:
                                   default_gamma=1.0)
     sim.operations.integrator = hoomd.md.Integrator(dt=cfg.dt_star, methods=[bd],
                                                    forces=[pair])
-    sim.run(0)                                   # 힘을 계산시킨다
+    sim.run(0)                                   # make it compute the force
     f = np.asarray(pair.forces)
     mag = np.linalg.norm(f[:, :2], axis=1)
     return {"max_force_star": float(mag.max()), "mean_force_star": float(mag.mean()),
@@ -438,7 +451,8 @@ def measure_max_force_soft2d(cfg: Soft2DRunConfig) -> dict:
 
 def run_soft2d(cfg: Soft2DRunConfig, *, outdir: Path | None = None,
                extra_manifest: dict | None = None) -> dict:
-    """`A/r^p` 2D 계 BD 런 1회. **판정하지 않는다** — 궤적과 가드만 돌려준다."""
+    """One `A/r^p` 2D BD run. **It does not judge** — it returns the trajectory and
+    the guards."""
     import hoomd
 
     t0 = time.perf_counter()
@@ -482,13 +496,13 @@ def run_soft2d(cfg: Soft2DRunConfig, *, outdir: Path | None = None,
             break
     wall = time.perf_counter() - t0
 
-    # --- 가드: Table 하한을 벗어났는가 ---
+    # --- guard: did it leave the Table's lower bound ---
     from .analysis.structure import min_separation
     sep = min_separation(traj[:k + 1], Lx=Lx, Ly=Ly)
     if sep < cfg.r_min:
         guard_fail.append(
-            f"최소분리 {sep:.4f} < r_min {cfg.r_min} — Table 표를 벗어났다. "
-            f"U(r) 가 조용히 틀렸을 수 있다")
+            f"minimum separation {sep:.4f} < r_min {cfg.r_min} — it left the Table. "
+            f"U(r) may be quietly wrong")
 
     #  ★ This runner already **measured** `force_displacement_star` and never
     #    compared it to anything. Same bound as `bdbot.run.StepGuard`
@@ -503,7 +517,7 @@ def run_soft2d(cfg: Soft2DRunConfig, *, outdir: Path | None = None,
     if not fd_ok:
         guard_fail.append(fd_why)
     guards = {
-        "finite": not any("non-finite" in g or "비유한값" in g for g in guard_fail),
+        "finite": not any("non-finite" in g for g in guard_fail),
         "failures": guard_fail,
         "min_separation": sep,
         "min_separation_over_r_min": sep / cfg.r_min,
@@ -515,13 +529,14 @@ def run_soft2d(cfg: Soft2DRunConfig, *, outdir: Path | None = None,
         "thermal_displacement_star": float(np.sqrt(2 * cfg.dt_star)),
         "n_frames": int(k + 1),
     }
-    #  ★ `hoomd` 만 기록하면 부족하다 — 이 런의 가드(`min_separation`)와 뒤따르는
-    #    분석이 `freud`·`numpy`·`scipy` 를 쓴다. 버전이 올라가면 같은 궤적에서
-    #    다른 측정값이 나올 수 있고, 기록이 없으면 그 사실을 알 수 없다.
+    #  ★ Recording `hoomd` alone is not enough -- this run's guard
+    #    (`min_separation`) and the analysis that follows use `freud`, `numpy` and
+    #    `scipy`. A version bump can give a different measurement from the same
+    #    trajectory, and with no record there is no way to know that.
     manifest = {
         "run_hash": cfg.hash(),
-        **_provenance(),                    # code_hash·git·env_hash·env — 한 곳에서
-        "hoomd_version": __import__("hoomd").version.version,   # 옛 manifest 호환
+        **_provenance(),                    # code_hash·git·env_hash·env — one place
+        "hoomd_version": __import__("hoomd").version.version,   # old-manifest compat
         "python": platform.python_version(), "seed": cfg.seed,
         "wall_s": round(wall, 3), **(extra_manifest or {}),
     }
