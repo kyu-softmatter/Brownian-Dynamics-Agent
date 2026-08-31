@@ -20,6 +20,19 @@ What a translation is allowed to change: **the words**. What it must not change:
                 return value of a function; a translation that perturbs one is not
                 a translation. Percent signs, exponents and separators are kept
                 attached so that 1e-2, 1.65% and 1,255 stay distinguishable.
+                One exception, and it is measured rather than assumed: a numeral
+                IMMEDIATELY followed by a Hangul character is part of a Korean
+                word, not a measurement -- the 2 of `2차극소` is the "second" of
+                "secondary minimum", the 3 of `3종` is "three", the 1 of `1개` is
+                "one". Those become English words, so they are censused
+                separately and EXEMPTED in both directions: such a numeral may
+                vanish (`2차극소` -> "secondary minimum") or persist (`28종` ->
+                "28 isotropic"), and neither is a finding. What is still a
+                finding: a numeral in OLD that was not Hangul-attached and is now
+                missing, or a numeral in NEW that OLD's exempt pool cannot
+                account for. Calibrating on docs/hoomd_capabilities.md, 9 of the
+                11 number findings were exactly this and 2 were real bugs I had
+                introduced.
   markers       the multiset of correction/emphasis markers the user asked to be
                 preserved explicitly -- ★ ⭐ ⚠️ ⛔ ✅ ❌ ⟹ → and the circled
                 digits, plus the count of **bold** runs.
@@ -107,7 +120,10 @@ def parse(text: str) -> dict:
         "fences": fences,
         "tables": tables,
         "links": LINK.findall(text),
-        "numbers": Counter(NUM.findall(text)),
+        "numbers": Counter(m.group(0) for m in NUM.finditer(text)
+                           if not KO.match(text, m.end())),
+        "_ko_numerals": Counter(m.group(0) for m in NUM.finditer(text)
+                                if KO.match(text, m.end())),
         "markers": Counter(ch for ch in text if ch in MARKERS),
         "bold": len(BOLD.findall(text)),
         "_fence_ko": fence_ko,
@@ -157,11 +173,15 @@ def compare(old: str, new: str) -> list:
             p += _fence_diff(f"code fence #{i}", fa, fb)
     p += _seq_diff("table shapes", A["tables"], B["tables"])
     p += _seq_diff("link targets", A["links"], B["links"])
-    for label, key in (("numbers", "numbers"), ("markers", "markers")):
-        if A[key] != B[key]:
-            lost = A[key] - B[key]
-            gained = B[key] - A[key]
-            p.append(f"{label} changed: lost {dict(lost)} gained {dict(gained)}")
+    # numbers: OLD's Hangul-attached numerals are exempt in BOTH directions
+    new_all = B["numbers"] + B["_ko_numerals"]
+    lost = A["numbers"] - new_all
+    gained = new_all - A["numbers"] - A["_ko_numerals"]
+    if lost or gained:
+        p.append(f"numbers changed: lost {dict(lost)} gained {dict(gained)}")
+    if A["markers"] != B["markers"]:
+        p.append(f"markers changed: lost {dict(A['markers'] - B['markers'])} "
+                 f"gained {dict(B['markers'] - A['markers'])}")
     if A["bold"] != B["bold"]:
         p.append(f"bold runs: {A['bold']} -> {B['bold']}")
     return p
@@ -177,6 +197,18 @@ SELFTESTS = [
     ("number dropped", "a 42 b 7\n", "a 42 b\n", True),
     ("exponent changed", "dt = 1e-2\n", "dt = 1e-3\n", True),
     ("thousands sep kept", "1,255 lines\n", "1,255 rows\n", False),
+    ("korean ordinal becomes a word", "2차극소 유지\n", "the secondary minimum holds\n", False),
+    # both numerals here are Hangul-attached, so 21 persisting and 3 becoming
+    # "three" are both allowed -- this is the exemption working, not a miss
+    ("korean counters, one kept one worded", "원 21개 · 3종 전부\n",
+     "21 circles, all three\n", False),
+    ("latin-suffixed numeral still checked", "10mM salt\n", "11mM salt\n", True),
+    ("numeral, space, hangul still checked", "N=1528 에서\n", "at N=1527\n", True),
+    ("korean-attached numeral may persist", "등방 페어 28종\n", "28 isotropic pairs\n", False),
+    ("korean-attached numeral may vanish", "등방 페어 28종\n", "isotropic pairs\n", False),
+    ("but an unaccounted new numeral is a finding", "등방 페어 28종\n",
+     "28 isotropic pairs over 3 runs\n", True),
+    ("and it is only exempt up to its count", "2차극소 하나\n", "2 and 2 minima\n", True),
     ("link target changed", "[x](a.md)\n", "[y](b.md)\n", True),
     ("link label only", "[한국어](a.md)\n", "[English](a.md)\n", False),
     ("code line changed", "```py\nx = 1\n```\n", "```py\nx = 2\n```\n", True),
@@ -224,14 +256,17 @@ def main() -> int:
     old, new = old_p.read_text(encoding="utf-8"), new_p.read_text(encoding="utf-8")
     problems = compare(old, new)
     ko_left = sum(1 for ln in new.split("\n") if KO.search(ln))
-    fence_ko = parse(old)["_fence_ko"]
+    A = parse(old)
+    fence_ko = A["_fence_ko"]
+    ko_num = sum(A["_ko_numerals"].values())
     if problems:
         print(f"DIFF {new_p}: {len(problems)} structural difference(s)")
         for line in problems:
             print("  " + line)
         return 1
     print(f"OK   {new_p}: structure identical, only prose differs "
-          f"(fenced lines with Hangul in OLD: {fence_ko}), Hangul lines left {ko_left}")
+          f"(fenced lines with Hangul in OLD: {fence_ko}, "
+          f"Hangul-attached numerals in OLD: {ko_num}), Hangul lines left {ko_left}")
     return 0
 
 
