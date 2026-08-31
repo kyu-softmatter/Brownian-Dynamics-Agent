@@ -304,7 +304,7 @@ def test_unsealed_extra_measurement_is_reported(sealed_rundir):
 
 def test_empty_prediction_is_reported(sealed_rundir):
     rep = V.validate_run(Prediction(items=[]), {}, rundir=sealed_rundir)
-    assert any("0개" in p for p in rep.problems)
+    assert any("0 quantitative predictions" in p for p in rep.problems)
 
 
 # =============================================================================
