@@ -1,8 +1,8 @@
-"""S0 — 단위·상수·무차원화 척도. 모든 단계의 기반.
+"""S0 — units, constants and non-dimensionalization scales. The base of every stage.
 
-이 파일이 잡으려는 버그: **조용히 틀리는 종류.**
-반지름/직경 혼동, kT 와 eta 혼동, 왕복 변환 손실 — 발산하지 않으므로
-테스트가 없으면 영영 모른다.
+The bug class this file is out to catch: **the silently wrong kind.**
+Radius/diameter confusion, kT confused with eta, round-trip conversion loss --
+none of them diverge, so without a test you never find out.
 """
 from __future__ import annotations
 
@@ -16,33 +16,34 @@ from simbot.units import (
 )
 
 
-# --- 상수 -------------------------------------------------------------------
+# --- constants --------------------------------------------------------------
 def test_boltzmann_is_si_2019_exact_value():
     assert K_B == 1.380649e-23
 
 
 @pytest.mark.parametrize("T_si,expected_pN_nm", [
-    (293.15, 4.047373),   # 20 C  — 정정 2026-07-28: 4.047872 로 잘못 적었던 값
+    (293.15, 4.047373),   # 20 C  — corrected 2026-07-28: had wrongly read 4.047872
     (298.15, 4.116405),   # 25 C
-    (300.00, 4.141947),   # 300 K — 첫 손그림
+    (300.00, 4.141947),   # 300 K — the first hand sketch
 ])
 def test_kT_in_pN_nm(T_si, expected_pN_nm):
-    """1 pN*nm = 1e-21 J. 광집게 문헌이 이 단위를 쓴다."""
+    """1 pN*nm = 1e-21 J. The optical-tweezer literature uses this unit."""
     assert kT_si(T_si) * 1e21 == pytest.approx(expected_pN_nm, rel=1e-6)
 
 
-# --- 물 물성 ----------------------------------------------------------------
+# --- water properties -------------------------------------------------------
 def test_water_viscosity_at_table_points_is_exact():
-    """표에 있는 점은 보간하지 않는다."""
+    """A point that is in the table is not interpolated."""
     eta, extrap = water_viscosity_si(298.15)
     assert eta == 0.8900e-3
     assert extrap is False
 
 
 def test_water_viscosity_20C_and_25C_differ_by_11_percent():
-    """★ 가장 흔한 혼동: 1.002 mPa*s 는 20 C 값이고 25 C 는 0.890 mPa*s.
+    """★ The most common confusion: 1.002 mPa*s is the 20 C value; 25 C is
+    0.890 mPa*s.
 
-    이 차이(11 %)가 D0 와 모든 시간척도에 그대로 전파된다.
+    That difference (11 %) propagates straight into D0 and every timescale.
     """
     eta20, _ = water_viscosity_si(293.15)
     eta25, _ = water_viscosity_si(298.15)
@@ -54,18 +55,20 @@ def test_water_viscosity_20C_and_25C_differ_by_11_percent():
 def test_water_viscosity_interpolates_monotonically():
     ts = [293.15, 295.0, 298.15, 300.0, 303.15, 306.0, 308.15]
     etas = [water_viscosity_si(t)[0] for t in ts]
-    assert all(a > b for a, b in zip(etas, etas[1:])), "점도는 온도에 단조감소"
+    assert all(a > b for a, b in zip(etas, etas[1:])), \
+        "viscosity decreases monotonically with temperature"
 
 
 def test_water_viscosity_at_300K_matches_recorded_value():
-    """첫 손그림의 T = 300 K. 예측 문서에 봉인된 값과 일치해야 한다."""
+    """T = 300 K, from the first hand sketch. Must match the sealed prediction."""
     eta, extrap = water_viscosity_si(300.0)
     assert extrap is False
     assert eta == pytest.approx(8.5566e-4, rel=1e-4)
 
 
 def test_water_viscosity_flags_extrapolation():
-    """보간 범위(293-308 K) 밖은 외삽임을 알려야 한다 — provenance 를 낮추기 위해."""
+    """Outside the interpolation range (293-308 K) it must say so -- in order to
+    lower the provenance."""
     _, extrap_lo = water_viscosity_si(280.0)
     _, extrap_hi = water_viscosity_si(330.0)
     _, extrap_in = water_viscosity_si(300.0)
@@ -77,24 +80,25 @@ def test_water_density_is_near_1000():
     assert 990 < rho < 1000
 
 
-# --- Stokes 항력: 반지름 vs 직경 -------------------------------------------
+# --- Stokes drag: radius vs diameter ----------------------------------------
 def test_stokes_drag_uses_radius_not_diameter():
-    """★ `master_plan` §S3 이 "가장 흔한 실수"로 지목한 버그를 고정한다.
+    """★ Pin the bug `master_plan` §S3 names as "the most common mistake".
 
-    gamma = 6*pi*eta*a  (a = 반지름).  직경을 넣으면 gamma 가 2배가 되고
-    D0 가 절반이 되어 **모든 시간척도가 2배 틀린다.** 발산하지 않는다.
+    gamma = 6*pi*eta*a  (a = the radius).  Pass the diameter and gamma doubles,
+    D0 halves, and **every timescale is wrong by 2x.** It does not diverge.
     """
     eta, a = 1e-3, 5e-6
     gamma = stokes_drag_si(eta, a)
     assert gamma == pytest.approx(6 * math.pi * eta * a)
-    # 직경을 넣으면 정확히 2배 — 이 관계를 테스트로 못박아 둔다
+    # the diameter gives exactly 2x — nail that relation down as a test
     assert stokes_drag_si(eta, 2 * a) == pytest.approx(2 * gamma)
 
 
 def test_stokes_einstein_reference_case_1um_sphere_in_water_25C():
-    """문헌 관례값: 물 25 C 에서 지름 1 um 구는 D ~ 0.49 um^2/s.
+    """The literature's conventional value: a 1 um-diameter sphere in water at
+    25 C has D ~ 0.49 um^2/s.
 
-    knowledge/wiki/concepts/water-298k.md 의 참조 케이스.
+    The reference case in knowledge/wiki/concepts/water-298k.md.
     """
     T, a = 298.15, 0.5e-6
     eta, _ = water_viscosity_si(T)
@@ -105,16 +109,17 @@ def test_stokes_einstein_reference_case_1um_sphere_in_water_25C():
     assert tau_B == pytest.approx(2.037, rel=2e-3)        # s
 
 
-# --- Scales 왕복 ------------------------------------------------------------
+# --- Scales round-trip ------------------------------------------------------
 ALL_KINDS = ["length", "energy", "time", "force", "stiffness", "velocity",
              "diffusivity", "rate", "modulus_3d", "area", "volume"]
 
 
 @pytest.mark.parametrize("kind", ALL_KINDS)
 def test_scales_roundtrip_is_lossless(kind):
-    """SI -> star -> SI 왕복 오차가 부동소수점 한계 이내여야 한다.
+    """The SI -> star -> SI round-trip error must be within the floating-point
+    limit.
 
-    `master_plan` §S4 게이트: 상대오차 < 1e-12
+    `master_plan` §S4 gate: relative error < 1e-12
     """
     s = Scales(length_si=2.0352e-8, energy_si=4.1419e-21, time_si=8.0644e-3)
     value_si = 3.14159e-7
@@ -138,12 +143,13 @@ def test_derived_scales_are_dimensionally_consistent():
     assert s.modulus_3d_si == pytest.approx(7.0 / 27.0)
 
 
-# --- 카드별 척도의 정의 불변식 ---------------------------------------------
+# --- definitional invariants of each card's scales --------------------------
 def test_harmonic_trap_scales_normalize_D_and_k_to_exactly_one():
-    """★ 조화 트랩 카드 §3 의 핵심 주장.
+    """★ The central claim of harmonic-trap card §3.
 
-    (l_trap, kT, tau_trap) 을 고르면 무차원 운동방정식이 파라미터 없이
-    `dr*/dt* = -r* + sqrt(2) xi` 로 정규화된다  =>  D* = 1, k* = 1, <x*^2> = 1.
+    Choose (l_trap, kT, tau_trap) and the dimensionless equation of motion
+    normalizes, with no parameters left, to
+    `dr*/dt* = -r* + sqrt(2) xi`  =>  D* = 1, k* = 1, <x*^2> = 1.
     """
     T, eta, a, k = 300.0, 8.5566e-4, 5e-6, 1e-5
     gamma = stokes_drag_si(eta, a)
@@ -152,12 +158,13 @@ def test_harmonic_trap_scales_normalize_D_and_k_to_exactly_one():
     D0 = stokes_einstein_D_si(T, gamma)
     assert s.to_star(D0, "diffusivity") == pytest.approx(1.0, rel=1e-14)
     assert s.to_star(k, "stiffness") == pytest.approx(1.0, rel=1e-14)
-    # 등분배 <x^2> = kT/k 도 무차원으로 정확히 1
+    # equipartition <x^2> = kT/k is also exactly 1 in reduced units
     assert s.to_star(kT_si(T) / k, "area") == pytest.approx(1.0, rel=1e-14)
 
 
 def test_brownian_scales_normalize_D_and_tauD_to_exactly_one():
-    """수동 구형 × 수송 카드: (sigma, kT, tau_D) 를 고르면 D* = 1, tau_D* = 1."""
+    """Passive sphere x transport card: choose (sigma, kT, tau_D) and D* = 1,
+    tau_D* = 1."""
     T, eta, a = 298.15, 0.8900e-3, 0.5e-6
     gamma = stokes_drag_si(eta, a)
     sigma = 2 * a
@@ -169,10 +176,11 @@ def test_brownian_scales_normalize_D_and_tauD_to_exactly_one():
 
 
 def test_two_cards_give_time_scales_separated_by_k_star_sigma():
-    """★ 카드 체계가 필요한 이유를 수치로 고정한다.
+    """★ Pin, numerically, why the card system is needed at all.
 
     tau_D / tau_trap = k sigma^2 / kT = k*_sigma
-    첫 손그림에서 이 값이 2.41e5 다  =>  tau_D 기준 dt 는 완화시간의 12배가 된다.
+    In the first hand sketch this is 2.41e5  =>  a dt chosen from tau_D comes out
+    12x the relaxation time.
     """
     T, eta, a, k = 300.0, 8.5566e-4, 5e-6, 1e-5
     gamma = stokes_drag_si(eta, a)
@@ -185,7 +193,9 @@ def test_two_cards_give_time_scales_separated_by_k_star_sigma():
     assert ratio == pytest.approx(k_star_sigma, rel=1e-12)
     assert ratio == pytest.approx(2.414e5, rel=1e-3)
 
-    # tau_D 기준 dt* = 5e-5 를 쓰면 완화시간의 몇 배가 되는가
+    # if dt* = 5e-5 is taken from tau_D, how many relaxation times is that
     dt_in_tau_trap = 5e-5 * ratio
     assert dt_in_tau_trap == pytest.approx(12.07, rel=1e-2)
-    assert dt_in_tau_trap > 1.0, "보편 규약이 이 계에서 완화시간을 넘는다는 사실을 고정"
+    assert dt_in_tau_trap > 1.0, \
+        "pin the fact that the universal convention exceeds this system's " \
+        "relaxation time"
