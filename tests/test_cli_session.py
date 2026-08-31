@@ -369,7 +369,7 @@ def test_resume_refuses_broken_seal(tmp_path, spec_file, capsys):
     rd.write("prediction", "# S2 고침\n")
     code = cli.main(["resume", str(rd.path)])
     assert code != 0
-    assert "봉인 위반" in capsys.readouterr().err
+    assert "seal violation" in capsys.readouterr().err
 
 
 def test_resume_refuses_with_no_finished_runs(tmp_path, spec_file, capsys):

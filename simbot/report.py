@@ -52,7 +52,7 @@ def seal_section(rundir: RunDir) -> str:
         return (f"**봉인 검증** ✅ {v.summary()}\n\n"
                 f"검증 명령 (이 코드 없이도 확인된다):\n\n"
                 f"```bash\nshasum -a 256 -c {RUN_LAYOUT['seal']}\n```")
-    return ("> ## ⛔ 봉인 위반\n>\n"
+    return ("> ## ⛔ seal violation\n>\n"
             f"> {v.summary()}\n>\n"
             "> **예측이 실행 후 수정됐을 수 있다.** 아래 대조표는 검증으로 읽으면 안 된다.\n"
             "> 근거: master_plan §S7-1.")

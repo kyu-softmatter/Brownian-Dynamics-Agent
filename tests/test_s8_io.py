@@ -1,7 +1,8 @@
-"""S8 뼈대 — run 디렉터리·해시·봉인.
+"""The S8 skeleton — run directories, hashes, sealing.
 
-이 파일이 지키는 것: **봉인이 실제로 작동하는가.** 봉인이 조용히 통과하면
-사후합리화를 막는 장치가 하나도 없는 상태로 파이프라인이 돌아간다.
+What this file protects: **does the seal actually work.** If the seal passes
+silently, the pipeline runs with nothing at all preventing post-hoc
+rationalisation.
 """
 from __future__ import annotations
 
@@ -15,22 +16,23 @@ from simbot import io
 
 
 # =============================================================================
-# 해시
+# hashes
 # =============================================================================
 def test_sha256_text_matches_known_value():
-    # 표준 sha256 — 외부 도구와 같은 값이어야 한다
+    # standard sha256 — must equal what an external tool gives
     assert io.sha256_text("") == (
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 
 
 def test_sha256_file_matches_text(tmp_path):
     p = tmp_path / "a.txt"
-    p.write_text("hello 한글\n", encoding="utf-8")
-    assert io.sha256_file(p) == io.sha256_text("hello 한글\n")
+    p.write_text("hello ηλ\n", encoding="utf-8")
+    assert io.sha256_file(p) == io.sha256_text("hello ηλ\n")
 
 
 def test_payload_hash_is_key_order_independent():
-    """키 순서만 다른 dict 은 같은 계다. 다르면 캐시가 매번 무효화된다."""
+    """Dicts differing only in key order are the same system. Otherwise the cache
+    is invalidated every time."""
     assert io.sha256_payload({"a": 1, "b": 2}) == io.sha256_payload({"b": 2, "a": 1})
 
 
@@ -39,7 +41,8 @@ def test_payload_hash_distinguishes_values():
 
 
 def test_code_hash_covers_analysis_subpackage(tmp_path):
-    """`analysis/` 를 빼면 분석 코드가 바뀌어도 해시가 그대로다 — 봉인에 구멍."""
+    """Leave `analysis/` out and the hash survives an analysis-code change -- a
+    hole in the seal."""
     pkg = tmp_path / "pkg"
     (pkg / "analysis").mkdir(parents=True)
     (pkg / "a.py").write_text("x = 1")
@@ -59,7 +62,7 @@ def test_code_hash_ignores_pycache(tmp_path):
 
 
 def test_code_hash_detects_file_rename(tmp_path):
-    """내용 합만 해시하면 파일 이름 변경을 놓친다 — 경로도 해시에 넣었는지 확인."""
+    """Hash only the contents and a rename is missed -- check the path is in it too."""
     pkg = tmp_path / "pkg"
     pkg.mkdir()
     (pkg / "a.py").write_text("x = 1")
@@ -76,22 +79,24 @@ def test_env_versions_reports_absent_without_raising():
 
 
 # =============================================================================
-# provenance — **한 곳에서만 만든다**
+# provenance — **built in exactly one place**
 # =============================================================================
-#  ★ 2026-07-29: `report.reproducibility_section` 은 `env_hash` 를 읽는데 두 러너가
-#    자기 manifest 를 손으로 만들면서 그 키를 빼먹었다 → 리포트의 재현 정보가
-#    조용히 빈칸으로 렌더됐다. 아래 테스트들이 그 어긋남을 고정한다.
+#  ★ 2026-07-29: `report.reproducibility_section` reads `env_hash`, and both runners
+#    built their own manifest by hand and left that key out → the report's
+#    reproducibility information rendered as a silent blank. The tests below pin
+#    that mismatch.
 def test_provenance_supplies_every_key_the_report_renders():
-    """`provenance()` 가 리포트가 읽는 키를 전부 준다 — 어휘가 갈라지면 빈칸이 된다."""
+    """`provenance()` gives every key the report reads -- a drifted vocabulary
+    renders as a blank."""
     p = io.provenance()
     for key in ("code_hash", "git_rev", "git_dirty", "env_hash", "env"):
-        assert key in p, f"{key} 가 provenance 에 없다"
+        assert key in p, f"{key} is not in provenance"
     for name in ("hoomd", "numpy", "scipy", "freud"):
-        assert name in p["env"], f"{name} 이 env 에 없다"
+        assert name in p["env"], f"{name} is not in env"
 
 
 def test_build_manifest_gets_provenance_from_the_single_definition():
-    """`build_manifest` 가 `provenance()` 를 쓴다 — 손으로 나열하면 갈라진다."""
+    """`build_manifest` uses `provenance()` -- listing it by hand makes it drift."""
     man = io.build_manifest(run_id="r", spec_hash="abc", seed=1)
     prov = io.provenance()
     for key in ("code_hash", "env_hash"):
@@ -100,7 +105,8 @@ def test_build_manifest_gets_provenance_from_the_single_definition():
 
 
 def test_provenance_records_the_driver_as_a_repo_relative_path():
-    """드라이버는 **repo 상대경로**로 적는다 — 절대경로면 홈 디렉터리가 박힌다."""
+    """The driver is recorded as a **repo-relative path** -- an absolute one bakes
+    in the home directory."""
     p = io.provenance(driver=io.REPO_ROOT / "simbot" / "io.py")
     assert p["driver"] == "simbot/io.py"
     assert p["driver_hash"] == io.file_hash(io.REPO_ROOT / "simbot" / "io.py")
@@ -108,7 +114,8 @@ def test_provenance_records_the_driver_as_a_repo_relative_path():
 
 
 def test_provenance_hashes_every_driver_when_several_are_given():
-    """★ 드라이버가 여러 파일이면 전부 해싱한다 — 하나만 잡으면 주장이 거짓이 된다."""
+    """★ Several driver files means hashing all of them -- catch one and the claim
+    becomes false."""
     a = io.REPO_ROOT / "simbot" / "io.py"
     b = io.REPO_ROOT / "simbot" / "run.py"
     p = io.provenance(driver=[a, b])
@@ -116,36 +123,38 @@ def test_provenance_hashes_every_driver_when_several_are_given():
     assert p["driver"] == ["simbot/io.py", "simbot/run.py"]
     assert set(p["drivers"]) == {"simbot/io.py", "simbot/run.py"}
     assert p["drivers"]["simbot/io.py"] == io.file_hash(a)
-    #  합성 해시는 파일 하나만 바뀌어도 달라져야 한다
+    #  the composite hash must change if any single file changes
     other = dict(p["drivers"]); other["simbot/io.py"] = "0" * 12
     assert io.sha256_payload(other)[:12] != p["driver_hash"]
-    #  단일 경로는 예전 형식을 유지한다 (리더 호환)
+    #  a single path keeps the old shape (reader compatibility)
     single = io.provenance(driver=a)
     assert single["driver"] == "simbot/io.py"
     assert single["driver_hash"] == io.file_hash(a)
 
 
 def test_provenance_marks_a_missing_driver_instead_of_raising():
-    """없는 드라이버는 `"?"` 로 표기한다 — 예외로 런을 죽이지 않되 숨기지도 않는다."""
+    """A missing driver is marked `"?"` -- it neither kills the run with an
+    exception nor hides the fact."""
     p = io.provenance(driver=io.REPO_ROOT / "scripts" / "does_not_exist.py")
     assert p["driver_hash"] == "?"
 
 
 def test_driver_hash_changes_with_content_but_code_hash_does_not(tmp_path):
-    """★ `code_hash` 는 `simbot/` 만 덮는다 — 드라이버 변경을 못 잡는다.
+    """★ `code_hash` covers only `simbot/` -- it cannot catch a driver change.
 
-    이것이 `driver_hash` 가 따로 필요한 이유다. 런의 `A` 목록·시드·분석 창을
-    정하는 것은 `scripts/` 의 드라이버이고, 그것이 해시에 없으면 산출물만으로
-    "무엇이 이 런을 만들었는가" 에 답할 수 없다.
+    That is why `driver_hash` is needed separately. What sets a run's `A` list,
+    seeds and analysis windows is the driver in `scripts/`, and if that is not in
+    the hash then the artefacts alone cannot answer "what made this run".
     """
     drv = tmp_path / "driver.py"
     drv.write_text("AMPLITUDES = (0.1, 1.0, 10.0)\n")
     before_driver = io.file_hash(drv)
     before_code = io.code_hash()
 
-    drv.write_text("AMPLITUDES = (0.1, 1.0, 100.0)\n")     # 물리가 바뀌는 변경
+    drv.write_text("AMPLITUDES = (0.1, 1.0, 100.0)\n")     # a change to the physics
     assert io.file_hash(drv) != before_driver
-    assert io.code_hash() == before_code, "simbot 은 안 바뀌었는데 code_hash 가 바뀌었다"
+    assert io.code_hash() == before_code, \
+        "simbot did not change but code_hash did"
 
 
 # =============================================================================
@@ -188,7 +197,7 @@ def test_completed_stages_lists_only_existing(tmp_path):
 
 
 # =============================================================================
-# 봉인 — 이 절이 이 파일의 존재 이유다
+# sealing — this section is why the file exists
 # =============================================================================
 @pytest.fixture
 def sealed_run(tmp_path):
@@ -206,15 +215,17 @@ def test_seal_passes_when_untouched(sealed_run):
 
 
 def test_seal_catches_edited_prediction(sealed_run):
-    """★ 이 테스트가 통과하지 않으면 사후합리화를 막는 장치가 없다."""
-    sealed_run.write("prediction", "# S2\nD = 0.42 ± 0.25   (결과 보고 나서 고침)\n")
+    """★ If this test does not pass, nothing prevents post-hoc rationalisation."""
+    sealed_run.write("prediction",
+                     "# S2\nD = 0.42 ± 0.25   (edited after seeing the result)\n")
     v = io.verify_seal(sealed_run)
     assert not v.ok
     assert io.RUN_LAYOUT["prediction"] in v.changed
 
 
 def test_seal_catches_whitespace_only_edit(sealed_run):
-    """공백 한 칸도 잡아야 한다 — '사소한 수정'에 예외를 두면 봉인이 아니다."""
+    """It must catch a single space -- grant an exception for a 'trivial edit' and
+    it is not a seal."""
     p = sealed_run.file("prediction")
     p.write_text(p.read_text() + " ", encoding="utf-8")
     assert not io.verify_seal(sealed_run).ok
@@ -233,11 +244,11 @@ def test_seal_catches_missing_seal_file(tmp_path):
 
 
 def test_seal_reports_document_added_after_sealing(tmp_path):
-    """봉인 후에 만든 예측은 봉인되지 않았다 — 통과로 보고하면 안 된다."""
+    """A prediction written after sealing is not sealed -- it must not report pass."""
     rd = io.RunDir.create(tmp_path, "r1")
     rd.write("intake", "# S1\n")
-    io.write_seal(rd)                        # 이 시점에 prediction 이 없다
-    rd.write("prediction", "# S2 (실행 후 작성)\n")
+    io.write_seal(rd)                        # no prediction exists at this point
+    rd.write("prediction", "# S2 (written after the run)\n")
     v = io.verify_seal(rd)
     assert not v.ok
     assert io.RUN_LAYOUT["prediction"] in v.unsealed
@@ -250,20 +261,20 @@ def test_write_seal_refuses_when_nothing_to_seal(tmp_path):
 
 
 def test_seal_file_is_shasum_compatible(sealed_run):
-    """`shasum -a 256 -c` 로 우리 코드 없이 검증되어야 한다."""
+    """It must verify under `shasum -a 256 -c`, without our code."""
     lines = sealed_run.read("seal").strip().splitlines()
     for line in lines:
         digest, sep, rel = line.partition("  ")
         assert sep == "  " and len(digest) == 64
-        assert int(digest, 16) >= 0            # 16진수인지
+        assert int(digest, 16) >= 0            # is it hexadecimal
         assert rel and not rel.startswith(" ")
 
 
 def test_verify_seal_on_real_first_run():
-    """실제 첫 완주 런의 봉인이 지금도 유효한가 (회귀)."""
+    """Is the seal of the actual first completed run still valid (regression)."""
     p = io.REPO_ROOT / "runs" / "2026-07-28_trap-2d-5um_2dfb9d"
     if not p.exists():
-        pytest.skip("runs/ 는 gitignore 대상 — 이 체크아웃에 없다")
+        pytest.skip("runs/ is gitignored — not present in this checkout")
     v = io.verify_seal(io.RunDir(p))
     assert v.ok, v.summary()
 
@@ -279,9 +290,9 @@ def test_manifest_records_reproducibility_fields(tmp_path):
     for k in ("run_id", "spec_hash", "seed", "code_hash", "git_rev", "env_hash",
               "env", "sealed"):
         assert k in man, k
-    json.dumps(man)                            # 직렬화 가능해야 한다
+    json.dumps(man)                            # must be serializable
 
 
 def test_manifest_dirty_flag_is_tristate():
-    """dirty 를 판정할 수 없을 때 False 로 보고하면 '재현 가능'을 거짓 주장한다."""
+    """Reporting False when dirty is undecidable falsely claims 'reproducible'."""
     assert io.git_dirty(Path("/")) in (True, False, None)

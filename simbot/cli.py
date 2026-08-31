@@ -381,8 +381,8 @@ def cmd_resume(args) -> int:
         v = io.verify_seal(rd)
         print(f"  봉인: {'✅' if v.ok else '❌'} {v.summary()}")
         if not v.ok:
-            return _fail("봉인 위반 — 이어받으면 검증이 무의미해진다. "
-                         "예측을 되돌리거나 새 run 을 시작할 것.")
+            return _fail("seal violation — resuming makes the verification "
+                         "meaningless. Revert the prediction or start a new run.")
 
     raw_dirs = sorted(p for p in rd.raw.glob("*") if (p / "samples.npz").exists())
     print(f"  완주한 런 {len(raw_dirs)}개: {[p.name for p in raw_dirs]}")

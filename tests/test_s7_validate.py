@@ -278,7 +278,7 @@ def test_broken_seal_produces_no_comparison_table(sealed_rundir):
     rep = V.validate_run(_prediction(), _measurements(), rundir=sealed_rundir)
     assert rep.rows == []
     assert rep.verdict_overall == "SEAL_BROKEN"
-    assert any("봉인 위반" in p for p in rep.problems)
+    assert any("seal violation" in p for p in rep.problems)
 
 
 def test_missing_measurement_is_reported(sealed_rundir):

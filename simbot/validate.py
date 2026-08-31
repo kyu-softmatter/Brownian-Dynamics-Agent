@@ -357,8 +357,9 @@ def validate_run(prediction: Prediction, measurements: dict[str, Measurement], *
     if seal is not None and not seal.ok:
         return ValidationReport(
             rows=[], seal=seal,
-            problems=[f"★ 봉인 위반 — {seal.summary()}. "
-                      f"예측이 실행 후 수정됐을 수 있으므로 **대조표를 만들지 않는다** "
+            problems=[f"★ seal violation — {seal.summary()}. "
+                      f"The prediction may have been edited after the run, so "
+                      f"**no comparison table is built** "
                       f"(master_plan §S7-1)."] + problems)
 
     rows: list[ValidationRow] = []

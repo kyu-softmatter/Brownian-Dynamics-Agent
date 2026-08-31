@@ -118,7 +118,7 @@ def test_broken_seal_suppresses_the_comparison_table(rundir, full_inputs):
     """★ 봉인이 깨진 상태의 대조표는 검증처럼 보이지만 검증이 아니다."""
     rundir.write("prediction", "# S2 (결과 보고 나서 고침)\n")
     text = R.render(rundir, full_inputs)
-    assert "⛔ 봉인 위반" in text
+    assert "⛔ seal violation" in text
     assert "대조표는 **생성하지 않았다**" in text
     assert "| 양 | 예측 (봉인) |" not in text
 
@@ -126,7 +126,7 @@ def test_broken_seal_suppresses_the_comparison_table(rundir, full_inputs):
 def test_broken_seal_warning_appears_before_results(rundir, full_inputs):
     rundir.write("prediction", "# 고침\n")
     text = R.render(rundir, full_inputs)
-    assert text.index("⛔ 봉인 위반") < text.index("## 1. 판정 요약")
+    assert text.index("⛔ seal violation") < text.index("## 1. 판정 요약")
 
 
 # =============================================================================
