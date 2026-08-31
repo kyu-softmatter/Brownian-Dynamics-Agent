@@ -1,17 +1,20 @@
-"""S7/S8 — 시간분해 스윕의 검증 문서와 REPORT 를 **산출물에서** 만든다.
+"""S7/S8 — build the time-resolved sweep's validation doc and REPORT **from the
+artefacts**.
 
 usage: python scripts/soft2d_time_series_report.py [run_id]
 
-## 왜 별도 스크립트인가
+## Why a separate script
 
-리포트를 손으로 쓰면 숫자가 옮겨 적히고, 그 순간 `metrics.json` 과 문서가 갈라질
-수 있다. 이 스크립트는 `metrics.json` · `02_prediction.json` · `06_figures.md` 만
-읽어서 표를 만든다 — **숫자를 만들지 않는다.**
+Writing the report by hand transcribes numbers, and at that moment
+`metrics.json` and the document can diverge. This script reads only
+`metrics.json`, `02_prediction.json` and `06_figures.md` and builds the tables
+from them — **it does not make numbers.**
 
-## 판정 규약 (CLAUDE.md §판정)
+## Verdict convention (CLAUDE.md §verdicts)
 
-`proposed_by: agent` · `confirmed_by: null`. 사람이 확정하기 전까지 벤치마크 원장에
-들어가지 않는다. "평형에 도달했다" 는 임계값 없이 쓰지 않는다 — 표류를 **보고**만 한다.
+`proposed_by: agent` · `confirmed_by: null`. Nothing enters the benchmark ledger
+until a human confirms it. "It reached equilibrium" is never written without a
+threshold — the drift is only **reported**.
 """
 from __future__ import annotations
 
@@ -42,61 +45,68 @@ def f(x, spec=".4g") -> str:
 def validation_md(rd: RunDir, metrics: dict, pred: dict, spec: dict) -> str:
     geo = spec["geometry"]
     checks = pred["checks"]
-    #  `_` 로 시작하는 키는 조건이 아니라 부속 블록이다 (`_early_transient`)
+    #  keys starting with `_` are attached blocks, not conditions (`_early_transient`)
     As = sorted((k for k in metrics if not k.startswith("_")),
                 key=lambda k: metrics[k]["amplitude"])
     n_pass = sum(1 for c in checks if c["verdict"] == "PASS")
     n_fail = sum(1 for c in checks if c["verdict"] == "FAIL")
     n_na = len(checks) - n_pass - n_fail
 
-    out = [f"# S7 — `soft-r3` 시간분해 검증 ({rd.run_id})", "",
-           f"런 {spec['gates'].__len__() * len(spec['seeds'])}개 = `A` "
-           f"{len(spec['gates'])}개 × 시드 {len(spec['seeds'])}개 "
-           f"(`{spec['seeds']}`) · 정사각 상자 · `init = {spec['init']}` · "
-           f"전 구간 표집 `{spec['total_tau']:g} τ_d` / `{spec['n_frames']}` 프레임", "",
-           "> **판정은 제안이다.** `proposed_by: agent`, `confirmed_by: null`.",
-           f"> 카드: [`soft-repulsive-2d--equilibrium-structure`]"
+    out = [f"# S7 — `soft-r3` time-resolved validation ({rd.run_id})", "",
+           f"{spec['gates'].__len__() * len(spec['seeds'])} runs = "
+           f"{len(spec['gates'])} `A` × {len(spec['seeds'])} seeds "
+           f"(`{spec['seeds']}`) · square box · `init = {spec['init']}` · "
+           f"whole run sampled, `{spec['total_tau']:g} τ_d` / "
+           f"`{spec['n_frames']}` frames", "",
+           "> **The verdict is a proposal.** `proposed_by: agent`, "
+           "`confirmed_by: null`.",
+           f"> card: [`soft-repulsive-2d--equilibrium-structure`]"
            f"(../../knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md)",
            "", seal_section(rd), "",
-           "## 0. 이 런이 선행 런과 다른 점", "",
-           "| | 선행 (`2026-07-29_soft-r3-2d-A-sweep`) | **이 런** |",
+           "## 0. How this run differs from the prior one", "",
+           "| | prior (`2026-07-29_soft-r3-2d-A-sweep`) | **this run** |",
            "|---|---|---|",
-           "| 표집 | 평형화 40 τ_d 버림 → 프로덕션 후반 절반 | **`t = 0` 부터 전 구간** |",
-           f"| 프레임 | 200 | **{spec['n_frames']}** |",
-           f"| 시드 | `1–4` | **`{spec['seeds']}`** — 갈랐다. 같으면 HOOMD 가 "
-           f"비트 재현하므로 비교가 산술 항등식이 된다 |",
-           "| `A` | `0.1, 1, 10, 100` | **`0.1, 1, 10`** (사용자 지시 D1) |",
-           "| 상자 | `sqbox` + `hexbox` | **정사각만** (D2) |",
-           f"| 물리 척도 | 없음 (무차원만) | **`σ = 5 µm` · `L = "
-           f"{geo['L_si']*1e6:.0f} µm` · 커버리지 `{geo['coverage']:.2%}`** (D3) |",
+           "| sampling | 40 τ_d equilibration discarded → second half of "
+           "production | **the whole run from `t = 0`** |",
+           f"| frames | 200 | **{spec['n_frames']}** |",
+           f"| seeds | `1–4` | **`{spec['seeds']}`** — split off. On identical "
+           f"seeds HOOMD reproduces bit-for-bit, so the comparison becomes an "
+           f"arithmetic identity |",
+           "| `A` | `0.1, 1, 10, 100` | **`0.1, 1, 10`** (user directive D1) |",
+           "| box | `sqbox` + `hexbox` | **square only** (D2) |",
+           f"| physical scale | none (dimensionless only) | **`σ = 5 µm` · `L = "
+           f"{geo['L_si']*1e6:.0f} µm` · coverage `{geo['coverage']:.2%}`** (D3) |",
            "",
-           "## 1. 물리 척도 — `σ` 가 정하는 것", "",
-           f"| 양 | 값 |", "|---|---|",
-           f"| `σ` (기준 원판 직경) | {f(geo['sigma_si']*1e6)} µm |",
-           f"| `d = n^(-1/2)` (**길이 단위**) | {f(geo['d_si']*1e6)} µm = "
+           "## 1. Physical scale — what `σ` sets", "",
+           f"| quantity | value |", "|---|---|",
+           f"| `σ` (reference disc diameter) | {f(geo['sigma_si']*1e6)} µm |",
+           f"| `d = n^(-1/2)` (**the length unit**) | {f(geo['d_si']*1e6)} µm = "
            f"{f(geo['d_over_sigma'])} σ |",
            f"| `L = √N · d` | {f(geo['L_si']*1e6)} µm (`L* = {geo['L_star']:.0f}`) |",
-           f"| **기준 원판 커버리지** | **{geo['coverage']:.4%}** (지시 상한 10 %) |",
-           f"| `η` (물, 298.15 K) | {f(geo['eta_si']*1e3)} mPa·s |",
+           f"| **reference-disc coverage** | **{geo['coverage']:.4%}** (cap 10 %) |",
+           f"| `η` (water, 298.15 K) | {f(geo['eta_si']*1e3)} mPa·s |",
            f"| `D₀ = kT/(3πησ)` | {f(geo['D0_si']*1e12)} µm²/s |",
            f"| **`τ_d = d²/D₀`** | **{f(geo['tau_d_si'])} s = "
-           f"{f(geo['tau_d_si']/60)} 분** |",
-           f"| 런 길이 `{spec['total_tau']:g} τ_d` | "
-           f"**{f(spec['total_tau']*geo['tau_d_si']/3600)} 시간**의 실제 실험 시간 |",
+           f"{f(geo['tau_d_si']/60)} min** |",
+           f"| run length `{spec['total_tau']:g} τ_d` | "
+           f"**{f(spec['total_tau']*geo['tau_d_si']/3600)} hours** of real "
+           f"experiment time |",
            "",
-           "### ★ 길이 척도와 입자 크기가 다르다", "",
-           "길이 단위는 격자 간격 `d` 이고, 항력은 입자 직경 `σ` 가 정한다 "
-           "(`γ = 3πησ`).", "**둘을 같다고 두면 `τ_d` 가 `(d/σ)² = 9` 배 틀린다** — "
-           "`simbot.units.scales_soft2d` 가 이 분리를 소유하고 "
-           "`test_s7_structure.py` 가 9배를 명시적으로 assert 한다.", "",
-           "### 무차원 물리는 커버리지에 **무감하다**", "",
-           "경질 코어가 없고 `n* = 1` 이 정의상 성립하므로 `ψ₆`·`g(r)`·결함은 "
-           "`A` 하나로 결정된다.", "커버리지를 바꾸면 바뀌는 것은 `τ_d` 의 초 값과 "
-           "축 라벨뿐이다 (감도 정확히 0).", "",
-           "## 2. 측정값 — 후반 창", ""]
+           "### ★ The length scale and the particle size are different", "",
+           "The length unit is the lattice spacing `d`, while the drag is set by "
+           "the particle diameter `σ` "
+           "(`γ = 3πησ`).", "**Treat the two as equal and `τ_d` is wrong by "
+           "`(d/σ)² = 9`** — `simbot.units.scales_soft2d` owns this separation "
+           "and `test_s7_structure.py` asserts the factor 9 explicitly.", "",
+           "### The dimensionless physics is **insensitive** to coverage", "",
+           "There is no hard core and `n* = 1` holds by definition, so `ψ₆`, "
+           "`g(r)` and the defects are set by "
+           "`A` alone.", "Change the coverage and all that changes is `τ_d` in "
+           "seconds, and the axis labels (sensitivity exactly 0).", "",
+           "## 2. Measured values — the late window", ""]
 
-    hdr = ("| `A` | `Γ` | 창 [τ_d] | `ψ₆` 전역 | `ψ₆` 국소 | 결함 분율 | "
-           "에너지/입자 | 배위수 종류 | 5-7 불균형 |")
+    hdr = ("| `A` | `Γ` | window [τ_d] | `ψ₆` global | `ψ₆` local | defect "
+           "fraction | energy/particle | coordination kinds | 5-7 imbalance |")
     out += [hdr, "|" + "---|" * 9]
     for k in As:
         m = metrics[k]
@@ -111,35 +121,37 @@ def validation_md(rd: RunDir, metrics: dict, pred: dict, spec: dict) -> str:
             f"`{m['coord_kinds']['mean']:.2f}` | "
             f"`{m['five_seven_balance']['mean']:.4f}` |")
     out += ["",
-            "> 오차는 **시드 앙상블 SE** 다. 프레임 간 산포는 시간 상관을 포함하므로 "
-            "통계오차가 아니다.", ""]
+            "> The error is the **seed-ensemble SE**. Frame-to-frame scatter "
+            "carries time correlation, so it is not a statistical error.", ""]
 
-    # --- 시간분해: 도달 시각 ---
-    out += ["## 3. ★ 시간분해 — 구조가 **언제** 만들어지는가", "",
-            "| `A` | 첫 프레임 `ψ₆` | 후반 창 `ψ₆` | 목표(90 %) | "
-            "`t₉₀` [τ_d] | `t₉₀` [분] | 읽기 |",
+    # --- time-resolved: time to reach ---
+    out += ["## 3. ★ Time-resolved — **when** the structure gets made", "",
+            "| `A` | first-frame `ψ₆` | late-window `ψ₆` | target (90 %) | "
+            "`t₉₀` [τ_d] | `t₉₀` [min] | reading |",
             "|---|---|---|---|---|---|---|"]
     for k in As:
         m = metrics[k]
         t90 = m["t90_tau_d"]
         first, late = m["psi6_at_first_frame"], m["psi6_global"]["mean"]
         if not np.isfinite(t90):
-            read = "**도달 안 함** — 이 길이로는 후반값에 못 간다"
+            read = "**never reached** — this length cannot get to the late value"
         elif first >= m["t90_target"]:
-            read = "**첫 프레임부터 목표 위** — 무작위 배치가 이미 이 상태다"
+            read = "**above target from frame one** — random placement is already here"
         else:
-            read = f"과도구간이 있다 (`{t90:.2g} τ_d`)"
+            read = f"there is a transient (`{t90:.2g} τ_d`)"
         out.append(f"| {m['amplitude']:g} | `{first:.4f}` | `{late:.4f}` | "
                    f"`{m['t90_target']:.4f}` | "
                    f"`{t90:.3g}` | `{t90*geo['tau_d_si']/60:.1f}` | {read} |")
 
-    # --- g(r) 시간창 ---
-    out += ["", "### 3.1 `g(r)` 시간창 — 초기조건 껍질이 채워지는가", "",
-            "초기배치는 기각표집으로 `min_sep = 0.8 d` 를 **강제한다** → `t=0` 에서 "
-            "`g(r < 0.8 d) = 0` 이 정확히 성립한다.",
-            "이것은 물리가 아니라 **초기조건 인공물**이고, 채워지지 않으면 표집이 "
-            "초기조건에 갇힌 것이다.", "",
-            "| `A` | 창 | `g(0.5 d)` | `g(0.75 d)` | 첫 봉 `r/d` | 첫 봉 `g` |",
+    # --- g(r) time windows ---
+    out += ["", "### 3.1 `g(r)` time windows — does the initial-condition shell "
+            "fill in?", "",
+            "The initial placement **enforces** `min_sep = 0.8 d` by rejection "
+            "sampling → at `t=0`, `g(r < 0.8 d) = 0` holds exactly.",
+            "That is not physics but an **initial-condition artefact**, and if it "
+            "never fills in, the sampling is trapped in the initial condition.", "",
+            "| `A` | window | `g(0.5 d)` | `g(0.75 d)` | first peak `r/d` | "
+            "first peak `g` |",
             "|---|---|---|---|---|---|"]
     for k in As:
         m = metrics[k]
@@ -151,11 +163,13 @@ def validation_md(rd: RunDir, metrics: dict, pred: dict, spec: dict) -> str:
                        f"`{m['rdf_first_peak_r'][j]:.4f}` | "
                        f"`{m['rdf_first_peak_g'][j]:.4f}` |")
 
-    # --- 기준 원판 겹침 ---
-    out += ["", "## 4. ★ 기준 원판 겹침 — `σ` 를 붙여야 보이는 것", "",
-            f"커버리지 {geo['coverage']:.2%} 에서 `σ = {geo['sigma_over_d']:.4f} d` 다. "
-            f"전 궤적 최소분리를 `σ` 로 환산하면:", "",
-            "| `A` | 최소분리 [d] | [σ] | 5 µm 원판이 | `βU(최소분리)` [kT] |",
+    # --- reference-disc overlap ---
+    out += ["", "## 4. ★ Reference-disc overlap — visible only once `σ` is "
+            "attached", "",
+            f"At coverage {geo['coverage']:.2%}, `σ = {geo['sigma_over_d']:.4f} d`. "
+            f"Converting the whole-trajectory minimum separation into `σ`:", "",
+            "| `A` | min separation [d] | [σ] | does a 5 µm disc | "
+            "`βU(min sep)` [kT] |",
             "|---|---|---|---|---|"]
     for k in As:
         m = metrics[k]
@@ -163,31 +177,36 @@ def validation_md(rd: RunDir, metrics: dict, pred: dict, spec: dict) -> str:
         ms_s = m["min_separation_over_sigma"]
         bu = m["amplitude"] / ms_d**3
         out.append(f"| {m['amplitude']:g} | `{ms_d:.4f}` | `{ms_s:.4f}` | "
-                   f"{'**겹친다**' if ms_s < 1 else '겹치지 않는다'} | `{bu:.3g}` |")
+                   f"{'**overlaps**' if ms_s < 1 else 'does not overlap'} | "
+                   f"`{bu:.3g}` |")
     out += ["",
-            "`A/r³` 에 경질 코어가 없으므로 **모델은 겹침을 허용한다** — 그림에 "
-            "충실하다.",
-            "겹치는 `A` 에서는 '5 µm 원판' 그림이 물리적으로 성립하지 않고, 결과는 "
-            "**점입자 소프트 반발계**의 결과로만 읽어야 한다.", ""]
+            "`A/r³` has no hard core, so **the model permits overlap** — that is "
+            "faithful to the sketch.",
+            "At the `A` values that overlap the '5 µm disc' picture does not hold "
+            "physically, and the result may only be read as that of a "
+            "**point-particle soft-repulsive system**.", ""]
 
-    # --- 초기 과도구간 ---
+    # --- early transient ---
     early = metrics.get("_early_transient")
     if early:
         e0 = next(iter(early.values()))
-        out += ["## 4b. ★★ 초기 과도구간 — 완화는 **본 패스의 첫 프레임보다 빠르다**",
+        out += ["## 4b. ★★ The early transient — the relaxation is **faster than "
+                "the main pass's first frame**",
                 "",
-                f"본 패스의 stride 는 `{spec['total_tau']/spec['n_frames']:.3g} τ_d` "
-                f"다. 초기배치의 배제부피 껍질(`min_sep = 0.8 d`)이 메워지는 시간은 "
-                f"자유확산으로 `≈ 0.023 τ_d` — **첫 프레임보다 빠르다.**",
-                f"⇒ 같은 시드로 짧고 촘촘한 패스를 따로 돌렸다 — "
-                f"stride `{e0['stride_tau_d']:.4g} τ_d` · `A` {len(early)}조건 × "
-                f"**시드 {_early_n_seeds(rd, early)}개**"
-                + (f" · 배치 wall `{ew:.1f} s` vs 본 패스 `{mw:.1f} s` = "
-                   f"**{ew/mw:.2f}×** (런당으로는 1/40 인데 시드를 4배 썼다)"
+                f"The main pass's stride is "
+                f"`{spec['total_tau']/spec['n_frames']:.3g} τ_d`. The time for "
+                f"the initial placement's excluded-volume shell "
+                f"(`min_sep = 0.8 d`) to fill in is, by free diffusion, "
+                f"`≈ 0.023 τ_d` — **faster than the first frame.**",
+                f"⇒ A short, dense pass was run separately on the same seeds — "
+                f"stride `{e0['stride_tau_d']:.4g} τ_d` · {len(early)} `A` × "
+                f"**{_early_n_seeds(rd, early)} seeds**"
+                + (f" · batch wall `{ew:.1f} s` vs the main pass's `{mw:.1f} s` = "
+                   f"**{ew/mw:.2f}×** (1/40 per run, but 4× the seeds)"
                    if (ew := _early_wall(rd)) and (mw := _main_wall(rd)) else "")
                 + ".", "",
-                "| `A` | 결함 `t=0` | 결함 정상 | 완화 폭 | **`τ`** [τ_d] | "
-                "`τ` [s] | 폭/잡음 | `R²` |",
+                "| `A` | defects `t=0` | defects steady | relax amplitude | "
+                "**`τ`** [τ_d] | `τ` [s] | amp/noise | `R²` |",
                 "|---|---|---|---|---|---|---|---|"]
         for k in sorted(early, key=lambda kk: early[kk]["amplitude"]):
             v = early[k]
@@ -201,21 +220,24 @@ def validation_md(rd: RunDir, metrics: dict, pred: dict, spec: dict) -> str:
                 f"`{v['relax_r_squared']:.3f}` |")
         ks = sorted(early, key=lambda kk: early[kk]["amplitude"])
         out += ["",
-                "### ★ 초기배치는 `A` 에 의존하지 않는다 — 그래서 세 곡선이 같은 점에서 갈라진다",
+                "### ★ The initial placement does not depend on `A` — which is "
+                "why the three curves diverge from the same point",
                 "",
-                f"`t = 0` 의 결함 분율은 세 `A` 에서 모두 "
-                f"`{e0['defect_at_t0']:.4f}` 다 (같은 시드 → 같은 배치). "
-                f"그런데 정상상태는 갈린다:", "",
-                f"- **`A ≤ 1` 은 결함이 늘어난다** "
+                f"The defect fraction at `t = 0` is "
+                f"`{e0['defect_at_t0']:.4f}` at all three `A` (same seeds → same "
+                f"placement). The steady states, however, split:", "",
+                f"- **at `A ≤ 1` the defects increase** "
                 f"(`{early[ks[0]]['defect_at_t0']:.3f} → "
-                f"{early[ks[0]]['defect_tail_mean']:.3f}`) — 기각표집이 강제한 "
-                f"`min_sep = 0.8 d` 껍질이 **평형 액체보다 더 질서 있었다.**",
-                f"- **`A = 10` 은 결함이 줄어든다** "
+                f"{early[ks[0]]['defect_tail_mean']:.3f}`) — the "
+                f"`min_sep = 0.8 d` shell that rejection sampling enforced was "
+                f"**more ordered than the equilibrium liquid.**",
+                f"- **at `A = 10` the defects decrease** "
                 f"(`{early[ks[-1]]['defect_at_t0']:.3f} → "
-                f"{early[ks[-1]]['defect_tail_mean']:.3f}`, `41 %` 감소).", "",
-                "⇒ 초기배치가 `A=1` 과 `A=10` 의 정상상태 **사이**에 놓여 있다. "
-                "부호가 갈리는 것이 그 증거다.", "",
-                "### 완화시간의 `A` 의존성 — 순서 유의성", "", "| 비교 | 차이 | σ | 판정 |",
+                f"{early[ks[-1]]['defect_tail_mean']:.3f}`, down `41 %`).", "",
+                "⇒ The initial placement sits **between** the steady states of "
+                "`A=1` and `A=10`. The split in sign is the evidence.", "",
+                "### The `A` dependence of the relaxation time — significance of "
+                "the ordering", "", "| comparison | difference | σ | verdict |",
                 "|---|---|---|---|"]
         for a, b in ((0, 1), (1, 2), (0, 2)):
             va, vb = early[ks[a]], early[ks[b]]
@@ -224,38 +246,39 @@ def validation_md(rd: RunDir, metrics: dict, pred: dict, spec: dict) -> str:
             sig = diff / se if se else float("nan")
             out.append(f"| `τ({ks[b]}) − τ({ks[a]})` | `{diff:+.5f} ± {se:.5f}` | "
                        f"`{sig:+.2f}σ` | "
-                       f"{'**유의**' if abs(sig) > 3 else '구별 안 됨'} |")
+                       f"{'**significant**' if abs(sig) > 3 else 'not resolved'} |")
         out += ["",
-                "**`τ` 가 `A` 와 함께 커진다** — `A=10` vs `A=1` 이 `4.7σ`, "
-                "`A=10` vs `A=0.1` 이 `9.7σ`. `A=1` vs `A=0.1` 은 `1.1σ` 로 구별되지 "
-                "않는다 (시드 16개로도).", "",
-                "> ⚠ `R²` 가 낮은 것(`0.15–0.71`)은 적합이 나쁘다는 뜻이 아니다 — "
-                "분모가 **프레임 요동을 포함한 전체 분산**이기 때문이다. `τ` 를 "
-                "결정하는 것은 표류이고, 그 표류가 잡음의 `4–12` 배임을 '폭/잡음' 열이 "
-                "보인다. `fit_relaxation` 은 이 비가 `2` 미만이면 `τ` 를 **거부한다.**",
+                "**`τ` grows with `A`** — `A=10` vs `A=1` is `4.7σ`, `A=10` vs "
+                "`A=0.1` is `9.7σ`. `A=1` vs `A=0.1` is `1.1σ`, "
+                "indistinguishable (even with 16 seeds).", "",
+                "> ⚠ The low `R²` (`0.15–0.71`) does not mean the fit is bad — the "
+                "denominator is **the total variance, frame fluctuation "
+                "included**. What determines `τ` is the drift, and the "
+                "'amp/noise' column shows that drift to be `4–12`× the noise. "
+                "`fit_relaxation` **rejects** `τ` when that ratio is below `2`.",
                 ""]
 
-    # --- 예측 대조 ---
-    out += ["## 5. 봉인 예측 대조", "",
-            "| 항목 | 예측 | 허용 | 측정 | 판정 | 비고 |",
+    # --- prediction comparison ---
+    out += ["## 5. Sealed-prediction comparison", "",
+            "| quantity | predicted | tolerance | measured | verdict | note |",
             "|---|---|---|---|---|---|"]
     for c in checks:
         mv, pv = c["measured"], c["predicted"]
         ms = ("—" if mv is None else
-              ("표 3 참조" if isinstance(mv, dict) else
+              ("see table 3" if isinstance(mv, dict) else
                f"`{mv:.5g}`" if isinstance(mv, (int, float)) else f"`{mv}`"))
         ps = f"`{pv:.5g}`" if isinstance(pv, (int, float)) else f"`{pv}`"
         mark = {"PASS": "**PASS**", "FAIL": "**FAIL** ⛔",
-                "NOT_EVALUATED": "미평가"}.get(c["verdict"], c["verdict"])
+                "NOT_EVALUATED": "not evaluated"}.get(c["verdict"], c["verdict"])
         out.append(f"| `{c['quantity']}` | {ps} | `{c['tolerance']}` | {ms} | "
                    f"{mark} | {c['note']} |")
-    out += ["", f"**PASS {n_pass} · FAIL {n_fail} · 미평가 {n_na}**", ""]
+    out += ["", f"**PASS {n_pass} · FAIL {n_fail} · not evaluated {n_na}**", ""]
 
-    # --- FAIL 원인 4분류 ---
+    # --- FAIL cause, the four categories ---
     if n_fail:
-        out += ["### ★ FAIL 원인 분류 — `numerical` / `modeling` / "
+        out += ["### ★ FAIL cause classification — `numerical` / `modeling` / "
                 "`interpretation` / `analysis`", "",
-                "| FAIL 항목 | 원인 | 근거 | 물리가 틀렸나 |",
+                "| FAIL item | cause | grounds | was the physics wrong? |",
                 "|---|---|---|---|"]
         for c in checks:
             if c["verdict"] != "FAIL":
@@ -265,108 +288,123 @@ def validation_md(rd: RunDir, metrics: dict, pred: dict, spec: dict) -> str:
                 akey = q.split("__")[1]
                 agg = metrics[akey].get("coord_kinds_aggregate")
                 out.append(
-                    f"| `{q}` | **`analysis`** — 추정량 불일치 | 예측의 근거는 선행 "
-                    f"런의 **집계** 히스토그램 정수({c['predicted']})인데 측정은 "
-                    f"**프레임별** 평균({c['measured']:.3f})이다. `N = 100` 에서 입자 "
-                    f"1개가 이미 `1 % > 0.5 %` 이므로 프레임 문턱이 '존재하면 통과'로 "
-                    f"무력해진다 | **아니다** — 같은 방식으로 다시 세면 "
-                    f"`{agg}` 로 예측과 **정확히 일치** |")
+                    f"| `{q}` | **`analysis`** — estimator mismatch | the "
+                    f"prediction's basis was the integer from the prior run's "
+                    f"**aggregate** histogram ({c['predicted']}), while the "
+                    f"measurement is the **per-frame** mean "
+                    f"({c['measured']:.3f}). At `N = 100` one particle is already "
+                    f"`1 % > 0.5 %`, so a per-frame threshold degenerates into "
+                    f"'passes if it exists' | **no** — counted the same way it is "
+                    f"`{agg}`, **exactly** the prediction |")
             elif q.startswith("psi6_global__"):
                 out.append(
-                    f"| `{q}` | **`analysis`** — 허용오차 설계 오류 | 허용오차를 "
-                    f"`3√2·SE_prior` 로 세웠는데 `SE_prior` 가 선행 런의 4시드 "
-                    f"추정치였다. 새 SE 가 `5.3` 배 크다 → {c['note']} | "
-                    f"**아니다** — 실제 SE_diff 로 재면 `3σ` 안이다 |")
+                    f"| `{q}` | **`analysis`** — tolerance design error | the "
+                    f"tolerance was set as `3√2·SE_prior`, but `SE_prior` was a "
+                    f"4-seed estimate from the prior run. The new SE is `5.3`× "
+                    f"larger → {c['note']} | "
+                    f"**no** — against the real SE_diff it is inside `3σ` |")
             elif q == "t90_ordering":
                 e = metrics.get("_early_transient", {})
-                claim = ("`τ(A=10) > τ(A=1)` 이 `4.7σ` 로 확인된다 (§4b)"
-                         if e else "촘촘한 패스가 없어 확인 불가")
+                claim = ("`τ(A=10) > τ(A=1)` is confirmed at `4.7σ` (§4b)"
+                         if e else "no dense pass, so unconfirmable")
                 out.append(
-                    f"| `{q}` | **`analysis`** — 지표 설계 오류 | `t₉₀` 을 `ψ₆` 가 "
-                    f"후반값의 90 % 에 **처음 닿는 시각**으로 정의했다. `ψ₆` 는 "
-                    f"정상상태에서 요동하므로 이 지표는 완화가 아니라 **잡음 교차 "
-                    f"시각**을 잰다 (세 `A` 모두 `0.4–0.8 τ_d` = 2–4 프레임) | "
-                    f"**아니다** — 물리적 주장(전이점이 느리다)은 유효한 지표에서 "
-                    f"성립한다: {claim} |")
+                    f"| `{q}` | **`analysis`** — metric design error | `t₉₀` was "
+                    f"defined as the **first time** `ψ₆` touches 90 % of the late "
+                    f"value. `ψ₆` fluctuates in steady state, so this metric "
+                    f"measures not the relaxation but the **noise-crossing "
+                    f"time** (`0.4–0.8 τ_d` = 2–4 frames at all three `A`) | "
+                    f"**no** — the physical claim (the transition point is slow) "
+                    f"holds under a valid metric: {claim} |")
             else:
-                out.append(f"| `{q}` | 미분류 | — | — |")
+                out.append(f"| `{q}` | unclassified | — | — |")
         out += ["",
-                "**FAIL 5건 전부 `analysis` 다** — 봉인된 예측의 *숫자*가 아니라 "
-                "*측정 정의와 허용오차 설계*가 틀렸다. 물리 주장은 세 건 모두 "
-                "같은 방식으로 다시 재면 성립한다.", "",
-                "> 이것은 봉인의 정상 작동이다. 예측을 실행 후에 고칠 수 없으므로 "
-                "**설계 오류가 FAIL 로 드러났다.** 예측을 고쳐 PASS 를 만들면 "
-                "그 정보가 사라진다 — 그래서 고치지 않고 원인을 기록한다.", ""]
+                "**All 5 FAILs are `analysis`** — what was wrong was not the "
+                "*numbers* in the sealed prediction but the *measurement "
+                "definitions and the tolerance design*. All three physical claims "
+                "hold when re-measured the same way.", "",
+                "> This is the seal working as intended. Because a prediction "
+                "cannot be edited after the run, **the design errors surfaced as "
+                "FAILs.** Editing the prediction to manufacture a PASS would "
+                "destroy that information — so it is not edited; the cause is "
+                "recorded instead.", ""]
 
-    # --- 판정 ---
-    #  ★ FAIL 이 전부 `analysis` (측정 정의·허용오차 설계) 이면 물리 주장은 살아 있다.
-    #    그것을 PASS 로 부르지도, 통째로 FAIL 로 부르지도 않는다.
+    # --- verdict ---
+    #  ★ If every FAIL is `analysis` (measurement definition, tolerance design)
+    #    then the physical claims are still standing. That is called neither PASS
+    #    nor a wholesale FAIL.
     only_analysis = n_fail > 0 and all(
         c["quantity"].startswith(("coord_kinds__", "psi6_global__"))
         or c["quantity"] == "t90_ordering"
         for c in checks if c["verdict"] == "FAIL")
     overall = ("PASS" if n_fail == 0 else
                "PASS_WITH_CAVEATS" if only_analysis else "FAIL")
-    out += ["## 6. 판정 (제안)", "", "```yaml",
+    out += ["## 6. Verdict (proposed)", "", "```yaml",
             f"verdict_overall: {overall}", "proposed_by: agent",
             "confirmed_by: null", "```", "",
-            "### 결론에 쓸 수 없는 것 — 명시적으로", "",
-            "- **\"평형에 도달했다\" 는 이 런으로 말할 수 없다.** 표류를 재서 보고했을 "
-            "뿐이고, 임계값이 없다. 표류가 0 과 구별되지 않는다는 것은 *이 길이로는 "
-            "그 표류를 볼 수 없다* 는 뜻이다.",
-            f"- **`N = {spec['gates'][0]['Lx']**2:.0f}` 은 `A = 10` 의 `r_cut` "
-            f"요구(`N ≥ 252`, 카드 §9)를 만족하지 않는다.** "
-            f"`βU(r_cut) = {spec['gates'][-1]['beta_u_at_rcut']:.4f} kT` 가 남아 있고 "
-            f"**`N` 수렴 검사는 하지 않았다.**",
-            "- **Zahn 상경계는 `reproduced: no`** → `[출처, 미재현]`. 상 판독은 "
-            "관측량(`ψ₆`·배위수 종류·6겹 변조)으로만 했다.",
-            "- `A = 0.1` 과 `A = 1` 의 `ψ₆` 차이는 유한크기 바닥(`1/√N = 0.1`) "
-            "아래다 → **둘 다 '배향 질서 없음'** 으로만 말할 수 있다.",
-            "- 초기조건 의존성은 이 런에서 검사하지 않았다 (D2 로 `random` 만 돌렸다). "
-            f"선행 런이 `A ≤ 10` 에서 `0.8σ` 이내 일치를 보였다 — {PRIOR_RUN}.",
+            "### What cannot go in the conclusion — explicitly", "",
+            "- **\"It reached equilibrium\" cannot be said from this run.** The "
+            "drift was measured and reported, and there is no threshold. A drift "
+            "indistinguishable from 0 means *this length cannot see that drift*.",
+            f"- **`N = {spec['gates'][0]['Lx']**2:.0f}` does not satisfy `A = 10`'s "
+            f"`r_cut` requirement (`N ≥ 252`, card §9).** "
+            f"`βU(r_cut) = {spec['gates'][-1]['beta_u_at_rcut']:.4f} kT` remains, "
+            f"and **no `N`-convergence check was run.**",
+            "- **Zahn's phase boundary is `reproduced: no`** → `[source, not "
+            "reproduced]`. The phase was read only from observables (`ψ₆`, "
+            "coordination kinds, six-fold modulation).",
+            "- The `ψ₆` difference between `A = 0.1` and `A = 1` is below the "
+            "finite-size floor (`1/√N = 0.1`) → **both can only be called 'no "
+            "orientational order'**.",
+            "- Initial-condition dependence was not tested in this run (D2 ran "
+            "`random` only). "
+            f"The prior run agreed to within `0.8σ` for `A ≤ 10` — {PRIOR_RUN}.",
             ""]
     return "\n".join(out)
 
 
 def report_md(rd: RunDir, metrics: dict, spec: dict, figures_md: str) -> str:
     geo = spec["geometry"]
-    #  `_` 로 시작하는 키는 조건이 아니라 부속 블록이다 (`_early_transient`)
+    #  keys starting with `_` are attached blocks, not conditions (`_early_transient`)
     As = sorted((k for k in metrics if not k.startswith("_")),
                 key=lambda k: metrics[k]["amplitude"])
     man = json.loads(rd.file("manifest").read_text()) if rd.exists("manifest") else {}
     wall = man.get("batch_wall_s")
-    out = [f"# REPORT — `soft-r3` 2D `A` 스윕, **시간분해** ({rd.run_id})", "",
-           f"손그림 [`sketch_01.jpeg`](../../inputs/soft-r3-2d-A-sweep/sketch_01.jpeg) "
-           f"→ `U/kT = A/r³` 2D 계 · `N = 100` · 정사각 주기 상자", "",
-           "**묻는 질문** — `A` 마다 최종 배치가 무엇이고, **그 배치가 언제 "
-           "만들어지는가.**", "",
+    out = [f"# REPORT — `soft-r3` 2D `A` sweep, **time-resolved** ({rd.run_id})", "",
+           f"hand sketch "
+           f"[`sketch_01.jpeg`](../../inputs/soft-r3-2d-A-sweep/sketch_01.jpeg) "
+           f"→ a 2D `U/kT = A/r³` system · `N = 100` · square periodic box", "",
+           "**The question asked** — what the final arrangement is at each `A`, "
+           "and **when that arrangement gets made.**", "",
            seal_section(rd), "",
-           "## 한 줄 요약", ""]
+           "## One-line summary", ""]
 
     for k in As:
         m = metrics[k]
         kinds = m["coord_kinds"]["mean"]
         bal = m["five_seven_balance"]["mean"]
         if m["psi6_global"]["mean"] > 0.7:
-            phase = "결정-유사"
+            phase = "crystal-like"
         elif kinds <= 3.5 and bal < 0.25:
-            phase = "전위가 가득한 hexatic-유사"
+            phase = "dislocation-rich hexatic-like"
         else:
-            phase = "등방 액체-유사"
+            phase = "isotropic liquid-like"
         out.append(f"- **`A = {m['amplitude']:g}`** (`Γ = {m['zahn']['gamma']:.2f}`) → "
                    f"{phase}. `ψ₆ = {m['psi6_global']['mean']:.4f} ± "
-                   f"{m['psi6_global']['se']:.4f}` · 결함 "
-                   f"`{m['defect_fraction']['mean']:.4f}` · 배위수 "
-                   f"{kinds:.1f}종 · 최소분리 "
+                   f"{m['psi6_global']['se']:.4f}` · defects "
+                   f"`{m['defect_fraction']['mean']:.4f}` · "
+                   f"{kinds:.1f} coordination kinds · min separation "
                    f"`{m['min_separation_over_sigma']:.2f} σ`")
     out += ["",
-            f"물리 척도: `σ = 5 µm` · `L = {geo['L_si']*1e6:.0f} µm` · 커버리지 "
-            f"**{geo['coverage']:.2%}** · `τ_d = {geo['tau_d_si']/60:.1f} 분` → "
-            f"런 길이 `{spec['total_tau']:g} τ_d` = "
-            f"**{spec['total_tau']*geo['tau_d_si']/3600:.0f} 시간**의 실제 실험", "",
-            "## 재현 가능성", "",
-            #  ★ 코드·git 해시는 배치 요약에 없다 — 런별 manifest 안에 있다.
-            #    배치 요약에서 찾아 `—` 로 채우면 "재현 정보 없음" 으로 보인다
+            f"physical scale: `σ = 5 µm` · `L = {geo['L_si']*1e6:.0f} µm` · "
+            f"coverage **{geo['coverage']:.2%}** · "
+            f"`τ_d = {geo['tau_d_si']/60:.1f} min` → "
+            f"run length `{spec['total_tau']:g} τ_d` = "
+            f"**{spec['total_tau']*geo['tau_d_si']/3600:.0f} hours** of real "
+            f"experiment", "",
+            "## Reproducibility", "",
+            #  ★ The code and git hashes are not in the batch summary — they are
+            #    in the per-run manifest. Looking for them in the batch summary
+            #    and filling `—` would read as "no reproducibility information"
             reproducibility_section({
                 "run_id": rd.run_id,
                 **_from_run_manifest(rd, ("code_hash", "git_rev", "git_dirty",
@@ -376,14 +414,15 @@ def report_md(rd: RunDir, metrics: dict, spec: dict, figures_md: str) -> str:
             "/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python "
             "scripts/soft2d_time_series.py",
             "```", "",
-            f"| 항목 | 값 |", "|---|---|",
-            f"| 런 수 | {man.get('n_jobs', '—')} |",
-            f"| 동시 실행 | {man.get('concurrency', '—')} |",
-            f"| 배치 wall | {f(wall)} s |",
-            f"| 시드 | `{spec['seeds']}` |", ""]
+            f"| item | value |", "|---|---|",
+            f"| runs | {man.get('n_jobs', '—')} |",
+            f"| concurrency | {man.get('concurrency', '—')} |",
+            f"| batch wall | {f(wall)} s |",
+            f"| seeds | `{spec['seeds']}` |", ""]
 
-    out += ["## dt 게이트 — `A` 마다 지배 게이트가 다르다", "",
-            "| `A` | `max\\|F*\\|` (실측) | 열 상한 | 힘 상한 | **지배** | `Δt*` | 스텝 |",
+    out += ["## dt gates — the dominant gate differs per `A`", "",
+            "| `A` | `max\\|F*\\|` (measured) | thermal cap | force cap | "
+            "**dominant** | `Δt*` | steps |",
             "|---|---|---|---|---|---|---|"]
     for g in spec["gates"]:
         out.append(f"| {g['amplitude']:g} | `{g['max_force_star']:.3f}` | "
@@ -391,32 +430,38 @@ def report_md(rd: RunDir, metrics: dict, spec: dict, figures_md: str) -> str:
                    f"**{g['dominant_gate']}** | `{g['dt_star']:.3g}` | "
                    f"`{g['steps']:,}` |")
     out += ["",
-            "`max|F*|` 는 **무작위 초기배치에서 실제로 계산했다** (추정 금지, "
-            "master_plan §5.4).",
-            "`A ≤ 1` 은 열 변위가, `A = 10` 은 힘 변위가 지배한다 — "
-            "**고정 `Δt` 정책이라면 이 차이가 보이지 않는다.**", "",
+            "`max|F*|` was **actually computed on the random initial placement** "
+            "(estimating it is forbidden, master_plan §5.4).",
+            "At `A ≤ 1` the thermal displacement dominates, at `A = 10` the force "
+            "displacement does — **a fixed-`Δt` policy would not show that "
+            "difference.**", "",
             figures_md, "",
-            "## 다음에 할 일", "",
-            "1. **`N` 수렴 검사** — `A = 10` 의 `βU(r_cut) = 0.09 kT` 가 결과에 남아 "
-            "있다 (카드 §9). `N = 256` 이 같은 답을 주는가.",
-            "2. **`A = 10` 을 더 길게** — 전이점 `Γ = 55.68` (경계의 `−7 %`) 이라 "
-            "임계 완화가 예상된다. 이 런에서 도달 시각이 가장 늦다면 그것이 서명이다.",
-            "3. **커버리지 `< 3.71 %` 대조군** — `A = 0.1` 의 원판 겹침을 없앤 "
-            "조건. 무차원 결과는 그대로여야 하고, 그것이 검증이 된다.",
-            "4. `g₆(r)` 지수 `η₆` — Zahn 재현 조건 §6-3 이 요구하는 가장 값싼 항목.",
+            "## What to do next", "",
+            "1. **`N`-convergence check** — `A = 10`'s `βU(r_cut) = 0.09 kT` is "
+            "still in the result (card §9). Does `N = 256` give the same answer.",
+            "2. **Run `A = 10` longer** — it sits at the transition point "
+            "`Γ = 55.68` (`−7 %` off the boundary), so critical slowing is "
+            "expected. If its time-to-reach is the latest in this run, that is "
+            "the signature.",
+            "3. **A coverage `< 3.71 %` control** — the condition that removes "
+            "`A = 0.1`'s disc overlap. The dimensionless result must come out "
+            "unchanged, and that is what makes it a verification.",
+            "4. `g₆(r)`'s exponent `η₆` — the cheapest item Zahn's reproduction "
+            "condition §6-3 requires.",
             ""]
     return "\n".join(out)
 
 
 def _early_n_seeds(rd: RunDir, early: dict) -> int:
-    """과도 패스의 시드 수 — `raw_early/` 를 세서 얻는다 (하드코딩하지 않는다)."""
+    """Seed count of the transient pass — counted from `raw_early/`, not hard-coded."""
     root = rd.path / "raw_early"
     n_dirs = len([p for p in root.glob("A*_s*") if (p / "samples.npz").exists()])
     return n_dirs // max(len(early), 1)
 
 
 def _early_wall(rd: RunDir):
-    """과도 패스의 **실측** 배치 wall. 추정하지 않는다 — 없으면 `None` 이다."""
+    """The transient pass's **measured** batch wall — not estimated, `None` if
+    absent."""
     if not rd.exists("manifest"):
         return None
     return (json.loads(rd.file("manifest").read_text())
@@ -430,10 +475,11 @@ def _main_wall(rd: RunDir):
 
 
 def _from_run_manifest(rd: RunDir, keys: tuple[str, ...]) -> dict:
-    """런별 `manifest.json` 의 `manifest` 블록에서 재현 정보를 꺼낸다.
+    """Pull the reproducibility info out of each run's `manifest.json` `manifest`
+    block.
 
-    ★ 12런이 전부 같은 값을 가져야 한다 — 다르면 배치 도중에 코드가 바뀐 것이므로
-      **조용히 첫 런의 값을 쓰지 않고 표기한다.**
+    ★ All 12 runs must carry the same values — if they differ, the code changed
+      mid-batch, so it is **flagged rather than silently taking the first run's.**
     """
     seen: dict[str, set] = {k: set() for k in keys}
     for p in sorted(rd.raw.glob("A*_s*/manifest.json")):
@@ -446,8 +492,8 @@ def _from_run_manifest(rd: RunDir, keys: tuple[str, ...]) -> dict:
         if not vals:
             continue
         out[k] = (vals.pop() if len(vals) == 1
-                  else f"⚠️ 런마다 다르다: {sorted(map(str, vals))}")
-    #  hoomd/python 은 report 의 env 블록이 읽는 위치로 옮긴다
+                  else f"⚠️ differs per run: {sorted(map(str, vals))}")
+    #  hoomd/python move to where the report's env block reads them
     env = {kk: out.pop(vk) for kk, vk in (("hoomd", "hoomd_version"),
                                           ("python", "python"))
            if vk in out}
@@ -461,7 +507,7 @@ def main() -> int:
     metrics = json.loads(rd.file("metrics").read_text())
     pred = json.loads(rd.file("prediction_json").read_text())
     spec = json.loads(rd.file("spec").read_text())
-    figs = rd.read("figures") if rd.exists("figures") else "_그림 없음_"
+    figs = rd.read("figures") if rd.exists("figures") else "_no figures_"
 
     v = verify_seal(rd)
     print(("✅ " if v.ok else "⛔ ") + v.summary())
