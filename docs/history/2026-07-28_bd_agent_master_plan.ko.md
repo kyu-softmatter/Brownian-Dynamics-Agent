@@ -1,505 +1,510 @@
-# BD_agent — 마스터 플랜
+# BD_agent — the master plan
 
-> 이 문서 하나만 읽으면 **(a) 무엇을 만드는지 (b) 왜 그렇게 만드는지 (c) 다음에 뭘 해야 하는지**
-> 세 가지가 답해져야 한다. 그렇지 않다면 이 문서의 결함이다.
+> Reading this one document should answer three things: **(a) what is being built (b) why it is built that way
+> (c) what to do next**. If it does not, that is a defect of this document.
 >
-> 최종 갱신: 2026-07-27 · 상태: **M0 (설계)** · 저장소: **private** (정리 후 공개 예정 → `D27`)
+> Last updated: 2026-07-27 · status: **M0 (design)** · repository: **private** (to be published after tidying → `D27`)
 
 ---
 
-## 0. 지금 다음 세 가지
+## 0. The next three things
 
-세션을 열 때 여기만 보면 된다. 셋이 끝나면 M0가 끝난다.
+Opening a session, this is all you need to look at. When these three are done, M0 is done.
 
-| | 할 일 | 왜 지금 | 해소 |
+| | To do | Why now | Resolves |
 |---|---|---|---|
-| **1** | `git init` (private) + `.gitignore` + `environment.yml` | provenance의 전제. 자동수정 루프가 파라미터를 바꾸기 시작하면 *"이 결과를 낸 코드가 정확히 뭐였나"* 에 답할 수 없다 | `D6` `D17` |
-| **2** | `machine_profile.yaml` 실측 — 자유 BD, `N` = 1k / 5k / 10k | §8 비용 게이트가 이 파일 없이는 동작하지 않는다. 게이트가 없으면 에이전트는 며칠짜리 잡을 태연히 시작한다 | `A3` |
-| **3** | `bdkit/` 뼈대 + 벤치마크 `free_bd_stokes_einstein` 통과 — **LLM 0줄** | M1의 물리 절반 | `A4` |
+| **1** | `git init` (private) + `.gitignore` + `environment.yml` | the premise of provenance. Once the auto-repair loop starts changing parameters, *"exactly what code produced this result"* cannot be answered | `D6` `D17` |
+| **2** | measure `machine_profile.yaml` — free BD, `N` = 1k / 5k / 10k | the §8 cost gate does not work without this file. Without the gate the agent casually starts a multi-day job | `A3` |
+| **3** | the `bdkit/` skeleton + the benchmark `free_bd_stokes_einstein` passing — **0 lines of LLM** | half of M1's physics |  `A4` |
 
-> **3번이 핵심이다.** 에이전트 층을 먼저 만들면 결과가 틀렸을 때 물리가 틀린 건지 LLM이 틀린 건지
-> 구분할 수 없다. **코어가 혼자 옳다는 것을 증명한 뒤에 LLM을 얹는다.** 이것이 M0→M1의 실질적 다리다.
+> **Number 3 is the crux.** Build the agent layer first and, when a result is wrong, there is no telling whether the
+> physics is wrong or the LLM is. **Prove the core is right on its own, then put the LLM on top.** This is the real bridge M0→M1.
 
-세부 항목과 O/X 진행 상황은 **[§14 구현 체크리스트](#14-구현-체크리스트)**. §11은 *언제*, §14는 *무엇을*.
-
----
-
-## 1. 한 문장
-
-**자연어·그림으로 기술된 콜로이드 계를, 검증된 Brownian Dynamics 시뮬레이션으로
-바꾸고, 그 과정에서 얻은 지식을 다음 시뮬레이션이 쓸 수 있게 축적하는 에이전트.**
-
-음성 입력은 v1 선택사항(`D5`), MC/HPMC는 v2(`D3`). 한 문장짜리 정의에 넣으면 v1 범위가 흐려지므로 뺀다.
+The detailed items and their O/X progress are in **[§14 the implementation checklist](#14-the-implementation-checklist)**. §11 is *when*, §14 is *what*.
 
 ---
 
-## 2. 왜 — 손으로 하는 BD/MC의 세 가지 문제
+## 1. One sentence
 
-### 2-a. 파라미터 선택이 암묵지다
+**An agent that turns a colloidal system described in natural language and pictures into a verified Brownian
+Dynamics simulation, and accumulates the knowledge gained along the way so the next simulation can use it.**
 
-`dt`를 얼마로 할지, `r_cut`을 어디서 자를지, 평형화를 얼마나 돌릴지 — 이건 대부분 **선배에게 배우거나
-논문을 보고 흉내 낸 값**이다. 왜 그 값인지 설명할 수 있는 경우는 드물고, 새로운 계로 옮겼을 때
-여전히 유효한지 확인하는 절차도 없다.
+Voice input is optional in v1 (`D5`), and MC/HPMC is v2 (`D3`). Putting them in a one-sentence definition blurs the v1 scope, so they are left out.
 
-### 2-b. 검증이 비체계적이다
+---
 
-시뮬레이션은 **항상 어떤 숫자를 낸다.** `g(r)`은 언제나 그려지고, MSD는 언제나 직선처럼 보인다.
-문제는 **그게 맞는 `g(r)`인지 눈으로 구분할 수 없다**는 것이다. 발산하지 않았다는 것이
-올바르다는 뜻은 아니다.
+## 2. Why — the three problems of doing BD/MC by hand
 
-### 2-c. 실패가 기록되지 않는다
+### 2-a. Parameter selection is tacit knowledge
 
-"이 파라미터로 해봤는데 안 되더라"는 대개 그 사람 머릿속에만 남는다. 6개월 뒤 같은 사람이,
-혹은 다음 학생이, 같은 벽에 다시 부딪힌다. **실패는 사라지고 성공만 논문에 남는다.**
+What to set `dt` to, where to cut `r_cut`, how long to run the equilibration — these are mostly **values learned from
+a senior or imitated from a paper**. It is rare to be able to explain why that value, and there is no procedure for
+confirming it is still valid when moved to a new system.
 
-### 이 에이전트가 하려는 것
+### 2-b. Verification is unsystematic
 
-| 문제 | 대응 |
+A simulation **always produces some number.** A `g(r)` always gets drawn, and an MSD always looks like a straight line.
+The problem is that **you cannot tell by eye whether it is the right `g(r)`**. Not having diverged
+does not mean being correct.
+
+### 2-c. Failures are not recorded
+
+"I tried these parameters and it did not work" mostly stays in that person's head alone. Six months later the same
+person, or the next student, hits the same wall again. **Failures disappear and only successes remain in papers.**
+
+### What this agent is trying to do
+
+| Problem | Response |
 |---|---|
-| 암묵지 | 모든 파라미터에 **무차원수 근거**와 **문헌 출처**를 붙인다 |
-| 비체계적 검증 | **문헌 벤치마크를 회귀 테스트로** 돌린다. 모든 결과에 **증거 등급**을 붙인다 |
-| 사라지는 실패 | 실패를 `dead-end` 페이지로 남기고, **다음 시도가 먼저 조회**하게 한다 |
+| tacit knowledge | attach a **dimensionless-number basis** and a **literature source** to every parameter |
+| unsystematic verification | run **literature benchmarks as regression tests**. Attach an **evidence grade** to every result |
+| disappearing failures | leave a failure as a `dead-end` page, and make **the next attempt look it up first** |
 
 ---
 
-## 3. 설계 원칙
+## 3. Design principles
 
-> ### LLM은 제안하고, 결정론적 코드가 판정한다.
+> ### The LLM proposes, and deterministic code decides.
 
-| LLM이 하는 일 | LLM이 절대 하지 않는 일 |
+| What the LLM does | What the LLM never does |
 |---|---|
-| 자연어·그림·음성 → 스펙 초안 추출 | 수치 계산 |
-| 문헌 대조, 파라미터 사전 제시 | 검증 통과/실패 판정 |
-| 검증 실패 원인 triage | 파라미터 최종 확정 |
-| 리포트 서술 | 물리적 결론 생성 |
+| natural language, pictures, voice → extract a draft spec | numerical computation |
+| literature comparison, presenting a parameter prior | the verification pass/fail verdict |
+| triaging the cause of a verification failure | fixing a parameter finally |
+| the report narrative | generating a physical conclusion |
 
-에이전트 구축 일반 원칙 10가지는 [`docs/01_agent_architecture.md`](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) §0.
-그중 이 프로젝트에서 특히 무거운 셋:
+The 10 general principles for building an agent are in [`docs/01_agent_architecture.md`](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) §0.
+Of those, the three that weigh most in this project:
 
-1. **상태는 파일에 둔다** (`run_state.yaml`) — 대화 컨텍스트는 사라지고 검사할 수 없다
-2. **모든 결정을 저널에 남기되 `actor`까지 구분한다** (`rule` / `llm` / `human`) — 사후에
-   "이 결과에 LLM 판단이 몇 번 개입했나"를 셀 수 있어야 한다
-3. **판정 기준은 숫자여야 한다** — "그럴듯해 보인다"는 게이트가 아니다
+1. **Keep state in files** (`run_state.yaml`) — conversation context disappears and cannot be inspected
+2. **Journal every decision, distinguishing down to the `actor`** (`rule` / `llm` / `human`) — it has to be possible
+   to count afterwards "how many times did an LLM judgment enter this result"
+3. **A verdict criterion has to be a number** — "it looks plausible" is not a gate
 
 ---
 
-## 4. 세 층, 세 계약
+## 4. Three layers, three contracts
 
-저장소를 세 층으로 나누고, 각 층에 **자기 계약 문서**를 둔다. 층마다 변경 속도와 검증 방법이
-다르기 때문이다 — 코드는 테스트로, 지식은 인용으로, 규칙은 사고 기록으로 검증된다.
+The repository is split into three layers, and each layer gets **its own contract document**. Because the rate of
+change and the verification method differ per layer — code is verified by tests, knowledge by citation, rules by an incident record.
 
-| 층 | 경로 | 계약 문서 | 내용 |
+| Layer | Path | Contract document | Content |
 |---|---|---|---|
-| **Code** | `bdkit/` `agent/` `tests/` | `CLAUDE.md` (루트) | 결정론 코어 + 얇은 LLM 층 |
-| **Knowledge** | `knowledge/` | `knowledge/wiki/CLAUDE.md` | 논문·선배 코드 증류 + 합성 위키 |
-| **Rules** | `.claude/rules/` | `.claude/CLAUDE.md` | 행동 규칙, 한 파일 한 주제 |
+| **Code** | `bdkit/` `agent/` `tests/` | `CLAUDE.md` (root) | the deterministic core + a thin LLM layer |
+| **Knowledge** | `knowledge/` | `knowledge/wiki/CLAUDE.md` | distillations of papers and seniors' code + a synthesized wiki |
+| **Rules** | `.claude/rules/` | `.claude/CLAUDE.md` | behaviour rules, one topic per file |
 
-> `D1`이 "네 개 층"이라 부르는 것과 같은 구조다. 결정론 코어 `bdkit/`과 LLM 층 `agent/`를 따로 세면
-> 넷, 하나의 계약 문서를 공유하는 Code 층으로 묶으면 셋이다. **이 문서는 계약 문서 단위로 센다 — 셋.**
+> It is the same structure `D1` calls "four layers". Counting the deterministic core `bdkit/` and the LLM layer
+> `agent/` separately gives four; bundling them as the Code layer that shares one contract document gives three.
+> **This document counts by contract document — three.**
 
-### 공개 경계 — 지금부터 정해둔다
+### The publication boundary — fixed from now
 
-저장소는 **private으로 개발하고 나중에 정리해서 공개**한다(`D27`). 무엇이 나갈지를 공개 시점에
-판단하면 히스토리를 뒤져야 하므로, **폴더 단위로 지금 못박는다.**
+The repository is **developed privately and published later after tidying** (`D27`). Judging what goes out at
+publication time means digging through history, so **it is nailed down now at folder granularity.**
 
-| 경로 | 공개 시 | 이유 |
+| Path | At publication | Reason |
 |---|---|---|
-| `bdkit/` `agent/` `tests/` `docs/` `.claude/` | **나감** | 도구 자체가 공개 대상 |
-| `knowledge/wiki/` | **나감** | 합성된 지식 — 인용만 있고 원본이 없다 |
-| `knowledge/source/papers/` | **판단 필요** | 1:1 증류. 저작권 경계를 공개 전 확인. **우리 랩 발표 논문도 여기** — `lab_authored: true` |
-| `knowledge/source/lab/` | **안 나감** | **미발표** 랩 자산만 — 코드·노트·미발표 파라미터 (자산 확보 시) |
-| `knowledge/raw/` | **안 나감** | PDF·코드 원본 |
-| `outputs/` | **안 나감** | 런 결과. 용량도 문제 |
+| `bdkit/` `agent/` `tests/` `docs/` `.claude/` | **goes out** | the tool itself is what is being published |
+| `knowledge/wiki/` | **goes out** | synthesized knowledge — only citations, no originals |
+| `knowledge/source/papers/` | **needs judgment** | 1:1 distillations. Check the copyright boundary before publication. **Our lab's published papers are here too** — `lab_authored: true` |
+| `knowledge/source/lab/` | **does not go out** | **unpublished** lab assets only — code, notes, unpublished parameters (once assets are obtained) |
+| `knowledge/raw/` | **does not go out** | the original PDFs and code |
+| `outputs/` | **does not go out** | run results. The volume is also a problem |
 
-`.gitignore`는 v1에서 `outputs/`·`knowledge/raw/`만 막는다. `source/lab/`은 **선배 코드를 실제로
-확보하는 순간** 선제적으로 추가한다 — 한 번 커밋되면 히스토리에서 지워야 한다.
+In v1 `.gitignore` blocks only `outputs/` and `knowledge/raw/`. `source/lab/` gets added pre-emptively **the moment a
+senior's code is actually obtained** — once committed it has to be erased from history.
 
-> ❓ **미결정 · `D27`** — 공개 시점의 분리를 어떻게 수행할 것인가?
-> **현재 기본값:** 위 경계표대로 유지하다가, **공개 직전 1회 감사** — `source/papers/` 저작권 확인 +
-> 전체 히스토리에서 민감 경로 검색 + 필요 시 새 저장소로 재초기화
-> **결정 시점:** 공개를 실제로 결심할 때 (M4 이후로 예상)
-> **뒤집는 비용:** **낮음, 지금은.** 나중에는 높다 — 경계표를 지금 지키는 이유가 이것이다
+> ❓ **Undecided · `D27`** — how is the separation at publication time to be carried out?
+> **The current default:** keep to the boundary table above, then **one audit immediately before publication** —
+> check the copyright of `source/papers/` + search the whole history for sensitive paths + re-initialize into a new repository if necessary
+> **When it gets decided:** when publication is actually resolved on (expected after M4)
+> **Cost of overturning:** **low, now.** Later it is high — that is the reason for keeping the boundary table now
 
-> **가르는 기준은 저작자가 아니라 발표 여부다.** 우리 랩 논문을 미발표 자산과 같은 폴더에 두면,
-> 공개할 때 **이미 DOI가 붙어 공개된 논문의 증류까지 함께 빠진다.** 보호할 것은 저작자가 아니라
-> *아직 발표되지 않았다는 사실*이다. 랩 저작 여부는 폴더가 아니라 `lab_authored: true`로 표시한다.
-> 상세는 [`knowledge/wiki/CLAUDE.md`](../../knowledge/wiki/CLAUDE.md).
+> **What divides them is not the author but whether it is published.** Put our lab's papers in the same folder as
+> unpublished assets and, at publication, **the distillations of papers that already have a DOI and are already
+> public drop out along with them.** What needs protecting is not the author but
+> *the fact that it is not yet published*. Lab authorship is marked not by the folder but by `lab_authored: true`.
+> Details in [`knowledge/wiki/CLAUDE.md`](../../knowledge/wiki/CLAUDE.md).
 
-### 코드 층의 불변 조건
+### The invariant of the code layer
 
 ```
-bdkit/     결정론 코어 — LLM 의존 0.  grep -r "anthropic\|claude" bdkit/ 가 비어야 한다
-agent/     LLM 레이어 — 프롬프트 + 출력 스키마 + 검증기 세 쌍
+bdkit/     the deterministic core — 0 LLM dependencies.  grep -r "anthropic\|claude" bdkit/ must come back empty
+agent/     LLM layer — three pieces: prompt + output schema + validator
 ```
 
-이 분리가 없으면 결과가 틀렸을 때 **물리가 틀린 건지 LLM이 틀린 건지 영영 알 수 없다.**
-시뮬레이션에서는 이게 치명적이다 — 그럴듯하지만 틀린 `g(r)`은 눈으로 구분이 안 되기 때문이다.
+Without this separation, when a result is wrong **there is no ever knowing whether the physics is wrong or the LLM is.**
+In simulation that is fatal — because a plausible-but-wrong `g(r)` is indistinguishable by eye.
 
-### 규칙 층은 사고에서 태어난다
+### The rule layer is born from incidents
 
-> **규칙은 미리 쓰지 않는다. 실제로 데인 뒤에, 그 사고를 인용해서 쓴다.**
+> **Rules are not written in advance. They are written after being burned, citing the incident.**
 
-"왜 이 규칙이 있는가"에 **날짜와 비용이 적힌 실제 사고**가 붙어 있지 않으면, 규칙은 곧
-아무도 이유를 모른 채 지키는 의례가 된다. 그렇게 되면 상황이 바뀌었을 때 폐기해야 할 규칙인지
-아닌지 판단할 근거가 사라진다.
+If "why does this rule exist" does not have **a real incident with a date and a cost** attached, the rule soon becomes
+a ritual observed by people who do not know the reason. And then the grounds for judging whether a rule should be
+retired when circumstances change are gone.
 
-**v1은 4개로 시작한다** (§9). 그중 하나는 이미 실제 사고가 있다. 나머지는 겪은 뒤에 쓴다.
+**v1 starts with 4** (§9). One of them already has a real incident. The rest get written after being experienced.
 
-규칙 파일 템플릿 (frontmatter 없음, 25–80줄):
+The rule file template (no frontmatter, 25–80 lines):
 
 ```markdown
-# <slug> — <한 줄 요약>
+# <slug> — <a one-line summary>
 
-<규칙 본문. 명령형>
+<the rule body. Imperative>
 
-**Why (the triggering incident):** <날짜·경로·비용이 적힌 실제 사고>
-**How to apply:** <체크 가능한 행동 목록>
-**Anti-patterns explicitly forbidden:** <이름 붙은 실패 모드>
+**Why (the triggering incident):** <a real incident with a date, a path and a cost>
+**How to apply:** <a checkable list of actions>
+**Anti-patterns explicitly forbidden:** <named failure modes>
 
 See also: [other-rule](other-rule.md)
 ```
 
 ---
 
-## 4.5. `agent/` 층은 LLM을 어떻게 부르는가 — 비교표
+## 4.5. How the `agent/` layer calls the LLM — a comparison table
 
-§4는 `agent/`를 "프롬프트 + 출력 스키마 + 검증기 세 쌍"이라고만 정의한다. **실제 호출 방식은 아직
-정하지 않았다.** 아래 표가 결정 근거이고, 기본값으로 진행하다 M1에서 확정한다.
+§4 defines `agent/` only as "three pieces: prompt + output schema + validator". **The actual calling method is not yet
+decided.** The table below is the basis for the decision; it proceeds on the default and gets settled in M1.
 
-| 축 | (a) Anthropic SDK 직접 | (b) Claude Code + `claude -p` | (c) Claude Agent SDK |
+| Axis | (a) the Anthropic SDK directly | (b) Claude Code + `claude -p` | (c) the Claude Agent SDK |
 |---|---|---|---|
-| 코드 위치 | `agent/*.py` → `client.messages.create()` | `.claude/skills/*.md` + `agent/headless.py` 래퍼 | `agent/` 안에서 SDK 세션 |
-| 구조화 출력 | tool-use로 JSON Schema **강제** | 프롬프트로 요청 + 직접 파싱·재시도 | tool 정의로 강제 |
-| `pytest` | **쉬움** — 함수 1개, mock 주입 | 어려움 — 서브프로세스·비결정론 | 중간 |
-| 파일 탐색 | 없음 (내가 컨텍스트를 넣어준다) | **있음** — LLM이 위키를 알아서 grep | 있음 |
-| 대화형 | 안 됨 | **잘 됨** | 됨 |
-| 비용 추적 | API `usage` 필드 | `--output-format json` 봉투 | SDK |
-| 의존성 | `anthropic` | Claude Code CLI 설치 필요 | `claude-agent-sdk` |
-| 선례 | — | `jmsung/einstein`이 이 방식 | — |
+| where the code lives | `agent/*.py` → `client.messages.create()` | `.claude/skills/*.md` + an `agent/headless.py` wrapper | an SDK session inside `agent/` |
+| structured output | **enforced** as a JSON Schema by tool-use | requested in the prompt + parsed and retried by hand | enforced by a tool definition |
+| `pytest` | **easy** — 1 function, inject a mock | hard — a subprocess, non-deterministic | medium |
+| file exploration | none (I supply the context) | **yes** — the LLM greps the wiki for itself | yes |
+| conversational | no | **very well** | yes |
+| cost tracking | the API `usage` field | the `--output-format json` envelope | the SDK |
+| dependency | `anthropic` | needs the Claude Code CLI installed | `claude-agent-sdk` |
+| precedent | — | `jmsung/einstein` uses this way | — |
 
-### 스테이지별 적합도
+### Suitability per stage
 
-LLM이 개입하는 곳은 여섯 군데뿐이다 (`docs/01` §1).
+The LLM only touches six places (`docs/01` §1).
 
-| 스테이지 | 성격 | 적합 |
+| Stage | Character | Suits |
 |---|---|---|
-| S1 INTAKE | 멀티모달 단발, 스키마 고정 | **(a)** |
-| S2 ELICIT | 사람과 왕복 대화 | **(b)** |
-| S4 LIT-GROUND | 위키 검색 + 대조 | (b) 또는 (a)+검색도구 |
-| S5 PLAN | 제안 1회, 스키마 고정 | **(a)** |
-| S9 REPAIR triage | 진단 1회 | **(a)** |
-| S12 REPORT | 서술 생성 | **(a)** |
+| S1 INTAKE | multimodal, single call, fixed schema | **(a)** |
+| S2 ELICIT | a back-and-forth conversation with a human | **(b)** |
+| S4 LIT-GROUND | wiki search + comparison | (b), or (a) + a search tool |
+| S5 PLAN | 1 proposal, fixed schema | **(a)** |
+| S9 REPAIR triage | 1 diagnosis | **(a)** |
+| S12 REPORT | generating a narrative | **(a)** |
 
-> ✅ **확정 · `D23` — (a) SDK 직접** (2026-07-27, S1 구현 중)
-> tool-use로 출력 스키마를 **구조적으로 강제**한다. 호출은 `agent/llm.py` 한 곳에서만
-> (`tests/test_invariants.py`가 강제). 대화 왕복이 필요한 S2 ELICIT만 나중에 (b)로 뺄 여지를 남긴다.
+> ✅ **Settled · `D23` — (a) the SDK directly** (2026-07-27, during the S1 implementation)
+> The output schema is **structurally enforced** with tool-use. Calls happen from the single place `agent/llm.py`
+> (enforced by `tests/test_invariants.py`). Only S2 ELICIT, which needs conversational round trips, is left room to be moved out to (b) later.
 >
-> **한 번 (b)로 뒤집었다가 되돌아왔다.** 환경에 `anthropic`도 API 키도 없고 `claude` CLI만 있어서
-> *"(b)는 오늘 당장 돈다"* 고 판단했으나, 실제로 불러보니:
+> **It was overturned to (b) once and came back.** The environment had neither `anthropic` nor an API key, only the
+> `claude` CLI, so *"(b) works today"* was the judgment — but on actually calling it:
 > `Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead`.
-> **어차피 키가 필요하므로 (b)의 유일한 장점이 사라졌다.**
+> **A key is needed either way, so (b)'s only advantage disappeared.**
 >
-> 교훈 — **환경 조사만으로 결정하면 안 된다. 한 번 불러봐야 한다.** "설치되어 있다"와 "동작한다"는
-> 다른 명제였고 구분 비용은 호출 한 번이었다. `D23`을 "실제로 구현할 때" 결정하기로 미뤄둔 것이 맞았다.
-> 경위: [`findings/d23-sdk-backend.md`](../../knowledge/wiki/findings/d23-sdk-backend.md)
+> The lesson — **do not decide from an environment survey alone. You have to call it once.** "It is installed" and
+> "it works" were different propositions, and the cost of distinguishing them was one call. Deferring `D23` to
+> "when it is actually implemented" was right.
+> How it went: [`findings/d23-sdk-backend.md`](../../knowledge/wiki/findings/d23-sdk-backend.md)
 
 ---
 
-## 5. 파이프라인 — 14 스테이지
+## 5. The pipeline — 14 stages
 
-`run_state.yaml` 위의 상태기계. 자유대화가 아니다. 상세는
+A state machine on top of `run_state.yaml`. It is not free conversation. Details in
 [`docs/01_agent_architecture.md`](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) §2,
-구현 체크리스트는 **[§14](#14-구현-체크리스트)**.
+and the implementation checklist is **[§14](#14-the-implementation-checklist)**.
 
-### 누가 시작하는가 — 사람이다
+### Who starts it — a human
 
-**v1에 바깥 자율 루프는 없다.** 큐도, 스케줄러도, "다음에 뭘 할지 스스로 정하는" 층도 없다.
-
-```
-사람:  bd-agent new "<자연어 기술>" [--image ...] [--pdf ...]
-   → outputs/<run_id>/ 생성 → S1부터 진행 → 게이트에서 멈춤
-   → 사람이 승인 → bd-agent resume outputs/<run_id> → 계속
-```
-
-검증 오라클이 약한 도메인(§6)에서 자율 루프는 **잘못된 방향으로 밤새 달릴 위험**이 크다. 채점자가
-없으니 스스로 틀렸다는 걸 알 방법도 없다. 루프는 게이트가 실제로 지루해진 뒤에 붙인다 (`D25`).
-
-> ❓ **미결정 · `D25`** — `cycle-log.md` 1행이 세는 "사이클"의 단위는 무엇인가?
-> **현재 기본값:** **사람이 시작한 런 하나 = 1 사이클.** `run_id` ↔ 로그 1행이 1:1
-> **왜 걸리는가:** 한 계를 두고 파라미터만 바꿔 세 번 돌리면 1 사이클인가 3 사이클인가.
-> §10의 "첫시도 통과율"이 여기서 완전히 달라진다
-> **결정 시점:** 첫 행을 실제로 쓸 때 (M1 종료 시)
+**There is no outer autonomous loop in v1.** No queue, no scheduler, and no layer that "decides for itself what to do next".
 
 ```
-S1 INTAKE → S2 ELICIT →🚦게이트1→ S2.5 PREREGISTER(v0 정성)
-   → S3 NONDIM → S4 LIT-GROUND → S2.5′ PREREGISTER(v1 정량)
+human:  bd-agent new "<a natural-language description>" [--image ...] [--pdf ...]
+   → outputs/<run_id>/ created → proceeds from S1 → stops at a gate
+   → the human approves → bd-agent resume outputs/<run_id> → continues
+```
+
+In a domain with a weak verification oracle (§6), an autonomous loop carries a large risk of **running all night in
+the wrong direction**. With no grader there is also no way for it to learn it was wrong. The loop gets attached after
+the gates actually become tedious (`D25`).
+
+> ❓ **Undecided · `D25`** — what is the unit of the "cycle" that one row of `cycle-log.md` counts?
+> **The current default:** **one human-started run = 1 cycle.** `run_id` ↔ one log row, 1:1
+> **Why it catches:** if one system is run three times changing only a parameter, is that 1 cycle or 3?
+> §10's "first-try pass rate" changes completely on this
+> **When it gets decided:** when the first row is actually written (at the end of M1)
+
+```
+S1 INTAKE → S2 ELICIT →🚦gate 1→ S2.5 PREREGISTER(v0 qualitative)
+   → S3 NONDIM → S4 LIT-GROUND → S2.5′ PREREGISTER(v1 quantitative)
    → S5 PLAN → S6 PREFLIGHT
-   → S7 EXECUTE(smoke → pilot →🚦게이트2→ production)
+   → S7 EXECUTE(smoke → pilot →🚦gate 2→ production)
    → S7.5 EYEBALL → S8 DIAGNOSE ⇄ S9 REPAIR
    → S10 ANALYZE → S11 VISUALIZE → S12 REPORT
-                                        ↑ S8=REDESIGN이면 S5로 복귀
+                                        ↑ S8=REDESIGN then back to S5
 ```
 
-| 스테이지 | 주체 | 핵심 통과 기준 |
+| Stage | Owner | The core pass criterion |
 |---|---|---|
-| S1 INTAKE | LLM | **임의 생성값 0건** — 모르면 `unknowns[]`로 · **`(계, 목적 동역학)` 쌍 분류** |
-| S2 ELICIT | LLM+사람 | 🚦 **게이트 1** — **역번역 대조** 승인 (§6-A V1) |
-| **S2.5 PREREGISTER** | 사람+LLM | 예상 결과와 **물리적 근거**를 못박음. 정성(v0) → 정량(v1) |
-| S3 NONDIM | 코드 | **계-동역학 카드 기반** · 왕복오차 `<1e-12` · 카드가 지정한 게이트 통과 |
-| S4 LIT-GROUND | LLM | 무차원수가 문헌 범위 안/밖 판정 (경고, 차단 아님) |
-| S5 PLAN | LLM 제안 → 코드 검증 | 3티어 정의 + **추정 시간 < 예산** |
-| S6 PREFLIGHT | 코드 | API 실물 대조 + 0-step dry-run + **V4 교차검사**. **에러 전체 수집** |
-| S7 EXECUTE | Runner | 🚦 **게이트 2** — production 직전 |
-| **S7.5 EYEBALL** | 코드 → 사람 | 스냅샷 3장 저해상도. **숫자로 잡기 어렵고 눈으로 1초**인 것들 |
-| S8 DIAGNOSE | 코드 (+LLM triage) | **6범주** (§6-B) — 여섯 번째가 outlier |
-| S9 REPAIR | 규칙표 → LLM → 사람 | 예산 내 |
-| S10 ANALYZE | 코드 (freud) | **오차막대 없는 숫자 금지** |
+| S1 INTAKE | LLM | **0 arbitrarily generated values** — if unknown, into `unknowns[]` · **classify the `(system, target dynamics)` pair** |
+| S2 ELICIT | LLM+human | 🚦 **gate 1** — approval of the **back-translation comparison** (§6-A V1) |
+| **S2.5 PREREGISTER** | human+LLM | nail down the expected result and its **physical grounds**. Qualitative (v0) → quantitative (v1) |
+| S3 NONDIM | code | **based on the system-dynamics card** · round-trip error `<1e-12` · passing the gates the card specifies |
+| S4 LIT-GROUND | LLM | judge whether the dimensionless numbers are inside or outside the literature range (a warning, not a block) |
+| S5 PLAN | LLM proposes → code validates | 3 tiers defined + **the estimated time < the budget** |
+| S6 PREFLIGHT | code | comparison against the real API + a 0-step dry run + **the V4 cross-check**. **Collect all errors** |
+| S7 EXECUTE | Runner | 🚦 **gate 2** — immediately before production |
+| **S7.5 EYEBALL** | code → human | 3 low-resolution snapshots. The things that are **hard to catch by number and take 1 second by eye** |
+| S8 DIAGNOSE | code (+LLM triage) | **6 categories** (§6-B) — the sixth is outlier |
+| S9 REPAIR | the rule table → LLM → human | within budget |
+| S10 ANALYZE | code (freud) | **no number without an error bar** |
 
-### ★ 무차원화와 게이트는 `(계, 목적 동역학)` 쌍마다 다르다
+### ★ The non-dimensionalization and the gates differ per `(system, target dynamics)` pair
 
-**하나의 무차원화 규약을 모든 런에 강요할 수 없다.** 같은 랩 안에서도 기준 단위가 셋으로 갈린다.
+**One non-dimensionalization convention cannot be forced on every run.** Even inside the same lab the reference units split three ways.
 
-| 계 · 목적 동역학 | 기준 길이 | 기준 시간 | `kT` |
+| System · target dynamics | Reference length | Reference time | `kT` |
 |---|---|---|---|
-| ABP × 조밀 집단 | **런 길이 `ℓ`** | **`τ_r = 1/D_r`** | **유도량** (`= D_r ζ_r`) |
-| 브러시 콜로이드 × 비평형 접촉 | `σ` | `τ_D = σ²/D` | 입력값 |
-| 수동 구형 × 평형 구조 | `σ` | `τ_D` | 입력값 |
+| ABP × a dense collective | **the run length `ℓ`** | **`τ_r = 1/D_r`** | **a derived quantity** (`= D_r ζ_r`) |
+| brush colloids × non-equilibrium contact | `σ` | `τ_D = σ²/D` | an input |
+| passive spheres × equilibrium structure | `σ` | `τ_D` | an input |
 
-그래서 **S1이 쌍을 분류하고, S3는 그 쌍의 카드를 조회해서 무차원화한다.**
-카드: [`knowledge/wiki/systems/`](../../knowledge/wiki/systems/_index.md) · 계약: [`knowledge/wiki/CLAUDE.md`](../../knowledge/wiki/CLAUDE.md)
+So **S1 classifies the pair, and S3 looks up that pair's card and non-dimensionalizes.**
+The cards: [`knowledge/wiki/systems/`](../../knowledge/wiki/systems/_index.md) · the contract: [`knowledge/wiki/CLAUDE.md`](../../knowledge/wiki/CLAUDE.md)
 
-**게이트도 쌍마다 켜고 끈다** — 이게 카드의 핵심 효용이다.
+**The gates are also switched on and off per pair** — this is the card's core utility.
 
-| 게이트 | 수동 구형 × 평형 구조 | ABP × 조밀 집단 |
+| Gate | passive spheres × equilibrium structure | ABP × a dense collective |
 |---|---|---|
-| 평형화 (`pymbar`) | ✅ 유효 | ❌ **무의미** — 능동계는 열평형에 안 간다 |
-| 자기일관성 `D_msd = kT/γ` | ✅ 성립 | ⚠️ **성립 안 함** — `D_eff = D_t + U₀²τ_r/2` |
-| 이류 변위 `u₀Δt/σ` | 해당 없음 | ✅ 필수 |
+| equilibration (`pymbar`) | ✅ valid | ❌ **meaningless** — an active system never reaches thermal equilibrium |
+| self-consistency `D_msd = kT/γ` | ✅ holds | ⚠️ **does not hold** — `D_eff = D_t + U₀²τ_r/2` |
+| advective displacement `u₀Δt/σ` | not applicable | ✅ mandatory |
 
-> 카드 없이 진행하면 무차원화를 즉흥으로 하게 되고, 그게 §2-a가 지적한
-> **"파라미터 선택이 암묵지다"의 재발**이다.
+> Proceed without a card and the non-dimensionalization gets done ad hoc, and that is
+> **a recurrence of the "parameter selection is tacit knowledge" §2-a pointed out.**
 
-> ⚠️ **S3의 `Δt` 게이트가 2026-07-27에 교체됐다.** 원래 `Δt/τ_D ≤ 1e-4` 였는데, 실제로 돌아가고
-> 논문까지 나온 BD 시뮬레이션 **3건 중 2건을 기각**하는 것이 확인됐다 — 선행 slit 프로젝트(`1.0e-3`)와
-> 랩 공개 코드 `graybox_abp_mpc`(`1.67e-4`). 스텝당 변위로 재면 셋 다 0.006–0.045σ 안에 든다.
-> 근거: [`findings/dt-gate-should-be-displacement-based.md`](../../knowledge/wiki/findings/dt-gate-should-be-displacement-based.md)
+> ⚠️ **S3's `Δt` gate was replaced on 2026-07-27.** It was originally `Δt/τ_D ≤ 1e-4`, and it was confirmed to
+> **reject 2 of 3** BD simulations that actually ran and even produced papers — the preceding slit project (`1.0e-3`) and
+> the lab's public code `graybox_abp_mpc` (`1.67e-4`). Measured as displacement per step, all three fall within 0.006–0.045σ.
+> Grounds: [`findings/dt-gate-should-be-displacement-based.md`](../../knowledge/wiki/findings/dt-gate-should-be-displacement-based.md)
 >
-> **문턱값 `0.03σ`는 표본 3개에서 나온 잠정값이다.** `dt` 스윕 실측으로 확정해야 한다.
-> `Δt/τ_D`는 게이트에서 빠지되 **무차원 원장에는 계속 기록**한다 — 문헌 비교에 필요하다.
-| S11 VISUALIZE | 코드 | 헤드리스 렌더 성공 |
-| S12 REPORT | LLM 서술 + 코드 조립 | **사전등록 가설 vs 실측 비교표** |
+> **The threshold `0.03σ` is provisional, coming from 3 samples.** It has to be settled by measuring a `dt` sweep.
+> `Δt/τ_D` drops out of the gate but **stays recorded in the dimensionless ledger** — it is needed for literature comparison.
+| S11 VISUALIZE | code | the headless render succeeds |
+| S12 REPORT | LLM narrative + code assembly | **a comparison table of the pre-registered hypothesis vs the measurement** |
 
-### S2.5 PREREGISTER — 사전등록을 독립 스테이지로 (신규 2026-07-27)
+### S2.5 PREREGISTER — pre-registration as an independent stage (new 2026-07-27)
 
-원래는 S1의 부속물(`hypothesis.yaml`)이었다. **독립 스테이지로 격상한다** — 예상 결과를 못박는
-것은 부속 작업이 아니라 이 파이프라인이 사후해석을 막는 유일한 장치이기 때문이다.
+It was originally an appendage of S1 (`hypothesis.yaml`). **It is promoted to an independent stage** — because
+nailing down the expected result is not an ancillary task but the only device by which this pipeline prevents post-hoc interpretation.
 
-**두 번 쓴다.** 한 번만 쓰면 "언제 쓰느냐"에서 딜레마가 생긴다 — 무차원화 전에 쓰면 근거가
-약하고, 후에 쓰면 이미 계를 들여다본 뒤라 사전등록이 아니다.
+**It is written twice.** Written once, there is a dilemma over "when to write it" — written before
+non-dimensionalization the grounds are weak, and written after it is no longer a pre-registration because the system has already been examined.
 
-| | 시점 | 내용 | 근거의 출처 |
+| | When | Content | Where the grounds come from |
 |---|---|---|---|
-| **v0** | 게이트1 직후 | **정성적** — 어떤 상(phase)? 어떤 경향? 뭐가 놀라울까? | 직관·경험·유사 계 |
-| **v1** | S4 직후 | **정량적** — 수치 + 허용범위 (`g(r)` 첫 봉우리 위치, MSD 기울기, `Z(φ)`) | 무차원수 + 문헌 |
+| **v0** | right after gate 1 | **qualitative** — which phase? What trend? What would be surprising? | intuition, experience, similar systems |
+| **v1** | right after S4 | **quantitative** — numbers + tolerance ranges (the position of `g(r)`'s first peak, the MSD slope, `Z(φ)`) | dimensionless numbers + the literature |
 
-**둘 다 보관한다.** v0 → v1에서 예측이 바뀌었다면 **그 변화 자체가 기록**된다 — 무차원화와 문헌이
-실제로 내 직관을 교정했다는 증거이고, 안 바뀌었다면 그것도 정보다. S12 리포트는 **v1 vs 실측**을
-비교표로 싣고, v0는 부록에 남긴다.
+**Both are kept.** If the prediction changed v0 → v1, **that change is itself recorded** — it is evidence that
+the non-dimensionalization and the literature actually corrected my intuition, and if it did not change that is
+information too. The S12 report carries **v1 vs the measurement** as a comparison table and leaves v0 in an appendix.
 
-> 예상과 크게 다르면 그 자체가 **조사할 신호**다. 사전등록의 두 번째 역할은 검증 오라클이다.
+> A large difference from the expectation is itself **a signal to investigate**. Pre-registration's second role is as a verification oracle.
 
-### S7.5 EYEBALL — 시각화는 분석보다 먼저 (신규 2026-07-27)
+### S7.5 EYEBALL — visualization before analysis (new 2026-07-27)
 
-원래 순서는 `S10 ANALYZE → S11 VISUALIZE`였다. **뒤집는다.** 궤적을 눈으로 보면 1초에 잡히는
-것들이 있고, 그것들은 대개 **숫자로는 잡기 어렵다.**
+The original order was `S10 ANALYZE → S11 VISUALIZE`. **It is inverted.** There are things that are caught in 1 second
+by looking at the trajectory, and those are mostly **hard to catch by number.**
 
-| 눈으로 1초 | 숫자로는 |
+| 1 second by eye | By number |
 |---|---|
-| 결정화됐는데 유리로 분석하고 있음 | `g(r)`만 보면 놓치기 쉽다 |
-| 클러스터가 박스를 가로질러 뭉침 | 유한크기 검사를 따로 돌려야 안다 |
-| 입자들이 서로 겹쳐 있음 (퍼텐셜이 너무 물렁) | 최소거리 히스토그램을 봐야 안다 |
-| 상분리가 진행 중인데 평형이라 가정 | `τ_ac`가 길어질 뿐 FAIL은 안 뜬다 |
+| it crystallized and is being analysed as a glass | easy to miss looking only at `g(r)` |
+| a cluster clumps across the box | you only know by running a separate finite-size check |
+| the particles are overlapping (the potential is too soft) | you only know by looking at the minimum-distance histogram |
+| a phase separation is in progress and equilibrium is assumed | `τ_ac` merely grows longer; no FAIL appears |
 
-S7.5는 **싸고 빠른 육안 검사**다 — 초기·중간·최종 스냅샷 3장, 저해상도, 렌더 몇 초. 결과는
-S8 DIAGNOSE의 입력으로 들어간다. **리포트용 최종 렌더는 여전히 S11**이고 거기서 fresnel(3D) 또는
-matplotlib(2D)을 쓴다 (`D14`).
+S7.5 is **a cheap and fast eyeball check** — 3 snapshots (initial, middle, final), low resolution, a few seconds to
+render. The result feeds into S8 DIAGNOSE as an input. **The final render for the report is still S11**, and there
+fresnel (3D) or matplotlib (2D) is used (`D14`).
 
 ---
 
-## 6. 검증 철학 ★ — 정답이 없는 도메인에서 어떻게 검증하는가
+## 6. The verification philosophy ★ — how to verify in a domain with no right answer
 
-많은 계산 분야에는 **채점자**가 있다. 답이 맞거나 틀리고, 경계가 성립하거나 안 하고, 점수가
-재현된다. 그런 도메인에서는 "검증"이 곧 "채점자에게 물어보기"다.
+Many computational fields have **a grader**. An answer is right or wrong, a bound holds or does not, a score
+reproduces. In such a domain "verification" is just "asking the grader".
 
-**우리에게는 채점자가 없다.** 정답도 없고, 최대화할 스칼라 점수도 없다. §2-b에서 말한 대로
-시뮬레이션은 **항상 어떤 숫자를 낸다** — 발산하지 않았다는 것이 올바르다는 뜻은 아니다.
+**We have no grader.** There is no right answer, and no scalar score to maximize. As §2-b said,
+a simulation **always produces some number** — not having diverged does not mean being correct.
 
-그래서 검증을 **직접 조립해야 한다.**
+So the verification **has to be assembled by hand.**
 
-### 검증은 두 축이다 — 과정과 결과
+### Verification has two axes — process and result
 
-원안의 §6은 **결과 검증**만 다뤘다 — "나온 숫자가 맞는가". 하지만 실제 작업에서 더 자주 틀리는
-것은 **과정**이다. 애초에 다른 계를 시뮬레이션했다면 그 숫자는 검증할 가치도 없다.
+The original §6 dealt only with **result verification** — "is the number that came out right". But in real work what
+goes wrong more often is **the process**. If a different system was simulated to begin with, that number is not even worth verifying.
 
-| 축 | 묻는 것 | 어디 |
+| Axis | What it asks | Where |
 |---|---|---|
-| **과정 검증** | 파이프라인이 제대로 돌았는가 — 옮기기·타당성·스케일·일관성·안정성·이상치 | **§6-A** (V1~V6) |
-| **결과 검증** | 나온 숫자가 실제로 맞는가 | **§6-B** (V7 = 네 층의 증거) |
+| **process verification** | did the pipeline run properly — transcription, validity, scale, consistency, stability, outliers | **§6-A** (V1~V6) |
+| **result verification** | is the number that came out actually right | **§6-B** (V7 = the four layers of evidence) |
 
-둘은 **실패하는 방식이 다르다.** 과정은 *조용히* 틀리고 — 엉뚱한 계를 완벽하게 시뮬레이션한다 —
-결과는 *그럴듯하게* 틀린다. 전자가 훨씬 위험하다. **결과 검증을 아무리 잘해도 잡히지 않기
-때문이다.** 네 층의 증거가 전부 일치해도, 그게 애초에 다른 계였다면 전부 일치하는 오답이다.
+The two **fail in different ways.** The process fails *quietly* — it simulates the wrong system perfectly — and
+the result fails *plausibly*. The former is far more dangerous. **Because it is not caught however well the results
+are verified.** Even if all four layers of evidence agree, if it was a different system to begin with then it is a wrong answer on which everything agrees.
 
 ---
 
-## 6-A. 과정 검증 — 7층 사다리
+## 6-A. Process verification — a 7-layer ladder
 
-각 층은 **다른 종류의 실패**를 잡는다. 순서대로 통과해야 하고, 아래층이 깨진 채 위층을 검증하는
-것은 의미가 없다.
+Each layer catches **a different kind of failure**. They have to be passed in order, and verifying an upper layer
+while a lower one is broken is meaningless.
 
-| | 검증 | 묻는 것 | 스테이지 | 실패 시 |
+| | Verification | What it asks | Stage | On failure |
 |---|---|---|---|---|
-| **V1** | **충실성** | 말·그림·글을 제대로 옮겼는가 | S1 → 🚦게이트1 | S1 재실행 |
-| **V2** | 물리적 타당성 | 이 문제가 물리적으로 말이 되는가 | S1 · S2.5 | `BLOCKED_INPUT` |
-| **V3** | 무차원화·파라미터 | 스케일과 파라미터가 적절한가 | S3 · S4 · S5 | S2 복귀 / 경고 |
-| **V4** | **단계 간 일관성** | 앞 단계와 충돌하는 게 없는가 | S6 PREFLIGHT | S5 복귀 |
-| **V5** | 수치 안정성 | 도는 동안 터지지 않는가 | S7 · S8 | S9 REPAIR |
-| **V6** | **Outlier** | 결과 안에 이상치가 있는가 | S8 | S9 / 조사 |
-| **V7** | 물리적 해석 | 나온 숫자가 실제로 맞는가 | S10 · S12 | **§6-B로** |
+| **V1** | **fidelity** | were the words, pictures and text transcribed properly | S1 → 🚦gate 1 | re-run S1 |
+| **V2** | physical validity | does this problem make physical sense | S1 · S2.5 | `BLOCKED_INPUT` |
+| **V3** | non-dimensionalization, parameters | are the scales and the parameters appropriate | S3 · S4 · S5 | back to S2 / a warning |
+| **V4** | **inter-stage consistency** | is there anything conflicting with an earlier stage | S6 PREFLIGHT | back to S5 |
+| **V5** | numerical stability | does it not blow up while running | S7 · S8 | S9 REPAIR |
+| **V6** | **Outlier** | are there outliers inside the result | S8 | S9 / investigate |
+| **V7** | physical interpretation | is the number that came out actually right | S10 · S12 | **to §6-B** |
 
-굵게 표시한 **V1 · V4 · V6** 셋이 원안에 없던 것이다. 나머지는 §14-E에 exit check로 흩어져 있던
-것을 층으로 묶었다. 구현 항목은 §14-E.
+The three in bold, **V1 · V4 · V6**, are the ones the original plan did not have. The rest bundle into layers what
+was scattered across §14-E as exit checks. The implementation items are in §14-E.
 
-> 이 일곱 층은 2026-07-27에 기술한 검증 7단계를 **1:1로 옮긴 것**이다. 순서도 그대로다.
-> 여덟 번째로 말한 *"불확실성과 잘못된 점의 이유 분석과 기록"* 은 층이 아니라 **모든 층에
-> 걸리는 규율**이라 §6-C로 분리했다.
+> These seven layers are **a 1:1 transposition** of the 7 verification steps described on 2026-07-27. The order is unchanged too.
+> The eighth thing mentioned, *"analysing and recording the reason for uncertainties and for what went wrong"*, is not a
+> layer but **a discipline that attaches to every layer**, so it was split off into §6-C.
 
-### V1 충실성 — 역번역으로 검사한다
+### V1 fidelity — checked by back-translation
 
-원안 S1의 검사는 "**임의 생성값 0건**"뿐이었다. 그건 *환각*을 막는 장치이지 **제대로 옮겼는지**를
-보는 장치가 아니다. 이런 실패는 그대로 통과한다.
+The original S1's check was only "**0 arbitrarily generated values**". That is a device against *hallucination*, not
+a device for seeing **whether it was transcribed properly**. A failure like this passes straight through.
 
-> 사람: "500 nm **실리카**" → 에이전트: `material: polystyrene`, `confidence: 0.9`, `unknowns: []`
+> Human: "500 nm **silica**" → agent: `material: polystyrene`, `confidence: 0.9`, `unknowns: []`
 >
-> **지어낸 값이 아니다. `unknowns`도 비어 있다. 현재 검사는 전부 통과한다.**
+> **It is not an invented value. `unknowns` is empty too. Every current check passes.**
 
-그래서 **역번역**을 넣는다.
+So **back-translation** goes in.
 
 ```
-원문(사람) ──S1──▶ spec.yaml ──역번역──▶ 자연어 재기술
+the original (human) ──S1──▶ spec.yaml ──back-translate──▶ a natural-language re-description
                                               │
-                        🚦게이트1: 원문과 나란히 놓고 사람이 승인
+                        🚦gate 1: put it side by side with the original and let a human approve
 ```
 
-게이트1의 정체를 "스펙 승인"에서 **"역번역 대조 승인"**으로 구체화한다. 사람이 보는 것은 YAML이
-아니라 **자기 말로 되돌아온 문장**이어야 한다 — YAML을 훑으며 누락을 찾는 것보다 훨씬 쉽고,
-사람이 실제로 잘하는 일이다.
+Gate 1's identity is made concrete, from "spec approval" to **"back-translation comparison approval"**. What the human
+sees has to be not YAML but **their own words come back as sentences** — far easier than skimming YAML looking for an
+omission, and something a human is actually good at.
 
-| 검사 | 주체 |
+| Check | Owner |
 |---|---|
-| 원문에 명시된 값이 spec에 전부 있는가 — **누락 0** | 코드 |
-| spec에 원문에 없는 값이 있으면 `assumed: true` + 출처 필수 | 코드 |
-| 이미지에서 읽은 값은 **어디서** 읽었는지 (`provenance: "스케일바 1 µm"`) | 코드 |
-| **역번역문이 원문과 의미가 같은가** | **사람** (게이트1) |
+| are all the values stated in the original present in the spec — **0 omissions** | code |
+| if the spec has a value the original does not, `assumed: true` + a source is mandatory | code |
+| for a value read from an image, **where** it was read from (`provenance: "the scale bar, 1 µm"`) | code |
+| **does the back-translation mean the same as the original** | **the human** (gate 1) |
 
-### V4 단계 간 일관성 — 교차검사
+### V4 inter-stage consistency — the cross-check
 
-V1~V3과 V5~V6은 전부 **스테이지 내부** 검사다. V4만 다르다 — 앞 단계에서 정한 것과 뒤 단계가
-모순되지 않는가를 본다. **각 스테이지가 개별적으로는 전부 PASS인데 조합이 틀린 경우**가 실재한다.
+V1~V3 and V5~V6 are all **within-stage** checks. Only V4 is different — it looks at whether a later stage
+contradicts what an earlier one fixed. **The case where each stage individually passes and yet the combination is wrong** is real.
 
-S6 PREFLIGHT를 확장해 실행 직전에 한 번에 검사한다.
+S6 PREFLIGHT is extended to check them all at once immediately before execution.
 
-| 검사 | 앞 | 뒤 | 충돌 예 |
+| Check | Earlier | Later | Example conflict |
 |---|---|---|---|
-| 차원 | S1 `spec.dim` | S5 box | 3D 스펙인데 2D 박스 |
-| 관측 목표 vs 런 길이 | S1 목표 | S5 `steps` | "겔화 관찰"인데 `τ_gel`보다 짧음 |
-| 사전등록 vs 계획 | S2.5 v1 | S5 | "결정화 예상"인데 `φ`가 결정화 영역 밖 |
-| 시간 간격 | S3 `Δt/τ_D` | S5 `dt` | S5가 `dt`를 바꿔 **S3 게이트를 무효화** |
-| 박스 vs 컷오프 | S1 `N`·`φ` → `L` | S5 `r_cut` | `r_cut > L/2` — minimum image 위반 |
-| 퍼텐셜 vs 계 종류 | S1 계 | S5 pair | hard sphere라 했는데 인력만 걸림 |
-| 예산 vs 티어 | `budget` | S5 3티어 | production 추정이 남은 예산 초과 |
+| dimensionality | S1 `spec.dim` | S5 box | a 3D spec with a 2D box |
+| the observation goal vs the run length | S1's goal | S5 `steps` | "observe gelation" but shorter than `τ_gel` |
+| the pre-registration vs the plan | S2.5 v1 | S5 | "crystallization expected" but `φ` is outside the crystallization region |
+| the time step | S3 `Δt/τ_D` | S5 `dt` | S5 changes `dt` and **invalidates the S3 gate** |
+| the box vs the cutoff | S1 `N`, `φ` → `L` | S5 `r_cut` | `r_cut > L/2` — a minimum-image violation |
+| the potential vs the kind of system | S1's system | S5 pair | it was said to be hard spheres but only an attraction is applied |
+| the budget vs the tiers | `budget` | S5's 3 tiers | the production estimate exceeds the remaining budget |
 
-> **이 표가 길어지는 것은 좋은 일이다.** 한 줄 늘어날 때마다 그건 실제로 한 번 당한 조합이라는
-> 뜻이고(`D21`의 논리), 다시는 안 당한다는 뜻이다.
+> **This table getting longer is good news.** Every row added means it is a combination that actually bit once
+> (the logic of `D21`), and that it will not bite again.
 
-### V6 Outlier — 네 종류
+### V6 Outlier — four kinds
 
-S8의 기존 진단은 전부 **계 전체의 집계값**을 본다 (평균 `kT`, 전체 MSD…). Outlier는 층위가 다르다
-— **집계하면 사라진다.**
+S8's existing diagnostics all look at **the whole system's aggregates** (the mean `kT`, the overall MSD…). An outlier
+is at a different level — **it disappears on aggregation.**
 
-| 종류 | 무엇 | 방법 |
+| Kind | What | Method |
 |---|---|---|
-| **앙상블** | 시드 5개 중 하나만 다른 결과 | 시드 간 산포 vs 블록 오차 |
-| 시계열 | 특정 프레임에서 에너지·압력 점프 | MAD 기반 로버스트 z-score |
-| 입자 | 한 입자만 이상 변위 (nlist 놓침 의심) | 변위 분포의 꼬리 |
-| 공간 | 박스 일부만 밀도가 다름 | 부피 분할 밀도 |
+| **ensemble** | 1 of 5 seeds gives a different result | the seed-to-seed scatter vs the block error |
+| time series | an energy or pressure jump at a particular frame | a MAD-based robust z-score |
+| particle | just one particle with an anomalous displacement (a suspected nlist miss) | the tail of the displacement distribution |
+| spatial | only part of the box has a different density | density by volume partition |
 
-**앙상블 outlier가 가장 중요하다.** 재현 가능성에 직결되고, 나머지 셋은 대개 그것의 *원인*이다.
-시드 하나가 튀는데 평균만 보고 넘어가면, **그 평균은 물리가 아니라 사고를 평균낸 것**이다.
+**The ensemble outlier matters most.** It bears directly on reproducibility, and the other three are usually its *cause*.
+If one seed jumps and it is passed over on the strength of the mean alone, **that mean is not physics but an averaged accident.**
 
 ---
 
-## 6-B. 결과 검증 — 네 층의 증거
+## 6-B. Result verification — the four layers of evidence
 
-**V7.** 여기서부터가 원안의 §6이다. 위 여섯 층을 통과한 결과에 대해서만 의미가 있다.
+**V7.** From here on is the original §6. It is only meaningful for a result that has passed the six layers above.
 
-### 네 층의 증거 — 서로 **다른 종류**여야 한다
+### The four layers of evidence — they have to be **different in kind** from each other
 
-| 층 | 무엇을 묻는가 | 예 |
+| Layer | What it asks | Example |
 |---|---|---|
-| **① 자기일관성** | 시뮬레이션이 스스로 모순되지 않는가 | 희박 tracer의 `D_msd` = `kT/γ` (±2%) · 측정 `kT` = 목표 `kT` (±5%) |
-| **② 해석적 극한** | 답을 아는 극한으로 가면 그 답이 나오는가 | `φ→0`에서 이상기체 · 자유 BD에서 `MSD = 6Dt` |
-| **③ 문헌 벤치마크** | 남들이 측정한 값이 재현되는가 | Carnahan–Starling `Z(φ)` · hard sphere `φ_freeze=0.494` |
-| **④ 독립 방법** | 다른 경로로 같은 답이 나오는가 | BD vs HPMC · 서로 다른 퍼텐셜로 같은 `B2*` |
+| **① self-consistency** | does the simulation not contradict itself | a dilute tracer's `D_msd` = `kT/γ` (±2%) · the measured `kT` = the target `kT` (±5%) |
+| **② the analytic limit** | going to a limit whose answer is known, does that answer come out | an ideal gas at `φ→0` · `MSD = 6Dt` in free BD |
+| **③ the literature benchmark** | does a value others measured reproduce | Carnahan–Starling `Z(φ)` · hard-sphere `φ_freeze=0.494` |
+| **④ an independent method** | does the same answer come out by a different route | BD vs HPMC · the same `B2*` with different potentials |
 
-> **같은 코드를 두 번 돌리는 것은 증거 하나다.** 시드만 바꾼 재실행도 마찬가지다.
-> 증거는 **종류**가 달라야 한다.
+> **Running the same code twice is one piece of evidence.** A re-run with only the seed changed is the same.
+> Evidence has to differ in **kind**.
 
-### 다섯 번째 층 후보 — 실험 데이터
+### A fifth-layer candidate — experimental data
 
-연구 주제에 **미세유변학/트래킹**이 포함되므로(§7), 실측 궤적이 손에 있을 수 있다. 이건 위 네 층
-어디에도 속하지 않는다 — 문헌값도 아니고 해석적 극한도 아니다. **채점자 없는 도메인에서 독립적
-실측 오라클은 가장 값진 증거다.**
+Since the research topic includes **microrheology/tracking** (§7), measured trajectories may be to hand. This
+belongs to none of the four layers above — it is neither a literature value nor an analytic limit. **In a domain with
+no grader, an independent measured oracle is the most valuable evidence there is.**
 
-| 층 | 무엇을 묻는가 | 예 |
+| Layer | What it asks | Example |
 |---|---|---|
-| **⑤ 실험 대조** | 실제 계에서 측정한 값과 맞는가 | trackpy MSD vs 시뮬 MSD · 실측 `g(r)` |
+| **⑤ experimental comparison** | does it match a value measured in a real system | a trackpy MSD vs the simulated MSD · a measured `g(r)` |
 
-> ❓ **미결정 · `D24`** — ⑤를 정식 증거 층으로 편입할 것인가?
-> **현재 기본값:** **v1 미편입.** 단 `evidence_layer: 5`를 `benchmarks.yaml` 스키마에 예약해둔다
-> **왜 미루는가:** 실험-시뮬 대조는 불일치했을 때 원인 후보가 너무 많다 (HI 무시(`D11`) · 다분산도
-> (`D10`) · 트래킹 오차 · 계 자체가 다름). 증거 층이 되려면 **불일치를 해석할 규칙**이 먼저 있어야 한다
-> **결정 시점:** 미세유변학 계를 처음 다룰 때 (M2 이후)
+> ❓ **Undecided · `D24`** — should ⑤ be admitted as a formal evidence layer?
+> **The current default:** **not admitted in v1.** But `evidence_layer: 5` is reserved in the `benchmarks.yaml` schema
+> **Why it is deferred:** an experiment-simulation comparison has too many candidate causes when it disagrees
+> (ignoring HI (`D11`) · polydispersity (`D10`) · tracking error · the system simply being different). To become an
+> evidence layer there first has to be **a rule for interpreting a disagreement**
+> **When it gets decided:** when a microrheology system is first handled (after M2)
 
-### 불일치 프로토콜
+### The disagreement protocol
 
-| 상황 | 조치 |
+| Situation | Action |
 |---|---|
-| 두 증거가 어긋남 | **버그다. 멈춘다.** 찾을 때까지 진행하지 않는다 |
-| 셋 다 일치 | 신뢰. 진행 |
-| 셋 다 어긋남 | 정의가 다르다. **무차원화와 관측량 정의부터** 재확인 |
+| two pieces of evidence disagree | **it is a bug. Stop.** Do not proceed until it is found |
+| all three agree | trust it. Proceed |
+| all three disagree | the definitions differ. **Re-check the non-dimensionalization and the observable definitions first** |
 
-### 증거 등급 — 모든 결과에 배지를 붙인다
+### Evidence grades — attach a badge to every result
 
-| 등급 | 조건 |
+| Grade | Condition |
 |---|---|
-| `certified` | ③ 문헌 벤치마크 + ② 해석적 극한 + ④ 독립 방법 |
-| `verified` | ① 자기일관성 + ②~④ 중 하나 |
-| `plausible` | ① 자기일관성만 |
-| `unverified` | 대조할 것이 없음 |
+| `certified` | ③ the literature benchmark + ② the analytic limit + ④ an independent method |
+| `verified` | ① self-consistency + one of ②~④ |
+| `plausible` | ① self-consistency only |
+| `unverified` | there is nothing to compare against |
 
-**`unverified`를 숨기지 않는다.** 벤치마크에 없는 새로운 계를 시뮬레이션하는 것은 정당하지만,
-그걸 "검증됐다"고 말하는 것은 아니다. 리포트에 배지로 명시한다.
+**Do not hide an `unverified`.** Simulating a new system that is in no benchmark is legitimate, but calling it
+"verified" is not. It is stated in the report as a badge.
 
-> 위 표는 **획득 조건**이고, 여기에 **상한**이 하나 더 걸린다 — 과정 검증(§6-A)에서 나온
-> `PASS-with-doubt`는 등급의 천장을 낮춘다. 상세는 §6-C. 요컨대 **네 층의 증거를 다 모아도
-> 계 자체가 의심스러우면 `certified`가 될 수 없다.**
+> The table above is the **acquisition condition**, and one more **ceiling** applies on top of it — a
+> `PASS-with-doubt` coming out of process verification (§6-A) lowers the ceiling of the grade. Details in §6-C. In short,
+> **even with all four layers of evidence collected, if the system itself is doubtful it cannot be `certified`.**
 
-### 문헌 = 검증 인프라
+### The literature = verification infrastructure
 
-우리에게 없는 채점자 역할을 **문헌이 대신한다.** 그래서 논문 수집은 부가 작업이 아니라
-**검증 인프라 그 자체**다. 논문을 *읽기용 컨텍스트*로만 쓰면 가치의 절반을 버린다 —
-**기계가 읽을 수 있는 벤치마크 표로 추출해서 회귀 테스트로 돌려야** 비로소 채점자가 된다.
+**The literature stands in** for the grader role we do not have. So collecting papers is not an ancillary task but
+**the verification infrastructure itself**. Using a paper only as *reading context* throws away half its value —
+only by **extracting it into a machine-readable benchmark table and running it as a regression test** does it become a grader.
 
 ```yaml
 # knowledge/wiki/benchmarks/benchmarks.yaml
@@ -509,266 +514,267 @@ S8의 기존 진단은 전부 **계 전체의 집계값**을 본다 (평균 `kT`
   observable: compressibility_factor_Z
   expected: 4.577            # Z = (1+φ+φ²−φ³)/(1−φ)³
   tolerance_rel: 0.02
-  cost: cheap                # 10코어에서 수십 초
+  cost: cheap                # 10 cores, tens of seconds
   evidence_layer: 3
   source: "Carnahan & Starling, J. Chem. Phys. 51, 635 (1969)"
 ```
 
-`pytest tests/test_benchmarks.py`가 **실제로 짧은 시뮬레이션을 돌려 문헌값과 대조한다.**
-파이프라인이 물리적으로 맞는지 확인하는 유일하게 신뢰할 만한 방법이다.
+`pytest tests/test_benchmarks.py` **actually runs a short simulation and compares against the literature value.**
+It is the only trustworthy way of confirming that the pipeline is physically right.
 
-**v1 시드 벤치마크** (10코어에서 감당 가능한 것 우선)
+**The v1 seed benchmarks** (what is affordable on 10 cores first)
 
-| 우선 | 벤치마크 | 비용 |
+| Priority | Benchmark | Cost |
 |---|---|---|
-| 1 | 자유 BD `MSD = 6Dt`, `D = kT/γ` — 1% 이내 | 수 초 |
-| 2 | **Carnahan–Starling** `Z(φ)`, φ=0.1–0.4 — 싸고 판별력 높음 | 수십 초 |
-| 3 | Hard sphere `φ_freeze=0.494` / `φ_melt=0.545` (Hoover–Ree 1968) | 분 |
-| 4 | LJ 상태방정식 — Johnson–Zollweg–Gubbins 표 상태점 | 분 |
-| 5 | Noro–Frenkel `B2*` — 해석적 `B2` vs 수치적분 | 초 |
+| 1 | free BD `MSD = 6Dt`, `D = kT/γ` — within 1% | a few seconds |
+| 2 | **Carnahan–Starling** `Z(φ)`, φ=0.1–0.4 — cheap and highly discriminating | tens of seconds |
+| 3 | hard sphere `φ_freeze=0.494` / `φ_melt=0.545` (Hoover–Ree 1968) | minutes |
+| 4 | the LJ equation of state — the Johnson–Zollweg–Gubbins table state points | minutes |
+| 5 | Noro–Frenkel `B2*` — the analytic `B2` vs a numerical integration | seconds |
 | 6 | HPMC hard-disk acceptance + EOS | v2 |
 
-### S8 진단 6범주
+### S8's 6 diagnostic categories
 
-| 범주 | 지표 | 층 |
+| Category | Indicator | Layer |
 |---|---|---|
-| 안정성 | NaN·inf 없음 · 스텝당 최대변위 `< 0.1σ` · 박스 이탈 0 | V5 |
-| 열역학 | 측정 `kT` vs 목표 (±5%) · 압력 · 퍼텐셜에너지 드리프트 | V5 |
-| 자기일관성 | 희박 tracer `D_msd` vs `kT/γ` (±2%) | V7 ① |
-| 평형화 | `pymbar.detect_equilibration` · `τ_ac` · `N_eff = N/(2τ_ac)` | V5 |
-| 유한크기 | `L` vs `1.5L`에서 관측량 이동이 tol 이내 | V5 |
-| **Outlier** | 앙상블 · 시계열 · 입자 · 공간 4종 (§6-A) | **V6** |
+| stability | no NaN or inf · the maximum displacement per step `< 0.1σ` · 0 box escapes | V5 |
+| thermodynamics | the measured `kT` vs the target (±5%) · the pressure · the potential-energy drift | V5 |
+| self-consistency | a dilute tracer's `D_msd` vs `kT/γ` (±2%) | V7 ① |
+| equilibration | `pymbar.detect_equilibration` · `τ_ac` · `N_eff = N/(2τ_ac)` | V5 |
+| finite size | the shift in an observable between `L` and `1.5L` is within tol | V5 |
+| **Outlier** | the 4 kinds: ensemble · time series · particle · spatial (§6-A) | **V6** |
 
-앞 다섯은 **집계값**을 보고, 여섯 번째만 **분포와 개체**를 본다. 다섯이 전부 통과해도 시드 하나가
-따로 놀 수 있고, 그건 평균에 묻힌다.
+The first five look at **aggregates**, and only the sixth looks at **the distribution and the individuals**. All five
+can pass and yet one seed can be off on its own, and that gets buried in the mean.
 
 ---
 
-## 6-C. 불확실성 원장 — 통과했지만 미심쩍은 것
+## 6-C. The uncertainty ledger — what passed but is doubtful
 
-검증에서 나오는 것은 두 가지가 아니라 **세 가지**다.
+What comes out of verification is not two things but **three**.
 
-| 판정 | 뜻 | 어디에 남는가 |
+| Verdict | Meaning | Where it is left |
 |---|---|---|
-| `PASS` | 기준 안. 넘어간다 | 저널 (자동) |
-| **`PASS-with-doubt`** | **기준은 통과했으나 미심쩍다** | 저널 + **검증 원장** |
-| `FAIL` | 기준 밖 | 저널 + S9 REPAIR |
+| `PASS` | inside the criterion. Move on | the journal (automatic) |
+| **`PASS-with-doubt`** | **it passed the criterion but is doubtful** | the journal + **the verification ledger** |
+| `FAIL` | outside the criterion | the journal + S9 REPAIR |
 
-**가운데가 핵심이다.** `PASS`/`FAIL` 둘만 있으면 미심쩍은 것은 갈 곳이 없어서 사라진다 —
-통과했으니 아무도 다시 안 보고, 나중에 결과가 이상할 때 *"어디가 걸렸었지"* 를 되짚을 수 없다.
+**The middle one is the crux.** With only `PASS`/`FAIL`, anything doubtful has nowhere to go and disappears —
+it passed, so nobody looks again, and when the result later seems odd there is no way to retrace *"what was it that caught"*.
 
-`PASS-with-doubt`를 붙이는 경우:
+Cases for attaching `PASS-with-doubt`:
 
-- 기준을 **아슬아슬하게** 통과 (`±2%` 기준에 `1.9%`)
-- 기준 자체의 근거가 약함 (임계값을 문헌이 아니라 관행에서 가져옴)
-- 통과했지만 **예상과 다름** — 사전등록 v1과 어긋나면 통과해도 doubt
-- 검사를 **건너뜀** (해당 데이터가 없어서, 비용 때문에)
+- it passed the criterion **by a hair** (`1.9%` against a `±2%` criterion)
+- the grounds for the criterion itself are weak (the threshold came from practice rather than the literature)
+- it passed but **differs from the expectation** — a discrepancy with pre-registration v1 is a doubt even on a pass
+- the check was **skipped** (because the data is absent, or for cost)
 
-### 기록 위치 — 층위별로 다르다
+### Where it is recorded — it differs by level
 
 ```
-모든 판정                  → decision_journal.jsonl   (자동. rule_id + observation + threshold + verdict)
-PASS-with-doubt            → docs/agent/verification-ledger.md   (사람이 읽는 요약. append-only)
-해결되지 않은 FAIL         → knowledge/wiki/findings/dead-end-<slug>.md   (원인 분석)
-반복되는 doubt/FAIL 패턴   → docs/agent/wall-ledger.md   (새 시도 전 grep)
+every verdict              → decision_journal.jsonl   (automatic. rule_id + observation + threshold + verdict)
+PASS-with-doubt            → docs/agent/verification-ledger.md   (a human-readable summary. Append-only)
+an unresolved FAIL         → knowledge/wiki/findings/dead-end-<slug>.md   (a cause analysis)
+a recurring doubt/FAIL pattern → docs/agent/wall-ledger.md   (grep it before a new attempt)
 ```
 
-### 이유는 증상이 아니라 원인이어야 한다
+### The reason has to be the cause, not the symptom
 
-§7의 `dead-end` 규율을 **검증 전반으로 확장한다.** 판정 사유에 증상만 적으면 다음번에 못 쓴다.
+§7's `dead-end` discipline is **extended to verification generally.** Write only the symptom in the verdict's reason
+and it is useless next time.
 
-| ✗ 증상 | ✓ 원인 |
+| ✗ symptom | ✓ cause |
 |---|---|
-| "발산했다" | "WCA의 `r⁻¹³` 코어 때문에 오버댐프에서 `F·dt/γ`가 폭발" |
-| "시드 3이 이상하다" | "시드 3만 초기 배치에서 겹침이 남아 첫 100스텝에 에너지 스파이크" |
-| "`kT`가 안 맞는다" | "`γ`를 SI로 넣고 나머지를 reduced로 넣어 단위가 섞임" |
+| "it diverged" | "WCA's `r⁻¹³` core made `F·dt/γ` explode in the overdamped case" |
+| "seed 3 is anomalous" | "only seed 3 had overlap left in the initial arrangement, giving an energy spike in the first 100 steps" |
+| "`kT` does not match" | "`γ` was entered in SI and the rest in reduced, so the units got mixed" |
 
-원인을 못 적겠으면 **그 사실 자체를 적는다** — `cause: unknown` + 관측값 + 다음 조사 후보.
-`cause: unknown`이 세 번 쌓이면 그건 조사할 가치가 있는 패턴이라는 신호다.
+If the cause cannot be written, **write that fact itself** — `cause: unknown` + the observed values + the next
+investigation candidates. Three `cause: unknown` entries accumulating is a signal that it is a pattern worth investigating.
 
-### doubt는 증거 등급을 깎는다
+### A doubt cuts the evidence grade
 
-기록할 유인이 없으면 아무도 기록하지 않는다. 그래서 **연결한다.**
+With no incentive to record, nobody records. So **they are connected.**
 
-| 조건 | 최대 등급 |
+| Condition | Maximum grade |
 |---|---|
-| `PASS-with-doubt`가 하나라도 있음 | **`certified` 불가** — `verified`가 상한 |
-| V1(충실성) 또는 V4(일관성)에 doubt | **`plausible`이 상한** — 계 자체가 의심스러우면 숫자는 의미 없다 |
-| 해결되지 않은 `FAIL` 있음 | **`unverified`** |
+| there is at least one `PASS-with-doubt` | **`certified` impossible** — `verified` is the ceiling |
+| a doubt in V1 (fidelity) or V4 (consistency) | **`plausible` is the ceiling** — if the system itself is doubtful the numbers are meaningless |
+| there is an unresolved `FAIL` | **`unverified`** |
 
-> 이 표가 doubt를 **숨기는 유인이 아니라 정직하게 적는 유인**이 되려면, 낮은 등급이 벌이 아니라
-> **상태의 정확한 기술**로 취급되어야 한다. `plausible`은 나쁜 결과가 아니라 정직한 결과다.
-> §12에 적힌 대로 — **`unverified`를 숨기지 않는다.**
+> For this table to be **an incentive to write a doubt down honestly rather than to hide it**, a low grade has to be
+> treated not as a punishment but as **an accurate description of the state**. `plausible` is not a bad result but an honest one.
+> As written in §12 — **do not hide an `unverified`.**
 
 ---
 
-## 7. 지식 컴파운딩
+## 7. Knowledge compounding
 
-### 파이프라인
+### The pipeline
 
 ```
-raw/        gitignored. PDF·원본 코드 로컬 캐시
-  ↓  증류 (사람 승인)
-source/     in-git. 원본 1개당 .md 1개. 출처는 frontmatter에
-  ├── papers/  ★ 논문·arXiv            ← v1의 유일한 활성 시드
-  └── lab/       연구실 선배 시뮬레이션   ← 자산 미확보. 비활성 (D20)
-  ↓  합성
+raw/        gitignored. PDF·original-code local cache
+  ↓  distillation (human-approved)
+source/     in-git. 1 .md per original. The provenance is in the frontmatter
+  ├── papers/  ★ papers and arXiv        ← v1's only active seed
+  └── lab/       a senior's lab simulations   ← assets not obtained. Inactive (D20)
+  ↓  synthesis
 wiki/
-  ├── concepts/     WHAT-IS  — 무차원수, 상거동, 퍼텐셜 종류
-  ├── techniques/   HOW-TO   — 평형화 판정, 오차막대, 초기배치, 렌더링
-  ├── systems/      계별 인덱스 (아래 4개로 확정)
-  ├── benchmarks/   ★ benchmarks.yaml + 각 항목의 근거 페이지
-  ├── findings/     Q→A + 인용.  dead-end-<slug>.md 포함
-  └── questions/    아직 답 없는 것. 삭제하지 않고 status로 닫는다
+  ├── concepts/     WHAT-IS  — dimensionless numbers, phase behaviour, kinds of potential
+  ├── techniques/   HOW-TO   — the equilibration verdict, error bars, initial placement, rendering
+  ├── systems/      an index per system (settled as the 4 below)
+  ├── benchmarks/   ★ benchmarks.yaml + a grounds page per entry
+  ├── findings/     Q→A + citations.  Includes dead-end-<slug>.md
+  └── questions/    what has no answer yet. Not deleted but closed with a status
 ```
 
-### `systems/` — 4개로 확정
+### `systems/` — settled as 4
 
-확보한 논문 묶음의 주제와 1:1로 맞춘다. 폴더와 빈 인덱스 파일은 M0에서 만들고, **내용은 해당 계를
-실제로 다룰 때 채운다.**
+Matched 1:1 to the topics of the paper bundle in hand. The folders and empty index files are made in M0, and
+**the content is filled in when that system is actually handled.**
 
-| 파일 | 계 | 대표 검증 후보 |
+| File | System | Representative verification candidate |
 |---|---|---|
-| `depletion-gel.md` | 제플리션 인력 · 겔화 · arrested phase separation | Lu–Zaccarelli 겔 경계 · `g(r)` 농피크 |
-| `charged-dlvo.md` | 하전 콜로이드 · Yukawa · 스크리닝 길이 | Robbins–Kremer–Grest 상도 |
-| `microrheology.md` | MSD · GSER · 점탄성 모듈러스 | **실측 트래킹 궤적** (`D24`) |
-| `dense-glass.md` | 조밀계 · 유리전이 · 결정화 · ψ₆ | Carnahan–Starling · `φ_freeze`=0.494 |
+| `depletion-gel.md` | depletion attraction · gelation · arrested phase separation | the Lu–Zaccarelli gel boundary · the `g(r)` contact peak |
+| `charged-dlvo.md` | charged colloids · Yukawa · the screening length | the Robbins–Kremer–Grest phase diagram |
+| `microrheology.md` | MSD · GSER · the viscoelastic modulus | **measured tracking trajectories** (`D24`) |
+| `dense-glass.md` | dense systems · the glass transition · crystallization · ψ₆ | Carnahan–Starling · `φ_freeze`=0.494 |
 
-### 논문 증류 — v1의 유일한 시드
+### Paper distillation — v1's only seed
 
-`source/papers/`가 지금 손에 있는 유일한 지식 자산이다. 절차를 실행 가능하게 못박는다.
+`source/papers/` is the only knowledge asset currently in hand. The procedure is nailed down so it can be executed.
 
 ```
 knowledge/raw/papers/<year>-<author>-<slug>.pdf          (gitignored)
-  ↓  1편당 1회. 사람 승인
+  ↓  1 per paper. Human-approved
 knowledge/source/papers/<year>-<author>-<slug>.md
-     필수 frontmatter: doi · year · system · 추출한_벤치마크[] · 추출한_파라미터[]
-     본문: 우리가 쓸 수 있는 것만
-  ↓  벤치마크가 추출된 경우에만
-knowledge/wiki/benchmarks/<id>.md  +  benchmarks.yaml 항목
+     required frontmatter: doi · year · system · extracted_benchmarks[] · extracted_parameters[]
+     body: only what we can use
+  ↓  only when a benchmark was extracted
+knowledge/wiki/benchmarks/<id>.md  +  benchmarks.yaml entry
 ```
 
-**"우리가 쓸 수 있는 것만"이 핵심이다.** 증류의 산출물은 논문 요약이 아니라 ① 재현 가능한 수치
-② 파라미터 값과 그 근거 ③ 우리 계로 옮길 때의 단서, 이 셋이다. 셋 다 안 나오면 그 논문은 아직
-증류할 때가 아니다.
+**"Only what we can use" is the crux.** The output of a distillation is not a paper summary but these three:
+① a reproducible number ② a parameter value and its grounds ③ the clues for carrying it over to our system. If none
+of the three comes out, it is not yet time to distil that paper.
 
-> ❓ **미결정 · `D26`** — 증류를 몇 편부터, 어떤 순서로 할 것인가?
-> **현재 기본값:** M1 이전에는 **자유 BD / Stokes–Einstein 관련 2~3편만.** 나머지는 해당 계를
-> 다룰 때 그때그때
-> **왜 미리 채우지 않는가:** 위키를 미리 채우는 것은 규칙을 미리 쓰는 것과 같은 실패 모드다(`D21`).
-> **쓰이지 않은 증류는 검증되지 않는다** — 틀린 채로 위키에 앉아 다음 런을 오염시킨다
-> **결정 시점:** M1 착수 시
+> ❓ **Undecided · `D26`** — how many papers to distil to begin with, and in what order?
+> **The current default:** before M1, **only 2~3 on free BD / Stokes–Einstein.** The rest as and when the relevant
+> system comes up
+> **Why not fill it in advance:** filling the wiki in advance is the same failure mode as writing rules in advance (`D21`).
+> **A distillation that is never used is never verified** — it sits in the wiki wrong and contaminates the next run
+> **When it gets decided:** at the start of M1
 
-### 위키 부트스트랩 순서
+### The wiki bootstrap order
 
-빈 위키에서 `wiki-first`는 무의미하다. 무엇으로 시작할지 정해둔다.
+In an empty wiki, `wiki-first` is meaningless. What to start with is fixed in advance.
 
-| 단계 | 시점 | 채우는 것 |
+| Step | When | What gets filled |
 |---|---|---|
-| 1 | M0~M1 | 논문 증류 2~3편 · 자유 BD 관련 `concepts` 2~3개 · `benchmarks` 1~2개 |
-| 2 | M1 진행 중 | **실제로 겪은 것만** `findings`로. dead-end 포함 |
-| 3 | M2+ | 계를 넓히며 `systems/` 채움 |
+| 1 | M0~M1 | 2~3 paper distillations · 2~3 free-BD-related `concepts` · 1~2 `benchmarks` |
+| 2 | during M1 | **only what was actually experienced**, as `findings`. Dead ends included |
+| 3 | M2+ | filling in `systems/` as the systems widen |
 
-1단계의 목표는 "충분한 위키"가 아니라 **`wiki-first`를 한 번이라도 실제로 적중시키는 것**이다.
-한 번도 적중하지 않는 규칙은 곧 무시된다.
+Step 1's goal is not "a sufficient wiki" but **getting `wiki-first` to hit for real, even once**.
+A rule that never once hits is soon ignored.
 
-### 연구실 선배 시뮬레이션 — 비활성 (자산 확보 시 되살림)
+### A senior's lab simulations — inactive (revived when assets are obtained)
 
-**논문은 "발표된 결과"고, 선배 코드는 "실제로 돌아간 파라미터 세트"다.** 논문에는 `dt`나 평형화
-스텝 수가 안 적혀 있는 경우가 많아 파라미터 사전(prior)으로는 후자가 훨씬 값지다. 대신 **검증되지
-않은 관행도 함께 딸려온다.**
+**A paper is "a published result", and a senior's code is "a parameter set that actually ran".** Papers often do not
+state `dt` or the number of equilibration steps, so as a parameter prior the latter is far more valuable. In exchange,
+**unverified practice comes along with it.**
 
-**현재 확보된 선배 코드는 없다.** 프론트매터 스키마와 규율은 `D20`에 확정되어 있으니, 자산이
-실제로 생기면 그때 이 절을 되살린다. 확보 즉시 `source/lab/`을 `.gitignore`에 추가한다(§4 공개 경계).
+**No senior's code is currently obtained.** The frontmatter schema and the discipline are settled in `D20`, so when
+assets actually appear this section gets revived then. On obtaining them, add `source/lab/` to `.gitignore` immediately (§4, the publication boundary).
 
-> 규율 하나만 여기 남긴다: **`reproduced: no`인 파라미터를 문헌 근거처럼 인용하지 않는다.**
-> 재현 전까지는 "이렇게 했었다"는 사실 기록이지 "이게 맞다"는 근거가 아니다. 이 구분이 무너지면
-> 위키가 검증 인프라가 아니라 소문 저장소가 된다.
+> Only one piece of discipline is left here: **do not cite a parameter marked `reproduced: no` as if it were literature grounds.**
+> Until reproduced it is a factual record that "this is what was done", not grounds that "this is right". Let that
+> distinction collapse and the wiki becomes a rumour store rather than verification infrastructure.
 
-### 저작 대칭성
+### Authorship symmetry
 
-사람도 에이전트도 위키를 쓸 수 있되, frontmatter로 정직하게 표시한다.
+Both humans and the agent may write the wiki, but it is marked honestly in the frontmatter.
 
 ```yaml
 type: concept | technique | finding | question | system | benchmark
 author: agent | human | hybrid
 drafted: YYYY-MM-DD
-confirmed_by: human          # 선택. 사람이 검토한 뒤
-cites: [경로들]
+confirmed_by: human          # optional. After a human has reviewed it
+cites: [paths]
 ```
 
-**`author: agent` 비율 자체가 자기개선 지표다.**
-**승격(finding → concept)은 항상 사람 승인** — 에이전트가 스스로 개념을 인플레이션시키는 것을 막는다.
+**The `author: agent` ratio is itself a self-improvement indicator.**
+**Promotion (finding → concept) is always human-approved** — it prevents the agent from inflating concepts on its own.
 
-### 위키 페이지가 생기는 계기
+### What causes a wiki page to be created
 
-| 계기 | 결과 |
+| Trigger | Result |
 |---|---|
-| 질문이 생겼는데 위키에 답이 없음 | `questions/<날짜>-<slug>.md` (status: open) |
-| 질문에 답함 | `findings/<slug>.md` + 원래 질문을 `status: answered`로 |
-| **접근이 실패함** | `findings/dead-end-<slug>.md` — **왜 안 됐는지**를 적는다 |
-| 벤치마크 추가 | `benchmarks/<id>.md` + `benchmarks.yaml` 항목 |
-| finding이 3회 이상 인용됨 | concept으로 승격 (**사람 승인**) |
+| a question arose and the wiki has no answer | `questions/<date>-<slug>.md` (status: open) |
+| the question was answered | `findings/<slug>.md` + the original question set to `status: answered` |
+| **an approach failed** | `findings/dead-end-<slug>.md` — write down **why it did not work** |
+| a benchmark was added | `benchmarks/<id>.md` + a `benchmarks.yaml` entry |
+| a finding was cited 3 or more times | promoted to a concept (**human-approved**) |
 
-### 실패는 findings다
+### Failures are findings
 
-`dead-end` 페이지가 없으면 같은 벽에 다시 부딪힌다. 최소 형식:
+Without a `dead-end` page you hit the same wall again. The minimal form:
 
 ```yaml
 type: finding
 subtype: dead-end
 author: agent
 drafted: YYYY-MM-DD
-system: <어떤 계에서>
-what_was_tried: <무엇을>
-why_it_failed: <왜 실패했는지 — 증상이 아니라 원인>
-evidence: <측정값·로그 경로>
-what_to_try_instead: <다음 후보>
+system: <in which system>
+what_was_tried: <what>
+why_it_failed: <why it failed — the cause, not the symptom>
+evidence: <the measured values, the log path>
+what_to_try_instead: <the next candidates>
 ```
 
-`why_it_failed`가 "발산했다"면 그건 증상이지 원인이 아니다. **"WCA의 `r⁻¹³` 코어 때문에
-오버댐프에서 `F·dt/γ`가 폭발했다"**가 원인이다.
+If `why_it_failed` is "it diverged", that is a symptom and not a cause. **"WCA's `r⁻¹³` core made `F·dt/γ` explode in
+the overdamped case"** is the cause.
 
 ---
 
-## 8. 컴퓨트 라우팅 — 로컬 우선, 클러스터 확장 가능
+## 8. Compute routing — local first, cluster-extensible
 
-**결정 `D2` (2026-07-27 확정):** 시뮬레이션·시각화는 로컬 실행. 클러스터 확장 이음새를 유지한다.
+**Decision `D2` (settled 2026-07-27):** simulation and visualization run locally. The seam for cluster extension is kept.
 
-### 현재 자원
+### The current resources
 
 | | |
 |---|---|
-| 기계 | Apple M4 · 10 CPU 코어 · 16GB 통합메모리 |
+| machine | Apple M4 · 10 CPU cores · 16GB unified memory |
 | HOOMD | 7.1.0 `cpu_py312` — `gpu_enabled=False`, `mpi_enabled=False` |
-| 함의 | **CUDA 없음.** N~10³–10⁴ / 중간 길이 런이 현실적. 비용 게이트가 필수 |
+| implication | **no CUDA.** N~10³–10⁴ and medium-length runs are realistic. The cost gate is mandatory |
 
-### 워크로드 라우팅 행렬
+### The workload routing matrix
 
-| 워크로드 | 특성 | v1 (로컬) | v2 (클러스터) |
+| Workload | Character | v1 (local) | v2 (cluster) |
 |---|---|---|---|
-| smoke (N≤500, ≤10⁴ step) | 초 | 항상 로컬 | 로컬 |
-| pilot (N~2k, ~10⁵ step) | 분 | 로컬 | 로컬 |
-| production 3D (N~10⁴, ≥10⁷ step) | 시간~일 | 로컬 한계 | **클러스터 1순위** |
-| 파라미터 스윕 (독립 런 K개) | embarrassingly parallel | 코어 수만큼 | **클러스터가 압도적** |
-| 앙상블 (독립 시드 k개) | parallel | multiprocess | 클러스터 |
-| 유한크기 검사 (`L`, `1.5L`) | 2배 비용 | 로컬 | 로컬 |
+| smoke (N≤500, ≤10⁴ steps) | seconds | always local | local |
+| pilot (N~2k, ~10⁵ steps) | minutes | local | local |
+| production 3D (N~10⁴, ≥10⁷ steps) | hours to days | at the local limit | **the cluster's first priority** |
+| a parameter sweep (K independent runs) | embarrassingly parallel | as many as there are cores | **the cluster wins overwhelmingly** |
+| an ensemble (k independent seeds) | parallel | multiprocess | the cluster |
+| the finite-size check (`L`, `1.5L`) | 2× the cost | local | local |
 
-### 비용 추정은 측정에 기반한다
+### The cost estimate is based on measurement
 
-추측하지 않는다. **기계에서 1회 측정해서 저장한다.**
+Nothing is guessed. **It is measured once on the machine and stored.**
 
 ```
-bdkit/run/machine_profile.yaml    # particle-steps/sec, 퍼텐셜별·N별
+bdkit/run/machine_profile.yaml    # particle-steps/sec, per potential and per N
 ```
 
-S5 PLAN의 비용 게이트가 이 프로파일을 읽어 벽시계 시간을 추정하고, 예산을 넘으면 실행하지 않는다.
-**이 게이트가 없으면 에이전트는 며칠짜리 잡을 태연히 시작한다.**
+S5 PLAN's cost gate reads this profile to estimate the wall-clock time and does not run if it exceeds the budget.
+**Without this gate the agent casually starts a multi-day job.**
 
-> **실측은 M1보다 먼저다** (§0의 2번). 프로파일이 없으면 `A3`(비용 게이트)가 물리적으로 동작할 수
-> 없고, 그러면 M1의 S5·S7이 통째로 무의미해진다.
+> **The measurement comes before M1** (§0's number 2). Without the profile, `A3` (the cost gate) physically cannot
+> work, and then M1's S5 and S7 are meaningless wholesale.
 
-### Runner 인터페이스 — 이음새
+### The Runner interface — the seam
 
 ```
 Runner.estimate(run_plan) -> CostEstimate
@@ -777,479 +783,481 @@ Runner.poll(handle)       -> Status
 Runner.fetch(handle)      -> paths
 ```
 
-`LocalRunner`(v1) / `SlurmRunner`(v2). 파이프라인은 `Runner`만 알고 백엔드는 모른다.
+`LocalRunner` (v1) / `SlurmRunner` (v2). The pipeline knows only `Runner` and does not know the backend.
 
-### 클러스터 확장을 위해 **지금** 지켜야 할 것
+### What has to be observed **now** for cluster extension
 
-나중에 고치려면 비싸지는 것들. v1부터 지킨다.
+The things that get expensive to fix later. Observed from v1 onwards.
 
-1. **절대경로 금지** — 모든 경로는 런 디렉터리 상대
-2. **`simulate.py`는 자기완결적** — 인자로 config 경로 하나만 받는다
-3. **디바이스를 하드코딩하지 않는다** — `hoomd.device.CPU()` 직접 호출 대신 `make_device(spec)`
-4. **체크포인트에서 재개 가능** — SLURM 시간제한 때문에 필수
-5. **결과는 파일로만 소통** — stdout 파싱 금지
+1. **No absolute paths** — every path is relative to the run directory
+2. **`simulate.py` is self-contained** — it takes one argument, a config path
+3. **Do not hardcode the device** — `make_device(spec)` instead of calling `hoomd.device.CPU()` directly
+4. **Resumable from a checkpoint** — mandatory because of SLURM time limits
+5. **Results communicate through files only** — no stdout parsing
 
 ---
 
-## 9. 자율성 경계
+## 9. The autonomy boundary
 
-### 사람 승인 게이트 — 2곳, 영구
+### Human approval gates — 2, permanent
 
-| 게이트 | 위치 | 막는 실패 |
+| Gate | Position | The failure it blocks |
 |---|---|---|
-| 🚦 **게이트 1** | S2 이후 — **역번역 대조** 승인 | **엉뚱한 계를 시뮬레이션하는** 실패 (§6-A V1) |
-| 🚦 **게이트 2** | S7, production 직전 | **며칠짜리 잡을 태연히 시작하는** 실패 |
+| 🚦 **gate 1** | after S2 — approval of the **back-translation comparison** | the failure of **simulating the wrong system** (§6-A V1) |
+| 🚦 **gate 2** | S7, immediately before production | the failure of **casually starting a multi-day job** |
 
-그 외에는 게이트를 두지 않는다. 게이트가 많으면 자동화의 이득이 사라진다.
+No other gates are placed. With many gates the benefit of automation disappears.
 
-### 예산 — 반드시 존재해야 한다
+### The budget — it must exist
 
 ```yaml
-max_total_walltime_s: 21600      # 6시간
+max_total_walltime_s: 21600      # 6 hours
 max_repair_iterations: 8
 max_disk_gb: 20
 max_llm_calls: 100
 ```
 
-숫자는 임의여도 좋다. **없으면 안 된다.** 소진 시 `ESCALATED`.
+The numbers may be arbitrary. **It must not be absent.** On exhaustion, `ESCALATED`.
 
-### 에스컬레이션 사다리 — 사람은 마지막
+### The escalation ladder — the human is last
 
 ```
-① wall-ledger grep  →  ② 위키 조회  →  ③ 규칙 테이블 재적용
-                    →  ④ LLM triage  →  ⑤ 사람 = 런 종료
+① wall-ledger grep  →  ② wiki lookup  →  ③ re-apply the rule table
+                    →  ④ LLM triage  →  ⑤ human = the end of the run
 ```
 
-**사람에게 먼저 묻는 것은 anti-pattern이다.** 원장과 위키를 건너뛰면 컴파운딩이 깨진다 —
-이미 해결된 벽을 다시 갈게 된다.
+**Asking the human first is an anti-pattern.** Skip the ledger and the wiki and the compounding breaks —
+you end up grinding at a wall that has already been solved.
 
-**⑤에 도달하면 런은 `ESCALATED`로 끝난다.** 바깥 루프가 없으므로(§5) 사람을 기다리며 대기하는
-상태는 존재하지 않는다. 종료 시 **증상 · 시도한 것 전부 · 다음 후보**를 정리해 남기고, `wall-ledger`에
-한 행을 추가한 뒤 프로세스를 내린다. 사람이 판단한 뒤 `bd-agent resume`으로 다시 들어온다.
+**On reaching ⑤ the run ends as `ESCALATED`.** With no outer loop (§5), a state of waiting for a human does not
+exist. On ending it leaves a summary of **the symptom · everything that was tried · the next candidates**, adds one
+row to the `wall-ledger`, and brings the process down. After the human judges, it re-enters with `bd-agent resume`.
 
-### L0 축 (axioms) — 사람 승인 없이 변경 불가
+### The L0 axis (axioms) — not changeable without human approval
 
 | | |
 |---|---|
-| **A1** | 모든 수치 주장은 **서로 다른 종류의 증거 3개**로 검증한다. 둘이 어긋나면 그 수는 가짜다 |
-| **A2** | **오차막대 없는 숫자는 산출하지 않는다.** block averaging + `τ_ac` 병기 |
-| **A3** | 실행 전 **비용 게이트**를 통과해야 한다. 추정 시간 > 예산이면 실행 금지 |
-| **A4** | `bdkit/`은 LLM을 호출하지 않는다. `grep -r "anthropic\|claude" bdkit/`가 비어야 한다 |
+| **A1** | Every numerical claim is verified by **3 pieces of evidence of different kinds**. If two disagree, that number is fake |
+| **A2** | **Do not produce a number without an error bar.** Block averaging + `τ_ac` alongside |
+| **A3** | The **cost gate** has to be passed before running. If the estimated time > the budget, running is forbidden |
+| **A4** | `bdkit/` does not call an LLM. `grep -r "anthropic\|claude" bdkit/` must come back empty |
 
-### v1 규칙 4개
+### The 4 v1 rules
 
-| 규칙 | 발생 사고 |
+| Rule | The incident that produced it |
 |---|---|
-| `axioms.md` | L0 불변식 |
-| `deterministic-core.md` | A4 강제. 물리 오류와 LLM 오류를 구분하기 위함 |
-| `overdamped-stability.md` | **실제 사고 있음** — 선행 프로젝트 `~/Research/MD_particle/brownian_slit_sim/src/forces.py:117`: WCA의 `r⁻¹³` 코어가 오버댐프에서 입자를 박스 밖으로 날림 |
-| `verify-against-literature.md` | §6의 4층 증거 체계 |
+| `axioms.md` | the L0 invariants |
+| `deterministic-core.md` | enforcing A4. So as to distinguish a physics error from an LLM error |
+| `overdamped-stability.md` | **there is a real incident** — the preceding project's `~/Research/MD_particle/brownian_slit_sim/src/forces.py:117`: WCA's `r⁻¹³` core flung a particle out of the box in the overdamped case |
+| `verify-against-literature.md` | §6's 4-layer evidence system |
 
-**규칙 후보** (실제로 겪은 뒤에 쓴다): `wall-hit-escalation` · `cycle-discipline` ·
+**Rule candidates** (written after actually being experienced): `wall-hit-escalation` · `cycle-discipline` ·
 `failure-is-a-finding` · `wiki-first-lookup` · `cost-gate` · `ask-the-question-first` ·
 `error-bars-or-silence` · `compute-router`
 
 ### Hooks — v2
 
-`규칙 → hook(warn) → hook(block)` 순으로 올린다. **규칙이 실제로 안 지켜진 것을 확인한 뒤에**
-붙인다 — 문서에 적어두는 것만으로 지켜지는 규율은 드물고, 실제로 지켜진 규율에는 대개
-결정론적 강제 장치가 붙어 있다.
+They are raised in the order `rule → hook(warn) → hook(block)`. They get attached
+**after confirming a rule actually was not observed** — discipline that is observed merely by being written in a
+document is rare, and discipline that actually is observed usually has a deterministic enforcement device attached.
 
-후보: 무거운 시뮬 명령이 위키 조회 없이 3회 연속 실행되면 경고(`PostToolUse(Bash)`) ·
-사이클이 로그 1행 + finding을 남기지 않으면 종료 차단(`Stop`).
+Candidates: warn if a heavy simulation command runs 3 times in a row without a wiki lookup (`PostToolUse(Bash)`) ·
+block termination if a cycle leaves no log row + finding (`Stop`).
 
-게이트를 붙일 때 지킬 원칙 하나:
-**인프라 오류 시에는 통과시킨다(fail-open).** 게이트가 세션을 가두면 안 된다.
-
----
-
-## 10. 성공 지표 — "자기개선"을 검증 가능한 주장으로
-
-지표가 없으면 "자기개선"은 슬로건이다.
-
-### 운용 방침 — 기록은 전부, 분석은 나중
-
-파이프라인을 사람이 시작하므로(§5) 사이클은 천천히 쌓인다. **초기 10여 사이클의 지표 추세는
-거의 노이즈다.** 그래서 둘을 분리한다.
-
-| | 언제 | 무엇을 |
-|---|---|---|
-| **기록** | 지금부터, 사이클마다 | 아래 7개 전부를 `cycle-log.md`의 열로. 계산 비용은 0에 가깝다 |
-| **분석** | **20사이클 이후** | 추세·상관·대시보드. 그 전에 그래프를 그리면 노이즈를 신호로 읽게 된다 |
-
-지금 기록하지 않은 것은 나중에 소급할 수 없다. 반대로 지금 분석하는 것은 얻을 게 없다.
-`docs/agent/metrics.md`는 M1 종료 시 생성한다.
-
-| 지표 | 정의 | 무엇을 묻는가 |
-|---|---|---|
-| **첫시도 통과율** | S6 preflight를 수정 없이 통과한 런 비율 | 파라미터 선택이 나아지는가 |
-| **평균 repair 반복** | PASS까지의 S9 반복 횟수 | 실패에서 배우는가 |
-| **벤치마크 통과율** | `benchmarks.yaml` 통과 비율 | 물리가 맞는가 |
-| **위키 재사용률** | 새 런이 기존 위키 페이지를 인용한 비율 | 지식이 실제로 쓰이는가 |
-| **`author: agent` 비율** | 에이전트 저작 위키 페이지 비중 | 에이전트가 기여하는가 |
-| **사람 개입 횟수** | 게이트 2곳 외의 escalation 횟수 | 자율성이 느는가 |
-| **증거 등급 분포** | `certified` / `verified` / `plausible` / `unverified` 비율 | 검증 수준이 오르는가 |
-
-> 지표를 **떨어뜨리는 방향의 변화도 기록한다.** 좋아진 것만 남기면 지표가 아니라 홍보물이다.
-
-### 사이클 로그
-
-```
-docs/agent/cycle-log.md      사이클당 정확히 1행. 실패 포함      (M1 종료 시 생성)
-docs/agent/wall-ledger.md    막힌 지점 append-only. 새 시도 전에 반드시 grep   (M1 종료 시 생성)
-```
-
-열 정의 — 위 7개 지표가 그대로 열이 된다. 첫 행을 쓸 때 다시 설계하지 않도록 지금 못박는다.
-
-```
-| # | date | run_id | system | tier | 첫시도 | repair | 벤치마크 | 위키인용 | agent저작 | escalation | 증거등급 | note |
-```
-
-| 열 | 값 | 비고 |
-|---|---|---|
-| `첫시도` | `PASS` / `FAIL` | S6 preflight를 수정 없이 통과했는가 |
-| `repair` | 정수 | PASS까지의 S9 반복 횟수 |
-| `벤치마크` | `3/4` 꼴 | 이 런에서 돌린 `benchmarks.yaml` 항목 통과 수 |
-| `위키인용` | 정수 | 이 런이 인용한 기존 위키 페이지 수. **0이면 컴파운딩이 안 되고 있다** |
-| `agent저작` | 정수 | 이 런에서 `author: agent`로 새로 쓰인 페이지 수 |
-| `escalation` | 정수 | 게이트 2곳을 **제외한** 사람 개입 |
-| `증거등급` | `certified`\|`verified`\|`plausible`\|`unverified` | 최종 결과의 배지 |
-
-**체리피킹 금지. 과거 행 수정 금지** — 정정은 `corrigendum:` 행을 추가한다.
+One principle to observe when attaching a gate:
+**pass on an infrastructure error (fail-open).** A gate must not lock a session in.
 
 ---
 
-## 11. 마일스톤
+## 10. Success indicators — turning "self-improvement" into a verifiable claim
 
-| | 이름 | 완료 정의 |
+Without indicators, "self-improvement" is a slogan.
+
+### The operating policy — record everything, analyse later
+
+Since the pipeline is started by a human (§5), cycles accumulate slowly. **The trend of the indicators over the
+first dozen or so cycles is almost noise.** So the two are separated.
+
+| | When | What |
 |---|---|---|
-| **M0** | 뼈대 | 아래 체크리스트. **← 현재** |
-| **M1** | 첫 완주 | 아래 체크리스트. 자유 BD 한 계를 S1→S12 **전 구간**(14 스테이지) |
-| **M2** | 물리 확장 | 배제부피 퍼텐셜 확정(`D8`). **Carnahan–Starling 통과**. `g(r)`·`S(k)`·`ψ₆` 관측량 + 오차막대 |
-| **M3** | 자동수정 | 실패를 의도적으로 주입 → 규칙 테이블이 복구. `wall-ledger` 작동. 첫 `dead-end` 페이지 |
-| **M4** | 컴파운딩 | 위키 20+ 페이지(논문 증류 + 자체 findings). 지표 20사이클 도달 → 첫 추세 분석 |
-| v2 | 확장 | HPMC · SLURM Runner · hooks · signac |
-| v3 | 후보 | 다중 관점 정찰 패널 · 실험 데이터 대조 — 아래 참조 |
+| **recording** | from now on, every cycle | all 7 below as columns of `cycle-log.md`. The computational cost is near 0 |
+| **analysis** | **after 20 cycles** | trends, correlations, the dashboard. Draw a graph before that and noise gets read as signal |
 
-**M1이 가장 중요하다.** 얕더라도 끝까지 한 번 도는 것이, 깊지만 중간에서 끊기는 것보다 낫다.
+What is not recorded now cannot be filled in retroactively. Conversely, analysing now has nothing to gain.
+`docs/agent/metrics.md` is created at the end of M1.
 
-이 표는 **언제**를 정한다. **무엇을** 만드는지는 [§14 구현 체크리스트](#14-구현-체크리스트)에 항목
-단위로 쪼개져 있고, 각 항목이 어느 마일스톤에 속하는지는 거기 `M` 열에 있다.
+| Indicator | Definition | What it asks |
+|---|---|---|
+| **the first-try pass rate** | the fraction of runs that passed S6 preflight without modification | is parameter selection improving |
+| **the mean repair iterations** | the number of S9 iterations to a PASS | is it learning from failures |
+| **the benchmark pass rate** | the fraction of `benchmarks.yaml` passing | is the physics right |
+| **the wiki reuse rate** | the fraction of new runs that cite an existing wiki page | is the knowledge actually used |
+| **the `author: agent` ratio** | the share of wiki pages authored by the agent | is the agent contributing |
+| **the number of human interventions** | the number of escalations outside the 2 gates | is autonomy increasing |
+| **the evidence-grade distribution** | the `certified` / `verified` / `plausible` / `unverified` ratios | is the verification level rising |
 
-### M0 완료 체크리스트
+> **Record the changes that move an indicator down too.** Keep only what improved and it is not an indicator but a brochure.
 
-문서를 전부 쓰고 시작하지 않는다. `docs/02`~`10`은 **얇은 스텁으로 먼저 만들고 구현하며 채운다** —
-전체 그림은 보이되 코드 착수가 막히지 않는 절충.
+### The cycle log
 
 ```
-□ docs/02~10을 각 1페이지 스텁으로 생성
-    (목차 + "이 문서가 답할 질문 3개" 만. 본문은 비워둔다)
+docs/agent/cycle-log.md      exactly 1 row per cycle. Failures included      (created at the end of M1)
+docs/agent/wall-ledger.md    append-only where it got stuck. Always grep before a new attempt   (created at the end of M1)
+```
+
+The column definitions — the 7 indicators above become the columns as they are. Nailed down now so as not to
+redesign them when the first row is written.
+
+```
+| # | date | run_id | system | tier | first-try | repair | benchmark | wiki cites | agent-authored | escalation | evidence grade | note |
+```
+
+| Column | Value | Notes |
+|---|---|---|
+| `first-try` | `PASS` / `FAIL` | did it pass S6 preflight without modification |
+| `repair` | an integer | the number of S9 iterations to a PASS |
+| `benchmark` | in the form `3/4` | the number of `benchmarks.yaml` entries passing among those run in this run |
+| `wiki cites` | an integer | the number of existing wiki pages this run cited. **0 means the compounding is not happening** |
+| `agent-authored` | an integer | the number of pages newly written as `author: agent` in this run |
+| `escalation` | an integer | human interventions **excluding** the 2 gates |
+| `evidence grade` | `certified`\|`verified`\|`plausible`\|`unverified` | the final result's badge |
+
+**No cherry-picking. No editing past rows** — a correction is made by adding a `corrigendum:` row.
+
+---
+
+## 11. Milestones
+
+| | Name | Definition of done |
+|---|---|---|
+| **M0** | the skeleton | the checklist below. **← current** |
+| **M1** | the first full run | the checklist below. One free-BD system through S1→S12, **the whole range** (14 stages) |
+| **M2** | physics extension | the excluded-volume potential settled (`D8`). **Carnahan–Starling passing**. The `g(r)`, `S(k)` and `ψ₆` observables + error bars |
+| **M3** | auto-repair | deliberately inject a failure → the rule table recovers. The `wall-ledger` works. The first `dead-end` page |
+| **M4** | compounding | 20+ wiki pages (paper distillations + our own findings). The indicators reach 20 cycles → the first trend analysis |
+| v2 | extension | HPMC · the SLURM Runner · hooks · signac |
+| v3 | candidates | a multi-perspective reconnaissance panel · comparison against experimental data — see below |
+
+**M1 matters most.** Going around once all the way, however shallowly, is better than going deep and getting cut off in the middle.
+
+This table fixes **when**. **What** gets built is broken into items in [§14 the implementation checklist](#14-the-implementation-checklist),
+and which milestone each item belongs to is in the `M` column there.
+
+### The M0 definition-of-done checklist
+
+Do not write all the documents before starting. `docs/02`~`10` get **made as thin stubs first and filled in while
+implementing** — a compromise that keeps the whole picture visible without blocking the start of the code.
+
+```
+□ docs/02~10 as 1-page stubs each
+    (a table of contents + "the 3 questions this document answers" only. The body is left empty)
 □ git init (private) + .gitignore(outputs/, knowledge/raw/) + environment.yml
-□ conda env `bd_agent` 구축 → hoomd·freud·fresnel·gsd·pymbar import 성공
-□ machine_profile.yaml 실측 (자유 BD, N = 1k / 5k / 10k)
-□ 저장소 뼈대 생성:
+□ conda env `bd_agent` built → hoomd, freud, fresnel, gsd and pymbar import successfully
+□ machine_profile.yaml measured (free BD, N = 1k / 5k / 10k)
+□ create the repository skeleton:
     bdkit/{spec,units,plan,build,run,diagnose,repair,analyze,viz,report}/
     agent/  knowledge/{raw,source,wiki}/  tests/  outputs/
-□ 3층 계약 문서 3개: CLAUDE.md · .claude/CLAUDE.md · knowledge/wiki/CLAUDE.md
-□ .claude/rules/ 4개 (D21)
+□ 3 contract documents for the 3 layers: CLAUDE.md · .claude/CLAUDE.md · knowledge/wiki/CLAUDE.md
+□ .claude/rules/ 4 files (D21)
 ```
 
-### M1 완료 체크리스트
+### The M1 definition-of-done checklist
 
-"자유 BD 한 계를 완주"를 검사 가능한 형태로. **전부 참이어야 M1이다.**
+"One free-BD system run end to end", in a checkable form. **All of it has to be true for it to be M1.**
 
 ```
-□ bd-agent new "물에 뜬 500 nm 실리카 구 1000개, 상호작용 없음" 으로 시작
-□ S1~S12 전 14 스테이지를 게이트 2곳 외 사람 개입 없이 통과 (S2.5·S7.5 포함)
-□ pytest tests/test_benchmarks.py::test_free_bd_stokes_einstein 통과 (오차 1% 이내)
-□ report.html — 오차막대 있는 MSD 그래프 + 증거 등급 배지 포함, 단일 파일 자체완결
-□ decision_journal.jsonl — actor별(rule/llm/human) 집계가 나옴
-□ cycle-log.md 1행 + findings 최소 1개 (dead-end 포함 가능)
-□ 같은 run_id를 resume 했을 때 완료된 스테이지를 재계산하지 않음
-□ grep -r "anthropic\|claude" bdkit/ 가 비어 있음 (A4)
+□ bd-agent new "1000 spheres of 500 nm silica floating in water, no interaction" to start
+□ S1~S12 all 14 stages pass with no human intervention outside the 2 gates (S2.5 and S7.5 included)
+□ pytest tests/test_benchmarks.py::test_free_bd_stokes_einstein passes (within 1% error)
+□ report.html — an MSD graph with error bars + an evidence-grade badge, a single self-contained file
+□ decision_journal.jsonl — actor-wise (rule/llm/human) aggregation comes out
+□ cycle-log.md 1 row + at least 1 finding (a dead end is allowed)
+□ resuming the same run_id does not recompute the completed stages
+□ grep -r "anthropic\|claude" bdkit/ comes back empty (A4)
 ```
 
-마지막 줄이 특히 중요하다. **`bdkit/`이 LLM 없이 혼자 옳다는 것**이 이 아키텍처의 유일한
-디버깅 수단이고(§4), 한 번 오염되면 되돌리기 어렵다.
+The last line matters especially. **That `bdkit/` is right on its own without an LLM** is this architecture's only
+means of debugging (§4), and once contaminated it is hard to undo.
 
-### 검토했으나 v1에서 채택하지 않은 것 — 그리고 왜
+### Considered but not adopted in v1 — and why
 
-> 안 쓰기로 한 것을 조용히 빠뜨리면 6개월 뒤 같은 논쟁을 반복한다. 명시한다.
+> Silently omitting what was decided against means repeating the same argument in 6 months. It is stated.
 
-| 미채택 | 왜 |
+| Not adopted | Why |
 |---|---|
-| **다중 관점 정찰 패널** (여러 페르소나를 병렬 파견해 서로 다른 각도의 질문을 쓰게 하는 방식) | **미해결 난제의 발산적 정찰**에 맞는 장치다. 우리 v1 과제 — "주어진 계를 올바르게 시뮬레이션" — 은 **수렴적**이라 정답 경로가 대체로 정해져 있어 이득이 불분명하다. **재검토 조건:** 어떤 관측량을 봐야 할지 자체가 불분명한 탐색 과제로 범위가 넓어질 때. → `D22` |
-| **규칙을 미리 여러 개 작성하는 것** | 사고 기록 없는 규칙은 의례가 된다. **v1은 4개.** → `D21` |
-| **hooks** | 규칙이 실제로 안 지켜진 것을 확인한 뒤 `warn` → `block` 순으로 올린다. v2 |
-| **signac** | 파라미터 공간 관리 도구. 스윕이 실제로 아플 때 도입. → `D13` |
-| **Streamlit/Panel 대시보드** | 산출물이 흩어지고 아카이브가 안 된다. 단일 HTML 리포트로 충분 |
-| **바깥 자율 루프** (밤새 스스로 다음 과제를 정해 도는 층) | 검증 오라클이 약한 도메인(§6)에서는 **잘못된 방향으로 밤새 달릴 위험**이 크다. 채점자가 없으니 스스로 틀렸다는 걸 알 방법도 없다. **재검토 조건:** 게이트 2곳이 실제로 지루해지고, 벤치마크가 충분히 촘촘해져 자동 판정이 믿을 만해질 때. → `D25` |
-| **연구실 선배 코드 층 활성화** | 스키마와 규율은 `D20`에 확정되어 있으나 **아직 확보된 자산이 없다.** 없는 자산에 지면을 쓰면 뭘 먼저 할지가 흐려진다. 확보 즉시 되살린다. → `D20` |
-| **지표 추세 분석·대시보드** | 사이클이 천천히 쌓이므로 초기 10여 사이클은 노이즈다. **기록은 지금부터 전부**, 분석은 20사이클 이후 (§10). 사이클이 느린 것은 바깥 루프가 없기 때문 → `D25` |
+| **a multi-perspective reconnaissance panel** (dispatching several personas in parallel to write questions from differing angles) | It is a device suited to **divergent reconnaissance of an unsolved problem**. Our v1 task — "simulate a given system correctly" — is **convergent**, so the correct path is largely fixed and the benefit is unclear. **Conditions for revisiting:** when the scope widens to an exploratory task where which observable to look at is itself unclear. → `D22` |
+| **writing several rules in advance** | A rule with no incident record becomes a ritual. **v1 has 4.** → `D21` |
+| **hooks** | Raised in the order `warn` → `block` after confirming a rule actually was not observed. v2 |
+| **signac** | A parameter-space management tool. Brought in when sweeps actually hurt. → `D13` |
+| **a Streamlit/Panel dashboard** | The outputs scatter and do not get archived. A single HTML report is sufficient |
+| **an outer autonomous loop** (a layer that decides its own next task and runs all night) | In a domain with a weak verification oracle (§6) there is a large risk of **running all night in the wrong direction**. With no grader there is also no way for it to learn it was wrong. **Conditions for revisiting:** when the 2 gates actually become tedious and the benchmarks become dense enough that the automatic verdict is trustworthy. → `D25` |
+| **activating the senior's-code layer** | The schema and the discipline are settled in `D20`, but **there are no assets obtained yet.** Spending page space on an asset you do not have blurs what to do first. Revived the moment they are obtained. → `D20` |
+| **indicator trend analysis and a dashboard** | Cycles accumulate slowly, so the first dozen or so are noise. **Record everything from now on**, analyse after 20 cycles (§10). Cycles being slow is because there is no outer loop → `D25` |
 
 ---
 
-## 12. 명시적 비목표 — What this is NOT
+## 12. Explicit non-goals — What this is NOT
 
-> 선행 프로젝트의 *"What this is NOT"* 관례를 계승한다. 안 하는 것을 적어두지 않으면
-> 나중에 같은 논쟁을 반복한다.
+> Inheriting the preceding project's *"What this is NOT"* convention. If what is not being done is not written down,
+> the same argument gets repeated later.
 
-- **유체역학 상호작용(HI)을 하지 않는다.** HOOMD의 BD/Langevin은 HI를 포함하지 않는다.
-  침강·전단·조밀계에서는 정량적으로 틀릴 수 있다. 리포트에 이 근사를 **명시**한다 (`D11`).
-- **새로운 물리를 발견하는 도구가 아니다.** 기존 물리를 **올바르게·재현 가능하게** 시뮬레이션하는
-  도구다. 발견은 그 위에서 사람이 한다.
-- **사람의 물리적 판단을 대체하지 않는다.** 게이트 2곳은 영구적이다. "완전 자동"은 목표가 아니다.
-- **벤치마크에 없는 계를 "검증됐다"고 말하지 않는다.** `unverified` 배지를 붙인다.
-- **`reproduced: no`인 선배 파라미터를 근거로 인용하지 않는다.** 사실 기록이지 근거가 아니다.
-- **양자·전자구조를 다루지 않는다.** 고전 콜로이드 스케일만.
-- **v1에서 Streamlit/Panel 대시보드를 만들지 않는다.** 산출물이 흩어지고 아카이브가 안 된다.
-- **v1에서 바깥 자율 루프를 만들지 않는다.** 파이프라인은 항상 사람이 시작한다 (§5).
-- **v1에서 위키를 미리 채우지 않는다.** 쓰이지 않은 증류는 검증되지 않는다 (§7 `D26`).
+- **Hydrodynamic interactions (HI) are not done.** HOOMD's BD/Langevin does not include HI.
+  It can be quantitatively wrong for sedimentation, shear and dense systems. The approximation is **stated** in the report (`D11`).
+- **It is not a tool for discovering new physics.** It is a tool for simulating existing physics
+  **correctly and reproducibly**. Discovery happens on top of that, by a human.
+- **It does not replace a human's physical judgment.** The 2 gates are permanent. "Fully automatic" is not a goal.
+- **It does not call a system that is in no benchmark "verified".** It attaches an `unverified` badge.
+- **It does not cite a senior's parameter marked `reproduced: no` as grounds.** It is a factual record, not grounds.
+- **It does not treat quantum or electronic structure.** The classical colloidal scale only.
+- **It does not build a Streamlit/Panel dashboard in v1.** The outputs scatter and do not get archived.
+- **It does not build an outer autonomous loop in v1.** The pipeline is always started by a human (§5).
+- **It does not fill the wiki in advance in v1.** A distillation that is never used is never verified (§7 `D26`).
 
 ---
 
-## 13. 열린 질문
+## 13. Open questions
 
-전체 목록과 현재 기본값은 **[`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md)**.
-문서 본문에는 해당 절 안에 `> ❓ 미결정 · Dnn` 마커로 심어두었다 — 결정이 필요한 자리에서
-바로 보이도록. **모든 마커는 `결정 시점`을 가진다.** 시점 없는 미결정은 영원히 미결정으로 남는다.
+The full list and the current defaults are in **[`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md)**.
+In the document body they are planted inside the relevant section as `> ❓ undecided · Dnn` markers — so that they are
+visible right where a decision is needed. **Every marker has a `when it gets decided`.** An undecided item with no
+date stays undecided forever.
 
-지금 가장 무거운 것 넷:
+The four heaviest right now:
 
-| ID | 질문 | 상태 | 결정 시점 |
+| ID | Question | Status | When it gets decided |
 |---|---|---|---|
-| `D3` | v1 물리 범위 — HPMC 포함 여부 | `OPEN` — 기본값 BD만. MC는 검증 로직이 달라 파이프라인이 둘이 된다 | M2 착수 시 |
-| ~~`D8`~~ | ~~배제부피 기본 퍼텐셜 (harmonic / WCA / Wang–Frenkel)~~ | **`DECIDED`** (2026-07-28) — **WCA.** 예고한 대로 Carnahan–Starling 으로 **실측해서** 정했다 (14런). `ε`=1 은 `φ_eff`≲0.32 에서 2% 이내, `ε`=10 은 0.38 에서 +0.56%. 증류 [`wca-reproduces-carnahan-starling`](../../knowledge/wiki/findings/wca-reproduces-carnahan-starling.md).<br>**한계: 후보 셋 중 WCA 만 쟀다** — *"가장 잘 맞는 것"* 이 아니라 "충분히 맞는 첫째" 다 | ~~M2~~ 닫힘 |
-| ~~`D14`~~ | ~~렌더러 OVITO vs fresnel~~ | **`DECIDED`** (2026-07-28) — **fresnel + matplotlib.** 2D는 matplotlib, 3D만 fresnel. OVITO는 `tbb`를 내려 `hoomd`를 위험하게 한다 | ~~M1의 S11 착수 전~~ 닫힘 |
-| `D24` | 실험 데이터를 5번째 증거 층으로 편입할 것인가 | `OPEN` — 기본값: v1 미편입, 스키마만 예약. 채택 시 **독립 오라클**이 하나 늘어난다 | 미세유변학 계 착수 시 |
+| `D3` | the v1 physics scope — whether HPMC is included | `OPEN` — the default is BD only. MC's verification logic differs, so the pipeline becomes two | at the start of M2 |
+| ~~`D8`~~ | ~~the default excluded-volume potential (harmonic / WCA / Wang–Frenkel)~~ | **`DECIDED`** (2026-07-28) — **WCA.** As foretold, it was settled by **measuring** against Carnahan–Starling (14 runs). `ε`=1 is within 2% for `φ_eff`≲0.32, and `ε`=10 is +0.56% at 0.38. The distillation is [`wca-reproduces-carnahan-starling`](../../knowledge/wiki/findings/wca-reproduces-carnahan-starling.md).<br>**The limit: of the three candidates only WCA was measured** — it is not *"the best fit"* but "the first one that fits well enough" | ~~M2~~ closed |
+| ~~`D14`~~ | ~~the renderer, OVITO vs fresnel~~ | **`DECIDED`** (2026-07-28) — **fresnel + matplotlib.** matplotlib for 2D, fresnel only for 3D. OVITO downgrades `tbb` and endangers `hoomd` | ~~before starting M1's S11~~ closed |
+| `D24` | whether to admit experimental data as a fifth evidence layer | `OPEN` — the default: not admitted in v1, the schema reserved only. Adopting it adds one **independent oracle** | at the start of a microrheology system |
 
-`D6`(git)은 **`DECIDED`** — private 저장소로 확정 (§0의 1번). `D25`(사이클 단위)·`D26`(증류 순서)·
-`D27`(공개 분리 절차)는 각각 §5·§7·§4에 마커로 있다.
+`D6` (git) is **`DECIDED`** — settled as a private repository (§0's number 1). `D25` (the cycle unit), `D26` (the
+distillation order) and `D27` (the publication separation procedure) are markers in §5·§7·§4 respectively.
 
 ---
 
-## 14. 구현 체크리스트 — **엔진 진행은 여기 없다**
+## 14. The implementation checklist — **engine progress is not here**
 
-> **2026-07-28 정리 (`D37`).** 이 절은 원래 144항목의 진행 체크리스트였고 `2 / 144` 라고
-> 적혀 있었다. 그 분모가 **거짓이었다** — `D32`(엔진 흡수) 전의 구조로 쓰여 있어서
-> 산출물 칸이 `bdkit/{spec,units,plan,…}/` 서브패키지 10개를 가정하는데 실제 작업은
-> `simbot/` 평면 모듈로 갔고, 기능적으로 끝난 것이 `X` 로 남아 있었다.
+> **Tidied 2026-07-28 (`D37`).** This section was originally a 144-item progress checklist and said
+> `2 / 144`. That denominator **was false** — it was written for the structure before `D32` (absorbing the engine),
+> so its artifact cells assume 10 `bdkit/{spec,units,plan,…}/` subpackages while the actual work went to
+> flat `simbot/` modules, and things functionally finished were sitting there as `X`.
 >
-> 두 곳에 진행 기록이 있으면 **반드시 갈라진다.** 그래서 진행 정본을 하나로 줄였다.
+> With progress recorded in two places they **inevitably diverge.** So the authoritative record of progress was reduced to one.
 
-### 어디를 봐야 하는가
+### Where to look
 
-| 무엇의 진행 | 정본 | 왜 거기인가 |
+| Progress of what | Authoritative record | Why there |
 |---|---|---|
-| **엔진 (P1~P7 · 7 스테이지)** | [`docs/11_simbot.md`](docs/11_simbot.md) **§5 단계표 + §7 진행 기록** | 단계마다 *무엇을 확인하려는지·왜 이 순서인지·실측 결과*가 함께 있다. 체크박스보다 정보가 많고, §7 이 append-only 라 되돌아볼 수 있다 |
-| **벤치마크 (문헌 대조)** | [`knowledge/wiki/benchmarks/benchmarks.yaml`](../../knowledge/wiki/benchmarks/benchmarks.yaml) | 항목마다 기대값·허용오차·출처를 들고 있고, **못 하는 것은 `blocked_by` 에 이유가 적힌다.** 체크박스는 "왜 안 됐나"를 담지 못한다 |
-| **결정** | [`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md) (`D`) · `docs/11_simbot.md` §7 (`SD`) | |
-| **검증 사다리 (V1~V7)** | **아래 `14-E`** | 아직 착수 전이고 다른 곳에 없다. `D35`(사람 검수 → 임계값 등재 → 자동 판정)가 이 층의 진입 경로다 |
+| **the engine (P1~P7 · 7 stages)** | [`docs/11_simbot.md`](docs/11_simbot.md) **§5 the stage table + §7 the progress record** | for each stage, *what it is trying to confirm, why this order, and the measured result* are together. It carries more information than a checkbox, and §7 being append-only it can be looked back over |
+| **benchmarks (literature comparison)** | [`knowledge/wiki/benchmarks/benchmarks.yaml`](../../knowledge/wiki/benchmarks/benchmarks.yaml) | each entry carries its expected value, tolerance and source, and **for what cannot be done the reason is written in `blocked_by`.** A checkbox cannot hold "why did it not work" |
+| **decisions** | [`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md) (`D`) · `docs/11_simbot.md` §7 (`SD`) | |
+| **the verification ladder (V1~V7)** | **`14-E` below** | not yet started and existing nowhere else. `D35` (human review → threshold registration → automatic verdict) is the entry path to this layer |
 
-### 지운 것 — `14-A` 기반 시설 · `14-B` 스테이지별 구현 (83항목)
+### What was deleted — `14-A` infrastructure · `14-B` per-stage implementation (83 items)
 
-**지웠다는 것이 "안 했다"가 아니다.** 대부분 끝났고, 끝난 방식이 표의 가정과 달랐다.
-어느 항목이 어디로 갔는지 확인하려면 `docs/11_simbot.md` §5 를 본다. 대표적인 어긋남 셋:
+**Deleted does not mean "not done".** Most of it is finished, and the way it finished differed from the table's assumptions.
+To check where an item went, look at `docs/11_simbot.md` §5. Three representative mismatches:
 
-| 표의 가정 | 실제 |
+| The table's assumption | Reality |
 |---|---|
-| `bdkit/state.py` 가 `run_state.yaml` 을 원자적으로 갱신 | `simbot/state.py` 가 한다 (`SD24`, §7 #37). `bd-agent resume` 은 `cli.py resume` 이다 |
-| `agent/s1_intake` 가 자연어를 읽어 스펙을 만든다 | **엔진에 LLM 경로를 두지 않기로 했다** (`SD22`). 판독은 세션이 하고 엔진은 조립만 한다 |
-| 스테이지 14개 (게이트 2곳 · S2.5 · S8 · S9 포함) | 챗봇 피벗에서 **7개로 줄였다** (`docs/11_simbot.md` §2). 게이트·진단·자동수정은 뺀 층이라 `X` 가 아니라 *삭제*였다 |
+| `bdkit/state.py` updates `run_state.yaml` atomically | `simbot/state.py` does it (`SD24`, §7 #37). `bd-agent resume` is `cli.py resume` |
+| `agent/s1_intake` reads natural language and makes the spec | **it was decided not to put an LLM path in the engine** (`SD22`). The session does the reading and the engine only assembles |
+| 14 stages (including the 2 gates, S2.5, S8 and S9) | **reduced to 7** in the chatbot pivot (`docs/11_simbot.md` §2). The gates, the diagnosis and the auto-repair are removed layers, so they were a *deletion* rather than an `X` |
 
-마지막 줄이 이 절을 지운 진짜 이유다 — **뺀 층을 `X` 로 남겨 두면 없는 백로그가
-수십 개 생긴다.** 되살릴 때는 `D35`·`14-E` 에서 시작한다.
+The last row is the real reason this section was deleted — **leave a removed layer as an `X` and dozens of
+nonexistent backlog items appear.** To revive them, start from `D35` and `14-E`.
 
-### `14-0` 작업 9단계 ↔ 파이프라인 매핑은 §5 로 옮겨 읽는다
+### `14-0` the 9-step workflow ↔ pipeline mapping is moved to §5 to be read there
 
-원래 이 자리에 있던 9단계 대응표(글·그림 → 시스템화 … 넌센스 검토)는 **설계 의도의
-기록**이라 값이 남아 있다. 다만 파이프라인이 14 → 7 스테이지로 줄었으므로 대응도 바뀌었다:
+The 9-step correspondence table that used to be here (text and pictures → systematization … the nonsense review)
+retains value as **a record of the design intent**. But since the pipeline shrank 14 → 7 stages, the correspondence changed too:
 
 ```
-1 글·그림 → 시스템화     →  판독(세션) + compose        SD22 · Step 6
-2 예상결과 + 물리적 근거  →  (뺐다 — S2.5 사전등록)       11_simbot §2
-3 무차원화 + 근거 논문     →  P2 NONDIM                  SD9 (계마다 기준이 다르다)
-4 시뮬 구축 · 타임스케일   →  P3 PLAN + P4 BUILD         SD8 · overdamped-stability
-5 실행                    →  P5 RUN
-6 시각화                  →  P7 REPORT 의 그림           스냅샷 3장은 살렸다
-7 분석 · 예상과 비교       →  P6 ANALYZE                  판정은 안 한다 (D35 로 열림)
-8 최종 물리·수치 해석      →  사람                        11_simbot §2
-9 단계별 불안정성 검토     →  횡단 → 14-E
+1 text·pictures → systematization  →  reading (the session) + compose   SD22 · Step 6
+2 expected result + physical grounds  →  (removed — S2.5 pre-registration)       11_simbot §2
+3 non-dimensionalization + grounding papers  →  P2 NONDIM               SD9 (the reference differs per system)
+4 building the simulation · timescales  →  P3 PLAN + P4 BUILD           SD8 · overdamped-stability
+5 execution                →  P5 RUN
+6 visualization            →  the figures of P7 REPORT                  the 3 snapshots were kept
+7 analysis · comparison with the expectation  →  P6 ANALYZE             it does not judge (opened by D35)
+8 the final physical and numerical interpretation  →  the human         11_simbot §2
+9 the per-stage instability review  →  cross-cutting → 14-E
 ```
 
-★ 9번이 스테이지가 아니라 **모든 스테이지의 통과 조건**이라는 원래 판단은 그대로 유효하다.
+★ The original judgment that number 9 is not a stage but **a pass condition of every stage** remains valid.
 
 ---
 
-### 14-C. 검증 인프라
+### 14-C. Verification infrastructure
 
-> **개별 벤치마크의 상태는 여기서 세지 않는다** — [`benchmarks.yaml`](../../knowledge/wiki/benchmarks/benchmarks.yaml)
-> 이 항목마다 기대값·허용오차·출처를 들고 있고, 못 하는 것은 `blocked_by` 에 **막힌 이유**가
-> 적힌다. 체크박스로는 그 이유를 담을 수 없다. 아래는 **인프라**만 센다.
+> **The status of individual benchmarks is not counted here** — [`benchmarks.yaml`](../../knowledge/wiki/benchmarks/benchmarks.yaml)
+> carries the expected value, tolerance and source per entry, and for what cannot be done **the reason it is blocked**
+> is written in `blocked_by`. A checkbox cannot hold that reason. Below counts **the infrastructure** only.
 
-| | 항목 | 산출물 | M |
+| | Item | Artifact | M |
 |---|---|---|---|
-| `O` | pytest 뼈대 — **HOOMD 없이 도는 순수 로직** | `tests/` 15파일 · 333통과 | M0 |
-| `O` | `benchmarks.yaml` 스키마 + 로더 + 마커 분리 (`-m benchmark`) | `knowledge/wiki/benchmarks/` · `tests/test_benchmarks.py` | M1 |
-| `O` | 느린 벤치마크를 기본 스위트에서 뺀다 — **안 돌아가는 시험은 시험이 아니다** | `pyproject.toml` `addopts` | M1 |
-| `~` | 등재된 벤치마크 실행 — 자유 BD · 트랩 계열은 돌고, 하드스피어 계열은 `blocked` | `benchmarks.yaml` 12항목 | M1~M2 |
-| `X` | **추정기 오차 회귀** — 합성 데이터로 추정기를 재는 것을 벤치마크와 같은 급으로 | `tests/test_simbot_estimators.py`(있음) → 등재 | M2 |
-| `X` | 검수 원장 → 임계값 등재 경로 (`D35`) | 미정 — `D35` 의 미결 항목 | M2 |
-| `–` | 상태기계 전이 테스트 (목 아티팩트, 14 스테이지 전이표와 1:1) | — | 스테이지가 7개로 줄어 전이표 자체가 없다 |
-| `–` | 저널 완전성 — `actor`(rule/llm/human) 집계 | — | 엔진에 LLM 이 없어 전부 `rule` 이다 (`SD22`) |
-| `–` | LLM 추출 정확도 — 골든 `SystemSpec` 대조 | `tests/test_compose.py` | 판독을 세션이 하므로 **판독 정확도 대신 조립 동등성**을 시험한다 (§7 #34) |
+| `O` | the pytest skeleton — **pure logic that runs without HOOMD** | `tests/` 15 files · 333 passing | M0 |
+| `O` | the `benchmarks.yaml` schema + a loader + marker separation (`-m benchmark`) | `knowledge/wiki/benchmarks/` · `tests/test_benchmarks.py` | M1 |
+| `O` | take slow benchmarks out of the default suite — **a test that does not run is not a test** | `pyproject.toml` `addopts` | M1 |
+| `~` | running the registered benchmarks — free BD and the trap family run, the hard-sphere family is `blocked` | `benchmarks.yaml` 12 entries | M1~M2 |
+| `X` | **estimator error regression** — measuring the estimator on synthetic data, at the same grade as a benchmark | `tests/test_simbot_estimators.py` (exists) → register it | M2 |
+| `X` | the review-ledger → threshold-registration route (`D35`) | undecided — `D35`'s unresolved item | M2 |
+| `–` | state-machine transition tests (mock artifacts, 1:1 with the 14-stage transition table) | — | the stages shrank to 7 so the transition table itself does not exist |
+| `–` | journal completeness — an aggregation by `actor` (rule/llm/human) | — | the engine has no LLM so it is all `rule` (`SD22`) |
+| `–` | LLM extraction accuracy — comparison against a golden `SystemSpec` | `tests/test_compose.py` | since the session does the reading, **assembly equivalence is tested instead of reading accuracy** (§7 #34) |
 | `–` | ⑥ HPMC hard-disk acceptance + EOS | — | v2 (`D3`) |
-| `X` | `reproduce <paper-slug>` — 증류된 논문에서 스펙을 뽑아 자동 실행·대조 | — | v2 |
+| `X` | `reproduce <paper-slug>` — extract a spec from a distilled paper and run and compare automatically | — | v2 |
 
-> 마지막 줄이 작업 1의 *"추후에는 아카이브나 기존 유명 연구자들의 논문을 확인하며 시뮬레이션으로
-> 검증"* 에 해당한다. **`S0` 장기 목표의 실체가 이 한 줄이다** — 증류에서 스펙을 뽑아 파이프라인을
-> 돌리고 문헌값과 대조하는 것. §6 의 ③ 문헌 벤치마크 층을 자동화한 형태이고, `D35`(임계값 등재)와
-> `14-E`(사다리)가 그 앞에 있어야 성립한다.
+> The last row corresponds to workflow 1's *"later, verifying by simulation while checking archives or the papers of
+> well-known researchers"*. **The substance of the `S0` long-term goal is this one row** — extracting a spec from a
+> distillation, running the pipeline and comparing against the literature value. It is an automated form of §6's
+> ③ literature-benchmark layer, and it only stands with `D35` (threshold registration) and
+> `14-E` (the ladder) in front of it.
 
-### 14-D. 지식 · 규칙 층
+### 14-D. The knowledge and rule layers
 
-| | 항목 | 산출물 | M |
+| | Item | Artifact | M |
 |---|---|---|---|
-| `O` | `knowledge/{raw,source,wiki}/` 폴더 구조 | — | M0 |
-| `O` | 논문 증류 — **41편** (`D26`) | `knowledge/source/papers/` | M1 |
-| `O` | `systems/` 카드 6개 | `knowledge/wiki/systems/` | M0 |
-| `O` | 첫 `findings/` — 6개 | `knowledge/wiki/findings/` | M1 |
-| `O` | 벤치마크 근거 페이지 | `benchmarks/candidates.md` · `choi2020-interfacial-rdf.md` | M1 |
-| `O` | **`wiki-first` 첫 적중** — 배제부피 판정이 `passive-sphere` 카드의 `φ` 원장과 CS 식을 인용했다 (`SD25`, 2026-07-28) | `simbot/excluded.py` | M1 |
-| `X` | `concepts/` — **비어 있다.** `τ_D` · 오버댐프 · block averaging · `Z(φ)` 후보 | `knowledge/wiki/concepts/` | M1 |
-| `X` | `techniques/` — 비어 있다 | `knowledge/wiki/techniques/` | M1 |
-| `X` | **파라미터 근거 원장** — 어떤 값을 왜 골랐는가를 런마다 기계 가독으로 (`D38`) | `runs/<id>/parameters.yaml` | M1 |
-| `X` | `cycle-log.md` + 13열 정의 (§10) | `docs/agent/` | M1 |
-| `X` | `metrics.md` + 20사이클 도달 후 첫 추세 분석 | `docs/agent/` | M4 |
-| `–` | `docs/02`~`10` 스텁 9개 | — | 쓰지 않았고 필요도 없었다. `docs/00`·`01`·`11` 셋으로 돌고 있다 |
+| `O` | the `knowledge/{raw,source,wiki}/` folder structure | — | M0 |
+| `O` | paper distillation — **41 papers** (`D26`) | `knowledge/source/papers/` | M1 |
+| `O` | 6 `systems/` cards | `knowledge/wiki/systems/` | M0 |
+| `O` | the first `findings/` — 6 | `knowledge/wiki/findings/` | M1 |
+| `O` | benchmark grounds pages | `benchmarks/candidates.md` · `choi2020-interfacial-rdf.md` | M1 |
+| `O` | **the first `wiki-first` hit** — the excluded-volume verdict cited the `φ` ledger of the `passive-sphere` card and the CS expression (`SD25`, 2026-07-28) | `simbot/excluded.py` | M1 |
+| `X` | `concepts/` — **it is empty.** Candidates: `τ_D` · overdamped · block averaging · `Z(φ)` | `knowledge/wiki/concepts/` | M1 |
+| `X` | `techniques/` — it is empty | `knowledge/wiki/techniques/` | M1 |
+| `X` | **the parameter-grounds ledger** — which value was chosen and why, machine-readable per run (`D38`) | `runs/<id>/parameters.yaml` | M1 |
+| `X` | `cycle-log.md` + the 13-column definition (§10) | `docs/agent/` | M1 |
+| `X` | `metrics.md` + the first trend analysis after reaching 20 cycles | `docs/agent/` | M4 |
+| `–` | 9 `docs/02`~`10` stubs | — | they were not written and were not needed either. It runs on the three `docs/00`, `01` and `11` |
 
-### 14-E. 횡단 — 7층 검증 사다리
+### 14-E. Cross-cutting — the 7-layer verification ladder
 
-**§6-A의 V1~V7 구현.** 스테이지가 아니라 **모든 스테이지의 통과 조건**이다. S8 DIAGNOSE는 *실행
-후* 한 번만 도는데, 물리적 넌센스는 **실행 전에 잡히는 것이 훨씬 많고 훨씬 싸다.**
+**The implementation of §6-A's V1~V7.** Not a stage but **a pass condition of every stage.** S8 DIAGNOSE runs only
+once, *after* execution, whereas physical nonsense is **far more often caught before execution, and far more cheaply.**
+**V1 · fidelity** — were the words, pictures and text transcribed properly (S1 → 🚦gate 1) ★new
 
-**V1 · 충실성** — 말·그림·글을 제대로 옮겼는가 (S1 → 🚦게이트1) ★신규
-
-| | 검사 | 산출물 | M |
+| | Check | Artifact | M |
 |---|---|---|---|
-| `X` | **역번역 생성** — `spec.yaml` → 자연어 재기술 | `agent/s1_intake/backtranslate.py` | M1 |
-| `X` | 누락 검사 — 원문 명시값이 spec에 전부 있는가 | `bdkit/reading/fidelity.py` | M1 |
-| `X` | 원문에 없는 값에 `assumed: true` + 출처 강제 | `bdkit/reading/fidelity.py` | M1 |
-| `X` | 게이트1 출력 — **원문 vs 역번역 나란히** | `bdkit/cli.py` | M1 |
-| `X` | 이미지 판독값 `provenance` 필수 (스케일바 등) | `bdkit/reading/` | M2 |
+| `X` | **generate the back-translation** — `spec.yaml` → a natural-language re-description | `agent/s1_intake/backtranslate.py` | M1 |
+| `X` | the omission check — are all the values stated in the original present in the spec | `bdkit/reading/fidelity.py` | M1 |
+| `X` | force `assumed: true` + a source on a value absent from the original | `bdkit/reading/fidelity.py` | M1 |
+| `X` | the gate 1 output — **the original vs the back-translation side by side** | `bdkit/cli.py` | M1 |
+| `X` | `provenance` mandatory for a value read from an image (a scale bar and so on) | `bdkit/reading/` | M2 |
 
-**V2 · 물리적 타당성** — 이 문제가 말이 되는가 (S1 · S2.5)
+**V2 · physical validity** — does this problem make sense (S1 · S2.5)
 
-| | 검사 | 종류 | M |
+| | Check | Kind | M |
 |---|---|---|---|
-| `X` | `φ`가 기하학적 상한 초과 (RCP `0.64` / FCC `0.74`) | 물리 | M1 |
-| `X` | `T` · `η` · 반지름이 물리적 범위 밖 (부호·크기) | 물리 | M1 |
-| `X` | 콜로이드 스케일 이탈 (1 nm ~ 10 µm 밖이면 경고) | 물리 | M2 |
-| `X` | 계 자체가 모순 (hard sphere라면서 인력만 지정) | 물리 | M2 |
-| `X` | S2.5 예상이 스펙과 모순 (`φ=0.05`인데 결정 예상) | 물리 | M2 |
+| `X` | `φ` exceeds the geometric ceiling (RCP `0.64` / FCC `0.74`) | physics | M1 |
+| `X` | `T`, `η` or the radius outside the physical range (sign, magnitude) | physics | M1 |
+| `X` | outside the colloidal scale (a warning if outside 1 nm ~ 10 µm) | physics | M2 |
+| `X` | the system itself is contradictory (calling it hard spheres while specifying only an attraction) | physics | M2 |
+| `X` | the S2.5 expectation contradicts the spec (crystallization expected at `φ=0.05`) | physics | M2 |
 
-**V3 · 무차원화 · 파라미터** — 스케일이 적절한가 (S3 · S4 · S5)
+**V3 · non-dimensionalization · parameters** — are the scales appropriate (S3 · S4 · S5)
 
-| | 검사 | 종류 | M |
+| | Check | Kind | M |
 |---|---|---|---|
-| `X` | 단위 왕복오차 `≥1e-12` | 수치 | M1 |
-| `X` | `τ_B/τ_D ≥ 1e-3` → **오버댐프 가정이 깨짐** | 물리 | M1 |
-| `X` | `Δt/τ_D > 1e-4` | 수치 | M1 |
-| `X` | 무차원수가 문헌 범위 밖 (경고, 차단 아님) | 물리 | M1 |
+| `X` | the unit round-trip error `≥1e-12` | numerics | M1 |
+| `X` | `τ_B/τ_D ≥ 1e-3` → **the overdamped assumption breaks** | physics | M1 |
+| `X` | `Δt/τ_D > 1e-4` | numerics | M1 |
+| `X` | a dimensionless number outside the literature range (a warning, not a block) | physics | M1 |
 
-**V4 · 단계 간 일관성** — 앞 단계와 충돌하는가 (S6 PREFLIGHT) ★신규
+**V4 · inter-stage consistency** — does it conflict with an earlier stage (S6 PREFLIGHT) ★new
 
-| | 검사 (앞 → 뒤) | 종류 | M |
+| | Check (earlier → later) | Kind | M |
 |---|---|---|---|
-| `X` | 차원: S1 `spec.dim` → S5 box | 일관성 | M1 |
-| `X` | 시간 간격: S3 `Δt/τ_D` → S5 `dt` (**게이트 무효화 방지**) | 일관성 | M1 |
-| `X` | 박스 vs 컷오프: S1 `N`·`φ`→`L` → S5 `r_cut > L/2` | 수치 | M1 |
-| `X` | 예산 vs 티어: `budget` → S5 production 추정 | 자원 | M1 |
-| `X` | 관측 목표 vs 런 길이: S1 목표 → S5 `steps` | 물리 | M2 |
-| `X` | 사전등록 vs 계획: S2.5 v1 → S5 파라미터 | 물리 | M2 |
-| `X` | 퍼텐셜 vs 계 종류: S1 계 → S5 pair | 물리 | M2 |
+| `X` | dimensionality: S1 `spec.dim` → S5 box | consistency | M1 |
+| `X` | the time step: S3 `Δt/τ_D` → S5 `dt` (**preventing gate invalidation**) | consistency | M1 |
+| `X` | the box vs the cutoff: S1 `N`·`φ`→`L` → S5 `r_cut > L/2` | numerics | M1 |
+| `X` | the budget vs the tiers: `budget` → the S5 production estimate | resources | M1 |
+| `X` | the observation goal vs the run length: S1's goal → S5 `steps` | physics | M2 |
+| `X` | the pre-registration vs the plan: S2.5 v1 → S5's parameters | physics | M2 |
+| `X` | the potential vs the kind of system: S1's system → S5 pair | physics | M2 |
 
-**V5 · 수치 안정성** — 도는 동안 터지지 않는가 (S6 · S7 · S8)
+**V5 · numerical stability** — does it not blow up while running (S6 · S7 · S8)
 
-| | 검사 | 종류 | M |
+| | Check | Kind | M |
 |---|---|---|---|
-| `X` | 초기 배치에서 이미 입자가 겹침 (S6) | 수치 | M1 |
-| `X` | HOOMD API 시그니처 불일치 (S6) | 코드 | M1 |
-| `X` | NaN · inf 발생 | 수치 | M1 |
-| `X` | 스텝당 최대 변위 `≥0.1σ` — **`F·dt/γ` 폭발** (`overdamped-stability`) | 수치 | M1 |
-| `X` | 박스 이탈 · 측정 `kT`가 목표에서 ±5% 밖 · PE 드리프트 | 물리 | M1 |
-| `X` | 육안(S7.5): 결정화 · 박스 가로지르는 클러스터 · 겹침 · 진행 중인 상분리 | 물리 | M1 |
-| `X` | 평형화 미달 — `N_eff` 부족 | 통계 | M2 |
+| `X` | the particles already overlap in the initial arrangement (S6) | numerics | M1 |
+| `X` | a HOOMD API signature mismatch (S6) | code | M1 |
+| `X` | NaN or inf occurring | numerics | M1 |
+| `X` | the maximum displacement per step `≥0.1σ` — **`F·dt/γ` exploding** (`overdamped-stability`) | numerics | M1 |
+| `X` | a box escape · the measured `kT` outside ±5% of the target · a PE drift | physics | M1 |
+| `X` | by eye (S7.5): crystallization · a cluster crossing the box · overlap · a phase separation in progress | physics | M1 |
+| `X` | equilibration not reached — `N_eff` insufficient | statistics | M2 |
 
-**V6 · Outlier** — 집계하면 사라지는 것 (S8) ★신규
+**V6 · Outlier** — what disappears on aggregation (S8) ★new
 
-| | 검사 | 방법 | M |
+| | Check | Method | M |
 |---|---|---|---|
-| `X` | **앙상블** — 시드 하나만 다른 결과 | 시드 간 산포 vs 블록 오차 | M2 |
-| `X` | 시계열 — 특정 프레임 에너지·압력 점프 | MAD 기반 로버스트 z-score | M2 |
-| `X` | 입자 — 한 입자만 이상 변위 (nlist 놓침 의심) | 변위 분포의 꼬리 | M2 |
-| `X` | 공간 — 박스 일부만 밀도가 다름 | 부피 분할 밀도 | M3 |
+| `X` | **ensemble** — one seed alone gives a different result | the seed-to-seed scatter vs the block error | M2 |
+| `X` | time series — an energy or pressure jump at a particular frame | a MAD-based robust z-score | M2 |
+| `X` | particle — just one particle with an anomalous displacement (a suspected nlist miss) | the tail of the displacement distribution | M2 |
+| `X` | spatial — only part of the box has a different density | density by volume partition | M3 |
 
-**V7 · 물리적 해석** — 나온 숫자가 맞는가 (S10 · S12) → §6-B
+**V7 · physical interpretation** — is the number that came out right (S10 · S12) → §6-B
 
-| | 검사 | 종류 | M |
+| | Check | Kind | M |
 |---|---|---|---|
-| `X` | 희박 tracer `D_msd` vs `kT/γ`가 ±2% 밖 (증거 ①) | 자기일관성 | M1 |
-| `X` | **오차막대 없는 숫자가 산출됨** (`A2` 위반) | 정직성 | M1 |
-| `X` | 4층 증거 중 몇 개를 확보했는지 판정 → 증거 등급 산출 | 정직성 | M1 |
-| `X` | **불일치 프로토콜** — 두 증거가 어긋나면 진행 중단 | 정직성 | M2 |
-| `X` | 증거 등급이 `unverified`인데 배지가 없음 | 정직성 | M1 |
+| `X` | a dilute tracer's `D_msd` vs `kT/γ` outside ±2% (evidence ①) | self-consistency | M1 |
+| `X` | **a number was produced without an error bar** (an `A2` violation) | honesty | M1 |
+| `X` | judge how many of the 4 evidence layers were obtained → produce the evidence grade | honesty | M1 |
+| `X` | **the disagreement protocol** — halt if two pieces of evidence disagree | honesty | M2 |
+| `X` | the evidence grade is `unverified` and there is no badge | honesty | M1 |
 
-**기록** — 불확실성과 원인 (§6-C) ★신규
+**Recording** — uncertainties and causes (§6-C) ★new
 
-| | 항목 | 산출물 | M |
+| | Item | Artifact | M |
 |---|---|---|---|
-| `X` | **3분 판정** — `PASS` / `PASS-with-doubt` / `FAIL` | `bdkit/verify/verdict.py` | M1 |
-| `X` | 모든 판정 → 저널 (`rule_id`+`observation`+`threshold`+`verdict`) | `bdkit/journal.py` | M1 |
+| `X` | **the 3-way verdict** — `PASS` / `PASS-with-doubt` / `FAIL` | `bdkit/verify/verdict.py` | M1 |
+| `X` | every verdict → the journal (`rule_id`+`observation`+`threshold`+`verdict`) | `bdkit/journal.py` | M1 |
 | `X` | `PASS-with-doubt` → `verification-ledger.md` (append-only) | `docs/agent/` | M1 |
-| `X` | **doubt → 증거 등급 상한 적용** (§6-C 표) | `bdkit/report/` | M1 |
-| `X` | 판정 사유에 **증상이 아니라 원인** — `cause` 필드 필수 | `bdkit/verify/` | M1 |
-| `X` | `cause: unknown` 3회 누적 감지 → `wall-ledger` 승격 | `bdkit/verify/` | M3 |
-| `X` | 미해결 `FAIL` → `findings/dead-end-<slug>.md` 자동 스텁 | `bdkit/verify/` | M3 |
+| `X` | **apply the doubt → evidence-grade ceiling** (the §6-C table) | `bdkit/report/` | M1 |
+| `X` | **the cause, not the symptom** in the verdict's reason — the `cause` field mandatory | `bdkit/verify/` | M1 |
+| `X` | detect 3 accumulated `cause: unknown` → promote to the `wall-ledger` | `bdkit/verify/` | M3 |
+| `X` | an unresolved `FAIL` → an automatic `findings/dead-end-<slug>.md` stub | `bdkit/verify/` | M3 |
 
-**공통 규율 넷**
+**Four shared disciplines**
 
-1. **실패를 조용히 삼키고 다음 스테이지로 넘어가지 않는다.** 검사 없이 통과한 스테이지는 리포트에
-   `UNVERIFIED` 배지로 표시한다.
-2. **모든 판정은 저널에** — `rule_id` + `observation`(측정값 + 임계값) + `verdict`. 사후에 "몇 번째
-   검사에서 걸렸나"를 셀 수 있어야 한다.
-3. **판정 기준은 숫자여야 한다.** 위에서 임계값 없는 행은 V1의 역번역 대조와 V5의 육안 둘뿐이고,
-   그건 의도적이다 — **사람만 잡을 수 있는 것이 실재**하기 때문이다. 대신 사람이 봤다는 사실과
-   판단을 저널에 남긴다.
-4. **미심쩍은 것은 통과시키되 기록한다.** `PASS-with-doubt`가 없으면 미심쩍은 것은 갈 곳이 없어
-   사라지고, 나중에 결과가 이상할 때 되짚을 수 없다 (§6-C).
+1. **Do not quietly swallow a failure and move to the next stage.** A stage that passed without a check is marked in
+   the report with an `UNVERIFIED` badge.
+2. **Every verdict into the journal** — `rule_id` + `observation` (the measured value + the threshold) + `verdict`.
+   It has to be possible to count afterwards "at which check did it catch".
+3. **A verdict criterion has to be a number.** The only rows above with no threshold are V1's back-translation
+   comparison and V5's by-eye check, and that is deliberate — because **things only a human can catch are real**.
+   Instead, the fact that a human looked, and their judgment, are left in the journal.
+4. **Pass what is doubtful, but record it.** Without `PASS-with-doubt`, anything doubtful has nowhere to go and
+   disappears, and when the result later seems odd it cannot be retraced (§6-C).
 
 ---
 
-## 부록 — 참조
+## Appendix — references
 
 | | |
 |---|---|
-| 선행 프로젝트 | `~/Research/MD_particle/brownian_slit_sim` — config 패턴·검증 사다리·오버댐프 lore |
-| 엔진 | HOOMD-blue 7.1.0 · freud 3.5.0 · fresnel 0.13.8 · gsd 5.0.1 · pymbar 4.2.0 |
-| 참고한 에이전트 | [`jmsung/einstein`](https://github.com/jmsung/einstein) — 3층 구조·지식 컴파운딩·삼중검증의 출처 |
+| the preceding project | `~/Research/MD_particle/brownian_slit_sim` — the config pattern · the verification ladder · overdamped lore |
+| the engines | HOOMD-blue 7.1.0 · freud 3.5.0 · fresnel 0.13.8 · gsd 5.0.1 · pymbar 4.2.0 |
+| the agent referenced | [`jmsung/einstein`](https://github.com/jmsung/einstein) — the source of the 3-layer structure, knowledge compounding and triple verification |
 
-### 문서 인덱스
+### The document index
 
-M0에서 `02`~`10`을 **스텁으로 먼저** 만든다 (§11). 아래 상태는 스텁 생성 시 갱신한다.
+In M0, `02`~`10` are **made as stubs first** (§11). The statuses below get updated when the stubs are created.
 
-| | 문서 | 상태 |
+| | Document | Status |
 |---|---|---|
-| `00` | [결정 로그](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md) | **작성됨** |
-| `01` | [에이전트 아키텍처](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) | **작성됨** |
-| `02` | 시스템 스펙 (`SystemSpec` 스키마·S1/S2 입력) | 스텁 예정 |
-| `03` | 단위·무차원화 (`τ_D` 기준, `UnitMap`) | 스텁 예정 |
-| `04` | 퍼텐셜·HOOMD 스크립트 생성 | 스텁 예정 |
-| `05` | 런 계획·비용 게이트·preflight·진단 지표 | 스텁 예정 |
-| `06` | repair 규칙 테이블 | 스텁 예정 |
-| `07` | 관측량·오차막대 | 스텁 예정 |
-| `08` | 시각화·리포트 | 스텁 예정 |
-| `09` | 문헌·벤치마크 | 스텁 예정 |
-| `10` | 로드맵 | 스텁 예정 |
-| `11` | [시뮬레이션 엔진 계획](docs/11_simbot.md) | **작성됨** — `simbot/` 의 계획·진행기록·결정(`SD1`~`SD11`) |
-| — | `docs/agent/metrics.md` · `cycle-log.md` · `wall-ledger.md` | M1 종료 시 생성 |
+| `00` | [the decision log](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md) | **written** |
+| `01` | [the agent architecture](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) | **written** |
+| `02` | the system spec (the `SystemSpec` schema · the S1/S2 inputs) | stub planned |
+| `03` | units and non-dimensionalization (the `τ_D` reference, `UnitMap`) | stub planned |
+| `04` | potentials and HOOMD script generation | stub planned |
+| `05` | the run plan · the cost gate · preflight · the diagnostic indicators | stub planned |
+| `06` | the repair rule table | stub planned |
+| `07` | observables and error bars | stub planned |
+| `08` | visualization and the report | stub planned |
+| `09` | the literature and benchmarks | stub planned |
+| `10` | the roadmap | stub planned |
+| `11` | [the simulation engine plan](docs/11_simbot.md) | **written** — `simbot/`'s plan, progress record and decisions (`SD1`~`SD11`) |
+| — | `docs/agent/metrics.md` · `cycle-log.md` · `wall-ledger.md` | created at the end of M1 |

@@ -13,7 +13,13 @@ What a translation is allowed to change: **the words**. What it must not change:
                 with a translated comment, so only the **prefix up to the first
                 Hangul character** is required to survive -- `x = 1  # KO` may
                 become `x = 1  # a comment`, but not `x = 2  # a comment`.
-  links         every link/image TARGET, in order (the label is prose, the URL is not)
+  links         every link/image TARGET, in order (the label is prose, the URL is
+                not). One exception: an IN-DOCUMENT anchor (`](#...)`) is derived
+                from the heading text, which IS prose, so translating a heading
+                must retarget it. Those are not compared as strings; instead each
+                is required to RESOLVE to a heading in the same file -- a check
+                the string comparison could not make. An anchor already broken in
+                OLD is reported as such rather than counted against NEW.
   tables        for each table, the row count and the per-row cell count
   numbers       the multiset of numeric literals -- this is the one that matters.
                 CLAUDE.md's whole premise is that a number in a document is the
@@ -79,6 +85,15 @@ HEADING = re.compile(r"^(#{1,6})\s")
 # a link or image target: [label](target) / ![label](target). Nested parens in the
 # target are not markdown-legal, so a non-greedy stop at ) is correct here.
 LINK = re.compile(r"!?\[[^\]]*\]\(([^)]*)\)")
+HEAD_TEXT = re.compile(r"^#{1,6}\s+(.*?)\s*$")
+# GitHub's heading -> anchor rule, near enough: lowercase, drop everything that is
+# not a word character / space / hyphen, then spaces -> hyphens.
+_SLUG_DROP = re.compile(r"[^\w\s-]", re.UNICODE)
+
+
+def slug(heading_text: str) -> str:
+    t = _SLUG_DROP.sub("", heading_text.strip().lower())
+    return re.sub(r"\s+", "-", t)
 # numeric literals, sign and exponent and trailing % kept attached
 NUM = re.compile(r"(?<![\w.])[+\-−]?\d[\d,]*(?:\.\d+)?(?:[eE][+\-]?\d+)?%?")
 # the same, without the lookbehind, so that a numeral GLUED to a Hangul word
@@ -132,11 +147,16 @@ def parse(text: str) -> dict:
 
     # links/numbers/markers are read from the WHOLE file, fences included:
     # a URL or a number inside a code block is exactly as load-bearing.
+    heading_slugs = {slug(m.group(1)) for line in text.split("\n")
+                     if (m := HEAD_TEXT.match(line))}
+    all_links = LINK.findall(text)
     return {
+        "heading_slugs": heading_slugs,
+        "anchors": [t for t in all_links if t.startswith("#")],
         "headings": headings,
         "fences": fences,
         "tables": tables,
-        "links": LINK.findall(text),
+        "links": [t for t in all_links if not t.startswith("#")],
         **_number_census(text),
         "markers": Counter(ch for ch in text if ch in MARKERS),
         "bold": text.count("**"),
@@ -209,6 +229,14 @@ def compare(old: str, new: str) -> list:
             p += _fence_diff(f"code fence #{i}", fa, fb)
     p += _seq_diff("table shapes", A["tables"], B["tables"])
     p += _seq_diff("link targets", A["links"], B["links"])
+    if len(A["anchors"]) != len(B["anchors"]):
+        p.append(f"in-document anchors: {len(A['anchors'])} -> {len(B['anchors'])}")
+    bad_old = [a for a in A["anchors"] if a[1:] not in A["heading_slugs"]]
+    bad_new = [a for a in B["anchors"] if a[1:] not in B["heading_slugs"]]
+    # only anchors that NEW broke count; ones already broken in OLD are noted
+    if len(bad_new) > len(bad_old):
+        p.append(f"in-document anchors that resolve to no heading: "
+                 f"{bad_new} (already broken in OLD: {bad_old})")
     # numbers: OLD's Hangul-attached numerals are exempt in BOTH directions
     new_all = B["numbers"] + B["_ko_numerals"]
     lost = A["numbers"] - new_all
@@ -261,6 +289,12 @@ SELFTESTS = [
     ("but a version bump is", "hoomd 7.1.0\n", "hoomd 7.2.0\n", True),
     ("link target changed", "[x](a.md)\n", "[y](b.md)\n", True),
     ("link label only", "[한국어](a.md)\n", "[English](a.md)\n", False),
+    ("anchor retargeted with its heading", "## 한국어 제목\n\n[x](#한국어-제목)\n",
+     "## English Heading\n\n[x](#english-heading)\n", False),
+    ("anchor left pointing at the old slug", "## 한국어 제목\n\n[x](#한국어-제목)\n",
+     "## English Heading\n\n[x](#한국어-제목)\n", True),
+    ("an anchor already broken in OLD is not charged to NEW",
+     "## 한국어 제목\n\n[x](#nope)\n", "## English Heading\n\n[x](#nope)\n", False),
     ("code line changed", "```py\nx = 1\n```\n", "```py\nx = 2\n```\n", True),
     ("code comment translated", "```py\nx = 1  # 주석\n```\n",
      "```py\nx = 1  # a comment\n```\n", False),
