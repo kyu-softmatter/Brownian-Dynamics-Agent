@@ -111,7 +111,7 @@ def test_crystal_needs_A_above_ten_point_seven_five():
 
 def test_zahn_values_are_marked_unreproduced():
     """`reproduced: no` 인 문헌값을 근거처럼 쓰지 않는다 (knowledge/wiki/CLAUDE.md)."""
-    assert "미재현" in zahn_phase(100.0)["citation"]
+    assert "not reproduced" in zahn_phase(100.0)["citation"]
 
 
 # =============================================================================
