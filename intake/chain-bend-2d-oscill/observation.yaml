@@ -1,190 +1,191 @@
-# L0 Observation — 스케치에서 읽어낸 것. **초안: 사람 확인 대기**
-# 프로토콜: 전사 먼저 → 구조화 → 모호/미판독 명시 → 없는 값은 null
-# 무차원화 초안: scratch/intake_scales.py
-# ★ 이 케이스는 핵심 물리(결합 퍼텐셜)가 스케치에서 빈칸이라 무차원화가 완결되지 않음
+# L0 Observation — what was read out of the sketch. **Draft: awaiting human confirmation**
+# Protocol: transcribe first → structure → state what is ambiguous/unread → absent values stay null
+# Non-dimensionalization draft: scratch/intake_scales.py
+# ★ In this case the core physics (the bond potential) is blank in the sketch, so the non-dimensionalization is not complete
 
 source_files:
   - intake/chain-bend-2d-oscill/sketch_01.jpeg
 
-# ── ① 전사 ────────────────────────────────────────────────────────────
+# ── ① transcription ───────────────────────────────────────────────────
 raw_transcription: |
-  [상단 — 원(비드) 6개가 한 줄로 맞닿아 있고, 오른쪽에 "…" 후 원 1개 더]
-    원 일부에 큰 X 표시:  1번째, 4번째(중앙 부근), 그리고 맨 오른쪽 원
-    중앙 부근 원에서 위로 향하는 화살표 + "y = a sin(ωt)"  (밑줄 있음)
-    그 오른쪽에 "oscillation in y-dir"
+  [top — 6 circles (beads) touching in a row, and after a "…" on the right, 1 more circle]
+    a large X on some of the circles:  the 1st, the 4th (near the middle), and the rightmost circle
+    an arrow pointing up from the circle near the middle + "y = a sin(ωt)"  (underlined)
+    to its right, "oscillation in y-dir"
 
-  [그 아래]
+  [below that]
     trapped by optical tweezers
 
     U = ½ k_t (Δr)²                 k_t = 10 pN/µm
 
-    R = 5 µm                        [박스 안] G' & G'' = ?
-                                    [우측] G'&G'' 축 그래프 —
-                                      세로축 G'&G'', 가로축 ω,
-                                      두 곡선이 우상향하다 포화하는 모양
+    R = 5 µm                        [inside a box] G' & G'' = ?
+                                    [on the right] a G'&G'' axis plot —
+                                      vertical axis G'&G'', horizontal axis ω,
+                                      two curves rising to the right and saturating
 
-    particles are connected by   U_ij = ～～～～～      ← 물결선(빈칸)
+    particles are connected by   U_ij = ～～～～～      ← a squiggle (blank)
 
-    Eric furst. , 논문 참고 .
-    [그 아래 줄로 지운 이름 — 판독 불가]
+    Eric furst. , see the paper .
+    [on the line below, a name struck through — illegible]
 
-# ── ② 구조화 ──────────────────────────────────────────────────────────
-system_guess: "광집게로 잡은 2D 콜로이드 비드 사슬을 y방향으로 진동시켜 복소탄성률 G'(ω), G''(ω)를 재는 능동 마이크로레올로지"
+# ── ② structured ──────────────────────────────────────────────────────
+system_guess: "active microrheology measuring the complex modulus G'(ω), G''(ω) by oscillating a 2D chain of colloidal beads, held by optical tweezers, in the y direction"
 
 entities:
   - kind: particle
-    note: "비드 사슬. 그림상 6개 + '…' + 1개 → 개수 미확정"
+    note: "a chain of beads. 6 + '…' + 1 in the drawing → the count is not settled"
   - kind: external_potential
     form: "harmonic optical trap"
     expression: "U = 0.5*k_t*(Δr)^2"
-    note: "★ X 표시가 1·4·끝 비드에 있음 → 세 비드가 트랩된 것으로 읽음 (C3)"
+    note: "★ the X marks are on beads 1, 4 and the last → read as three beads being trapped (C3)"
   - kind: driving
     form: "sinusoidal displacement of trap center, y-direction"
     expression: "y = a sin(ω t)"
-    note: "화살표가 중앙 부근 비드를 가리킴 → 그 비드의 트랩 중심이 진동"
+    note: "the arrow points at the bead near the middle → that bead's trap centre oscillates"
   - kind: bonded_interaction
-    form: null                # ★ 스케치에서 빈칸 — ambiguities C1
+    form: null                # ★ blank in the sketch — ambiguities C1
 
 stated_quantities:
   - symbol: k_t
     value: 10
     unit: pN/um
-    source: "스케치 'k_t = 10 pN/µm'"
+    source: "sketch, 'k_t = 10 pN/µm'"
     confidence: 1
   - symbol: R
     value: 5
     unit: um
-    source: "스케치 'R = 5 µm'"
+    source: "sketch, 'R = 5 µm'"
     confidence: 1
-    note: "1-A 관례로 지름으로 읽음"
+    note: "read as the diameter, by the 1-A convention"
   - symbol: a
-    value: null               # ★ 기호만 있고 숫자 없음
+    value: null               # ★ only the symbol, no number
     unit: null
-    source: "스케치 'y = a sin(ωt)' — a에 값이 없음"
+    source: "sketch, 'y = a sin(ωt)' — a has no value"
   - symbol: omega
-    value: null               # ★ 스윕 범위 없음
+    value: null               # ★ no sweep range
     unit: null
-    source: "스케치 'y = a sin(ωt)' + G'&G'' vs ω 그래프 — 범위 미기재"
+    source: "sketch, 'y = a sin(ωt)' + the G'&G'' vs ω plot — the range is not stated"
 
 stated_goals:
-  - "G' & G'' 를 ω의 함수로 구한다 (박스로 강조 + 그래프 스케치)"
+  - "Obtain G' & G'' as a function of ω (boxed for emphasis + a sketched plot)"
 
 references:
   - kind: paper
     authors: ["Eric Furst"]
-    note: "스케치에 '논문 참고'로 지정. DOI/제목 미기재. KB 시드 후보 (현재 문헌 0편)"
+    note: "designated in the sketch as 'see the paper'. DOI/title not stated. A KB seed candidate (currently 0 papers)"
     resolved: false
 
-# ── ③ 모호한 것 ───────────────────────────────────────────────────────
+# ── ③ what is ambiguous ───────────────────────────────────────────────
 ambiguities:
   - id: C1
-    issue: "★★ 결합 퍼텐셜 U_ij 가 빈칸이다 (물결선만 그려져 있음)"
+    issue: "★★ the bond potential U_ij is blank (only a squiggle is drawn)"
     impact: |
-      G'(ω)·G''(ω)는 사슬의 이완 스펙트럼에서 나온다. U_ij가 없으면
-      스케일 원장에 시간척도(τ_bond)를 올릴 수 없고 무차원화가 완결되지 않는다.
-      → 이 케이스의 핵심 물리가 미정. 다른 항목보다 우선.
+      G'(ω) and G''(ω) come out of the chain's relaxation spectrum. Without U_ij no
+      timescale (τ_bond) can be entered in the scale ledger and the non-dimensionalization
+      does not complete.
+      → the core physics of this case is undecided. Ahead of every other item.
     options:
-      - "harmonic bond (k_b) — 가장 단순. τ_b = γ/k_b"
-      - "FENE (유한 신장) — 큰 진폭에서 비선형"
-      - "WCA + bond — 겹침 방지 포함"
-      - "+ angle harmonic (굽힘 κ) — 폴더명 'chain-bend'가 암시하나 스케치엔 없음"
+      - "harmonic bond (k_b) — the simplest. τ_b = γ/k_b"
+      - "FENE (finite extension) — nonlinear at large amplitude"
+      - "WCA + bond — includes overlap prevention"
+      - "+ angle harmonic (bending κ) — implied by the folder name 'chain-bend', but absent from the sketch"
     resolution: >
-      사용자 지정 논문 2편으로 확정 2026-08-04 (Pantina & Furst, PRL 94 138301 / Langmuir 24 1141). ★ 위 options 4개가 전부 틀렸다 — 페어/본드 퍼텐셜이 아니라 접착 접촉(JKR) + 접선 굽힘 강성 κ_θ = EI/ℓ = 1.391e6 kT 이다. 단일 결합이 토크를 지탱한다는 것이 논문의 헤드라인이고 중심력 모델로는 재현되지 않는다. 검증: scratch/chain_bend_from_papers.py (논문 κ₀ 재현 +1.6%, 이산↔연속 매핑 −0.08%).
+      Settled 2026-08-04 by the two papers the user designated (Pantina & Furst, PRL 94 138301 / Langmuir 24 1141). ★ All 4 options above were wrong — it is not a pair/bond potential but adhesive contact (JKR) + a tangential bending stiffness κ_θ = EI/ℓ = 1.391e6 kT. That a single bond sustains a torque is the papers' headline, and it is not reproduced by a central-force model. Verification: scratch/chain_bend_from_papers.py (the papers' κ₀ reproduced to +1.6%, the discrete↔continuum mapping to −0.08%).
     confirmed_by: paper
 
   - id: C2
-    issue: "진폭 a 와 주파수 ω(범위)가 없다"
+    issue: "the amplitude a and the frequency ω (its range) are missing"
     detail: |
-      무차원화하면 두 무차원수가 진폭을 양쪽에서 조인다:
-        a/ℓ_k ≫ 1  (신호가 열요동 위로 나오려면).  ℓ_k = 20.35 nm
-        a/d   ≪ 1  (선형응답 유지).                d = 5 µm
-      → a ≈ 100~500 nm 이 두 조건을 함께 만족하는 창 (SNR 5~25, a/d 0.02~0.10)
-      ω는 De = ωτ_k = 1 인 곳(ω = 249 rad/s, f = 39.7 Hz) 근방을 덮어야
-      G'/G'' 교차가 보인다 → 스윕 2.5 ~ 2500 rad/s 권장
+      Non-dimensionalized, two dimensionless numbers squeeze the amplitude from both sides:
+        a/ℓ_k ≫ 1  (for the signal to come out above the thermal fluctuation).  ℓ_k = 20.35 nm
+        a/d   ≪ 1  (to stay in linear response).                                d = 5 µm
+      → a ≈ 100~500 nm is the window that satisfies both conditions together (SNR 5~25, a/d 0.02~0.10)
+      ω has to cover the neighbourhood of De = ωτ_k = 1 (ω = 249 rad/s, f = 39.7 Hz)
+      for the G'/G'' crossover to be visible → a sweep of 2.5 ~ 2500 rad/s is recommended
     resolution: >
-      ★제안 확정 (사용자 승인 2026-08-04, tier 3): a = 200 nm, ω = 85~7853 rad/s. 진폭은 두 조건이 양쪽에서 조인 창의 중간 — ℓ_k(20.4nm) ≪ a < δ_max(429nm, M<M_c). SNR = a/ℓ_k = 9.8, 선형 여유 2.1×. ω 는 De = ωτ 0.1~10 을 덮는다 (τ_k=1.18ms ≈ τ_chain=1.27ms 로 거의 같아 하나의 스윕으로 둘 다 덮인다).
-    confirmed_by: user     # ★제안을 사용자가 승인 (tier 3 유지)
+      The ★proposal is settled (user-approved 2026-08-04, tier 3): a = 200 nm, ω = 85~7853 rad/s. The amplitude is the middle of the window squeezed from both sides — ℓ_k(20.4nm) ≪ a < δ_max(429nm, M<M_c). SNR = a/ℓ_k = 9.8, linear-response margin 2.1×. ω covers De = ωτ 0.1~10 (τ_k=1.18ms ≈ τ_chain=1.27ms are nearly equal, so one sweep covers both).
+    confirmed_by: user     # the ★proposal was approved by the user (still tier 3)
 
   - id: C3
-    issue: "어느 비드가 트랩되는가? 몇 개인가?"
-    note: "X가 1번째·4번째·맨 오른쪽에 보임. 양끝 고정 + 중앙 구동으로 읽음"
-    lean: "양끝 고정 트랩 + 중앙 비드를 진동시키는 트랩 (3개)"
+    issue: "which beads are trapped? How many?"
+    note: "the X marks appear on the 1st, the 4th and the rightmost. Read as both ends fixed + the middle driven"
+    lean: "fixed traps at both ends + a trap oscillating the middle bead (3 in total)"
     resolution: >
-      논문이 명시한다 — [P2] Fig.1A: 양끝 입자 2개는 고정 트랩(힘 센서), 세 번째 트랩이 중앙 입자를 y 방향으로 이동. 총 3개. lean 이 맞았다.
+      The papers state it — [P2] Fig.1A: the 2 end particles are in fixed traps (force sensors), and a third trap moves the middle particle in the y direction. 3 in total. The lean was right.
     confirmed_by: paper
 
   - id: C4
-    issue: "비드 개수 N"
-    note: "그림 6개 + '…' + 1개. '…'는 '더 많다'는 뜻으로 읽음 → 개수 미정"
+    issue: "the number of beads N"
+    note: "6 in the drawing + '…' + 1. The '…' is read as meaning 'there are more' → the count is undecided"
     resolution: >
-      ★제안 확정 (사용자 승인 2026-08-04, tier 3): n = 25 ([P1] Fig.4 의 25입자 사슬). n=11 로 잡으면 δ_max = 74 nm 로 진폭 창이 ℓ_k 바로 위까지 닫힌다 — δ_max ∝ n² 이라 n=25 에서 429 nm 로 열린다. κ_end = 4.63 pN/µm 이 트랩 10 pN/µm 과 비슷해 측정 창에도 들어간다.
-    confirmed_by: user     # ★제안을 사용자가 승인 (tier 3 유지)
+      The ★proposal is settled (user-approved 2026-08-04, tier 3): n = 25 (the 25-particle chain of [P1] Fig.4). Taking n=11 gives δ_max = 74 nm, which closes the amplitude window down to just above ℓ_k — δ_max ∝ n², so at n=25 it opens to 429 nm. κ_end = 4.63 pN/µm is comparable to the trap's 10 pN/µm, so it also falls inside the measurement window.
+    confirmed_by: user     # the ★proposal was approved by the user (still tier 3)
 
   - id: C5
-    issue: "폴더명이 'chain-bend'인데 굽힘 강성이 스케치에 없다"
-    note: "각도 퍼텐셜 미기재. mater_plan §20 표는 이 케이스를
-           '본드 + 굽힘 강성 + 시간의존 구동'으로 적었으나 스케치에는 굽힘이 없음"
+    issue: "the folder is named 'chain-bend' but there is no bending stiffness in the sketch"
+    note: "no angle potential stated. The mater_plan §20 table wrote this case up as
+           'bond + bending stiffness + time-dependent driving', but the sketch has no bending"
     resolution: >
-      논문이 굽힘 강성을 제공한다 — 스케치에는 없지만 폴더명이 가리킨 것이 맞았다. 다만 형태가 각도 퍼텐셜 κ_bend 가 아니라 **접촉의 접선 강성**에서 나온 EI 이고, 그것을 이산 사슬의 angle.Harmonic 으로 옮긴다 (κ_θ = EI/ℓ). ★ 전사 단계에서 '스케치에 굽힘이 없다'고 적어둔 것이 옳았다 — 폴더명을 근거로 적었다면 형태를 틀렸을 것이다.
+      The papers supply the bending stiffness — it is absent from the sketch, but what the folder name pointed at was right. The form, however, is not an angle potential κ_bend but an EI coming out of **the tangential stiffness of the contact**, which is then carried over to the discrete chain as angle.Harmonic (κ_θ = EI/ℓ). ★ Writing down at the transcription stage that 'the sketch has no bending' was correct — had it been written from the folder name, the form would have been wrong.
     confirmed_by: paper
 
 unread_regions:
-  - "'Eric furst, 논문 참고' 아래 줄로 지운 이름 1개 (판독 불가)"
-  - "U_ij 오른쪽 물결선 — 글자가 아니라 '나중에 채울 빈칸' 표시로 읽음"
+  - "1 name struck through on the line below 'Eric furst, see the paper' (illegible)"
+  - "the squiggle to the right of U_ij — read not as letters but as a 'blank to be filled in later' mark"
 
-# ── ④ 스케치에 없어서 채워야 하는 값 ───────────────────────────────────
+# ── ④ values absent from the sketch that have to be supplied ──────────
 missing_required:
   - symbol: T
     assumed_value: 300
     assumed_unit: K
     confidence: 1
-    note: "1-A 확인값 승계"
+    note: "inherits the value confirmed in 1-A"
     resolution: null
   - symbol: eta
     assumed_value: 0.851
     assumed_unit: mPa*s
     confidence: 1
-    note: "물@300K, 1-A 승계"
+    note: "water@300K, inherited from 1-A"
     resolution: null
   - symbol: U_ij
-    what: "사슬 결합 퍼텐셜 — G'(ω)의 탄성이 여기서 나온다. 스케치에서 빈칸 (C1)"
-    assumed_value: null        # ★ C1 — 지어내지 않음
+    what: "the chain's bond potential — the elasticity of G'(ω) comes from it. Blank in the sketch (C1)"
+    assumed_value: null        # ★ C1 — not invented
     resolution: >
-      사용자 지정 논문 2편에서 확정 2026-08-04 — Pantina & Furst PRL 94 138301 / Langmuir 24 1141. ★ 페어 퍼텐셜이 아니다: 접착 접촉(JKR) + 접선 굽힘 강성 κ_θ = EI/ℓ = 1.391e6 kT (κ₀=64 mN/m 에서). 단일 결합이 토크를 지탱한다는 것이 논문의 헤드라인이고, 중심력 모델로는 재현되지 않는다. 검증: scratch/chain_bend_from_papers.py (논문 κ₀ 재현 +1.6%, 매핑 −0.08%).
+      Settled 2026-08-04 from the two papers the user designated — Pantina & Furst PRL 94 138301 / Langmuir 24 1141. ★ It is not a pair potential: adhesive contact (JKR) + a tangential bending stiffness κ_θ = EI/ℓ = 1.391e6 kT (from κ₀=64 mN/m). That a single bond sustains a torque is the papers' headline, and it is not reproduced by a central-force model. Verification: scratch/chain_bend_from_papers.py (the papers' κ₀ reproduced to +1.6%, the mapping to −0.08%).
     confirmed_by: user
   - symbol: a
-    what: "구동 진폭 — a/ℓ_k(SNR)와 a/d(선형응답)가 양쪽에서 조인다. 100~500nm 창 (C2)"
+    what: "the driving amplitude — a/ℓ_k (SNR) and a/d (linear response) squeeze it from both sides. A 100~500nm window (C2)"
     assumed_value: null        # ★ C2
     resolution: >
-      ★제안 (tier 3): 200 nm. 창이 양쪽에서 조인다 — ℓ_k=20.4nm ≪ a < δ_max=429nm (M<M_c 선형 조건). SNR = a/ℓ_k = 9.8, 선형 여유 2.1×.
-    proposed_by: assistant     # ★ tier 3 — 사람 확인 대기
+      ★proposal (tier 3): 200 nm. The window is squeezed from both sides — ℓ_k=20.4nm ≪ a < δ_max=429nm (the M<M_c linearity condition). SNR = a/ℓ_k = 9.8, linear-response margin 2.1×.
+    proposed_by: assistant     # ★ tier 3 — awaiting human confirmation
   - symbol: omega_range
-    kind: choice               # ω 스윕 범위 — 관측 설정 (De=1 근방을 덮으면 됨)
-    what: "주파수 스윕 범위"
+    kind: choice               # the ω sweep range — an observation setting (it only has to cover the neighbourhood of De=1)
+    what: "the frequency sweep range"
     assumed_value: null        # ★ C2
     resolution: null
   - symbol: n_beads
-    what: "비드 개수 — 사슬의 이완 스펙트럼(최장 모드)을 정한다 (C4)"
+    what: "the number of beads — it sets the chain's relaxation spectrum (the longest mode) (C4)"
     assumed_value: null        # ★ C4
     resolution: >
-      ★제안 (tier 3): 25 ([P1] Fig.4 의 25입자 사슬). n=11 로 잡으면 δ_max=74nm 로 진폭 창이 거의 닫힌다 (δ_max ∝ n²).
-    proposed_by: assistant     # ★ tier 3 — 사람 확인 대기
+      ★proposal (tier 3): 25 (the 25-particle chain of [P1] Fig.4). Taking n=11 gives δ_max=74nm, which nearly closes the amplitude window (δ_max ∝ n²).
+    proposed_by: assistant     # ★ tier 3 — awaiting human confirmation
 
-# ── ⑤ 무차원화에서 나온 사전 경고 ──────────────────────────────────────
+# ── ⑤ advance warnings that came out of the non-dimensionalization ────
 prerun_findings:
   - id: F1
-    severity: "★★ 모델 적합성 — 목표 해석에 영향"
+    severity: "★★ model suitability — affects the reading of the goal"
     finding: |
-      BD + 뉴턴 용매(물)에서는 용매 자체의 G' = 0, G'' = ηω 다 (탄성이 없음).
-      따라서 이 시뮬레이션에서 나오는 G'·G''는 '매질'의 점탄성이 아니라
-      **사슬(결합)의 탄성 + 용매의 점성 소산**이다.
+      In BD with a Newtonian solvent (water), the solvent itself has G' = 0, G'' = ηω (no elasticity).
+      So the G' and G'' this simulation produces are not the viscoelasticity of the 'medium'
+      but **the elasticity of the chain (the bonds) + the viscous dissipation of the solvent**.
     consequence: |
-      "매질의 G', G''를 재고 싶다"는 의도라면 BD로는 불가능하고
-      medium.* (점탄성 매질) 모듈이 필요하다.
-      — 1-A observation.yaml 의 followup('비뉴턴 매질도 하고 싶다')과 같은 항목.
-      "사슬의 G', G''"라면 그대로 진행 가능.
-    verified: false           # BD 모델의 성질(구성식)에서 나온 결론. 실행 미확인
+      If the intent is "I want to measure the medium's G', G''", that is impossible with BD and
+      needs a medium.* (viscoelastic medium) module.
+      — the same item as the followup in 1-A's observation.yaml ('I also want to do non-Newtonian media').
+      If it is "the chain's G', G''", it can proceed as it stands.
+    verified: false           # a conclusion from a property of the BD model (its constitutive equation). Not confirmed by running
   - id: F2
-    severity: "정보"
-    finding: "τ_k = γ/k_t = 4.010 ms (d=5µm, 물@300K) — 1-A와 정확히 같은 값"
-    consequence: "dt ≤ 10⁻²τ_k = 40.1 µs. 최저 ω에서 100주기 관측해도 6.3e5 steps — 저렴"
+    severity: "informational"
+    finding: "τ_k = γ/k_t = 4.010 ms (d=5µm, water@300K) — exactly the same value as 1-A"
+    consequence: "dt ≤ 10⁻²τ_k = 40.1 µs. Even observing 100 periods at the lowest ω is 6.3e5 steps — cheap"
