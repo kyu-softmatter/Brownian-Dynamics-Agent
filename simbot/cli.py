@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Simulation Bot CLI — S3 SPEC → S8 REPORT. LLM 0줄.
+"""Simulation Bot CLI — S3 SPEC → S8 REPORT. 0 lines of LLM.
 
 **One command surface (merged 2026-08-29).** This module holds the S5-S8 half;
 `bdbot.cli` holds L0-L4 and now exposes these same commands under `pipeline`, so
@@ -13,20 +13,24 @@ All three dispatch to the same `main()`. `bdbot.cli` imports this **lazily**, in
 the command handler, so its front end does not pull in matplotlib (`simbot.viz`) —
 that property is load-bearing and `tests/test_bdbot_lazy_api.py` guards it.
 
-    python cli.py run <spec.yaml>            spec 하나 → REPORT.md
-    python cli.py resume runs/<id>           죽은 런 이어받기 (완료 단계 재계산 안 함)
-    python cli.py converge <spec.yaml>       dt·N·초기조건을 흔들어도 답이 같은가
-    python cli.py params [--path runs]       여러 런의 파라미터를 가로로
-    python cli.py calibrate                  이 기계의 처리량 실측
+    python cli.py run <spec.yaml>            one spec → REPORT.md
+    python cli.py resume runs/<id>           pick up a dead run (no recomputation
+                                             of completed stages)
+    python cli.py converge <spec.yaml>       is the answer the same when dt, N and
+                                             the initial condition are shaken
+    python cli.py params [--path runs]       several runs' parameters side by side
+    python cli.py calibrate                  measure this machine's throughput
 
-## 이 CLI 가 하지 않는 것
+## What this CLI does not do
 
-- **판정을 확정하지 않는다.** `confirmed_by` 는 사람만 쓴다.
-- **예산을 넘겨 실행하지 않는다.** 초과 예상 시 실행 전에 보고하고 멈춘다.
-- **모르는 카드를 억지로 돌리지 않는다.** 러너가 없으면 그렇게 말한다.
+- **It does not confirm a verdict.** Only a human writes `confirmed_by`.
+- **It does not run over budget.** When the estimate exceeds it, it reports and
+  stops before running.
+- **It does not force an unknown card through.** With no runner, it says so.
 
-현재 러너가 있는 카드는 `passive-sphere--harmonic-trap` 하나다. 다른 카드는
-`simbot.run` 에 러너를 만들어야 한다 — 조용히 트랩 러너로 돌리지 않는다.
+Exactly one card currently has a runner: `passive-sphere--harmonic-trap`. Another
+card needs a runner built in `simbot.run` -- it is never quietly run with the trap
+runner.
 """
 from __future__ import annotations
 
@@ -62,7 +66,7 @@ RUNNERS = {"passive-sphere--harmonic-trap": "trap"}
 
 
 # =============================================================================
-# 공통
+# Shared
 # =============================================================================
 def _fail(msg: str, code: int = 2) -> int:
     print(f"\n⛔ {msg}", file=sys.stderr)
@@ -73,10 +77,11 @@ def _runner_for(spec: SystemSpec) -> str:
     kind = RUNNERS.get(spec.card)
     if kind is None:
         raise SystemExit(
-            f"⛔ 카드 {spec.card!r} 에는 러너가 없다.\n"
-            f"   러너가 있는 카드: {sorted(RUNNERS)}\n"
-            f"   다른 카드를 트랩 러너로 돌리면 조용히 틀린 계를 계산한다 —\n"
-            f"   `simbot/run.py` 에 러너를 만들고 RUNNERS 에 등록할 것.")
+            f"⛔ card {spec.card!r} has no runner.\n"
+            f"   cards with a runner: {sorted(RUNNERS)}\n"
+            f"   running another card with the trap runner quietly computes the\n"
+            f"   wrong system — build a runner in `simbot/run.py` and register it\n"
+            f"   in RUNNERS.")
     return kind
 
 
@@ -98,21 +103,22 @@ def _print_cost(reduced, n_seeds: int, pol) -> tuple[float, int, bool]:
     steps = reduced.equil_steps + reduced.prod_steps
     wall = estimate_wall_time_s(reduced.n_particles, steps, k)
     over = wall > pol.wall_budget_s
-    print(f"  N={reduced.n_particles} · steps/seed={steps} · 시드 {n_seeds} "
-          f"· 동시 {k} (효율 {pol.efficiency(k):.3f})")
-    print(f"  추정 wall ≈ {wall:.2f} s  (예산 {pol.wall_budget_s:g} s)"
-          + ("  ⚠️ **초과**" if over else ""))
+    print(f"  N={reduced.n_particles} · steps/seed={steps} · {n_seeds} seeds "
+          f"· concurrency {k} (efficiency {pol.efficiency(k):.3f})")
+    print(f"  estimated wall ≈ {wall:.2f} s  (budget {pol.wall_budget_s:g} s)"
+          + ("  ⚠️ **over**" if over else ""))
     return wall, k, over
 
 
 # =============================================================================
-# 측정 — 배치 결과 → Measurement
+# Measurement — batch results → Measurement
 # =============================================================================
 def measure_trap_batch(batch: dict, reduced, spec: SystemSpec) -> dict:
-    """배치 결과에서 측정값을 뽑는다. **모든 값에 시드 앙상블 오차가 붙는다.**"""
+    """Extracts the measurements from a batch result. **Every value carries a
+    seed-ensemble error.**"""
     jobs = batch["jobs"]
     if not jobs:
-        raise ValueError("성공한 런이 0개다 — 측정할 것이 없다")
+        raise ValueError("0 successful runs — there is nothing to measure")
 
     d = derive(spec)
     dim = reduced.dim
@@ -129,24 +135,27 @@ def measure_trap_batch(batch: dict, reduced, spec: SystemSpec) -> dict:
         r2s.append(f.r_squared)
     pl, tau = aggregate_seeds(plateaus), aggregate_seeds(taus)
 
-    # 무차원 → SI
+    # reduced → SI
     var_si = d["var_per_component_si"]
     nm2 = 1e18
     meas = {
         "var_x_star": Measurement("var_x_star", var_c.mean, var_c.se,
-                                  method="독립 스냅샷 성분분산, 시드 앙상블",
+                                  method="per-component variance of independent "
+                                         "snapshots, seed ensemble",
                                   n_samples=var_c.n_seeds, spread=var_c.spread),
         "var_x_nm2": Measurement("var_x_nm2", var_c.mean * var_si * nm2,
                                  var_c.se * var_si * nm2, unit="nm^2",
                                  method="⟨x*²⟩ × kT/k", n_samples=var_c.n_seeds),
         "var_r_nm2": Measurement("var_r_nm2", dim * var_c.mean * var_si * nm2,
                                  dim * var_c.se * var_si * nm2, unit="nm^2",
-                                 method="d × ⟨x²⟩ (등방)", n_samples=var_c.n_seeds),
+                                 method="d × ⟨x²⟩ (isotropic)",
+                                 n_samples=var_c.n_seeds),
         "msd_plateau_star": Measurement("msd_plateau_star", pl.mean, pl.se,
-                                        method="MSD 피팅 plateau",
+                                        method="plateau of the MSD fit",
                                         n_samples=pl.n_seeds, spread=pl.spread),
         "tau_star": Measurement("tau_star", tau.mean, tau.se,
-                                method="MSD 피팅 완화시간", n_samples=tau.n_seeds,
+                                method="relaxation time of the MSD fit",
+                                n_samples=tau.n_seeds,
                                 spread=tau.spread),
         "tau_trap_ms": Measurement("tau_trap_ms",
                                    tau.mean * d["tau_trap_si"] * 1e3,
@@ -155,16 +164,20 @@ def measure_trap_batch(batch: dict, reduced, spec: SystemSpec) -> dict:
         "msd_r_squared": Measurement("msd_r_squared", float(np.mean(r2s)),
                                      float(np.std(r2s, ddof=1) / np.sqrt(len(r2s)))
                                      if len(r2s) > 1 else None,
-                                     method="단일지수 피팅 R²", n_samples=len(r2s)),
+                                     method="R² of the single-exponential fit",
+                                     n_samples=len(r2s)),
         "kT_conf_star": Measurement("kT_conf_star", kT_conf.mean, kT_conf.se,
-                                    method="배위 온도 ⟨|∇U|²⟩/⟨∇²U⟩",
+                                    method="configurational temperature "
+                                           "⟨|∇U|²⟩/⟨∇²U⟩",
                                     n_samples=kT_conf.n_seeds),
     }
-    # 자기일관성: plateau = 2d⟨x*²⟩ — 독립 경로 둘의 비. 예측에 없던 강한 확인
+    # self-consistency: plateau = 2d⟨x*²⟩ — the ratio of two independent paths. A
+    # strong check that was not in the prediction
     meas["plateau_over_2d_var"] = Measurement(
         "plateau_over_2d_var", pl.mean / (2 * dim * var_c.mean),
         pl.se / (2 * dim * var_c.mean),
-        method="MSD(시계열) / 분산(스냅샷) — 독립 경로 대조", n_samples=pl.n_seeds)
+        method="MSD (time series) / variance (snapshot) — independent-path comparison",
+        n_samples=pl.n_seeds)
     return meas
 
 
@@ -178,40 +191,43 @@ def cmd_run(args) -> int:
     pol = load_policy(args.policy)
 
     print(f"# S3 SPEC — {spec_path}")
-    print(f"  카드 {spec.card}")
+    print(f"  card {spec.card}")
     rep = validate_spec(spec)
     for c in rep.failed():
         print(f"  ❌ {c.name}: {c.detail}")
     for p in rep.problems:
         print(f"  ⚠️  {p}")
     if not rep.ok and not args.force:
-        return _fail("S3 게이트 미통과. 고치거나 `--force` (권장하지 않음).")
+        return _fail("the S3 gates did not pass. Fix it, or `--force` "
+                     "(not recommended).")
 
     print("\n# S4 NONDIM")
     reduced = reduce_spec(spec, policy=pol)
-    print(f"  척도 {reduced.scales.origin}")
-    print(f"  dt* = {reduced.dt_star:g}  (지배 제약: {reduced.dt_dominant})")
+    print(f"  scales {reduced.scales.origin}")
+    print(f"  dt* = {reduced.dt_star:g}  (dominant constraint: "
+          f"{reduced.dt_dominant})")
     errs = __import__("simbot.nondim", fromlist=["roundtrip_errors"]) \
         .roundtrip_errors(spec, reduced)
     worst = max(errs.values())
-    print(f"  왕복오차 최대 {worst:.2e}  (게이트 < 1e-12)"
+    print(f"  max round-trip error {worst:.2e}  (gate < 1e-12)"
           + ("" if worst < 1e-12 else "  ❌"))
     if worst >= 1e-12:
-        return _fail("S4 왕복 게이트 위반 — 척도 규약이 어긋났다.")
+        return _fail("S4 round-trip gate violated — a scale convention was broken.")
 
     n_seeds = int(spec.numerics.n_seeds.si) if spec.numerics.n_seeds \
         else pol.seeds_default
     if n_seeds < int(pol.get("seeds.minimum", 4)) and not args.force:
-        return _fail(f"시드 {n_seeds}개 < 최소 {pol.get('seeds.minimum')}개. "
-                     f"오차 막대 없는 프로덕션 런은 금지다 (CLAUDE.md).")
+        return _fail(f"{n_seeds} seeds < the minimum "
+                     f"{pol.get('seeds.minimum')}. A production run without error "
+                     f"bars is forbidden (CLAUDE.md).")
 
-    print("\n# 비용")
+    print("\n# COST")
     wall_est, k, over = _print_cost(reduced, n_seeds, pol)
     if over and not args.force:
-        return _fail(f"예산 초과 예상 — **실행하지 않고 보고한다** "
-                     f"(run_policy §5 on_exceed). `--force` 로 강행 가능.")
+        return _fail(f"the estimate is over budget — **report without running** "
+                     f"(run_policy §5 on_exceed). `--force` overrides.")
 
-    # --- run 디렉터리 ---
+    # --- the run directory ---
     run_id = args.run_id or io.new_run_id(spec_path.parent.name or spec.card,
                                           spec.hash(), date.today())
     rd = io.RunDir.create(args.runs_root, run_id)
@@ -219,27 +235,28 @@ def cmd_run(args) -> int:
     rd.write("reduced", _reduced_yaml(reduced))
     rd.write("nondim", __import__("simbot.nondim", fromlist=["nondim_table"])
              .nondim_table(spec, reduced))
-    print(f"\n# run 디렉터리 {rd.path}")
+    print(f"\n# run directory {rd.path}")
 
-    # --- 예측 봉인 ---
+    # --- sealing the prediction ---
     prediction = None
     if args.prediction:
         src = Path(args.prediction)
         rd.write("prediction", src.read_text(encoding="utf-8"))
         prediction = load_prediction(src)
         seal = io.write_seal(rd)
-        print(f"  봉인 {seal.name} — 예측 {len(prediction.items)}개")
+        print(f"  sealed {seal.name} — {len(prediction.items)} predictions")
     else:
-        print("  ⚠️  예측 파일이 없다 (`--prediction`) — S7 대조 없이 진행한다. "
-              "봉인할 것이 없으므로 사후합리화를 막을 장치가 없다.")
+        print("  ⚠️  no prediction file (`--prediction`) — proceeding with no S7 "
+              "comparison. With nothing to seal there is nothing preventing "
+              "post-hoc rationalisation.")
 
-    # --- 티어 사다리 ---
+    # --- the tier ladder ---
     ladder_note = _tier_ladder_check(spec, Path(args.runs_root), pol, args.force)
     if ladder_note:
         print(f"  {ladder_note}")
 
-    # --- S5 실행 ---
-    print(f"\n# S5 RUN — 시드 {n_seeds}개, 동시 {k}")
+    # --- S5 execution ---
+    print(f"\n# S5 RUN — {n_seeds} seeds, concurrency {k}")
     cfgs = _trap_configs(spec, reduced, list(range(spec.numerics.seed_base,
                                                    spec.numerics.seed_base + n_seeds)))
     t0 = time.perf_counter()
@@ -257,33 +274,33 @@ def cmd_run(args) -> int:
         extra={"batch": {kk: vv for kk, vv in batch.items() if kk != "jobs"},
                "wall_s_measured": round(wall, 3),
                "wall_s_estimated": round(wall_est, 3)}))
-    print(f"  실측 wall {wall:.2f} s (추정 {wall_est:.2f} s, "
-          f"비 {wall / wall_est:.2f})")
+    print(f"  measured wall {wall:.2f} s (estimated {wall_est:.2f} s, "
+          f"ratio {wall / wall_est:.2f})")
     if batch["failed"]:
-        print(f"  ❌ 실패한 런 {len(batch['failed'])}개 — 시드 수가 줄었다. "
-              f"05_run_manifest.json 참조")
+        print(f"  ❌ {len(batch['failed'])} runs failed — the seed count dropped. "
+              f"See 05_run_manifest.json")
         for f in batch["failed"]:
             print(f"     {f['label']}: {f['stderr'].strip().splitlines()[-1:]}")
     for j in batch["jobs"]:
         if not j["guards"]["finite"]:
-            print(f"  ❌ 가드 위반 {j['label']}: {j['guards']['failures']}")
+            print(f"  ❌ guard violation {j['label']}: {j['guards']['failures']}")
 
-    # --- S6 그림 ---
+    # --- S6 figures ---
     print("\n# S6 VISUALIZE")
     figset = _make_figures(rd, batch, reduced, spec)
     rd.write("figures", figset.figures_md())
-    print(f"  그림 {len(figset.records)}장 → {rd.figs}")
+    print(f"  {len(figset.records)} figures → {rd.figs}")
     for r in figset.records:
         print(f"    {r.name:<26} {r.shows[:60]}")
     for n, why in sorted(figset.skipped.items()):
-        print(f"    (건너뜀) {n:<17} {why[:60]}")
+        print(f"    (skipped) {n:<17} {why[:60]}")
 
-    # --- S7 측정 + 판정 ---
+    # --- S7 measurement + verdict ---
     print("\n# S7 VALIDATE")
     meas = measure_trap_batch(batch, reduced, spec)
     rd.write_json("metrics", {k2: vars(v) for k2, v in meas.items()})
     for name, m in meas.items():
-        err = f" ± {m.stat_err:.4g}" if m.stat_err is not None else " (오차 없음)"
+        err = f" ± {m.stat_err:.4g}" if m.stat_err is not None else " (no error)"
         print(f"  {name:<22} {m.value:>14.6g}{err}  {m.unit}")
 
     vrep = None
@@ -297,26 +314,27 @@ def cmd_run(args) -> int:
         for p in vrep.problems:
             print(f"  ⚠️  {p}")
 
-    # --- S8 리포트 ---
+    # --- S8 report ---
     write_report(rd, ReportInputs(spec=spec, spec_report=rep, reduced=reduced,
                                   validation=vrep, manifest=rd.read_json("manifest"),
                                   figures=figset.captions,
                                   wall_s=wall, n_runs=len(batch["jobs"])))
     print(f"\n# S8 REPORT → {rd.file('report')}")
     if vrep is not None:
-        print(f"  판정 (제안) {vrep.verdict_overall} · confirmed_by: null")
-    print("  ★ 판정 확정은 사람이 한다. 결론 서술(08_conclusion.md)은 에이전트가 쓴다.")
+        print(f"  verdict (proposed) {vrep.verdict_overall} · confirmed_by: null")
+    print("  ★ Confirming the verdict is a human's job. The conclusion narrative "
+          "(08_conclusion.md) is written by the agent.")
     return 0
 
 
 def _make_figures(rd: io.RunDir, batch: dict, reduced, spec: SystemSpec):
-    """배치 결과 → S6 그림 세트. 러너별로 분기한다 (트랩만 존재)."""
+    """Batch result → the S6 figure set. Branches per runner (only trap exists)."""
     d = derive(spec)
     runs = {j["label"]: load_run(Path(j["outdir"])) for j in batch["jobs"]}
     first = runs[sorted(runs)[0]]
     frame_interval = int(first["lags_steps"][0])      # msd_stride
 
-    # 같은 배치 안에 여러 dt* 가 있으면 편향 그림을 그릴 수 있다
+    # several dt* in the same batch makes the bias figure drawable
     by_dt: dict[float, tuple[float, float]] = {}
     groups: dict[float, list[float]] = {}
     for j in batch["jobs"]:
@@ -345,9 +363,11 @@ def _reduced_yaml(reduced) -> str:
 
 
 def _tier_ladder_check(spec: SystemSpec, runs_root: Path, pol, force: bool) -> str:
-    """처음 보는 계에서 `smoke → pilot → explore` 를 건너뛸 수 없다.
+    """`smoke → pilot → explore` cannot be skipped on a system seen for the first
+    time.
 
-    '처음 보는가'는 **같은 카드의 이전 런이 있는가**로 판단한다.
+    "seen for the first time" is judged by **whether a prior run of the same card
+    exists.**
     """
     ladder = pol.tier_ladder()
     if not runs_root.exists():
@@ -356,9 +376,10 @@ def _tier_ladder_check(spec: SystemSpec, runs_root: Path, pol, force: bool) -> s
         prior = [p for p in runs_root.glob("*/03_spec.yaml")
                  if f"card: {spec.card}" in p.read_text(encoding="utf-8")[:400]]
     if prior:
-        return f"티어 사다리: 같은 카드의 이전 런 {len(prior)}개 있음 → 사다리 통과"
-    return (f"⚠️  이 카드의 첫 런이다. 정책상 사다리 {ladder} 를 건너뛸 수 없다 — "
-            f"이 런이 사다리의 첫 칸이 된다. 결과를 프로덕션으로 인용하지 말 것"
+        return f"tier ladder: {len(prior)} prior runs of this card → ladder ok"
+    return (f"⚠️  this is the card's first run. Policy does not allow skipping the "
+            f"ladder {ladder} — this run becomes its first rung. Do not cite the "
+            f"result as production"
             + ("" if not force else " (--force)"))
 
 
@@ -368,38 +389,39 @@ def _tier_ladder_check(spec: SystemSpec, runs_root: Path, pol, force: bool) -> s
 def cmd_resume(args) -> int:
     rd = io.RunDir(Path(args.rundir))
     if not rd.path.exists():
-        return _fail(f"{rd.path} 가 없다")
+        return _fail(f"{rd.path} does not exist")
     done = rd.completed_stages()
     print(f"# resume {rd.run_id}")
-    print(f"  완료된 단계 {len(done)}개: {done}")
+    print(f"  {len(done)} completed stages: {done}")
 
     if not rd.exists("spec"):
-        return _fail("03_spec.yaml 이 없다 — 이어받을 근거가 없다")
+        return _fail("no 03_spec.yaml — there is no basis to resume from")
     spec = SystemSpec.load(rd.file("spec"))
 
     if rd.exists("seal"):
         v = io.verify_seal(rd)
-        print(f"  봉인: {'✅' if v.ok else '❌'} {v.summary()}")
+        print(f"  seal: {'✅' if v.ok else '❌'} {v.summary()}")
         if not v.ok:
             return _fail("seal violation — resuming makes the verification "
                          "meaningless. Revert the prediction or start a new run.")
 
     raw_dirs = sorted(p for p in rd.raw.glob("*") if (p / "samples.npz").exists())
-    print(f"  완주한 런 {len(raw_dirs)}개: {[p.name for p in raw_dirs]}")
+    print(f"  {len(raw_dirs)} completed runs: {[p.name for p in raw_dirs]}")
     if not raw_dirs:
-        return _fail("완주한 런이 0개 — `cli.py run` 으로 새로 시작할 것")
+        return _fail("0 completed runs — start fresh with `cli.py run`")
 
     pol = load_policy(args.policy)
     reduced = reduce_spec(spec, policy=pol)
     batch = {"jobs": [_job_from_dir(p) for p in raw_dirs], "failed": [],
              "n_requested": len(raw_dirs), "batch_wall_s": 0.0, "concurrency": 0}
 
-    print("\n# S6 (그림 재생성 — 궤적이 있으므로 런은 다시 돌리지 않는다)")
+    print("\n# S6 (figures regenerated — the trajectories exist, so the run is not "
+          "repeated)")
     figset = _make_figures(rd, batch, reduced, spec)
     rd.write("figures", figset.figures_md())
-    print(f"  그림 {len(figset.records)}장 · 건너뜀 {len(figset.skipped)}건")
+    print(f"  {len(figset.records)} figures · {len(figset.skipped)} skipped")
 
-    print("\n# S7 (재계산 대상만)")
+    print("\n# S7 (only what needs recomputing)")
     meas = measure_trap_batch(batch, reduced, spec)
     rd.write_json("metrics", {k: vars(v) for k, v in meas.items()})
     for name, m in meas.items():
@@ -439,10 +461,10 @@ def _job_from_dir(p: Path) -> dict:
 # converge
 # =============================================================================
 def cmd_converge(args) -> int:
-    """`dt`·`N`·초기조건을 흔들어도 답이 같은가.
+    """Is the answer the same when `dt`, `N` and the initial condition are shaken.
 
-    수렴 판정은 **통계오차 대비**로 한다. 절대 문턱을 쓰면 정밀한 런이 부당하게
-    기각되고 거친 런이 부당하게 통과한다.
+    Convergence is judged **relative to the statistical error.** An absolute
+    threshold unfairly rejects a precise run and unfairly passes a coarse one.
     """
     spec = SystemSpec.load(args.spec)
     _runner_for(spec)
@@ -461,17 +483,17 @@ def cmd_converge(args) -> int:
     if args.only:
         variants = {k: v for k, v in variants.items() if k in set(args.only) | {"base"}}
 
-    print(f"# converge — {len(variants)} 변형 × 시드 {n_seeds}")
+    print(f"# converge — {len(variants)} variants × {n_seeds} seeds")
     k = min(n_seeds, pol.concurrency())
     total = sum(estimate_wall_time_s(
         v.get("n_particles", base.n_particles),
         int(round((base.equil_steps + base.prod_steps)
                   * base.dt_star / v.get("dt_star", base.dt_star))), k)
         for v in variants.values())
-    print(f"  추정 총 wall ≈ {total:.1f} s (예산 "
+    print(f"  estimated total wall ≈ {total:.1f} s (budget "
           f"{pol.get('budget.wall_time_per_batch_s', 1800):g} s)")
     if total > pol.get("budget.wall_time_per_batch_s", 1800) and not args.force:
-        return _fail("배치 예산 초과 예상 — 실행하지 않는다.")
+        return _fail("the batch estimate is over budget — not running.")
 
     outroot = Path(args.out or (REPO / "runs" / f"converge_{spec.hash()[:6]}"))
     results = {}
@@ -491,7 +513,7 @@ def cmd_converge(args) -> int:
         print(f"\n  [{name}] dt*={dt:g} N={npart} seed+{off}")
         batch = run_trap_batch(cfgs, outroot / name, concurrency=k)
         if not batch["jobs"]:
-            print("    ❌ 전부 실패")
+            print("    ❌ all failed")
             continue
         agg = aggregate_seeds([j["var_c"] for j in batch["jobs"]])
         taus = []
@@ -505,11 +527,11 @@ def cmd_converge(args) -> int:
               f"τ* = {tagg.mean:.6f} ± {tagg.se:.6f}")
 
     if "base" not in results:
-        return _fail("기준 런이 실패했다 — 비교 대상이 없다")
+        return _fail("the baseline run failed — there is nothing to compare against")
 
-    print("\n# 수렴 판정 (기준 대비, 통계오차 단위)")
-    print(f"{'변형':<12} {'양':<12} {'기준':>11} {'변형':>11} {'차이':>10} "
-          f"{'결합SE':>10} {'σ':>7}  판정")
+    print("\n# convergence verdict (vs the baseline, in units of statistical error)")
+    print(f"{'variant':<12} {'quantity':<12} {'baseline':>11} {'variant':>11} "
+          f"{'diff':>10} {'combSE':>10} {'σ':>7}  verdict")
     b = results["base"]
     verdicts = []
     for name, r in results.items():
@@ -520,12 +542,13 @@ def cmd_converge(args) -> int:
             diff = x1.mean - x0.mean
             se = float(np.hypot(x0.se, x1.se))
             sig = abs(diff) / se if se > 0 else float("inf")
-            # ★ 3σ 이내면 "구별되지 않는다" — 같다는 증명이 아니라 다르지 않다는 관찰
+            # ★ Within 3σ is "indistinguishable" — an observation that they do not
+            #   differ, not a proof that they are equal
             ok = sig < 3.0
             verdicts.append(ok)
             print(f"{name:<12} {q:<12} {x0.mean:>11.6f} {x1.mean:>11.6f} "
                   f"{diff:>+10.6f} {se:>10.6f} {sig:>6.2f}σ  "
-                  f"{'구별 안 됨' if ok else '❌ 유의한 차이'}")
+                  f"{'indistinguishable' if ok else '❌ significant difference'}")
 
     outroot.mkdir(parents=True, exist_ok=True)
     (outroot / "converge.json").write_text(json.dumps(
@@ -533,8 +556,9 @@ def cmd_converge(args) -> int:
              "dt_star": r["dt_star"], "n_particles": r["n_particles"]}
          for n, r in results.items()}, indent=2, default=float), encoding="utf-8")
     print(f"\n  → {outroot / 'converge.json'}")
-    print("\n★ '구별 안 됨'은 **같다는 증명이 아니다** — 이 통계오차로는 차이를 "
-          "볼 수 없다는 뜻이다.\n  진짜 편향(EM 편향 등)은 검정력이 있는 곳에서 따로 재야 한다.")
+    print("\n★ 'indistinguishable' is **not a proof of equality** — it means this "
+          "statistical error cannot see the difference.\n  A real bias (the EM bias, "
+          "say) has to be measured separately where there is power to do so.")
     return 0 if all(verdicts) else 1
 
 
@@ -542,22 +566,22 @@ def cmd_converge(args) -> int:
 # params
 # =============================================================================
 def cmd_params(args) -> int:
-    """여러 런의 파라미터를 **가로로**. 아무도 안 고른 기본값에 ⚠ 표시."""
+    """Several runs' parameters **side by side**. A default nobody picked gets ⚠."""
     root = Path(args.path)
     specs: dict[str, SystemSpec] = {}
     for p in sorted(root.glob("*/03_spec.yaml")):
         try:
             specs[p.parent.name] = SystemSpec.load(p)
         except Exception as e:
-            print(f"  (건너뜀 {p.parent.name}: {e})", file=sys.stderr)
+            print(f"  (skipped {p.parent.name}: {e})", file=sys.stderr)
     for p in sorted(root.glob("*.yaml")):
         try:
             specs[p.stem] = SystemSpec.load(p)
         except Exception:
             pass
     if not specs:
-        return _fail(f"{root} 에서 spec 을 찾지 못했다 "
-                     f"(찾는 것: */03_spec.yaml 또는 *.yaml)")
+        return _fail(f"no spec found under {root} "
+                     f"(looking for: */03_spec.yaml or *.yaml)")
 
     from simbot.spec import _iter_quantities
     rows: dict[str, dict[str, str]] = {}
@@ -568,22 +592,23 @@ def cmd_params(args) -> int:
             prov.setdefault(path, set()).add(q.provenance)
 
     names = list(specs)
-    print(f"# params — {len(names)} spec × {len(rows)} 필드\n")
-    head = f"| {'필드':<34} | " + " | ".join(f"{n[:22]:<22}" for n in names) + " | prov |"
+    print(f"# params — {len(names)} specs × {len(rows)} fields\n")
+    head = f"| {'field':<34} | " \
+           + " | ".join(f"{n[:22]:<22}" for n in names) + " | prov |"
     print(head)
     print("|" + "-" * 36 + "|" + "|".join(["-" * 24] * len(names)) + "|------|")
     for path in sorted(rows):
         vals = [rows[path].get(n, "—") for n in names]
         differs = len(set(vals)) > 1
-        # ⚠ = 아무도 고르지 않은 값 (assumed 이고 전 spec 에서 동일)
+        # ⚠ = a value nobody picked (assumed, and identical across every spec)
         kinds = prov[path]
         mark = "⚠" if (kinds <= {"assumed"} and not differs) else ""
         star = "**" if differs else ""
         print(f"| {star}{path:<32}{star} | "
               + " | ".join(f"{v:<22}" for v in vals) + f" | {mark}{'/'.join(sorted(kinds))} |")
-    print("\n⚠ = provenance 가 `assumed` 뿐이고 모든 spec 에서 같은 값 — "
-          "**아무도 고르지 않은 기본값**이다.")
-    print("**굵게** = spec 간 값이 다른 필드.")
+    print("\n⚠ = the provenance is only `assumed` and the value is the same in every "
+          "spec — **a default nobody picked.**")
+    print("**bold** = a field whose value differs between specs.")
     return 0
 
 
@@ -597,34 +622,39 @@ def _short_value(v) -> str:
 # =============================================================================
 # calibrate
 # =============================================================================
-# 정책 상수 `Λ` 가 측정된 커널. 다른 커널로 잰 값과 직접 비교할 수 없다.
-#   근거: knowledge/wiki/findings/local-cpu-parallelism.md §2 (측정 헤더)
+# The kernel the policy constant `Λ` was measured on. A value measured on a different
+# kernel is not directly comparable.
+#   Basis: knowledge/wiki/findings/local-cpu-parallelism.md §2 (the measurement header)
 BASELINE_KERNEL = "3D WCA + Brownian, phi=0.30, Cell nlist(buffer 0.3), dt=1e-4"
-CALIBRATE_KERNEL = "2D harmonic trap + Brownian, 쌍 상호작용 없음, nlist 없음"
+CALIBRATE_KERNEL = "2D harmonic trap + Brownian, no pair interaction, no nlist"
 
 
 def cmd_calibrate(args) -> int:
-    """이 기계의 처리량 실측.
+    """Measures this machine's throughput.
 
-    ★ **커널이 다르면 상수를 덮어쓰지 않는다.** 정책 상수 `Λ = 6.3e6` 은
-      3D WCA + Cell nlist 로 측정됐고, 이 명령이 돌릴 수 있는 유일한 커널은
-      쌍 상호작용이 **없는** 조화 트랩이다 (`simbot.run` 에 다른 러너가 없다).
-      이웃 목록 작업이 빠진 커널이 더 빠른 것은 당연하고, 그 값으로 전역 상수를
-      갱신하면 **WCA 계의 비용 추정이 낙관적으로 틀린다.**
-      따라서 커널별 배수로 보고하고, 전역 상수 갱신은 제안하지 않는다.
+    ★ **A different kernel does not overwrite the constant.** The policy constant
+      `Λ = 6.3e6` was measured on 3D WCA + Cell nlist, and the only kernel this
+      command can run is a harmonic trap with **no** pair interaction (`simbot.run`
+      has no other runner). A kernel with the neighbour-list work removed being
+      faster is expected, and updating the global constant with that value makes
+      **the cost estimate for WCA systems optimistically wrong.**
+      So it is reported as a per-kernel multiple, and no global-constant update is
+      proposed.
     """
     pol = load_policy(args.policy)
     claimed = pol.get("hardware.throughput_particle_steps_per_s")
     print(f"# calibrate")
-    print(f"  정책 상수 Λ = {claimed:.3g} 입자·스텝/s")
-    print(f"    측정 커널: {BASELINE_KERNEL}")
-    print(f"  이번 측정 커널: {CALIBRATE_KERNEL}")
-    print(f"  ⚠ 처리량 모델은 N ≥ 500 에서 실측됐다. 작은 N 은 오버헤드가 지배한다.\n")
+    print(f"  policy constant Λ = {claimed:.3g} particle·steps/s")
+    print(f"    measured on: {BASELINE_KERNEL}")
+    print(f"  measured here on: {CALIBRATE_KERNEL}")
+    print(f"  ⚠ the throughput model was measured at N ≥ 500. At small N the "
+          f"overhead dominates.\n")
 
     cases = [(int(n), int(s)) for n, s in (args.cases or [(1000, 20000),
                                                           (4000, 20000),
                                                           (8000, 10000)])]
-    print(f"{'N':>7} {'steps':>8} {'wall [s]':>10} {'입자·스텝/s':>14} {'Λ 대비':>8}")
+    print(f"{'N':>7} {'steps':>8} {'wall [s]':>10} {'part·steps/s':>14} "
+          f"{'vs Λ':>8}")
     measured = []
     for n, steps in cases:
         cfg = TrapRunConfig(n_particles=n, dt_star=5e-3,
@@ -639,52 +669,65 @@ def cmd_calibrate(args) -> int:
 
     med = float(np.median(measured))
     ratio = med / claimed
-    print(f"\n  중앙값 {med:.4g} 입자·스텝/s · Λ 대비 {ratio:.3f}×")
-    print(f"\n  ⇒ **트랩 커널 배수 = {ratio:.2f}** (쌍 상호작용 없음 / WCA 기준선)")
-    print(f"     트랩 계 비용 추정에 쓸 값이다. 전역 Λ 를 이 값으로 바꾸면 안 된다 —")
-    print(f"     WCA 계 추정이 {ratio:.2f}배 낙관적으로 틀린다.")
-    print(f"\n  참고: 첫 런의 03_spec.yaml 은 `pair_cost_multiplier: 1.0` 으로 두었다")
-    print(f"        (쌍 상호작용이 없으니 기준선 그대로). 이 측정은 그것이 아니라")
-    print(f"        {ratio:.2f} 임을 보인다 — 트랩 계는 기준선보다 빠르다.")
+    print(f"\n  median {med:.4g} particle·steps/s · vs Λ {ratio:.3f}×")
+    print(f"\n  ⇒ **trap-kernel multiple = {ratio:.2f}** (no pair interaction / the "
+          f"WCA baseline)")
+    print(f"     This is the value to use for trap-system cost estimates. The global "
+          f"Λ must not be")
+    print(f"     replaced with it — WCA estimates would be {ratio:.2f}x "
+          f"optimistically wrong.")
+    print(f"\n  Note: the first run's 03_spec.yaml set `pair_cost_multiplier: 1.0`")
+    print(f"        (no pair interaction, so the baseline as is). This measurement "
+          f"shows it")
+    print(f"        is not that but {ratio:.2f} — the trap system is faster than the "
+          f"baseline.")
 
     if abs(ratio - 1) > 0.2:
-        print(f"\n  ⚠️  기준선과 {abs(ratio - 1):.0%} 어긋난다. 이것이 **커널 차이인지 "
-              f"기계 상태 변화인지**\n"
-              f"     구별하려면 기준선과 같은 커널(3D WCA φ=0.30)로 재야 하고,\n"
-              f"     그 러너는 아직 없다 (`simbot/run.py` 에 트랩 러너만 있다).\n"
-              f"     ⇒ 지금 결론할 수 있는 것: **트랩 계 비용은 Λ 로 추정하면 "
-              f"{ratio:.2f}배 보수적이다.**")
+        print(f"\n  ⚠️  {abs(ratio - 1):.0%} away from the baseline. Telling whether "
+              f"that is **a kernel difference or\n"
+              f"     a change in the machine's state** requires measuring on the "
+              f"baseline's own kernel\n"
+              f"     (3D WCA φ=0.30), and that runner does not exist yet "
+              f"(`simbot/run.py` has only\n"
+              f"     the trap runner).\n"
+              f"     ⇒ What can be concluded now: **estimating trap-system cost with "
+              f"Λ is {ratio:.2f}x conservative.**")
     else:
-        print("\n  ✅ 커널이 달라도 기준선과 20 % 이내 — Λ 를 그대로 써도 된다.")
-    print("\n  ★ 코드가 정책 파일을 자동으로 고치지 않는다 — 측정 상수는 사람이 "
-          "확인하고 커밋한다.")
+        print("\n  ✅ Within 20 % of the baseline despite the different kernel — Λ "
+              "can be used as is.")
+    print("\n  ★ The code never edits the policy file automatically — a measured "
+          "constant is confirmed and committed by a human.")
     return 0
 
 
 # =============================================================================
-# 진입점
+# Entry point
 # =============================================================================
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="cli.py", description=__doc__,   # noqa: E501
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--policy", default=None, help="run_policy.yaml 경로")
+    p.add_argument("--policy", default=None, help="path to run_policy.yaml")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    q = sub.add_parser("run", help="spec 하나 → REPORT.md")
+    q = sub.add_parser("run", help="one spec → REPORT.md")
     q.add_argument("spec")
-    q.add_argument("--prediction", default=None, help="S2 예측 YAML (봉인 대상)")
+    q.add_argument("--prediction", default=None,
+                   help="the S2 prediction YAML (what gets sealed)")
     q.add_argument("--runs-root", default=str(REPO / "runs"))
     q.add_argument("--run-id", default=None)
     q.add_argument("--power-threshold", type=float, default=1.0)
-    q.add_argument("--force", action="store_true", help="게이트·예산을 무시한다")
+    q.add_argument("--force", action="store_true",
+                   help="ignore the gates and the budget")
     q.set_defaults(func=cmd_run)
 
-    q = sub.add_parser("resume", help="죽은 런 이어받기")
+    q = sub.add_parser("resume", help="pick up a dead run")
     q.add_argument("rundir")
     q.add_argument("--prediction", default=None)
     q.set_defaults(func=cmd_resume)
 
-    q = sub.add_parser("converge", help="dt·N·초기조건을 흔들어도 답이 같은가")
+    q = sub.add_parser("converge",
+                       help="is the answer the same when dt, N and the initial "
+                            "condition are shaken")
     q.add_argument("spec")
     q.add_argument("--only", nargs="+", default=None,
                    choices=["dt_half", "dt_double", "N_double", "seed_shift"])
@@ -692,13 +735,13 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--force", action="store_true")
     q.set_defaults(func=cmd_converge)
 
-    q = sub.add_parser("params", help="여러 런의 파라미터를 가로로")
+    q = sub.add_parser("params", help="several runs' parameters side by side")
     q.add_argument("--path", default=str(REPO / "runs"))
     q.set_defaults(func=cmd_params)
 
-    q = sub.add_parser("calibrate", help="이 기계의 처리량 실측")
+    q = sub.add_parser("calibrate", help="measure this machine's throughput")
     q.add_argument("--cases", nargs="+", type=int, default=None,
-                   metavar="N STEPS", help="N steps 쌍을 이어서")
+                   metavar="N STEPS", help="N steps pairs, concatenated")
     q.set_defaults(func=cmd_calibrate)
     return p
 

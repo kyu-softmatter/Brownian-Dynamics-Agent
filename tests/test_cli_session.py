@@ -1,15 +1,15 @@
-"""CLI · 세션 층.
+"""The CLI and session layer.
 
-## 이 파일이 지키는 것
+## What this file enforces
 
-1. **`set` 은 실행하지 않는다.** 비용 추정만 한다. 이 분리가 깨지면
-   "N 을 8000 으로 해보자"가 11분짜리 런을 조용히 시작한다.
-2. **이력은 append-only.** 과거 턴을 덮어쓰면 무엇을 시도했는지가 사라진다.
-3. **러너 없는 카드를 억지로 돌리지 않는다.** 조용히 트랩 러너로 돌리면
-   전혀 다른 계를 계산하고 그 사실을 아무도 모른다.
-4. **예산·게이트를 넘기면 실행 전에 멈춘다.**
+1. **`set` does not run anything.** It only estimates the cost. Break that
+   separation and "let's try N = 8000" quietly starts an 11-minute run.
+2. **The history is append-only.** Overwriting a past turn loses what was tried.
+3. **A card with no runner is not forced through.** Running it quietly with the trap
+   runner computes an entirely different system and nobody finds out.
+4. **Over budget or a failed gate stops it before running.**
 
-HOOMD 실행이 필요한 테스트는 `slow` 마커를 단다.
+Tests that need a HOOMD run carry the `slow` marker.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ T0 = datetime(2026, 7, 28, 12, 0, 0)
 @pytest.fixture
 def spec_file(tmp_path) -> Path:
     if not EXAMPLE_SPEC.exists():
-        pytest.skip("examples/trap-2d-5um/spec.yaml 없음")
+        pytest.skip("examples/trap-2d-5um/spec.yaml is absent")
     p = tmp_path / "spec.yaml"
     p.write_text(EXAMPLE_SPEC.read_text(encoding="utf-8"), encoding="utf-8")
     return p
@@ -42,7 +42,7 @@ def session(spec_file, tmp_path) -> Session:
 
 
 # =============================================================================
-# dotted-key 설정
+# dotted-key assignment
 # =============================================================================
 def test_set_by_path_updates_quantity_value(spec_file):
     spec = SystemSpec.load(spec_file)
@@ -52,27 +52,28 @@ def test_set_by_path_updates_quantity_value(spec_file):
 
 
 def test_set_by_path_marks_provenance_user(spec_file):
-    """★ 사람이 정한 값은 가정도 정책도 아니다 — S7b 가 흔들 대상이 아니다."""
+    """★ A human-chosen value is neither an assumption nor policy — it is not
+    something S7b shakes."""
     spec = SystemSpec.load(spec_file)
     set_by_path(spec, "medium.eta_si", "1.002e-3", turn=3)
     q = spec.medium.eta_si
     assert q.provenance == "user"
-    assert "턴 3 에서 사람이 지정" in q.basis
+    assert "set by a human on turn 3" in q.basis
 
 
 def test_set_by_path_preserves_original_basis(spec_file):
-    """원래 근거를 지우지 않는다 — 무엇을 덮어썼는지 남아야 한다."""
+    """It does not erase the original basis — what was overwritten has to survive."""
     spec = SystemSpec.load(spec_file)
     before = spec.numerics.dt_star.basis
     set_by_path(spec, "numerics.dt_star", "1e-3", turn=1)
-    assert "원래 근거" in spec.numerics.dt_star.basis
+    assert "original basis" in spec.numerics.dt_star.basis
     assert before[:20] in spec.numerics.dt_star.basis
 
 
 def test_set_by_path_records_previous_value(spec_file):
     spec = SystemSpec.load(spec_file)
     set_by_path(spec, "species.0.n_simulated", "4000", turn=2)
-    assert "이전 1000" in spec.primary.n_simulated.basis
+    assert "previously 1000" in spec.primary.n_simulated.basis
 
 
 def test_set_by_path_indexes_into_lists(spec_file):
@@ -94,19 +95,20 @@ def test_set_by_path_parses_types(spec_file):
 
 
 @pytest.mark.parametrize("text,expected", [
-    ("5e-3", 5e-3),      # ★ yaml.safe_load 는 이것을 **문자열**로 읽는다
-    ("2e-5", 2e-5),      # ★ 같음 (만티사에 소수점이 없다)
-    ("2.5e-3", 2.5e-3),  # 이것만 yaml 이 float 로 읽는다
+    ("5e-3", 5e-3),      # ★ yaml.safe_load reads this as a **string**
+    ("2e-5", 2e-5),      # ★ same (no decimal point in the mantissa)
+    ("2.5e-3", 2.5e-3),  # only this one is read as a float by yaml
     ("1E+6", 1e6),
     ("4000", 4000),
     ("0.005", 0.005),
     ("-3", -3),
 ])
 def test_scientific_notation_never_becomes_a_string(text, expected):
-    """★ YAML 1.1 함정 — `5e-3` 이 문자열로 들어가면 무차원화가 죽거나 조용히 틀린다.
+    """★ The YAML 1.1 trap — `5e-3` arriving as a string makes the
+    non-dimensionalization die, or quietly wrong.
 
-    `config/run_policy.yaml` 의 `6.3e6` 에서 한 번, `session set` 에서 또 한 번
-    겪었다 (2026-07-28). 두 번 겪은 함정은 테스트로 고정한다.
+    Hit once with `6.3e6` in `config/run_policy.yaml` and again in `session set`
+    (2026-07-28). A trap hit twice gets pinned as a test.
     """
     from simbot.session import _parse_scalar
     v = _parse_scalar(text)
@@ -122,14 +124,14 @@ def test_non_numeric_still_parses(spec_file):
 
 
 def test_set_scientific_notation_is_usable_downstream(session):
-    """문자열이 들어갔다면 여기서 비용 추정이 죽는다."""
+    """If a string got in, the cost estimate dies right here."""
     t = session.set(["numerics.dt_star=5e-4"], when=T0)
     assert "error" not in t.cost
     assert t.cost["steps_per_seed"] == pytest.approx(100_000, rel=0.01)
 
 
 # =============================================================================
-# 세션 — set 은 실행하지 않는다
+# Session — set does not run anything
 # =============================================================================
 def test_new_session_records_turn_zero(session):
     assert len(session.turns) == 1
@@ -138,12 +140,12 @@ def test_new_session_records_turn_zero(session):
 
 
 def test_set_estimates_cost_without_running(session):
-    """★ `set` 이 실행하면 안 된다 — raw 디렉터리에 아무것도 생기지 않아야 한다."""
+    """★ `set` must not run — nothing may appear in the raw directory."""
     t = session.set(["species.0.n_simulated=4000"], when=T0)
     assert t.kind == "set"
     assert t.cost["n_particles"] == 4000
     assert t.cost["wall_s_batch"] > 0
-    assert "실행하려면" in t.note or "실행" in t.note
+    assert "to run it" in t.note or "run" in t.note
     assert not list(session.dir.glob("**/samples.npz"))
 
 
@@ -160,16 +162,16 @@ def test_cost_scales_inversely_with_dt(session):
 
 
 def test_over_budget_is_flagged_not_run(session):
-    """예산 초과는 **실행 전에** 드러나야 한다."""
+    """Going over budget has to surface **before** running."""
     t = session.set(["species.0.n_simulated=4000000"], when=T0)
     assert t.cost["over_budget"] is True
-    assert "실행하지 않고" in t.cost["action"]
+    assert "report without running" in t.cost["action"]
 
 
 def test_small_n_warns_about_underestimate(session):
-    """처리량 모델은 N ≥ 500 에서 실측됐다 — 작은 N 은 과소추정이다."""
+    """The throughput model was measured at N ≥ 500 — small N underestimates."""
     t = session.set(["species.0.n_simulated=100"], when=T0)
-    assert "과소추정" in t.cost["warning"]
+    assert "underestimates" in t.cost["warning"]
 
 
 def test_history_is_append_only(session):
@@ -211,7 +213,7 @@ def test_reload_preserves_spec_hash(session, tmp_path):
 
 
 def test_bad_assignment_raises(session):
-    with pytest.raises(ValueError, match="키=값"):
+    with pytest.raises(ValueError, match="key=value"):
         session.set(["dt_star 2.5e-3"], when=T0)
 
 
@@ -225,16 +227,18 @@ def test_record_run_stores_metrics(session):
 
 
 def test_run_records_failure_instead_of_dropping_it(session, tmp_path):
-    """★ 실패한 시도가 이력에서 사라지면 '무엇을 시도했는가'의 절반이 없어진다."""
-    session.set(["species.0.n_simulated=40000000"], when=T0)   # 예산 초과 → 실패
+    """★ A failed attempt vanishing from the history loses half of "what was
+    tried"."""
+    session.set(["species.0.n_simulated=40000000"], when=T0)   # over budget → fails
     t = session.run(runs_root=tmp_path / "runs", when=T0)
     assert t.kind == "run"
-    assert t.problems and any("실패" in p for p in t.problems)
-    assert "실패한 시도도 이력에 남는다" in t.note
+    assert t.problems and any("failed" in p for p in t.problems)
+    assert "a failed attempt stays in the history too" in t.note
 
 
 def test_run_id_has_no_duplicate_date(session):
-    """세션 spec 은 `sessions/<날짜>_<카드>/` 에 있어 기본 슬러그가 날짜를 두 번 넣는다."""
+    """A session spec lives in `sessions/<date>_<card>/`, so the default slug would
+    put the date in twice."""
     turn = session.turns[-1].index
     rid = f"{session.session_id}_t{turn:02d}_{session.spec.hash()[:6]}"
     assert rid.count("2026-07-28") == 1
@@ -242,22 +246,22 @@ def test_run_id_has_no_duplicate_date(session):
 
 @pytest.mark.slow
 def test_session_run_executes_and_records_metrics(session, tmp_path):
-    """set → run → compare 루프가 닫히는가."""
+    """Does the set → run → compare loop close."""
     if not EXAMPLE_PRED.exists():
-        pytest.skip("예시 예측 없음")
+        pytest.skip("no example prediction")
     session.set(["numerics.dt_star=1.0e-2"], when=T0)
     t = session.run(prediction=EXAMPLE_PRED, runs_root=tmp_path / "runs", when=T0)
     assert t.kind == "run" and not t.problems
     assert t.metrics["var_x_star"] > 0
     assert t.cost["wall_s_measured"] > 0
     assert (tmp_path / "runs" / t.run_id / "REPORT.md").exists()
-    # compare 가 파라미터와 측정값을 함께 보여준다
+    # compare shows the parameters and the measurements together
     text = session.compare(0, t.index)
     assert "numerics.dt_star" in text and "var_x_star" in text
 
 
 def test_show_is_readable_without_conversation(session):
-    """대화 컨텍스트가 날아가도 이어받을 수 있어야 한다."""
+    """It has to be possible to pick up after the conversational context is gone."""
     session.set(["numerics.dt_star=2.5e-3"], when=T0)
     session.record_run(run_id="r1", metrics={"var_x_star": 1.0017}, when=T0)
     text = session.show()
@@ -267,12 +271,12 @@ def test_show_is_readable_without_conversation(session):
 
 
 def test_show_surfaces_problems(session, spec_file):
-    """규약 위반이 있으면 show 에 남아야 한다."""
+    """A convention violation has to survive into `show`."""
     spec = SystemSpec.load(spec_file)
-    spec.medium.rho_fluid_si.confidence = ""       # 위반 유발
+    spec.medium.rho_fluid_si.confidence = ""       # induce a violation
     spec.save(spec_file)
     s = Session.create(spec_file, root=session.root, when=T0)
-    assert "미해결 문제" in s.show()
+    assert "unresolved problems" in s.show()
 
 
 def test_compare_shows_parameter_and_metric_deltas(session):
@@ -292,11 +296,11 @@ def test_compare_reports_percent_change_between_runs(session):
 
 def test_compare_says_when_specs_are_identical(session):
     session.record_run(run_id="r1", metrics={}, when=T0)
-    assert "같은 spec" in session.compare(0, 1)
+    assert "the same spec" in session.compare(0, 1)
 
 
 def test_compare_unknown_turn_raises(session):
-    with pytest.raises(KeyError, match="턴 99"):
+    with pytest.raises(KeyError, match="turn 99"):
         session.compare(0, 99)
 
 
@@ -313,13 +317,14 @@ def test_latest_without_sessions_raises(tmp_path):
 
 
 # =============================================================================
-# CLI — 러너·게이트·예산
+# CLI — runners, gates, budget
 # =============================================================================
 def test_unknown_card_is_refused_not_silently_run(spec_file):
-    """★ 조용히 트랩 러너로 돌리면 전혀 다른 계를 계산한다."""
+    """★ Running it quietly with the trap runner computes an entirely different
+    system."""
     spec = SystemSpec.load(spec_file)
     spec.card = "abp--dense-collective"
-    with pytest.raises(SystemExit, match="러너가 없다"):
+    with pytest.raises(SystemExit, match="has no runner"):
         cli._runner_for(spec)
 
 
@@ -333,26 +338,26 @@ def test_run_refuses_over_budget(spec_file, tmp_path, capsys):
     spec.save(spec_file)
     code = cli.main(["run", str(spec_file), "--runs-root", str(tmp_path / "runs")])
     assert code != 0
-    assert "예산 초과" in capsys.readouterr().err
+    assert "over budget" in capsys.readouterr().err
 
 
 def test_run_refuses_too_few_seeds(spec_file, tmp_path, capsys):
-    """시드 1개짜리 프로덕션 런은 금지 (오차 막대 없는 결과)."""
+    """A single-seed production run is forbidden (a result with no error bar)."""
     spec = SystemSpec.load(spec_file)
     spec.numerics.n_seeds.value = 1
     spec.save(spec_file)
     code = cli.main(["run", str(spec_file), "--runs-root", str(tmp_path / "runs")])
     assert code != 0
-    assert "오차 막대" in capsys.readouterr().err
+    assert "error bars" in capsys.readouterr().err
 
 
 def test_run_refuses_on_spec_gate_failure(spec_file, tmp_path, capsys):
     spec = SystemSpec.load(spec_file)
-    spec.geometry.box_over_ref.value = 2.0       # 박스 게이트 위반
+    spec.geometry.box_over_ref.value = 2.0       # violate the box gate
     spec.save(spec_file)
     code = cli.main(["run", str(spec_file), "--runs-root", str(tmp_path / "runs")])
     assert code != 0
-    assert "S3 게이트" in capsys.readouterr().err
+    assert "S3 gates" in capsys.readouterr().err
 
 
 def test_resume_refuses_missing_dir(tmp_path, capsys):
@@ -360,13 +365,13 @@ def test_resume_refuses_missing_dir(tmp_path, capsys):
 
 
 def test_resume_refuses_broken_seal(tmp_path, spec_file, capsys):
-    """★ 봉인이 깨진 런을 이어받으면 검증이 무의미해진다."""
+    """★ Resuming a run whose seal is broken makes the verification meaningless."""
     from simbot.io import RunDir, write_seal
     rd = RunDir.create(tmp_path / "runs", "r1")
     rd.write("spec", spec_file.read_text(encoding="utf-8"))
     rd.write("prediction", "# S2\n")
     write_seal(rd)
-    rd.write("prediction", "# S2 고침\n")
+    rd.write("prediction", "# S2 edited\n")
     code = cli.main(["resume", str(rd.path)])
     assert code != 0
     assert "seal violation" in capsys.readouterr().err
@@ -377,18 +382,18 @@ def test_resume_refuses_with_no_finished_runs(tmp_path, spec_file, capsys):
     rd = RunDir.create(tmp_path / "runs", "r1")
     rd.write("spec", spec_file.read_text(encoding="utf-8"))
     assert cli.main(["resume", str(rd.path)]) != 0
-    assert "완주한 런이 0개" in capsys.readouterr().err
+    assert "0 completed runs" in capsys.readouterr().err
 
 
 def test_params_marks_unchosen_defaults(capsys):
-    """⚠ = provenance 가 assumed 뿐이고 모든 spec 에서 같은 값."""
+    """⚠ = the provenance is only assumed and the value is the same in every spec."""
     if not EXAMPLE_SPEC.exists():
-        pytest.skip("예시 spec 없음")
+        pytest.skip("no example spec")
     assert cli.main(["params", "--path", str(EXAMPLE_SPEC.parent)]) == 0
     out = capsys.readouterr().out
     assert "⚠assumed" in out
     assert "medium.eta_si" in out
-    assert "아무도 고르지 않은 기본값" in out
+    assert "a default nobody picked" in out
 
 
 def test_params_refuses_empty_directory(tmp_path, capsys):
@@ -396,9 +401,10 @@ def test_params_refuses_empty_directory(tmp_path, capsys):
 
 
 def test_calibrate_names_both_kernels():
-    """★ 커널이 다르면 상수를 덮어쓸 수 없다 — 두 커널이 다 적혀야 한다."""
+    """★ A different kernel cannot overwrite the constant — both kernels have to be
+    named."""
     assert "WCA" in cli.BASELINE_KERNEL
-    assert "쌍 상호작용 없음" in cli.CALIBRATE_KERNEL
+    assert "no pair interaction" in cli.CALIBRATE_KERNEL
 
 
 def test_parser_exposes_all_documented_commands():
@@ -408,13 +414,14 @@ def test_parser_exposes_all_documented_commands():
 
 
 # =============================================================================
-# 전체 관통 — HOOMD 실행 (slow)
+# End to end — with a HOOMD run (slow)
 # =============================================================================
 @pytest.mark.slow
 def test_end_to_end_run_produces_report(spec_file, tmp_path, capsys):
-    """S3 → S8 관통. 첫 완주의 측정값을 재현하는지도 함께 본다."""
+    """S3 → S8 end to end. Also checks it reproduces the first completed run's
+    measurements."""
     if not EXAMPLE_PRED.exists():
-        pytest.skip("예시 예측 없음")
+        pytest.skip("no example prediction")
     runs = tmp_path / "runs"
     code = cli.main(["run", str(spec_file), "--prediction", str(EXAMPLE_PRED),
                      "--runs-root", str(runs), "--run-id", "e2e"])
@@ -431,7 +438,7 @@ def test_end_to_end_run_produces_report(spec_file, tmp_path, capsys):
     assert "confirmed_by: null" in report
     assert "PASS" in report
 
-    # 첫 완주 값 재현 (seed 고정 → 비트 단위 재현)
+    # reproduces the first run's values (fixed seed → bit-for-bit)
     import json
     m = json.loads((rd / "metrics.json").read_text())
     assert m["var_x_star"]["value"] == pytest.approx(1.0057652, rel=1e-5)
@@ -441,10 +448,10 @@ def test_end_to_end_run_produces_report(spec_file, tmp_path, capsys):
 
 @pytest.mark.slow
 def test_end_to_end_warns_without_prediction(spec_file, tmp_path, capsys):
-    """예측 없이 돌리면 봉인할 것이 없다 — 그 사실을 말해야 한다."""
+    """Running with no prediction leaves nothing to seal — it has to say so."""
     code = cli.main(["run", str(spec_file), "--runs-root", str(tmp_path / "runs"),
                      "--run-id", "nopred"])
     assert code == 0
     out = capsys.readouterr().out
-    assert "예측 파일이 없다" in out
-    assert "사후합리화를 막을 장치가 없다" in out
+    assert "no prediction file" in out
+    assert "nothing preventing post-hoc rationalisation" in out
