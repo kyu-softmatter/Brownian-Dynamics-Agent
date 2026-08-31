@@ -346,9 +346,9 @@ def test_seeds_for_target_sigma_scales_as_one_over_sqrt_k():
 def test_seeds_for_target_sigma_rejects_degenerate_input():
     from simbot.estimators import seeds_for_target_sigma
 
-    with pytest.raises(ValueError, match="양수여야"):
+    with pytest.raises(ValueError, match="must be positive"):
         seeds_for_target_sigma(diff=0.01, se_diff=0.0, k_current=16)
-    with pytest.raises(ValueError, match="최소 2개"):
+    with pytest.raises(ValueError, match="at least 2"):
         seeds_for_target_sigma(diff=0.01, se_diff=0.01, k_current=1)
 
 
