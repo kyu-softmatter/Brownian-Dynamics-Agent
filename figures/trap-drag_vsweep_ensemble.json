@@ -1,6 +1,6 @@
 {
   "schema": "bdbot.trap_drag_vsweep/0.2",
-  "note": "시드 앙상블 오차막대. 오차는 실현 간 산포(앙상블 SEM)이며 블록 SEM 이 아니다.",
+  "note": "Seed-ensemble error bars. The error is the scatter between realizations (the ensemble SEM), not the block SEM.",
   "points": [
     {
       "v_star": 2.4205059977272576,

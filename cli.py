@@ -2,11 +2,11 @@
 """Root shim for the S5-S8 command surface. The implementation is
 [`simbot/cli.py`](simbot/cli.py).
 
-    python cli.py run <spec.yaml>            spec 하나 → REPORT.md
-    python cli.py resume runs/<id>           죽은 런 이어받기
-    python cli.py converge <spec.yaml>       dt·N·초기조건을 흔들어도 답이 같은가
-    python cli.py params [--path runs]       여러 런의 파라미터를 가로로
-    python cli.py calibrate                  이 기계의 처리량 실측
+    python cli.py run <spec.yaml>            one spec -> REPORT.md
+    python cli.py resume runs/<id>           take over a dead run
+    python cli.py converge <spec.yaml>       is the answer the same when dt, N and the initial condition are shaken
+    python cli.py params [--path runs]       the parameters of several runs, side by side
+    python cli.py calibrate                  measure this machine's throughput
 
 **Why this file is now a shim (2026-08-29).** This repository had **two CLIs** —
 this one (S5-S8, prediction sealing, `INCONCLUSIVE`) and `bdbot/cli.py` (L0-L4,
