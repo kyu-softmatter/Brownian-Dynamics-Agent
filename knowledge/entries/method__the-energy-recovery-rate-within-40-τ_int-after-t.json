@@ -1,0 +1,30 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "relaxation",
+    "recovery",
+    "elastic",
+    "plastic"
+  ],
+  "dimensionless": {
+    "Gamma": 29.7
+  },
+  "source": "runs/trap-drag-2d-hex300__ENSEMBLE#timeseries_vs_v",
+  "lessons": [
+    {
+      "claim": "The energy recovery rate within 40 τ_int after the driving stops increases monotonically with v: −0.5±10.5 · 8±13 · 38±8 · 45±9 · 63±8 · 67±9 · 67±9 % (v = 0.1 … 32 µm/s). ★ The cause is **not** 'the faster it is the better the defects heal' -- the residual defects stay similar at 6~10. It is the **elastic/plastic ratio** of the stored energy that changes (the elastic share 31%→69%): the elastic part drains fast and the defects do not heal, so a large elastic share makes the recovery rate look high. At low speed the recovery is indistinguishable from 0 = the damage does not heal at all.",
+      "kind": "scaling",
+      "coords": {
+        "Gamma": 29.7
+      }
+    }
+  ],
+  "not_verified": [
+    "the slow disappearance of defects outside the 40 τ_int window is unmeasured -- the accurate statement is not 'permanent' but 'it does not heal within 40 τ_int'"
+  ]
+}

@@ -1,26 +1,31 @@
-"""S7 — 봉인된 예측 vs 측정. **판정을 제안하고, 확정하지 않는다.**
+"""S7 — the sealed prediction vs the measurement. **It proposes a verdict; it never
+confirms one.**
 
-## 이 모듈이 절대 하지 않는 것
+## What this module never does
 
-`confirmed_by` 를 채우지 않는다. 그 필드는 사람만 쓴다 (CLAUDE.md §판정).
-`confirmed_by: null` 인 판정은 벤치마크 원장 집계에 들어가지 않는다 — 그것이 세어지면
-사람이 한 번도 보지 않은 합격 도장이 찍힌다.
+It does not fill in `confirmed_by`. Only a human writes that field
+(CLAUDE.md §verdicts). A verdict with `confirmed_by: null` does not enter the
+benchmark-ledger tally -- count it and a pass stamp gets applied that no human ever
+looked at.
 
-## `INCONCLUSIVE` 는 실패가 아니다
+## `INCONCLUSIVE` is not a failure
 
-첫 완주에서 예측 9개 중 2개가 `INCONCLUSIVE` 였고, **둘 다 예측 문서를 쓸 때 이미
-판별력 부족이 예견되어 있었다.** 통계오차가 tolerance 보다 크면 그 측정은 그
-tolerance 를 판정할 수 없다 — 그걸 `PASS` 라고 쓰면 검증이 아니라 요행이다.
+On the first completed run, 2 of 9 predictions came out `INCONCLUSIVE`, and **for
+both the lack of discriminating power was already foreseen when the prediction
+document was written.** If the statistical error exceeds the tolerance then that
+measurement cannot decide that tolerance -- calling it `PASS` is luck, not
+verification.
 
-두 가지를 따로 계산한다:
+Two things are computed separately:
 
-| | 질문 | 실패 시 |
+| | question | on failure |
 |---|---|---|
-| **판정 가능성** | `SE` 가 tolerance 대역보다 작은가 | `INCONCLUSIVE` |
-| **설계 검정력** | 경쟁 가설과의 차이가 `SE` 의 몇 배인가 | `INCONCLUSIVE` + 필요 표본 배수 보고 |
+| **decidability** | is `SE` smaller than the tolerance band | `INCONCLUSIVE` |
+| **design power** | the gap to the competing hypothesis, in `SE` | `INCONCLUSIVE` + sample multiple |
 
-★ 검정력이 `3σ` 를 못 만드는 곳에서 `3σ` 기각을 요구하지 않는다 — 달성 불가능한
-assert 가 된다. 그 구간은 `INCONCLUSIVE` 를 **사실로 고정**한다 (CLAUDE.md 통계 4규칙).
+★ Do not demand a `3σ` rejection where the power cannot produce `3σ` -- that is an
+unachievable assert. In that regime `INCONCLUSIVE` is **pinned as a fact**
+(CLAUDE.md, the 4 statistics rules).
 """
 from __future__ import annotations
 
@@ -33,23 +38,23 @@ from .spec import Prediction, PredictionItem
 
 PASS, FAIL, INCONCLUSIVE = "PASS", "FAIL", "INCONCLUSIVE"
 
-# FAIL 원인 4분류 (master_plan §S7-6). FAIL 에는 반드시 하나가 붙어야 한다.
+# The 4 FAIL cause classes (master_plan §S7-6). A FAIL must always carry one.
 CAUSE_CLASSES: frozenset[str] = frozenset({
     "numerical", "modeling", "interpretation", "analysis", "environment"})
 
 
 # =============================================================================
-# tolerance 파싱
+# parsing a tolerance
 # =============================================================================
 @dataclass(frozen=True)
 class Tolerance:
-    """`"±1.5%"` 같은 문자열의 기계 표현.
+    """The machine form of a string like `"±1.5%"`.
 
     kind:
-      relative     — 예측값의 ±X %
-      absolute     — ±X (측정 단위)
-      lower_bound  — 측정값이 이 값보다 커야 한다 (`R² > 0.99`, `p > 0.05`)
-      upper_bound  — 측정값이 이 값보다 작아야 한다
+      relative     — ±X % of the predicted value
+      absolute     — ±X (in the measurement's unit)
+      lower_bound  — the measurement must exceed this (`R² > 0.99`, `p > 0.05`)
+      upper_bound  — the measurement must be below this
     """
 
     kind: str
@@ -57,7 +62,8 @@ class Tolerance:
     text: str
 
     def half_width(self, predicted: float | None) -> float | None:
-        """판정 대역의 반폭. 단측 경계에는 대역이 없으므로 `None`."""
+        """Half-width of the decision band. `None` for a one-sided bound, which
+        has no band."""
         if self.kind == "absolute":
             return self.magnitude
         if self.kind == "relative":
@@ -77,22 +83,24 @@ _TOL_RE = re.compile(r"""
 
 
 def parse_tolerance(text: str) -> Tolerance:
-    """tolerance 문자열 → `Tolerance`. 못 읽으면 **예외** (조용히 넘기지 않는다).
+    """A tolerance string → `Tolerance`. Unreadable means **raise** (never skip
+    quietly).
 
-    tolerance 를 읽지 못하고 넘어가면 그 항목은 판정 없이 통과한다 — 검증을
-    무력화하는 가장 쉬운 방법이다 (master_plan §S2 실패모드).
+    Skipping an unreadable tolerance lets that item pass with no verdict at all --
+    the easiest way there is to neutralise the verification
+    (master_plan §S2 failure modes).
     """
     m = _TOL_RE.match(str(text))
     if not m:
         raise ValueError(
-            f"tolerance {text!r} 를 읽을 수 없다. 허용 형식: "
+            f"tolerance {text!r} cannot be read. Accepted forms: "
             f"'±1.5%', '±0.03', '>0.99', 'p>0.05', '<1e-3'")
     num = float(m.group("num"))
     op = m.group("op")
     if op in ("±", "+/-"):
         if num <= 0:
-            raise ValueError(f"tolerance {text!r}: 반폭이 0 이하다 — "
-                             f"어떤 결과든 FAIL 이 된다")
+            raise ValueError(f"tolerance {text!r}: the half-width is 0 or less — "
+                             f"every result would FAIL")
         return Tolerance("relative" if m.group("pct") else "absolute",
                          num / 100.0 if m.group("pct") else num, str(text))
     kind = "lower_bound" if op in (">", ">=") else "upper_bound"
@@ -100,14 +108,15 @@ def parse_tolerance(text: str) -> Tolerance:
 
 
 # =============================================================================
-# 측정값
+# measurements
 # =============================================================================
 @dataclass
 class Measurement:
-    """측정 1건. **`stat_err` 없는 값은 결론에 쓸 수 없다** (CLAUDE.md).
+    """One measurement. **A value with no `stat_err` cannot go in a conclusion**
+    (CLAUDE.md).
 
-    `stat_err=None` 은 "오차를 모른다"이고, 그 상태에서는 판정이 나가지 않는다.
-    시드 1개짜리 프로덕션 런이 여기서 막힌다.
+    `stat_err=None` means "the error is unknown", and in that state no verdict is
+    issued. A single-seed production run is stopped right here.
     """
 
     quantity: str
@@ -115,25 +124,27 @@ class Measurement:
     stat_err: float | None = None
     method: str = ""
     n_samples: int | None = None
-    spread: float | None = None          # 시드간 산포 — 계통오차 지표
+    spread: float | None = None          # seed spread — a systematic-error indicator
     unit: str = ""
 
     def problems(self) -> list[str]:
         out = []
         if self.stat_err is None:
-            out.append(f"{self.quantity}: 통계오차가 없다 — 시드 1개 런이거나 "
-                       f"오차를 계산하지 않았다. 결론에 쓸 수 없다")
+            out.append(f"{self.quantity}: no statistical error — either a "
+                       f"single-seed run or the error was never computed. Cannot "
+                       f"go in a conclusion")
         elif self.stat_err <= 0:
-            out.append(f"{self.quantity}: stat_err = {self.stat_err} — 요동하지 않는 "
-                       f"'측정값'은 산술 항등식일 가능성이 크다 "
-                       f"(guards.assert_statistic_fluctuates 참조)")
+            out.append(f"{self.quantity}: stat_err = {self.stat_err} — a "
+                       f"'measurement' that does not fluctuate is most likely an "
+                       f"arithmetic identity "
+                       f"(see guards.assert_statistic_fluctuates)")
         if not math.isfinite(self.value):
-            out.append(f"{self.quantity}: 측정값이 비유한값이다")
+            out.append(f"{self.quantity}: the measured value is non-finite")
         return out
 
 
 # =============================================================================
-# 판정 1행
+# one verdict row
 # =============================================================================
 @dataclass
 class ValidationRow:
@@ -143,10 +154,10 @@ class ValidationRow:
     tolerance: str
     verdict: str
     stat_err: float | None = None
-    deviation: float | None = None        # 절대 편차
-    deviation_rel: float | None = None    # 상대 편차
-    sigma: float | None = None            # 편차 / SE
-    design_power: float | None = None     # |예측 − 경쟁| / SE
+    deviation: float | None = None        # absolute deviation
+    deviation_rel: float | None = None    # relative deviation
+    sigma: float | None = None            # deviation / SE
+    design_power: float | None = None     # |predicted − competing| / SE
     samples_needed_for_3sigma: float | None = None
     cause_class: str = ""
     reason: str = ""
@@ -156,30 +167,34 @@ class ValidationRow:
     def problems(self) -> list[str]:
         out = []
         if self.verdict == FAIL and self.cause_class not in CAUSE_CLASSES:
-            out.append(f"{self.quantity}: FAIL 인데 원인 분류가 없다 — "
-                       f"{sorted(CAUSE_CLASSES)} 중 하나가 필요하다 (S7 게이트)")
+            out.append(f"{self.quantity}: a FAIL with no cause class — "
+                       f"one of {sorted(CAUSE_CLASSES)} is required (S7 gate)")
         if "significant_deviation_within_tolerance" in self.flags:
             out.append(
-                f"{self.quantity}: **PASS 이지만 편차가 {self.sigma:.2f}σ** 다 — "
-                f"tolerance 대역 안이지만 통계적으로 유의한 어긋남이다. "
-                f"tolerance 가 너무 넓어 검증이 무력화됐는지, 아니면 예측에 넣지 않은 "
-                f"알려진 편향이 있는지 확인할 것 (master_plan §S2 실패모드)")
+                f"{self.quantity}: **a PASS, but the deviation is "
+                f"{self.sigma:.2f}σ** — inside the tolerance band yet a "
+                f"statistically significant mismatch. Check whether the tolerance "
+                f"is so wide that it neutralised the verification, or whether "
+                f"there is a known bias that was left out of the prediction "
+                f"(master_plan §S2 failure modes)")
         return out
 
 
 def compare(item: PredictionItem, meas: Measurement, *,
             power_threshold: float = 1.0,
             significance_sigma: float = 3.0) -> ValidationRow:
-    """예측 1개 vs 측정 1개 → 판정 **제안** 1행.
+    """One prediction vs one measurement → one **proposed** verdict row.
 
     Args:
-        power_threshold: 설계 검정력이 이 값 미만이면 `INCONCLUSIVE`.
-            기본 `1.0` — 경쟁 가설과의 차이가 `1σ` 도 안 되면 그 측정은 두 가설을
-            구별하지 못한다. `3.0` 으로 올리면 더 보수적이다.
-        significance_sigma: PASS 인데도 편차가 이만큼 유의하면 표시한다.
-            ★ 넓은 tolerance 는 어떤 결과든 PASS 로 만든다 (§S2 실패모드). 대역 안에
-            들어왔다는 것과 예측이 맞았다는 것은 다른 말이다 — 3σ 어긋난 PASS 는
-            "예측에 넣지 않은 편향이 있다"는 신호다.
+        power_threshold: design power below this value gives `INCONCLUSIVE`.
+            Default `1.0` — if the gap to the competing hypothesis is under `1σ`,
+            that measurement cannot tell the two hypotheses apart. Raising it to
+            `3.0` is more conservative.
+        significance_sigma: flag a PASS whose deviation is this significant.
+            ★ A wide tolerance turns any result into a PASS (§S2 failure modes).
+            Landing inside the band and the prediction being right are two
+            different statements — a PASS off by 3σ is a signal that "there is a
+            bias the prediction left out".
     """
     tol = parse_tolerance(item.tolerance)
     se = meas.stat_err
@@ -187,12 +202,12 @@ def compare(item: PredictionItem, meas: Measurement, *,
                         measured=meas.value, tolerance=item.tolerance,
                         verdict=INCONCLUSIVE, stat_err=se, note=item.note)
 
-    # --- 오차를 모르면 판정하지 않는다 ---
+    # --- with an unknown error, no verdict is issued ---
     if se is None:
-        row.reason = "통계오차 없음 — 오차 막대 없는 수를 결론에 쓰지 않는다"
+        row.reason = "no statistical error — an unbarred number is not usable"
         return row
 
-    # --- 단측 경계 (R² > 0.99, p > 0.05) ---
+    # --- one-sided bounds (R² > 0.99, p > 0.05) ---
     if tol.kind in ("lower_bound", "upper_bound"):
         bound = tol.magnitude
         row.deviation = meas.value - bound
@@ -200,18 +215,18 @@ def compare(item: PredictionItem, meas: Measurement, *,
         ok = meas.value > bound if tol.kind == "lower_bound" else meas.value < bound
         if se > 0 and abs(meas.value - bound) < se:
             row.verdict = INCONCLUSIVE
-            row.reason = (f"경계 {bound:g} 에서 {abs(row.deviation):.3g} 떨어져 있고 "
-                          f"SE = {se:.3g} — 경계와 구별되지 않는다")
+            row.reason = (f"bound {bound:g}, gap {abs(row.deviation):.3g}, "
+                          f"SE = {se:.3g} — indistinguishable from the bound")
         else:
             row.verdict = PASS if ok else FAIL
-            row.reason = (f"측정 {meas.value:.6g} "
+            row.reason = (f"measured {meas.value:.6g} "
                           f"{'>' if tol.kind == 'lower_bound' else '<'} {bound:g}"
-                          + ("" if ok else " 위반"))
+                          + ("" if ok else " violated"))
         return row
 
-    # --- 양측 대역 ---
+    # --- two-sided band ---
     if not isinstance(item.value, (int, float)):
-        row.reason = f"예측값이 수치가 아니다 ({item.value!r}) — 양측 대역을 쓸 수 없다"
+        row.reason = f"predicted value is not numeric ({item.value!r}) — no band"
         return row
 
     pred = float(item.value)
@@ -220,20 +235,21 @@ def compare(item: PredictionItem, meas: Measurement, *,
     row.deviation_rel = row.deviation / pred if pred else None
     row.sigma = abs(row.deviation) / se if se > 0 else None
 
-    # ① 판정 가능성 — SE 가 대역보다 크면 이 측정은 이 tolerance 를 판정할 수 없다
+    # ① decidability — if SE exceeds the band, this measurement cannot decide
+    #    this tolerance
     if half is not None and se > half:
         row.verdict = INCONCLUSIVE
-        row.reason = (f"SE = {se:.4g} > tolerance 반폭 {half:.4g} — "
-                      f"이 측정은 이 대역을 판정할 수 없다. "
-                      f"필요 표본 배수 ≈ {(se / half) ** 2:.3g}×")
+        row.reason = (f"SE = {se:.4g} > tolerance half-width {half:.4g} — "
+                      f"this measurement cannot decide this band. "
+                      f"sample multiple needed ≈ {(se / half) ** 2:.3g}×")
     else:
         inside = half is not None and abs(row.deviation) <= half
         row.verdict = PASS if inside else FAIL
-        row.reason = (f"편차 {row.deviation:+.4g}"
+        row.reason = (f"deviation {row.deviation:+.4g}"
                       + (f" ({row.deviation_rel:+.3%})" if row.deviation_rel else "")
-                      + f", 대역 ±{half:.4g}")
+                      + f", band ±{half:.4g}")
 
-    # ② 설계 검정력 — 경쟁 가설과 구별되는가
+    # ② design power — is it distinguishable from the competing hypothesis
     if item.competing_value is not None and se > 0:
         gap = abs(pred - float(item.competing_value))
         row.design_power = gap / se
@@ -242,12 +258,14 @@ def compare(item: PredictionItem, meas: Measurement, *,
         if row.design_power < power_threshold:
             row.verdict = INCONCLUSIVE
             row.reason = (
-                f"설계 검정력 {row.design_power:.2f}σ < {power_threshold:g}σ — "
-                f"경쟁 가설({item.competing_value:g})과 구별되지 않는다. "
-                f"3σ 판별에 표본 {row.samples_needed_for_3sigma:.3g}배 필요. "
-                f"★ 예견된 한계이지 실패가 아니다")
+                f"design power {row.design_power:.2f}σ < {power_threshold:g}σ — "
+                f"indistinguishable from the competing hypothesis "
+                f"({item.competing_value:g}). "
+                f"{row.samples_needed_for_3sigma:.3g}x the samples needed to "
+                f"resolve at 3σ. "
+                f"★ a foreseen limit, not a failure")
 
-    # ③ 넓은 tolerance 로 가려진 유의한 어긋남
+    # ③ a significant mismatch hidden by a wide tolerance
     if (row.verdict == PASS and row.sigma is not None
             and row.sigma > significance_sigma):
         row.flags.append("significant_deviation_within_tolerance")
@@ -255,7 +273,7 @@ def compare(item: PredictionItem, meas: Measurement, *,
 
 
 # =============================================================================
-# 리포트
+# report
 # =============================================================================
 @dataclass
 class ValidationReport:
@@ -264,7 +282,7 @@ class ValidationReport:
     problems: list[str] = field(default_factory=list)
     sanity: list[ValidationRow] = field(default_factory=list)
 
-    # --- 집계 ---
+    # --- tallies ---
     def count(self, verdict: str) -> int:
         return sum(1 for r in self.all_rows() if r.verdict == verdict)
 
@@ -282,19 +300,21 @@ class ValidationReport:
         return PASS
 
     def yaml_block(self) -> str:
-        """판정 블록. ★ `confirmed_by` 는 **항상** `null` 이다 — 코드가 채우지 않는다."""
+        """The verdict block. ★ `confirmed_by` is **always** `null` — code never
+        fills it in."""
         return (
             "```yaml\n"
             f"verdict_overall: {self.verdict_overall}\n"
             "proposed_by: agent\n"
-            "confirmed_by: null            # ← 사람 확정 대기\n"
+            "confirmed_by: null            # ← awaiting human confirmation\n"
             f"pass: {self.count(PASS)}\n"
             f"inconclusive: {self.count(INCONCLUSIVE)}\n"
             f"fail: {self.count(FAIL)}\n"
             "```")
 
     def table(self) -> str:
-        rows = ["| 양 | 예측 (봉인) | 측정 | tolerance | 편차 | 검정력 | verdict |",
+        rows = ["| quantity | predicted (sealed) | measured | tolerance | "
+                "deviation | power | verdict |",
                 "|---|---|---|---|---|---|---|"]
         mark = {PASS: "**PASS**", FAIL: "❌ **FAIL**",
                 INCONCLUSIVE: "⚠ **INCONCLUSIVE**"}
@@ -317,11 +337,12 @@ class ValidationReport:
                         f"| {dev} | {power} | {mark.get(r.verdict, r.verdict)}{suffix} |")
         if any(r.flags for r in self.all_rows()):
             rows.append("")
-            rows.append("⚑ = PASS 이지만 편차가 통계적으로 유의하다 — 아래 참조.")
+            rows.append("⚑ = a PASS whose deviation is statistically significant "
+                        "— see below.")
         return "\n".join(rows)
 
     def reasons(self) -> str:
-        """`INCONCLUSIVE`·`FAIL` 의 이유를 풀어 쓴다. PASS 는 생략."""
+        """Spell out the reasons for `INCONCLUSIVE` and `FAIL`. PASS is omitted."""
         out = []
         for r in self.all_rows():
             if r.verdict == PASS:
@@ -330,11 +351,12 @@ class ValidationReport:
             if r.cause_class:
                 head += f" (`{r.cause_class}`)"
             out.append(f"{head}: {r.reason}")
-        return "\n".join(out) if out else "_없음 — 전 항목 PASS._"
+        return "\n".join(out) if out else "_none — every item PASS._"
 
     def notes(self) -> str:
-        """예측 문서에 달린 부기. **PASS 라도 남긴다** — 여기 "이건 독립 검사가
-        아니다" 같은 한계가 들어 있고, 그게 사라지면 결론이 과대해진다."""
+        """Notes attached to the prediction document. **Kept even on a PASS** --
+        this is where limits like "that is not an independent check" live, and
+        losing them overstates the conclusion."""
         out = [f"- **`{r.quantity}`**: {r.note}" for r in self.all_rows() if r.note]
         return "\n".join(out) if out else ""
 
@@ -342,14 +364,17 @@ class ValidationReport:
 def validate_run(prediction: Prediction, measurements: dict[str, Measurement], *,
                  rundir: RunDir | None = None, power_threshold: float = 1.0,
                  causes: dict[str, str] | None = None) -> ValidationReport:
-    """봉인 검증 → 예측 대조 → 판정 제안.
+    """Verify the seal → compare against the prediction → propose a verdict.
 
-    ⚠ **봉인이 깨졌으면 판정을 만들지 않는다.** 예측이 결과를 보고 나서 수정됐을
-      가능성이 있는 상태에서 대조표를 그리면, 그 표는 검증처럼 보이지만 검증이 아니다.
+    ⚠ **With a broken seal, no verdict is produced.** Drawing a comparison table
+      while the prediction may have been edited after seeing the result gives a
+      table that looks like a verification and is not one.
 
     Args:
-        measurements: `quantity` → 측정값. 예측에 대응하는 측정이 없으면 문제로 보고.
-        causes: FAIL 항목의 원인 분류 (에이전트가 공급). 없으면 게이트가 잡는다.
+        measurements: `quantity` → the measured value. A prediction with no
+            matching measurement is reported as a problem.
+        causes: cause classes for FAIL items (supplied by the agent). Without
+            them, the gate catches it.
     """
     problems: list[str] = list(prediction.problems())
     seal = verify_seal(rundir) if rundir is not None else None
@@ -357,16 +382,18 @@ def validate_run(prediction: Prediction, measurements: dict[str, Measurement], *
     if seal is not None and not seal.ok:
         return ValidationReport(
             rows=[], seal=seal,
-            problems=[f"★ 봉인 위반 — {seal.summary()}. "
-                      f"예측이 실행 후 수정됐을 수 있으므로 **대조표를 만들지 않는다** "
+            problems=[f"★ seal violation — {seal.summary()}. "
+                      f"The prediction may have been edited after the run, so "
+                      f"**no comparison table is built** "
                       f"(master_plan §S7-1)."] + problems)
 
     rows: list[ValidationRow] = []
     for item in prediction.items:
         meas = measurements.get(item.quantity)
         if meas is None:
-            problems.append(f"예측 {item.quantity!r} 에 대응하는 측정이 없다 — "
-                            f"봉인된 예측을 조용히 빼놓을 수 없다")
+            problems.append(f"no measurement matches the prediction "
+                            f"{item.quantity!r} — a sealed prediction cannot be "
+                            f"quietly dropped")
             continue
         problems += meas.problems()
         row = compare(item, meas, power_threshold=power_threshold)
@@ -377,7 +404,8 @@ def validate_run(prediction: Prediction, measurements: dict[str, Measurement], *
 
     extra = sorted(set(measurements) - {i.quantity for i in prediction.items})
     if extra:
-        problems.append(f"봉인되지 않은 측정 {extra} — 사후에 추가된 항목은 "
-                        f"'예측 대조'가 아니라 '관찰'로 따로 보고할 것")
+        problems.append(f"unsealed measurements {extra} — an item added after the "
+                        f"fact must be reported separately as an 'observation', "
+                        f"not as a 'prediction comparison'")
 
     return ValidationReport(rows=rows, seal=seal, problems=problems)

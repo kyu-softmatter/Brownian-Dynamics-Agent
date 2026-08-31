@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "schema"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/intake.py MISSING_KINDS",
+  "lessons": [
+    {
+      "claim": "Mixing physical unknowns with simulation choices (the box, the observation window) in missing_required makes the readiness verdict wrong. In fact 2 cases that had already been completed came out BLOCKED -> they have to be split with kind: physical|choice",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

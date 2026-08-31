@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "nondim",
+    "method",
+    "L3"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/welty_transport.md#4 ← [W] 11.2 vs 11.3 pp.126-128",
+  "lessons": [
+    {
+      "claim": "There are two routes to non-dimensionalization and they are ranked -- (1) non-dimensionalizing the governing differential equation: being ratios of the equation's terms it is unique and interpretable (2) Buckingham: the book explicitly says it is 'for the situation where the governing equation is not known' and the combination is not unique. ★ Our L3 (bdbot/nondim.py) knows Langevin/Smoluchowski so it is (1), and our design of defining and checking a dimensionless number as 'the ratio of two ledger entries' is the same logic as (1) -- retreating to the method of extracting pi from a variable list loses the interpretability",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

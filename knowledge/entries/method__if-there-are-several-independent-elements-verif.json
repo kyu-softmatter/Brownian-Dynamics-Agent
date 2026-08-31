@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "verification",
+    "modules",
+    "isolation"
+  ],
+  "dimensionless": {},
+  "source": "scratch/standalone_abp_diffusion.py",
+  "lessons": [
+    {
+      "claim": "If there are several independent elements, verify the minimal configuration with only each element on first. An isolated configuration often has an analytic solution, so isolation is sometimes the only way to make a ground truth. In the active.abp standalone verification, measuring D_eff alone gave no idea of the cause, and only after measuring Lambda and v0 separately did it emerge that it was on the rotational-diffusion side",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

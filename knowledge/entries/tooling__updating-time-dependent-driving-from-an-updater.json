@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "driving",
+    "zero_order_hold",
+    "lock-in",
+    "estimator"
+  ],
+  "dimensionless": {
+    "err_nominal_pct": 236.0
+  },
+  "source": "scratch/verify_chain_bend_gates.py#gate-A",
+  "lessons": [
+    {
+      "claim": "Updating time-dependent driving from an updater every U steps makes the driving **zero-order hold (ZOH)**, so the fundamental is reduced by sinc(ωΔt/2) and its phase lags by ωΔt/2 (Δt=U·dt). Measured |ŷ_c|/a = 0.98999 against the ZOH prediction 0.99040, and a phase of −0.2522 against −0.2404 rad. **The nominal amplitude must not be used** in the response-function estimator -- measuring the ghost (anchor) position too and using the measured phasor cancels the ZOH attenuation between numerator and denominator. The K′ using the nominal is −6559 at De=10 (the sign is wrong too, a 236% error), while using the measured phasor gives 5863 (21%). It is quietly wrong, with no error.",
+      "kind": "pitfall",
+      "coords": {
+        "err_nominal_pct": 236.0
+      }
+    }
+  ],
+  "not_verified": []
+}

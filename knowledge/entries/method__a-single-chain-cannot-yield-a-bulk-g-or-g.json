@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "scratch/viz_moduli.py",
+  "lessons": [
+    {
+      "claim": "A single chain **cannot yield a bulk G' or G'' [Pa]** -- what is legitimate has to be distinguished from what is not. ✅ Legitimate: K*[kT/d²] → EI[N·m²] → κ₀[N/m] (a purely geometric conversion). Measured, JKR gives κ₀=56.6 mN/m, but that is **a round-trip confirmation recovering the input 64 mN/m** and not a verification (the -12% is the finite trap + viscous contamination at De=10.7). What is meaningful is that DLVO gives -0.005 mN/m, 4~5 orders below. ❌ Illegitimate: applying GSER `G* = K*/(6πa)` gives JKR G'=15.6 Pa and G''=7.9 Pa, but it is **invalid** -- GSER holds when the probe is immersed in a continuous medium, whereas here what the bead feels is not a medium but 2 neighbouring beads. To produce a real G'(ω) you have to build a **network** of chains and compute it directly from the stress tensor. Multiplying a single chain by an assumed areal density is inventing. ※ chain-bend-2d-oscill's observation.yaml F1 had already written the same warning, and it is now quantitatively confirmed.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

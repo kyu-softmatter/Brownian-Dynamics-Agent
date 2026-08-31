@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "cost",
+    "timescale_separation",
+    "chain",
+    "bending"
+  ],
+  "dimensionless": {
+    "tau_fast/tau_chain": 0.000219
+  },
+  "source": "cases/chain_bend_2d.py#build_ledger",
+  "lessons": [
+    {
+      "claim": "The timescale that sets dt may not be what is being observed, and then the cost is decided independently of the observation band. In chain-bend the fastest bending mode of the stiffness matrix's largest eigenvalue (τ_fast=0.279µs) sets dt while what is being measured is τ_chain=1.27ms, 4570x away → 2.65e9 steps at the lowest ω. The cause is κ_θ=1.39e6 kT (the chain is thermally completely stiff). In 1-A, 1-B and trap-drag the scale that set dt was always near the scale of interest.",
+      "kind": "method_note",
+      "coords": {
+        "tau_fast/tau_chain": 0.000219
+      }
+    }
+  ],
+  "not_verified": []
+}

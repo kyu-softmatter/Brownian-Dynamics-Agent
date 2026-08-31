@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "model_validity",
+    "bd",
+    "stiff"
+  ],
+  "dimensionless": {
+    "tau_p_over_tau_fast": 0.597
+  },
+  "source": "scratch/nondim_3cases.py chain-bend",
+  "lessons": [
+    {
+      "claim": "The fastest bending mode of a stiff chain may not be overdamped. In chain-bend, τ_p/τ_fast=0.60 -- BD treats that mode as overdamped. Being 4570x away from the observation band (τ_chain) it looks as though there is no effect on G'(ω), but that was not confirmed",
+      "kind": "pitfall",
+      "coords": {
+        "tau_p_over_tau_fast": 0.597
+      }
+    }
+  ],
+  "not_verified": [
+    "that there is no effect on the observation band was not confirmed"
+  ]
+}

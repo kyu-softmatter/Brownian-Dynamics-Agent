@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "run_id",
+    "content-address",
+    "L3",
+    "spec"
+  ],
+  "dimensionless": {},
+  "source": "scratch/verify_l3_spec_gaps.py#defect-1",
+  "lessons": [
+    {
+      "claim": "Leave the physical system out of the run_id hash and completely different systems get the same run_id, prepare_outdir skips it as 'an already completed run', and the old system's result is reported as the new system's. Measured: the 1-B spec had no physical system, so despite d 5µm→0.5µm, η by 62x and a changed ρ_p (a 16.1x difference in τ_B) the run_id stayed identical at soft-r3-2d-A-sweep__A100__27f70deab9. A content address has to cover 'everything that fixes the physics' and at the same time exclude documentation, sources and derived values (both are needed).",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "metrics",
+    "verdict",
+    "zero-prediction",
+    "silent-bug"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/metrics.py#observable,judge",
+  "lessons": [
+    {
+      "claim": "When MET.observable(predicted=0.0), the percentage error (err_pct) becomes None to avoid a division by zero, and MET.judge() treated err_pct=None not as 'no verdict possible' but unconditionally as an implementation_check FAIL -- so an observable whose prediction is exactly 0 (for example a linear bending stiffness derived to be 0 by symmetry) is always misjudged as a bug regardless of the measured value. First found on chain-bend-2d-dlvo's K_prime (measured 216.3±326.4 kT/d², agreeing with 0 to within 0.66σ). The fix: add a sigma (the measured SEM) argument to observable(), z-test with err_sigma=(measured-predicted)/sigma, and wire both judge() and postmortem.py to prefer err_sigma over err_pct.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

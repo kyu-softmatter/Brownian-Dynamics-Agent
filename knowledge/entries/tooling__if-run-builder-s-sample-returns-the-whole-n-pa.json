@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/trap_2d_5um.py build()",
+  "lessons": [
+    {
+      "claim": "If RUN.builder's sample() returns the whole N-particle array as a dict for every sample, RUN.execute stacks it as it stands into (n_samp,N,...) and stores it in observables.npz -- in trap-2d-5um a file that had been 448KB became 148MB (330x). Derived quantities (histograms, ⟨x²⟩ and so on) have to be accumulated immediately in the sample() closure, and only the parts that need the raw array (C(t), the PSD) filled into a small pre-allocated subset, for the original memory and disk usage to hold.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

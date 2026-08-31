@@ -118,7 +118,8 @@ def anchor_num(name: str, cell: int) -> str:
     ends with `<!--@name-->`.
 
     Why anchor on that rather than on prose: the distillation is **going to be
-    translated**. A regex keyed on a Korean label (`log-선형` and the like) means
+    translated**. A regex keyed on a Korean label (the Korean for `log-linear`,
+    and the like) means
     the translation breaks the check -- not silently, since 0 matches is a FAIL,
     but the coupling itself is wrong when fixing the language breaks a test
     (raised by b4 on 2026-08-29 as a cross-file coupling). `<!--@...-->` is

@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "angle.Harmonic",
+    "verification",
+    "matrix"
+  ],
+  "dimensionless": {
+    "matrix_vs_hoomd_pct": 0.55
+  },
+  "source": "scratch/verify_angle_matrix.py",
+  "lessons": [
+    {
+      "claim": "cases/chain_bend_2d.bending_matrix (κ_θ BᵀB with B the second difference) agrees with HOOMD md.angle.Harmonic(k=κ_θ, t0=π) to within 0.55% in static 3-point bending (n=25, δ=0.136 d: the matrix 4813.94 · HOOMD 4840.21 · the beam 48EI/L³ 4830.66 kT/d²). ★ What had been verified until then was only 'the discrete matrix vs the beam formula' at −0.35%, which was **analytic against analytic**, and whether the matrix is the same physics as HOOMD's angle potential had never once been confirmed. λ_max, τ_fast, dt and K*(ω) were all being derived from the matrix, so it was an unconfirmed foundation in use. A measurement tip: the per-particle force array may not be in tag order because of ParticleSorter, so measuring k = 2U/δ² from the scalar energy makes the ordering problem disappear.",
+      "kind": "method_note",
+      "coords": {
+        "matrix_vs_hoomd_pct": 0.55
+      }
+    }
+  ],
+  "not_verified": []
+}

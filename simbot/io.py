@@ -1,12 +1,13 @@
-"""run 디렉터리 · 해시 · 봉인. LLM 0줄.
+"""Run directories · hashes · sealing. 0 lines of LLM.
 
-**봉인(sealing)이 이 모듈의 존재 이유다.** 예측 문서를 실행 전에 해시로 고정하지
-않으면 사후합리화를 구조적으로 막을 방법이 없다 — 결과를 보고 나서 예측을 손대도
-아무 기록이 남지 않는다. S7 은 실행 전 해시와 대조하고, 불일치하면 **중단한다**.
+**Sealing is why this module exists.** Without pinning the prediction document by
+hash before the run, there is no structural way to prevent post-hoc
+rationalisation -- edit the prediction after seeing the result and no record is
+left. S7 compares against the pre-run hash and **stops** on a mismatch.
 
-`SEALED.sha256` 은 표준 `sha256sum` 형식이다 (`<hash>  <repo 상대경로>`).
-`shasum -a 256 -c SEALED.sha256` 으로 이 코드 없이도 검증된다 — 봉인의 신뢰성이
-우리 코드에 의존하지 않아야 한다.
+`SEALED.sha256` is in the standard `sha256sum` format
+(`<hash>  <repo-relative path>`), so `shasum -a 256 -c SEALED.sha256` verifies it
+without this code -- the seal's trustworthiness must not depend on our own code.
 """
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# run 디렉터리 레이아웃 — master_plan.md §1.3
+# run directory layout — master_plan.md §1.3
 RUN_LAYOUT: dict[str, str] = {
     "input": "00_input",
     "intake": "01_intake.md",
@@ -42,12 +43,12 @@ RUN_LAYOUT: dict[str, str] = {
     "seal": "SEALED.sha256",
 }
 
-# 봉인 대상 — S5 실행 전에 존재해야 하고 이후 바뀌면 안 되는 문서
+# what gets sealed — documents that must exist before S5 and never change after
 SEALED_STAGES: tuple[str, ...] = ("prediction", "intake", "spec")
 
 
 # =============================================================================
-# 해시
+# hashes
 # =============================================================================
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -85,10 +86,11 @@ def sha256_payload(obj) -> str:
 
 
 def code_hash(root: Path | None = None) -> str:
-    """`simbot` 소스 전체의 해시 (12자).
+    """Hash of the whole `simbot` source (12 chars).
 
-    코드가 바뀌면 결과 비교가 무의미해진다. `analysis/` 하위까지 포함한다 —
-    분석 코드가 바뀌면 측정값이 바뀌므로 제외하면 봉인에 구멍이 난다.
+    If the code changes, comparing results is meaningless. `analysis/` is included
+    -- a change to the analysis code changes the measurement, so excluding it
+    would leave a hole in the seal.
     """
     base = Path(root) if root else Path(__file__).parent
     h = hashlib.sha256()
@@ -101,12 +103,12 @@ def code_hash(root: Path | None = None) -> str:
 
 
 def file_hash(path: str | Path) -> str:
-    """파일 1개의 해시 (12자). **드라이버 스크립트를 특정하는 데 쓴다.**
+    """Hash of a single file (12 chars). **Used to pin down the driver script.**
 
-    ★ `code_hash` 는 `simbot/` 만 덮는다. 그런데 런의 파라미터(`A` 목록·시드·런 길이·
-      기하)를 정하는 것은 `scripts/` 의 드라이버다 — 그것이 해시에 없으면
-      **무엇이 이 런을 만들었는지 산출물만으로 특정할 수 없다.**
-      2026-07-29 `soft-r3-time-resolved` 에서 실제로 구멍이었다.
+    ★ `code_hash` covers only `simbot/`. But what sets a run's parameters (the `A`
+      list, seeds, run length, geometry) is the driver in `scripts/` -- and if that
+      is not in the hash, **the artefacts alone cannot say what made this run.**
+      It was an actual hole in `soft-r3-time-resolved`, 2026-07-29.
     """
     return sha256_file(path)[:12]
 
@@ -114,7 +116,7 @@ def file_hash(path: str | Path) -> str:
 
 
 def git_rev(cwd: Path | None = None) -> str:
-    """현재 커밋 (짧은 형식). git 이 없거나 repo 밖이면 `"?"`."""
+    """The current commit (short form). `"?"` if git is absent or outside a repo."""
     try:
         out = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
                              capture_output=True, text=True, timeout=5,
@@ -125,10 +127,11 @@ def git_rev(cwd: Path | None = None) -> str:
 
 
 def git_dirty(cwd: Path | None = None) -> bool | None:
-    """추적 중인 파일에 커밋 안 된 변경이 있는가. 판정 불가면 `None`.
+    """Are there uncommitted changes to tracked files? `None` if undecidable.
 
-    dirty 인 상태의 런은 `git_rev` 만으로 재현되지 않는다 — manifest 에 기록해서
-    나중에 "이 런을 재현할 수 있는가"에 정직하게 답할 수 있게 한다.
+    A run made in a dirty tree does not reproduce from `git_rev` alone -- it is
+    recorded in the manifest so that "can this run be reproduced" can be answered
+    honestly later.
     """
     try:
         out = subprocess.run(["git", "status", "--porcelain"],
@@ -141,12 +144,14 @@ def git_dirty(cwd: Path | None = None) -> bool | None:
         return None
 
 
-# 재현성에 실제로 영향을 주는 패키지만. 전부 넣으면 무해한 변경에도 해시가 바뀐다.
+# Only packages that actually affect reproducibility. Include everything and the
+# hash changes on harmless updates too.
 ENV_PACKAGES: tuple[str, ...] = ("hoomd", "numpy", "scipy", "gsd", "freud")
 
 
 def env_versions() -> dict[str, str]:
-    """수치에 영향을 주는 패키지의 버전. import 실패는 `"absent"`."""
+    """Versions of the packages that affect the numbers. A failed import is
+    `"absent"`."""
     out = {"python": platform.python_version(), "platform": platform.platform()}
     for name in ENV_PACKAGES:
         try:
@@ -155,7 +160,7 @@ def env_versions() -> dict[str, str]:
             out[name] = "absent"
             continue
         v = getattr(mod, "__version__", None)
-        if v is None:                                   # hoomd 는 version.version
+        if v is None:                                   # hoomd uses version.version
             v = getattr(getattr(mod, "version", None), "version", "unknown")
         out[name] = str(v)
     return out
@@ -166,25 +171,28 @@ def env_hash() -> str:
 
 
 def provenance(driver: str | Path | None = None) -> dict:
-    """"이 산출물을 무엇이 만들었는가" — **provenance 블록의 유일한 정의.**
+    """"What made this artefact" — **the single definition of the provenance block.**
 
-    `build_manifest` 와 두 러너와 분석 스크립트가 모두 이것을 쓴다. 호출처마다
-    손으로 만들면 키 이름이 갈라지고, 그러면 `report.reproducibility_section` 이
-    읽는 이름과 러너가 쓰는 이름이 어긋나 **재현 정보가 조용히 빈칸으로 렌더된다.**
-    2026-07-29 에 실제로 그랬다: `report.py` 는 `env_hash` 를 읽는데 두 러너가
-    자기 manifest 를 손으로 만들면서 그 키를 넣지 않았다.
+    `build_manifest`, both runners and the analysis scripts all use this. Built by
+    hand at each call site the key names drift apart, and then the names
+    `report.reproducibility_section` reads stop matching the ones the runner writes
+    -- so **the reproducibility information renders as a silent blank.**
+    That actually happened on 2026-07-29: `report.py` reads `env_hash`, and both
+    runners built their own manifest by hand without that key.
 
-    **분석 단계에서도 호출한다.** 궤적의 manifest 는 *궤적 생성 시점*의 해시를 담고
-    분석은 나중에 따로 돌 수 있다 (`--analyze-only`) — 그러면 `metrics.json` 이
-    어느 분석 코드·어느 `freud` 에서 나왔는지 알 수 없다.
+    **It is called at analysis time too.** A trajectory's manifest holds the hashes
+    from *trajectory-generation* time, and the analysis can be run separately later
+    (`--analyze-only`) -- and then there is no telling which analysis code and which
+    `freud` produced `metrics.json`.
 
     Args:
-        driver: 런을 정의한 스크립트. `code_hash` 는 `simbot/` 만 덮으므로
-            `A` 목록·시드·런 길이·분석 창 같은 것을 정하는 `scripts/` 의 드라이버는
-            이 인자로만 특정된다.
-            ⚠ **파일 1개의 해시다.** 드라이버가 `scripts/` 안의 다른 모듈을
-            import 하면 그것은 덮이지 않는다 — 현재 드라이버들은 `simbot` 만
-            import 하므로 `code_hash` + `driver_hash` 가 함께 전부를 덮는다.
+        driver: the script that defined the run. `code_hash` covers only `simbot/`,
+            so the driver in `scripts/` -- which sets the `A` list, seeds, run
+            length, analysis windows and so on -- is pinned by this argument alone.
+            ⚠ **It is the hash of a single file.** If the driver imports another
+            module from `scripts/`, that one is not covered -- the current drivers
+            import only `simbot`, so `code_hash` + `driver_hash` together cover
+            everything.
     """
     out = {
         "code_hash": code_hash(),
@@ -194,9 +202,10 @@ def provenance(driver: str | Path | None = None) -> dict:
         "env": env_versions(),
     }
     if driver is not None:
-        #  ★ 여러 파일을 받는다. 드라이버가 `scripts/` 안의 다른 모듈을 import 하면
-        #    그것도 런의 파라미터를 정하므로 함께 해싱해야 한다 — 하나만 잡으면
-        #    "code_hash + driver_hash 가 전부를 덮는다"는 주장이 거짓이 된다.
+        #  ★ It takes several files. If the driver imports another module from
+        #    `scripts/`, that one also sets run parameters and must be hashed too --
+        #    catch only one and the claim "code_hash + driver_hash cover everything"
+        #    becomes false.
         paths = ([driver] if isinstance(driver, (str, Path))
                  else list(driver))
         pairs = {}
@@ -210,7 +219,7 @@ def provenance(driver: str | Path | None = None) -> dict:
         else:
             out["driver"] = sorted(pairs)
             out["drivers"] = pairs
-            #  합성 해시 — 파일 하나만 바뀌어도 달라진다
+            #  a composite hash — it changes if any single file changes
             out["driver_hash"] = sha256_payload(pairs)[:12]
     return out
 
@@ -226,23 +235,24 @@ def slugify(text: str) -> str:
 
 
 def new_run_id(slug: str, spec_hash: str, when: _date | None = None) -> str:
-    """`run_id = <날짜>_<슬러그>_<spec해시 앞6자리>`.
+    """`run_id = <date>_<slug>_<first 6 of the spec hash>`.
 
-    `when` 을 명시하면 결정적이다 (테스트·재현용). 생략하면 오늘.
+    Deterministic when `when` is given (for tests and reproduction). Today if
+    omitted.
     """
     day = (when or _date.today()).isoformat()
     return f"{day}_{slugify(slug)}_{spec_hash[:6]}"
 
 
 # =============================================================================
-# run 디렉터리
+# run directory
 # =============================================================================
 @dataclass(frozen=True)
 class RunDir:
-    """run 디렉터리의 경로 계산기. 파일을 만들지 않고 경로만 안다.
+    """A path calculator for a run directory. It creates no files, only knows paths.
 
-    `RUN_LAYOUT` 의 키로 접근한다 — 파일명 문자열이 코드 곳곳에 흩어지면
-    S6 이 쓰는 이름과 S7 이 읽는 이름이 조용히 달라진다.
+    Access is by `RUN_LAYOUT` key -- scatter the filename strings through the code
+    and the name S6 writes quietly diverges from the name S7 reads.
     """
 
     path: Path
@@ -292,12 +302,13 @@ class RunDir:
         return json.loads(self.read(stage))
 
     def completed_stages(self) -> list[str]:
-        """이미 산출물이 있는 단계들 — `resume` 이 재계산을 건너뛰는 근거."""
+        """Stages that already have artefacts — the basis for `resume` skipping
+        recomputation."""
         return [s for s in RUN_LAYOUT if s != "input" and self.exists(s)]
 
 
 # =============================================================================
-# 봉인
+# sealing
 # =============================================================================
 @dataclass(frozen=True)
 class SealEntry:
@@ -307,30 +318,30 @@ class SealEntry:
 
 @dataclass
 class SealVerdict:
-    """봉인 검증 결과. **`ok=False` 면 S7 은 중단해야 한다.**"""
+    """Seal-verification result. **On `ok=False`, S7 must stop.**"""
 
     ok: bool
     changed: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
-    unsealed: list[str] = field(default_factory=list)   # 봉인 대상인데 목록에 없음
+    unsealed: list[str] = field(default_factory=list)   # should be sealed, not listed
     entries: dict[str, str] = field(default_factory=dict)
 
     def summary(self) -> str:
         if self.ok:
             n = len(self.entries)
-            return f"봉인 검증 통과 — {n}개 문서 실행 후 미변경"
+            return f"seal verified — nothing changed after the run ({n} sealed)"
         parts = []
         if self.changed:
-            parts.append(f"변경됨 {self.changed}")
+            parts.append(f"changed {self.changed}")
         if self.missing:
-            parts.append(f"사라짐 {self.missing}")
+            parts.append(f"vanished {self.missing}")
         if self.unsealed:
-            parts.append(f"봉인 안 됨 {self.unsealed}")
-        return "봉인 위반 — " + " · ".join(parts)
+            parts.append(f"not sealed {self.unsealed}")
+        return "seal violation — " + " · ".join(parts)
 
 
 def _seal_relpath(path: Path) -> str:
-    """repo 상대경로. repo 밖이면 절대경로 (테스트용 tmpdir 등)."""
+    """Repo-relative path. Absolute if outside the repo (a test tmpdir, say)."""
     p = Path(path).resolve()
     try:
         return p.relative_to(REPO_ROOT).as_posix()
@@ -339,10 +350,11 @@ def _seal_relpath(path: Path) -> str:
 
 
 def write_seal(rundir: RunDir, stages: tuple[str, ...] = SEALED_STAGES) -> Path:
-    """존재하는 봉인 대상 문서의 해시를 `SEALED.sha256` 에 쓴다.
+    """Write the hashes of the existing sealable documents into `SEALED.sha256`.
 
-    ⚠ **S5 실행 전에 호출해야 한다.** 실행 후에 봉인하면 봉인이 아무것도 보증하지
-      않는다 — 이 함수는 그것을 감지할 수 없으므로 파이프라인이 순서를 지켜야 한다.
+    ⚠ **Must be called before S5 runs.** Seal after the run and the seal guarantees
+      nothing -- this function cannot detect that, so the pipeline has to keep the
+      order.
     """
     lines = []
     for stage in stages:
@@ -351,8 +363,8 @@ def write_seal(rundir: RunDir, stages: tuple[str, ...] = SEALED_STAGES) -> Path:
             lines.append(f"{sha256_file(p)}  {_seal_relpath(p)}")
     if not lines:
         raise FileNotFoundError(
-            f"봉인할 문서가 없다 — {list(stages)} 중 하나도 존재하지 않는다. "
-            f"S2 예측을 먼저 쓸 것.")
+            f"nothing to seal — not one of {list(stages)} exists. "
+            f"Write the S2 prediction first.")
     out = rundir.file("seal")
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return out
@@ -367,17 +379,18 @@ def read_seal(rundir: RunDir) -> dict[str, str]:
         if not line or line.startswith("#"):
             continue
         digest, _, rel = line.partition("  ")
-        if not rel:                                    # 한 칸 구분자도 허용
+        if not rel:                                    # a single-space separator too
             digest, _, rel = line.partition(" ")
         out[rel.strip()] = digest.strip()
     return out
 
 
 def verify_seal(rundir: RunDir, stages: tuple[str, ...] = SEALED_STAGES) -> SealVerdict:
-    """봉인된 문서가 실행 후 바뀌지 않았는지 확인한다.
+    """Check that the sealed documents did not change after the run.
 
-    `stages` 중 봉인 목록에 아예 없는 문서는 `unsealed` 로 보고한다 —
-    "봉인 파일이 통과했다"가 "예측이 봉인됐다"를 뜻하지 않게 하려면 이것이 필요하다.
+    A document in `stages` that is not in the seal list at all is reported as
+    `unsealed` -- needed so that "the seal file passed" does not come to mean "the
+    prediction was sealed".
     """
     if not rundir.exists("seal"):
         return SealVerdict(ok=False, missing=[RUN_LAYOUT["seal"]])
@@ -407,17 +420,19 @@ def verify_seal(rundir: RunDir, stages: tuple[str, ...] = SEALED_STAGES) -> Seal
 # =============================================================================
 def build_manifest(*, run_id: str, spec_hash: str, seed, extra: dict | None = None,
                    rundir: RunDir | None = None) -> dict:
-    """`05_run_manifest.json` 의 내용. 재현에 필요한 전부.
+    """The contents of `05_run_manifest.json`. Everything reproduction needs.
 
-    예측 해시를 여기에 박아두면 `SEALED.sha256` 파일이 지워져도 봉인이 남는다
-    (manifest 도 지우면 사라지지만, 두 곳을 동시에 고쳐야 한다는 마찰이 생긴다).
+    Pinning the prediction hash here keeps the seal alive even if the
+    `SEALED.sha256` file is deleted (deleting the manifest too loses it, but that
+    creates the friction of having to edit two places at once).
     """
     man = {
         "run_id": run_id,
         "spec_hash": spec_hash,
         "seed": seed,
-        #  ★ provenance 는 한 곳에서만 만든다 — 여기서 손으로 나열하면 러너·분석과
-        #    키 이름이 갈라진다 (`provenance()` docstring 참조)
+        #  ★ provenance is built in exactly one place — list it by hand here and
+        #    the key names drift from the runners and the analysis (see the
+        #    `provenance()` docstring)
         **provenance(),
     }
     if rundir is not None and rundir.exists("seal"):

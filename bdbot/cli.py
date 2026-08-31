@@ -350,7 +350,44 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("case")
     q.add_argument("extra", nargs=argparse.REMAINDER)
     q.set_defaults(fn=cmd_run)
+
+    # ── S5-S8: the other half's command surface, merged 2026-08-29 ────────────
+    #  This closes the "two engines" seam (docs/00-merge-decisions.md section 5):
+    #  a case run through `bdbot` got a health verdict but **no sealed
+    #  prediction**, and a spec run through the root `cli.py` got sealing but
+    #  could not reach `bdbot`'s cases. Now one entry point reaches both halves.
+    #
+    #  ★ Why a nested group rather than flat subcommands: `run` means different
+    #    things in the two halves -- here it is "run a registered case script",
+    #    there it is "take one spec.yaml through S5-S8 to REPORT.md". Flattening
+    #    would have silently shadowed one of them. The two surfaces are otherwise
+    #    disjoint, which is why this merge is additive.
+    #  ⚠ `REMAINDER` and not individually declared arguments, so that
+    #    `simbot.cli`'s own parser stays the single definition of its flags. Adding
+    #    a flag there must not require editing this file.
+    q = sub.add_parser(
+        "pipeline",
+        help="S5-S8 -- sealed prediction, PASS/FAIL/INCONCLUSIVE, REPORT.md "
+             "(delegates to simbot.cli)")
+    q.add_argument("rest", nargs=argparse.REMAINDER,
+                   help="run | resume | converge | params | calibrate ... "
+                        "(see `python -m simbot.cli --help`)")
+    q.set_defaults(fn=cmd_pipeline)
     return ap
+
+
+def cmd_pipeline(args) -> int:
+    """Hand off to `simbot.cli`, the S5-S8 half.
+
+    * The import is **deliberately inside the function.** `simbot.cli` pulls in
+      `simbot.viz` and therefore matplotlib; importing it at module scope would
+      cost `bdbot.cli` its "the front end stays fast" property, which is stated in
+      `bdbot/__init__.py` and measured by `tests/test_bdbot_lazy_api.py`. Measured:
+      `python -m bdbot.cli status` is 0.35 s with the deferred import and 2.1 s
+      without it.
+    """
+    from simbot import cli as pipeline_cli
+    return pipeline_cli.main(args.rest)
 
 
 def main(argv=None) -> int:

@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "ensemble",
+    "glob",
+    "legacy",
+    "run_id",
+    "aggregation-error"
+  ],
+  "dimensionless": {},
+  "source": "scratch/trap_drag_ensemble.py#is_current",
+  "lessons": [
+    {
+      "claim": "Collecting an ensemble aggregation by globbing run directories **also catches legacy runs whose tag is the same and only the hash differs**. Measured in the trap-drag re-run: the glob tr0.117647-s* matched all 8 old-code runs and all 8 new runs, and left alone it mixes two code versions into the same mean and counts the seeds twice. A content address gives the same tag to the same physical parameters, so the tag cannot distinguish them. Use as the discriminator 'a field that only exists in that code version' (here numerics.step_drift_max_sigma), and **print the excluded runs by name** -- discard them silently and it reads as 'everything was included'.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

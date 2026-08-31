@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "nondim",
+    "peclet",
+    "weissenberg",
+    "convention"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#4.1 ← [L] p.106,p.75,p.107",
+  "lessons": [
+    {
+      "claim": "★ The numerator of the Peclet/Weissenberg number is the strain-rate magnitude |E| and not |grad u| (vorticity merely rotates the particle uniformly and cannot change an isotropic equilibrium distribution). The convention is |E| = sqrt(2 E:E) -- using sqrt(E:E) is wrong by a factor sqrt(2)=1.414. A pure rotational flow has Pe=0 however large |grad u| is. For a near-sphere (r-1<<1) the right scale is |E|(r-1)/Dr, so writing |E|/Dr overestimates",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

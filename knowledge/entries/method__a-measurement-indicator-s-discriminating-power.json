@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "scratch/viz_three_cond.py",
+  "lessons": [
+    {
+      "claim": "**A measurement indicator's discriminating power depends on the driving protocol -- hold the indicator fixed and change the condition and it looks as though the conclusion was overturned.** Measured (the DLVO vs JKR bow RMS ratio): trap default 15.4x → trap k_t×100 1.4x → position forcing 1.9x. The reason is that when the deformation is forced the chain bends **independently of the stiffness**. Conversely a force indicator (K') creates an artefact when the following is poor (at 27% following, K'=105.7 looked 2.28σ away from 0, and fixing the following to 100% collapsed it to 0.84σ). ⟹ The rule: **for free deformation look at the shape (the bow); for forced deformation look at the force (K').** Writing earlier that 'the bow is the best discriminator (22.3σ)' is right only in the weak-trap condition. When making a new indicator, confirm that it separates **in both extreme conditions**.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

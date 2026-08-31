@@ -109,7 +109,8 @@ check("cumulative alone, with no time axis, is not enough (log lag)",
 
 m, r_ = modes_of(msd_log, positive=True, cumulative=True, t=t_log)
 # ★ Match what health.py actually names this finding. It filtered for the Korean
-#   "성장 지수" while health.py has emitted "<name> growth exponent" since it was
+#   spelling of "growth exponent" while health.py has emitted "<name> growth
+#   exponent" since it was
 #   translated, so this list was always empty. It only feeds the message, not the
 #   assertion, so it degraded the diagnostic rather than breaking the check --
 #   but the same coupling broke two real assertions elsewhere in this file.
@@ -329,7 +330,8 @@ tmp = Path(tempfile.mkdtemp()) / "tampered.json"
 tmp.write_text(json.dumps(raw))
 probs = H.gate(ND.load(tmp))
 # ★ Assert on what health.py ACTUALLY emits. This filtered for the Korean
-#   "run_id 불일치" while health.py has emitted "run_id mismatch" since it was
+#   spelling of "run_id mismatch" while health.py has emitted "run_id mismatch"
+#   since it was
 #   translated, so the check FAILED while the gate it tests worked correctly --
 #   the failure output literally contained the rejection it was looking for.
 #   Now matched on the stable `run_id` + `mismatch` tokens rather than a
@@ -342,7 +344,7 @@ check("hand-edited spec -> the gate rejects it",
 p = H.predicted_dt_over_tau(spec)
 # ⚠ CURRENTLY FAILING, and correctly so -- it reports a real defect in
 #   health.predicted_dt_over_tau, which filters `kind == "integration"` while 274 of
-#   278 archived specs still carry the Korean '적분'. Route that call through
+#   278 archived specs still carry the Korean word for it. Route that call through
 #   bdbot.checks.canon_kind and this passes. Not fixed here because
 #   bdbot/health.py has uncommitted work from another session.
 check("the L3 dt/tau prediction is extracted from the spec",
@@ -364,7 +366,8 @@ print("=" * 78)
 # ★ A verdict string reads in TWO vocabularies, and both must be accepted.
 #   `checks.verdict()` now emits "PASS (N warnings)", but specs/ is a frozen
 #   archive written by the older code: measured 2026-08-29, 271 of 278 archived
-#   specs carry the Korean "PASS (경고 N건)" and only 1 carries the English form.
+#   specs carry the Korean rendering of "PASS (N warnings)" and only 1 carries the
+#   English form.
 #   Testing either spelling alone makes this regression check silently sample
 #   almost none of the archive -- which is the failure it exists to prevent.
 #   Same read-both-write-one rule as bdbot.checks.canon_kind and runid.py's dual
@@ -423,8 +426,9 @@ for lvl, should_block in (("error", True), ("warn", False), ("info", False)):
     raw["l3_issues"] = [{"level": lvl, "where": "test", "msg": "injected"}]
     t3 = Path(tempfile.mkdtemp()) / f"iss_{lvl}.json"
     t3.write_text(json.dumps(raw))
-    # ★ Filter on what health.py ACTUALLY emits. This looked for the Korean
-    #   "무결성" while health.py has emitted "L3 integrity errors (...)" since
+    # ★ Filter on what health.py ACTUALLY emits. This looked for the Korean word
+    #   for "integrity" while health.py has emitted "L3 integrity errors (...)"
+    #   since
     #   it was translated, so `probs` was always empty and the error case
     #   reported "does not block" when it does. Matched on "integrity", the
     #   stable token, rather than the sentence.

@@ -1,10 +1,13 @@
-"""앞단 검사기 적대적 테스트 — 일부러 망가뜨린 스펙을 정말 잡는가.
+"""Adversarial test of the front-end checkers -- do they really catch a
+deliberately broken spec?
 
-"조용히 통과한 것"과 "검사를 안 한 것"은 다릅니다. 이 스크립트는 L0(observation)·
-L2(system) 검사기에 고장난 입력을 넣어 **각 규칙이 실제로 발동하는지** 확인합니다.
+"Passed silently" and "did not check" are different things. This script feeds broken
+input to the L0 (observation) and L2 (system) checkers to confirm **each rule
+actually fires**.
 
-이 테스트로 실제 버그를 하나 잡았습니다: 단위를 `furlong^2`로 바꿨을 때 검사기가
-오류를 보고하는 대신 pint `DimensionalityError`로 크래시했습니다 (bdbot.physical.bulk).
+This test caught a real bug: changing a unit to `furlong^2` made the checker crash
+with a pint `DimensionalityError` instead of reporting an error
+(bdbot.physical.bulk).
 
     $PY scratch/verify_intake_guards.py
 """
@@ -33,7 +36,7 @@ def report(ok, label, detail=""):
 
 # ══════════════════════════════════════════════════════════════════════
 print("=" * 78)
-print("① L0 observation 검사기")
+print("(1) L0 observation checker")
 print("=" * 78)
 obs_base = yaml.safe_load((CASE_OK / "observation.yaml").read_text())
 tmp = pathlib.Path(tempfile.mkdtemp())
@@ -47,48 +50,51 @@ def obs_check(mutate, label, want_error=True):
     try:
         o = I.load(tmp)
     except Exception as e:
-        report(False, label, f"크래시! {type(e).__name__}")
+        report(False, label, f"CRASH! {type(e).__name__}")
         return
     errs = o.errors
     ok = (len(errs) > 0) == want_error
-    report(ok, label, f"오류 {len(errs)}건" + (f"  → {errs[0].msg[:44]}" if errs else ""))
+    report(ok, label, f"{len(errs)} error(s)"
+                      + (f"  -> {errs[0].msg[:44]}" if errs else ""))
 
 
-obs_check(lambda d: None, "원본 (오류 0이 정답)", want_error=False)
-obs_check(lambda d: d.pop("ambiguities"), "ambiguities 키 삭제 (§8.3)")
-obs_check(lambda d: d.pop("unread_regions"), "unread_regions 키 삭제 (§8.3)")
-obs_check(lambda d: d.pop("raw_transcription"), "전사 삭제 (규칙 5)")
-obs_check(lambda d: d.__setitem__("raw_transcription", "짧음"), "전사가 너무 짧음")
+obs_check(lambda d: None, "unmodified (0 errors is the right answer)", want_error=False)
+obs_check(lambda d: d.pop("ambiguities"), "delete the ambiguities key (§8.3)")
+obs_check(lambda d: d.pop("unread_regions"), "delete the unread_regions key (§8.3)")
+obs_check(lambda d: d.pop("raw_transcription"), "delete the transcription (rule 5)")
+obs_check(lambda d: d.__setitem__("raw_transcription", "too short"),
+          "transcription too short")
 obs_check(lambda d: d["ambiguities"][0].pop("resolution"),
-          "ambiguity 의 resolution 키 삭제")
+          "delete an ambiguity's resolution key")
 obs_check(lambda d: d["missing_required"][0].pop("confidence"),
-          "가정값에서 tier 삭제 (규칙 3) ★")
+          "delete tier from an assumed value (rule 3) ★")
 obs_check(lambda d: d["stated_quantities"][0].__setitem__("source", ""),
-          "명시 수치의 source 를 비움 (원칙 2)")
+          "blank the source of an explicit number (principle 2)")
 obs_check(lambda d: d["ambiguities"].__setitem__(1, dict(d["ambiguities"][1], id="A1")),
-          "ambiguity id 중복")
+          "duplicate ambiguity id")
 obs_check(lambda d: d["missing_required"][2].__setitem__("kind", "maybe"),
-          "kind 를 허용값 밖으로")
+          "set kind outside the allowed values")
 
-# choice/physical 구분이 판정을 바꾸는가
+# Does the choice/physical distinction change the verdict?
 d = copy.deepcopy(obs_base)
 (tmp / "observation.yaml").write_text(yaml.safe_dump(d, allow_unicode=True))
 o = I.load(tmp)
 report(not o.open_missing and len(o.open_choices) == 1,
-       "kind:choice 는 차단하지 않음",
-       f"차단 {len(o.open_missing)} · 미정선택 {len(o.open_choices)}")
+       "kind:choice does not block",
+       f"blocking {len(o.open_missing)} . open choices {len(o.open_choices)}")
 for m in d["missing_required"]:
     if m.get("kind") == "choice":
         m.pop("kind")
 (tmp / "observation.yaml").write_text(yaml.safe_dump(d, allow_unicode=True))
 o2 = I.load(tmp)
-report(len(o2.open_missing) == 1, "kind 없으면 physical 로 보수적 판정",
-       f"차단 {len(o2.open_missing)}건")
+report(len(o2.open_missing) == 1,
+       "with no kind, it falls back conservatively to physical",
+       f"{len(o2.open_missing)} blocking")
 
 # ══════════════════════════════════════════════════════════════════════
 print()
 print("=" * 78)
-print("② L2 system 검사기")
+print("(2) L2 system checker")
 print("=" * 78)
 sys_base = yaml.safe_load((CASE_OK / "system.yaml").read_text())
 t2 = pathlib.Path(tempfile.mkdtemp())
@@ -103,99 +109,124 @@ def sys_check(mutate, label, want_error=True):
     try:
         s = P.load(t2)
     except Exception as e:
-        report(False, label, f"크래시! {type(e).__name__}")
+        report(False, label, f"CRASH! {type(e).__name__}")
         return
     errs = s.errors
     ok = (len(errs) > 0) == want_error
-    report(ok, label, f"오류 {len(errs)}건" + (f"  → {errs[0].msg[:44]}" if errs else ""))
+    report(ok, label, f"{len(errs)} error(s)"
+                      + (f"  -> {errs[0].msg[:44]}" if errs else ""))
 
 
-sys_check(lambda d: None, "원본 (오류 0이 정답)", want_error=False)
+sys_check(lambda d: None, "unmodified (0 errors is the right answer)",
+          want_error=False)
 sys_check(lambda d: d["derived_scales"].__setitem__("tau_B", {"value": 300.0, "unit": "s"}),
-          "τ_B 를 242→300 (재계산 불일치) ★")
-sys_check(lambda d: d["particle"]["diameter"].pop("source"), "d 의 source 삭제 (원칙 2)")
+          "change tau_B 242->300 (recomputation mismatch) ★")
+sys_check(lambda d: d["particle"]["diameter"].pop("source"),
+          "delete d's source (principle 2)")
 sys_check(lambda d: d["particle"]["diameter"].__setitem__("unit", "furlong^2"),
-          "단위를 차원 불일치로 (예전엔 크래시) ★")
+          "make the unit dimensionally inconsistent (used to crash) ★")
 sys_check(lambda d: d["particle"]["diameter"].__setitem__("unit", "nonsense_unit"),
-          "단위를 해석 불가로")
-sys_check(lambda d: d["particle"]["diameter"].__setitem__("tier", 7), "tier 를 7 로")
-sys_check(lambda d: d.pop("derived_from"), "derived_from 삭제 (§5.4 불변식) ★")
-sys_check(lambda d: d.__setitem__("derived_from", "nope.yaml"), "없는 파일 참조")
-sys_check(lambda d: d.pop("medium"), "medium 섹션 삭제")
+          "make the unit unparseable")
+sys_check(lambda d: d["particle"]["diameter"].__setitem__("tier", 7), "set tier to 7")
+sys_check(lambda d: d.pop("derived_from"),
+          "delete derived_from (§5.4 invariant) ★")
+sys_check(lambda d: d.__setitem__("derived_from", "nope.yaml"),
+          "reference a file that does not exist")
+sys_check(lambda d: d.pop("medium"), "delete the medium section")
 
-# ★ L0이 BLOCKED인데 L2가 확정돼 있으면
-# 실제 케이스 상태에 의존하지 않게 **합성 입력**으로 만든다 — 케이스가 해소되면
-# 테스트가 조용히 무력화되기 때문이다 (abp-rod 가 해소되자 실제로 그랬다).
+# ★ L0 BLOCKED while L2 is settled.
+# Built from **synthetic input** so it does not depend on the real state of any case
+# -- once a case is resolved the test would be silently neutered, which is exactly
+# what happened when abp-rod was resolved.
 obs_blocked = copy.deepcopy(obs_base)
 obs_blocked["missing_required"].append({
     "symbol": "made_up_param", "kind": "physical",
-    "what": "합성 테스트용 미해소 물리 결측", "assumed_value": None, "resolution": None})
+    "what": "synthetic unresolved physical gap for this test",
+    "assumed_value": None, "resolution": None})
 (t2 / "observation.yaml").write_text(yaml.safe_dump(obs_blocked, allow_unicode=True))
 (t2 / "system.yaml").write_text(yaml.safe_dump(sys_base, allow_unicode=True))
 s = P.load(t2)
-blk = [i for i in s.errors if "미해소 물리 결측" in i.msg]
-report(bool(blk), "L0 BLOCKED인데 L2 확정 (규칙 3) ★",
-       blk[0].msg[:44] if blk else "못 잡음!")
+# ⚠ This filter must match what bdbot/physical.py ACTUALLY emits, not the `what`
+#   text injected above -- the message quotes the SYMBOL, not the description.
+#   It read the Korean for "unresolved physical gaps" until 2026-08-29, which
+#   stopped matching the moment
+#   physical.py was translated to English, so this guard -- the one enforcing rule 3,
+#   "never invent a value" -- was failing and nothing surfaced it (this script is not
+#   part of the pytest suite). Anchored on the stable English phrase instead.
+blk = [i for i in s.errors if "unresolved physical gaps" in i.msg]
+report(bool(blk), "L0 BLOCKED while L2 is settled (rule 3) ★",
+       blk[0].msg[:44] if blk else "NOT CAUGHT!")
 
 # ══════════════════════════════════════════════════════════════════════
 print()
 print("=" * 78)
-print("③ 실제 5개 케이스 판정")
+print("(3) verdicts on the five real cases")
 print("=" * 78)
-# 2026-08-04: 막혀 있던 3케이스가 해소됐다 — 사용자 확정(abp-rod 형상·텀블) ·
-# 논문 증류(chain-bend U_ij) · 사용자 확정 + ★제안(trap-drag 페어·밀도).
-# tier 3 제안이 섞여 있으므로 READY 는 "L3로 넘어갈 수 있다"는 뜻이고 승인 완료가 아니다.
+# 2026-08-04: the three blocked cases were resolved -- user confirmation (abp-rod
+# shape and tumbling), paper distillation (chain-bend U_ij), and user confirmation
+# plus ★proposals (trap-drag pair and density).
+# Since tier-3 proposals are mixed in, READY means "may proceed to L3", NOT approved.
 expect = {"trap-2d-5um": "READY", "soft-r3-2d-A-sweep": "READY",
           "abp-rod-2d-run-flip": "READY", "chain-bend-2d-oscill": "READY",
           "trap-drag-2d-hex300": "READY"}
 for name, want in expect.items():
     o = I.load(ROOT / "intake" / name)
     got = "FAIL" if o.errors else ("BLOCKED" if o.open_missing else "READY")
-    report(got == want, f"{name} → {got}", f"(기대 {want})")
+    report(got == want, f"{name} -> {got}", f"(expected {want})")
 
 # ══════════════════════════════════════════════════════════════════════
 print()
 print("=" * 78)
-print("④ 상호작용 추천기 — 미지정 U_ij 에 무엇을 권하는가")
+print("(4) the interaction recommender -- what does it suggest for an unspecified "
+      "U_ij?")
 print("=" * 78)
 EXPECT_TOP = {
-    # 케이스 → (1순위 키, 왜 그래야 하는가)
+    # case -> (top-ranked key, why it should be that)
     "chain-bend-2d-oscill": ("contact.adhesive_bending",
-                             "비드 사슬 + 탄성률 측정 → 접촉 접선력 (Furst 논문)"),
+                             "bead chain + modulus measurement -> tangential contact "
+                             "force (the Furst papers)"),
     "trap-drag-2d-hex300": ("pair.soft_power",
-                            "육방 격자 + 구조 → 소프트 반발 (사용자 확정과 일치)"),
+                            "hexagonal lattice + structure -> soft repulsion "
+                            "(matches the user's confirmation)"),
     "abp-rod-2d-run-flip": ("pair.none",
-                            "MSD·MSAD 단일입자 관측량 → 상호작용 불필요"),
+                            "MSD/MSAD single-particle observables -> no interaction "
+                            "needed"),
 }
 for name, (want, why) in EXPECT_TOP.items():
     o = I.load(ROOT / "intake" / name)
     recs, tags = X.recommend(o)
-    got = recs[0][0].key if recs else "(없음)"
+    got = recs[0][0].key if recs else "(none)"
     report(got == want, f"{name[:26]} → {got}", f"({why})")
 
-# 오탐 회귀: '레올로지'라는 단어만으로 접촉 모델을 올리지 않는다
+# False-positive regression: the word 'rheology' alone must not promote a contact
+# model
 o = I.load(ROOT / "intake/trap-drag-2d-hex300")
 tags = X.infer_tags(o)
 report("tangential" not in tags and "gel" not in tags,
-       "'마이크로레올로지' 단어만으로 접촉 태그 안 붙음",
-       f"(태그: {', '.join(sorted(tags))})")
+       "the word 'microrheology' alone does not attach a contact tag",
+       f"(tags: {', '.join(sorted(tags))})")
 
-# 카탈로그 무결성
+# Catalogue integrity
 bad = [k for k, it in X.CATALOG.items()
        if not it.form or not it.use_when or not it.avoid_when or not it.hoomd]
-report(not bad, "카탈로그 항목이 전부 형태·용도·회피·HOOMD 매핑을 가짐",
-       f"(빈 항목: {bad})" if bad else f"({len(X.CATALOG)}개)")
+report(not bad,
+       "every catalogue entry has a form, a use, a caveat and a HOOMD mapping",
+       f"(empty entries: {bad})" if bad else f"({len(X.CATALOG)} entries)")
 needs_ok = [k for k, it in X.CATALOG.items() if it.key != "pair.none" and not it.needs]
-report(not needs_ok, "pair.none 을 뺀 모든 항목이 '채워야 하는 값'을 명시",
-       f"(누락: {needs_ok})" if needs_ok else "")
-# 검증 여부가 정직하게 표시되는가 (안 쓴 것을 검증됨으로 적지 않았는가)
+report(not needs_ok,
+       "every entry except pair.none states what values must be supplied",
+       f"(missing: {needs_ok})" if needs_ok else "")
+# Is the verification status stated honestly -- nothing marked verified that was
+# never actually used?
 unused_but_verified = [k for k in ("pair.yukawa", "pair.dlvo", "pair.ao_depletion")
                        if X.CATALOG[k].verified]
-report(not unused_but_verified, "안 써본 상호작용을 '검증됨'으로 적지 않음",
-       f"(거짓 주장: {unused_but_verified})" if unused_but_verified else "")
+report(not unused_but_verified,
+       "no never-used interaction is marked as 'verified'",
+       f"(false claims: {unused_but_verified})" if unused_but_verified else "")
 
 print()
 print("=" * 78)
-print(f"{'✓ PASS' if all(results) else '✗ FAIL'} — {sum(results)}/{len(results)} 정상")
+print(f"{'✓ PASS' if all(results) else '✗ FAIL'} -- "
+      f"{sum(results)}/{len(results)} OK")
 print("=" * 78)
 raise SystemExit(0 if all(results) else 1)

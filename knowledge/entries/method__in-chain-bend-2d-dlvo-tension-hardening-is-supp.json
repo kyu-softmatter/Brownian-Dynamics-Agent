@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "dlvo",
+    "tension",
+    "trap",
+    "bond_rupture",
+    "chain-bend-2d-dlvo"
+  ],
+  "dimensionless": {
+    "F_max_kT_per_d": 810.4
+  },
+  "source": "scratch/dlvo_tension_stiffening.py#suppressors",
+  "lessons": [
+    {
+      "claim": "In chain-bend-2d-dlvo, tension hardening is suppressed two ways and cannot explain the observed K′ (only 1~5%). ① **trap compliance**: at the default k_t=5217, the stretching compliance 2/k_t=3.83e-4 is **50x** the chain's (n-1)/k_bond=7.67e-6, so the trap absorbs the stretching → k_ext is 0.0196x that of a rigid clamp (a 51x suppression). At k_t×100 it recovers to 0.667x. ② **the DLVO well's maximum tensile force**: F_max=810.4 kT/d @ h=14.6nm (a 3.46nm stretch from the secondary minimum at 11.16nm). Under the harmonic approximation k_bond, F_max would be reached at 1.14nm, so the actual curve is 3.0x softer (anharmonic softening). In the k_t×100 protocol, at delta=0.43d the required tension is 4.92x F_max and at delta=1d it is 26.6x → **the bond ruptures**. ⟹ Consistent with 1-D having measured K′≈0 (0.84σ) at k_t×100 and a=1d. ⚠ Do not define DLVO's 'escape distance from the well' by the U=0 crossing -- on the outside it only **asymptotes** to U→0⁻ and never crosses, so a nan comes out (experienced for real). The rupture verdict is made from **the maximum tensile force**.",
+      "kind": "method_note",
+      "coords": {
+        "F_max_kT_per_d": 810.4
+      }
+    }
+  ],
+  "not_verified": []
+}

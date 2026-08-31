@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py#build#drive_mode",
+  "lessons": [
+    {
+      "claim": "In oscillatory-driven microrheology, **the bead failing to follow the trap position** may be the default. Measured following ratios |ŷ|/a: DLVO 29%, JKR **3.5%** -- the chain stiffness and the viscous term (ω·γ=18453) are larger than the trap (k_t*=5217) so only the trap spring stretches. Two responses: ① raise k_t (×100 → 82% following, at almost no dt cost. ★ but from ×300 the parenthesis of K'=k_t(ŷ_c/ŷ−1) shrinks to 0.09 so the noise is amplified by the cancellation -- raising the following further makes the measurement worse) ② force the bead's y directly (exclude it from the integration with hoomd.filter.SetDifference + a CustomUpdater) → 100% following, corresponding to strain control in rheology. ⚠️ Computing the existing K'=k_t(ŷ_c/ŷ−1) as it stands in position mode gives **exactly −k_t, a meaningless constant**, because the ghost does not move (measured −5217.11, scatter 1.2e-12). It is plausible and easily misread, so do not emit it at all.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

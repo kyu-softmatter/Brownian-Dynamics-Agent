@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "tooling",
+    "run_id",
+    "reproducibility"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py DOC_KEYS",
+  "lessons": [
+    {
+      "claim": "A content-addressed run_id has to hash the physics fields only. Hash the whole system.yaml and merely fixing a comment or a source invalidates the run (which actually happened when the derived_from field was added)",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

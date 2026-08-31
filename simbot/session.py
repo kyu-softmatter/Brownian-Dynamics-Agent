@@ -1,19 +1,21 @@
-"""대화 세션 상태. LLM 0줄.
+"""Conversational session state. 0 lines of LLM.
 
-> **상태는 대화가 아니라 파일에 있다.** 대화는 사라지고 검사할 수 없다.
+> **The state lives in a file, not in the conversation.** A conversation disappears
+> and cannot be inspected.
 
-`sessions/<id>/session.yaml` 이 턴 단위 이력을 갖는다 (`runs/<id>/` 는 런 단위).
-대화 컨텍스트가 날아가도 `show` 로 이어받을 수 있어야 한다.
+`sessions/<id>/session.yaml` holds the per-turn history (`runs/<id>/` is per run).
+It has to be possible to pick up with `show` after the conversational context is
+gone.
 
-## `set` 은 실행하지 않는다
+## `set` does not run anything
 
-`set` 은 파라미터를 바꾸고 **비용 추정만** 한다. 실행은 `run` 이 한다.
-이 분리가 없으면 "N 을 8000 으로 해보자"가 11분짜리 런을 조용히 시작한다.
+`set` changes a parameter and **only estimates the cost**. Running is `run`'s job.
+Without that separation, "let's try N = 8000" quietly starts an 11-minute run.
 
-## 이력은 append-only
+## The history is append-only
 
-턴을 고치지 않고 새 턴을 쌓는다. 과거 턴을 덮어쓰면 "무엇을 시도했고 무엇이
-안 됐는가"가 사라진다 — 그것이 이 프로젝트 산출물의 절반이다.
+A turn is never edited; a new turn is stacked on top. Overwriting a past turn loses
+"what was tried and what did not work" -- which is half of this project's output.
 """
 from __future__ import annotations
 
@@ -33,10 +35,10 @@ SESSIONS_ROOT = REPO_ROOT / "sessions"
 
 
 # =============================================================================
-# dotted-key 설정
+# dotted-key assignment
 # =============================================================================
 def _navigate(root, path: list[str]):
-    """`['species', '0', 'radius_si']` 를 따라가 (부모, 마지막키) 를 돌려준다."""
+    """Follows `['species', '0', 'radius_si']` and returns (parent, last key)."""
     cur = root
     for part in path[:-1]:
         if isinstance(cur, list):
@@ -46,9 +48,9 @@ def _navigate(root, path: list[str]):
         elif is_dataclass(cur) and part in {f.name for f in fields(cur)}:
             cur = getattr(cur, part)
         else:
-            raise KeyError(f"경로 {'.'.join(path)} 에서 {part!r} 를 찾을 수 없다")
+            raise KeyError(f"path {'.'.join(path)}: {part!r} not found")
         if cur is None:
-            raise KeyError(f"경로 {'.'.join(path)} 의 {part!r} 가 None 이다")
+            raise KeyError(f"path {'.'.join(path)}: {part!r} is None")
     return cur, path[-1]
 
 
@@ -61,16 +63,16 @@ def _read(parent, key: str):
 
 
 def _parse_scalar(text: str):
-    """문자열 → int/float/bool/str/list.
+    """string → int/float/bool/str/list.
 
-    ★ **`yaml.safe_load` 를 그대로 쓰면 안 된다.** YAML 1.1 의 float 정규식은
-      만티사에 소수점을 요구하므로 `5e-3`·`2e-5` 가 **문자열**로 읽힌다
-      (`2.5e-3` 은 float). 그러면 `dt_star` 에 문자열이 들어가고 무차원화가
-      TypeError 로 죽거나, 더 나쁘게는 비교 연산이 조용히 통과한다.
-      같은 함정을 `config/run_policy.yaml` 의 `6.3e6` 에서도 겪었다 —
-      `simbot/policy.py::_find_numeric_strings` 참조.
+    ★ **`yaml.safe_load` must not be used as is.** YAML 1.1's float regex requires a
+      decimal point in the mantissa, so `5e-3` and `2e-5` read as **strings**
+      (`2.5e-3` is a float). Then a string lands in `dt_star` and the
+      non-dimensionalization dies with a TypeError -- or worse, a comparison passes
+      quietly. The same trap was hit with `6.3e6` in `config/run_policy.yaml` --
+      see `simbot/policy.py::_find_numeric_strings`.
 
-    따라서 **숫자를 먼저 시도**하고, 아닐 때만 YAML 에 넘긴다.
+    So **a number is tried first**, and only otherwise is it handed to YAML.
     """
     s = text.strip()
     try:
@@ -85,11 +87,12 @@ def _parse_scalar(text: str):
 
 
 def set_by_path(spec: SystemSpec, dotted: str, raw: str, *, turn: int) -> tuple:
-    """`numerics.dt_star=2.5e-3` 을 적용하고 `(이전값, 새값)` 을 돌려준다.
+    """Applies `numerics.dt_star=2.5e-3` and returns `(old value, new value)`.
 
-    `Quantity` 필드면 `value` 만 바꾸고 **provenance 를 `user` 로 바꾼다** —
-    사람이 이 런에서 직접 지정한 값은 가정도 추론도 정책도 아니다. 이 구별이
-    S7b 감도 분석의 대상 목록을 정한다 (사람이 정한 값은 흔들 대상이 아니다).
+    For a `Quantity` field, only `value` changes and **the provenance becomes
+    `user`** -- a value a human set directly in this run is neither an assumption,
+    nor an inference, nor policy. That distinction decides S7b's sensitivity target
+    list (a human-chosen value is not something to shake).
     """
     parent, key = _navigate(spec, dotted.split("."))
     old = _read(parent, key)
@@ -99,8 +102,8 @@ def set_by_path(spec: SystemSpec, dotted: str, raw: str, *, turn: int) -> tuple:
         prev = old.value
         old.value = new_value
         old.provenance = "user"
-        old.basis = (f"턴 {turn} 에서 사람이 지정 (이전 {prev!r}"
-                     + (f", 원래 근거: {old.basis}" if old.basis else "") + ")")
+        old.basis = (f"set by a human on turn {turn} (previously {prev!r}"
+                     + (f", original basis: {old.basis}" if old.basis else "") + ")")
         old.confidence = old.confidence or "high"
         return prev, new_value
 
@@ -114,7 +117,7 @@ def set_by_path(spec: SystemSpec, dotted: str, raw: str, *, turn: int) -> tuple:
 
 
 # =============================================================================
-# 턴
+# Turn
 # =============================================================================
 @dataclass
 class Turn:
@@ -131,7 +134,7 @@ class Turn:
 
 
 # =============================================================================
-# 세션
+# Session
 # =============================================================================
 @dataclass
 class Session:
@@ -141,7 +144,7 @@ class Session:
     turns: list[Turn] = field(default_factory=list)
     root: Path = SESSIONS_ROOT
 
-    # --- 경로 ---
+    # --- paths ---
     @property
     def dir(self) -> Path:
         return Path(self.root) / self.session_id
@@ -153,7 +156,7 @@ class Session:
     def derived_spec_file(self, turn: int) -> Path:
         return self.dir / f"spec_turn{turn:02d}.yaml"
 
-    # --- 생성 / 저장 / 로드 ---
+    # --- create / save / load ---
     @classmethod
     def create(cls, spec_path: str | Path, *, root: Path | None = None,
                when: datetime | None = None) -> Session:
@@ -174,10 +177,11 @@ class Session:
         base = Path(root) if root else SESSIONS_ROOT
         f = base / session_id / "session.yaml"
         if not f.exists():
-            raise FileNotFoundError(f"세션 {session_id} 가 없다 ({f})")
+            raise FileNotFoundError(f"session {session_id} does not exist ({f})")
         raw = yaml.safe_load(f.read_text(encoding="utf-8"))
         turns = [Turn(**t) for t in raw.get("turns", [])]
-        # 최신 턴의 파생 spec 을 정본으로 읽는다 — 원본 spec 은 바뀌지 않는다
+        # the latest turn's derived spec is the canonical one — the original spec is
+        # never modified
         spec_file = base / session_id / raw["current_spec"]
         return cls(session_id=session_id, spec_path=raw["spec_path"],
                    spec=SystemSpec.load(spec_file), turns=turns, root=base)
@@ -187,7 +191,8 @@ class Session:
         base = Path(root) if root else SESSIONS_ROOT
         cands = sorted(p.name for p in base.glob("*") if (p / "session.yaml").exists())
         if not cands:
-            raise FileNotFoundError(f"{base} 에 세션이 없다. `session new <spec>` 먼저.")
+            raise FileNotFoundError(f"no session under {base}. Run "
+                                    f"`session new <spec>` first.")
         return cls.load(cands[-1], root=base)
 
     def _append(self, turn: Turn) -> Turn:
@@ -212,14 +217,15 @@ class Session:
             encoding="utf-8")
         return self.state_file
 
-    # --- 명령 ---
+    # --- commands ---
     def set(self, assignments: list[str], *, policy: Policy | None = None,
             when: datetime | None = None) -> Turn:
-        """파라미터 변경 → 파생 spec + **비용 추정만. 실행하지 않는다.**"""
+        """Change a parameter → a derived spec + **a cost estimate only. It does not
+        run.**"""
         changes: dict[str, list] = {}
         for a in assignments:
             if "=" not in a:
-                raise ValueError(f"{a!r} 은 `키=값` 형식이 아니다")
+                raise ValueError(f"{a!r} is not in `key=value` form")
             key, _, raw = a.partition("=")
             old, new = set_by_path(self.spec, key.strip(), raw.strip(),
                                    turn=len(self.turns))
@@ -230,16 +236,17 @@ class Session:
             index=len(self.turns), timestamp=_now(when), kind="set",
             changes=changes, spec_hash=self.spec.hash(),
             cost=self.estimate_cost(policy=policy), problems=rep.problems,
-            note="비용 추정만 — 실행하려면 `session run`"))
+            note="cost estimate only — to run it, `session run`"))
 
     def estimate_cost(self, *, policy: Policy | None = None) -> dict:
-        """이 spec 을 지금 돌리면 얼마나 걸리는가. **예산 초과면 그렇게 적는다.**"""
+        """How long running this spec now would take. **If it is over budget it says
+        so.**"""
         pol = policy or load_policy()
         from .nondim import reduce_spec
         try:
             r = reduce_spec(self.spec)
-        except Exception as e:                        # 척도 미등록 카드 등
-            return {"error": f"무차원화 실패: {e}"}
+        except Exception as e:                        # a card with no registered scales
+            return {"error": f"non-dimensionalization failed: {e}"}
 
         n_seeds = int(self.spec.numerics.n_seeds.si) if self.spec.numerics.n_seeds \
             else pol.seeds_default
@@ -254,22 +261,23 @@ class Session:
             "concurrency": k,
             "efficiency": pol.efficiency(k),
             "wall_s_per_seed": round(wall, 3),
-            "wall_s_batch": round(wall, 3),           # 동시 실행이므로 배치 ≈ 1개
+            "wall_s_batch": round(wall, 3),           # run concurrently, so batch ≈ 1
             "budget_s": budget,
             "over_budget": wall > budget,
         }
         if out["over_budget"]:
-            out["action"] = (f"예산 {budget:g} s 초과 — 정책상 **실행하지 않고 "
-                             f"보고한다** (run_policy §5)")
+            out["action"] = (f"over the {budget:g} s budget — policy says **report "
+                             f"without running** (run_policy §5)")
         if r.n_particles < 500:
-            out["warning"] = ("N < 500 — 처리량 모델은 N ≥ 500 에서 실측됐다. "
-                              "이 추정은 과소추정이다 (pilot 으로 실측할 것)")
+            out["warning"] = ("N < 500 — the throughput model was measured at "
+                              "N ≥ 500. This estimate underestimates (measure it "
+                              "with a pilot)")
         return out
 
     def record_run(self, *, run_id: str, metrics: dict, wall_s: float | None = None,
                    problems: list[str] | None = None,
                    when: datetime | None = None) -> Turn:
-        """실행 결과를 턴에 기록한다. 실행 자체는 `cli.py` 가 한다."""
+        """Records a run's result in a turn. The running itself is `cli.py`'s job."""
         return self._append(Turn(
             index=len(self.turns), timestamp=_now(when), kind="run",
             spec_hash=self.spec.hash(), run_id=run_id, metrics=metrics,
@@ -279,21 +287,24 @@ class Session:
     def run(self, *, prediction: str | Path | None = None,
             runs_root: str | Path | None = None, extra_args: list[str] | None = None,
             when: datetime | None = None) -> Turn:
-        """현재 턴의 파생 spec 으로 `cli.py run` 을 실행하고 결과를 턴에 기록한다.
+        """Runs `cli.py run` on the current turn's derived spec and records the
+        result in a turn.
 
-        ★ **`set` 과 분리되어 있다.** `set` 은 추정만, `run` 은 실행. 이 경계가 없으면
-          "N 을 8000 으로 해보자"가 11분짜리 런을 조용히 시작한다.
+        ★ **Separated from `set`.** `set` only estimates; `run` runs. Without that
+          boundary, "let's try N = 8000" quietly starts an 11-minute run.
 
-        실패하면 `problems` 에 stderr 를 담아 **run 턴을 그대로 기록한다** —
-        실패한 시도가 이력에서 사라지면 "무엇을 시도했는가"의 절반이 없어진다.
+        On failure the stderr goes into `problems` and **the run turn is recorded
+        anyway** -- a failed attempt vanishing from the history loses half of "what
+        was tried".
         """
         import subprocess
         import sys
 
         turn_index = self.turns[-1].index
         spec_file = self.derived_spec_file(turn_index)
-        # ★ run_id 를 세션이 정한다. `cli.py` 의 기본 슬러그는 spec 의 부모 디렉터리명인데,
-        #   세션 spec 은 `sessions/<날짜>_<카드>/` 에 있어서 날짜가 두 번 들어간다.
+        # ★ The session sets the run_id. `cli.py`'s default slug is the spec's parent
+        #   directory name, and a session spec lives in `sessions/<date>_<card>/`, so
+        #   the date would appear twice.
         run_id = f"{self.session_id}_t{turn_index:02d}_{self.spec.hash()[:6]}"
         cmd = [sys.executable, str(REPO_ROOT / "cli.py"), "run", str(spec_file),
                "--run-id", run_id]
@@ -309,15 +320,15 @@ class Session:
             return self._append(Turn(
                 index=len(self.turns), timestamp=_now(when), kind="run",
                 spec_hash=self.spec.hash(),
-                problems=[f"cli.py run 실패 (exit {proc.returncode})",
-                          *(proc.stderr.strip().splitlines()[-5:] or ["(stderr 없음)"])],
-                note="실패한 시도도 이력에 남는다"))
+                problems=[f"cli.py run failed (exit {proc.returncode})",
+                          *(proc.stderr.strip().splitlines()[-5:] or ["(no stderr)"])],
+                note="a failed attempt stays in the history too"))
 
         metrics, wall = {}, None
         for line in proc.stdout.splitlines():
-            if "실측 wall" in line:
+            if "measured wall" in line:
                 try:
-                    wall = float(line.split("실측 wall")[1].split()[0])
+                    wall = float(line.split("measured wall")[1].split()[0])
                 except (IndexError, ValueError):
                     pass
         root = Path(runs_root) if runs_root else REPO_ROOT / "runs"
@@ -328,23 +339,25 @@ class Session:
                        if isinstance(v, dict) and "value" in v}
         return self.record_run(run_id=run_id, metrics=metrics, wall_s=wall, when=when)
 
-    # --- 보기 ---
+    # --- views ---
     def show(self) -> str:
-        """세션 이어받기용 요약. 대화 컨텍스트가 없어도 읽힌다."""
-        out = [f"# 세션 `{self.session_id}`", "",
-               f"**카드** `{self.spec.card}`",
-               f"**질문** {self.spec.question.strip()}",
-               f"**원본 spec** `{self.spec_path}`",
-               f"**턴 {len(self.turns)}개** · 현재 spec_hash `{self.spec.hash()[:12]}`",
-               "", "| 턴 | 시각 | 종류 | 내용 | 문제 |", "|---|---|---|---|---|"]
+        """A summary for picking a session back up. Readable with no conversational
+        context."""
+        out = [f"# session `{self.session_id}`", "",
+               f"**card** `{self.spec.card}`",
+               f"**question** {self.spec.question.strip()}",
+               f"**original spec** `{self.spec_path}`",
+               f"**{len(self.turns)} turns** · current spec_hash "
+               f"`{self.spec.hash()[:12]}`",
+               "", "| turn | time | kind | what | problems |", "|---|---|---|---|---|"]
         for t in self.turns:
             if t.kind == "set":
                 what = " · ".join(f"`{k}`: {v[0]!r} → {v[1]!r}"
                                   for k, v in t.changes.items())
                 if t.cost.get("wall_s_batch") is not None:
-                    what += f" (추정 `{t.cost['wall_s_batch']:g} s`)"
+                    what += f" (estimate `{t.cost['wall_s_batch']:g} s`)"
                     if t.cost.get("over_budget"):
-                        what += " ⚠️ **예산 초과**"
+                        what += " ⚠️ **over budget**"
             elif t.kind == "run":
                 what = f"run `{t.run_id}`"
                 if t.metrics:
@@ -356,35 +369,40 @@ class Session:
                        f"| {len(t.problems) or ''} |")
         probs = [(t.index, p) for t in self.turns for p in t.problems]
         if probs:
-            out += ["", "### 미해결 문제", *[f"- (턴 {i}) {p}" for i, p in probs]]
-        out += ["", "다음: `session set k.v=…` (추정만) 또는 `session run` (실행)"]
+            out += ["", "### unresolved problems",
+                    *[f"- (turn {i}) {p}" for i, p in probs]]
+        out += ["", "next: `session set k.v=…` (estimate only) or `session run` "
+                    "(execute)"]
         return "\n".join(out)
 
     def compare(self, i: int, j: int) -> str:
-        """턴 두 개의 파라미터·측정값 대조표."""
+        """A comparison table of two turns' parameters and measurements."""
         a, b = self._turn(i), self._turn(j)
-        rows = [f"# 턴 {i} vs 턴 {j}", "",
-                f"| | 턴 {i} | 턴 {j} |", "|---|---|---|",
-                f"| 시각 | {a.timestamp} | {b.timestamp} |",
-                f"| 종류 | {a.kind} | {b.kind} |",
+        rows = [f"# turn {i} vs turn {j}", "",
+                f"| | turn {i} | turn {j} |", "|---|---|---|",
+                f"| time | {a.timestamp} | {b.timestamp} |",
+                f"| kind | {a.kind} | {b.kind} |",
                 f"| spec_hash | `{a.spec_hash[:12]}` | `{b.spec_hash[:12]}` |",
                 f"| run_id | `{a.run_id or '—'}` | `{b.run_id or '—'}` |"]
         if a.spec_hash == b.spec_hash:
-            rows.append("| **차이** | 같은 spec — 파라미터가 동일하다 | |")
+            rows.append("| **difference** | the same spec — the parameters are "
+                        "identical | |")
 
-        # 파라미터 차이 — 두 턴 사이의 모든 set 을 누적한다
+        # parameter differences — accumulate every set between the two turns
         lo, hi = min(i, j), max(i, j)
         acc: dict[str, list] = {}
         for t in self.turns[lo + 1:hi + 1]:
             for k, v in t.changes.items():
                 acc[k] = [acc.get(k, v)[0], v[1]]
         if acc:
-            rows += ["", "## 파라미터 변경", "", "| 키 | 이전 | 이후 |", "|---|---|---|"]
+            rows += ["", "## parameter changes", "", "| key | before | after |",
+                     "|---|---|---|"]
             rows += [f"| `{k}` | `{v[0]}` | `{v[1]}` |" for k, v in acc.items()]
 
         keys = sorted(set(a.metrics) | set(b.metrics))
         if keys:
-            rows += ["", "## 측정값", "", f"| 양 | 턴 {i} | 턴 {j} | 변화 |",
+            rows += ["", "## measurements", "",
+                     f"| quantity | turn {i} | turn {j} | change |",
                      "|---|---|---|---|"]
             for k in keys:
                 va, vb = a.metrics.get(k), b.metrics.get(k)
@@ -393,15 +411,15 @@ class Session:
                     delta = f"{(vb - va) / abs(va):+.2%}"
                 rows.append(f"| `{k}` | `{_short(va)}` | `{_short(vb)}` | {delta} |")
         else:
-            rows += ["", "_두 턴에 측정값이 없다 — `session run` 으로 실행해야 "
-                     "대조할 것이 생긴다._"]
+            rows += ["", "_neither turn has measurements — `session run` has to be "
+                     "executed before there is anything to compare._"]
         return "\n".join(rows)
 
     def _turn(self, i: int) -> Turn:
         for t in self.turns:
             if t.index == i:
                 return t
-        raise KeyError(f"턴 {i} 가 없다 (있는 것: "
+        raise KeyError(f"turn {i} does not exist (available: "
                        f"{[t.index for t in self.turns]})")
 
 
@@ -416,35 +434,35 @@ def _short(v) -> str:
 
 
 # =============================================================================
-# CLI 진입점 — `python -m simbot.session …`
+# CLI entry point — `python -m simbot.session …`
 # =============================================================================
 def main(argv: list[str] | None = None) -> int:
     import argparse
     p = argparse.ArgumentParser(prog="python -m simbot.session",
-                                description="세션 상태 관리 (상태는 파일에 있다)")
+                                description="Session state (the state is in a file)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    q = sub.add_parser("new", help="세션 시작")
+    q = sub.add_parser("new", help="start a session")
     q.add_argument("spec")
 
-    q = sub.add_parser("set", help="파라미터 변경 → 비용 추정만 (실행 안 함)")
-    q.add_argument("assignments", nargs="+", metavar="키=값")
+    q = sub.add_parser("set", help="change a parameter → cost estimate only (no run)")
+    q.add_argument("assignments", nargs="+", metavar="key=value")
     q.add_argument("--session", default=None)
 
-    q = sub.add_parser("show", help="세션 이어받기")
+    q = sub.add_parser("show", help="pick a session back up")
     q.add_argument("--session", default=None)
 
-    q = sub.add_parser("run", help="현재 spec 으로 실행하고 결과를 턴에 기록")
+    q = sub.add_parser("run", help="run the current spec and record the result")
     q.add_argument("--prediction", default=None)
     q.add_argument("--runs-root", default=None)
     q.add_argument("--session", default=None)
 
-    q = sub.add_parser("compare", help="턴 대조")
+    q = sub.add_parser("compare", help="compare two turns")
     q.add_argument("i", type=int)
     q.add_argument("j", type=int)
     q.add_argument("--session", default=None)
 
-    q = sub.add_parser("list", help="세션 목록")
+    q = sub.add_parser("list", help="list the sessions")
 
     a = p.parse_args(argv)
 
@@ -456,7 +474,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if a.cmd == "new":
         s = Session.create(a.spec)
-        print(f"세션 생성: {s.session_id}")
+        print(f"session created: {s.session_id}")
         print(s.show())
         return 0
 
@@ -464,33 +482,34 @@ def main(argv: list[str] | None = None) -> int:
 
     if a.cmd == "set":
         t = s.set(a.assignments)
-        print(f"턴 {t.index} 기록 — **실행하지 않았다.**\n")
+        print(f"turn {t.index} recorded — **nothing was run.**\n")
         for k, (old, new) in t.changes.items():
             print(f"  {k}: {old!r} → {new!r}")
         print()
         if "error" in t.cost:
-            print(f"  비용 추정 불가: {t.cost['error']}")
+            print(f"  cost cannot be estimated: {t.cost['error']}")
         else:
             print(f"  N={t.cost['n_particles']} · steps={t.cost['steps_per_seed']} "
-                  f"· 시드 {t.cost['n_seeds']} · 동시 {t.cost['concurrency']}")
-            print(f"  추정 wall ≈ {t.cost['wall_s_batch']:g} s "
-                  f"(예산 {t.cost['budget_s']:g} s)")
+                  f"· seeds {t.cost['n_seeds']} "
+                  f"· concurrency {t.cost['concurrency']}")
+            print(f"  estimated wall ≈ {t.cost['wall_s_batch']:g} s "
+                  f"(budget {t.cost['budget_s']:g} s)")
             for key in ("action", "warning"):
                 if key in t.cost:
                     print(f"  ⚠️  {t.cost[key]}")
         if t.problems:
-            print("\n  규약 위반:")
+            print("\n  convention violations:")
             for x in t.problems:
                 print(f"    - {x}")
-        print("\n실행하려면: python cli.py run "
+        print("\nto run it: python cli.py run "
               f"{s.derived_spec_file(t.index)}")
         return 0
 
     if a.cmd == "run":
         t = s.run(prediction=a.prediction, runs_root=a.runs_root)
-        print(f"\n턴 {t.index} 기록 — run `{t.run_id or '실패'}`")
+        print(f"\nturn {t.index} recorded — run `{t.run_id or 'failed'}`")
         if t.problems:
-            print("  문제:")
+            print("  problems:")
             for x in t.problems:
                 print(f"    - {x}")
             return 1
@@ -498,7 +517,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"    {k:<22} {_short(v)}")
         prev = next((x for x in reversed(s.turns[:-1]) if x.kind == "run"), None)
         if prev:
-            print(f"\n이전 런과 대조: python -m simbot.session compare "
+            print(f"\ncompare against the previous run: python -m simbot.session "
+                  f"compare "
                   f"{prev.index} {t.index}")
         return 0
 

@@ -129,6 +129,37 @@ def check_step_displacements(dr, sigma: float, max_frac: float = 0.10) -> Displa
     )
 
 
+#  The force-driven step-displacement bound. ONE definition, two reactions.
+#   ★ Merged 2026-08-29. `bdbot.run.StepGuard` inlined this bound and **raises** on
+#     it; `simbot.run.run_trap` and `run_soft2d` **measured the same quantity and
+#     never judged it** -- `max_step_displacement_l_trap` went into the manifest,
+#     `force_displacement_star` went into `guards`, and nothing compared either to
+#     a threshold. That is the exact failure `.claude/rules/overdamped-stability.md`
+#     was written for: *"the symptom was not NaN but a quiet box escape, so the log
+#     looked normal."* `check_finite` passes on a box escape.
+#   ⚠ The two halves keep **different reactions on purpose**, and that is not an
+#     inconsistency: `bdbot.run` drives one run and should abort it, while
+#     `simbot.run` drives a batch over seeds where one diverging seed must not kill
+#     the other seeds' work. What they must not have is two different *bounds*.
+STEP_DISP_MAX = 0.1        # [reference length] -- BD is O(dt); being pushed more
+                           # than 10% of a diameter in one step already makes the
+                           # integration untrustworthy
+
+
+def step_displacement_verdict(disp: float, bound: float = STEP_DISP_MAX,
+                              *, unit: str = "sigma") -> tuple[bool, str]:
+    """Is a single-step force-driven displacement acceptable? `(ok, why)`.
+
+    `disp` is `dt*|F|max/gamma` in units of the system's reference length -- **not**
+    the thermal displacement `sqrt(2 dt)`, which is physics and is deliberately
+    excluded (see `bdbot.run.StepGuard`).
+    """
+    if disp <= bound:
+        return True, ""
+    return False, (f"single-step force displacement dt*|F|max = {disp:.4g} {unit} "
+                   f"exceeds the bound {bound} {unit}. Reduce dt")
+
+
 def check_finite(**arrays) -> tuple[bool, list[str]]:
     """NaN/Inf check. Returns the offending array names and counts.
 
@@ -579,4 +610,5 @@ __all__ = ["Guard", "HealthReport", "judge_series", "step_health",
            # section 0 -- shared with simbot.guards
            "configurational_temperature", "DisplacementReport",
            "check_step_displacements", "check_finite", "check_inside_box",
-           "check_bond_lengths", "assert_statistic_fluctuates"]
+           "check_bond_lengths", "assert_statistic_fluctuates",
+           "step_displacement_verdict", "STEP_DISP_MAX"]

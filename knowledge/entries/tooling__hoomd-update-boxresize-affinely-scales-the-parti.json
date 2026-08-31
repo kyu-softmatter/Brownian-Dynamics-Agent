@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "boxresize",
+    "compression",
+    "dlvo",
+    "gelation",
+    "network"
+  ],
+  "dimensionless": {
+    "eps_crit": 0.00703
+  },
+  "source": "scratch/verify_3d_boxresize.py",
+  "lessons": [
+    {
+      "claim": "hoomd.update.BoxResize affinely scales the particle coordinates (a measured error of 8.9e-16) -- so compression also shrinks the bond length of pairs that are already bonded. When the well is narrow, as with a DLVO secondary minimum, the moment the linear strain per trigger exceeds (h_min−h_barrier)/ℓ the pair is pushed inside the barrier and **collapses irreversibly** into the primary minimum (contact). There is no error; only the bond type quietly changes. Measured: the predicted threshold is 0.703%, ε=0.40% per trigger keeps h*=0.007591, and 0.80% collapses to h*=−0.042257 (a 4.2% overlap). Compute ε_crit from the ledger before compressing and set the number of stages from it.",
+      "kind": "pitfall",
+      "coords": {
+        "eps_crit": 0.00703
+      }
+    }
+  ],
+  "not_verified": []
+}

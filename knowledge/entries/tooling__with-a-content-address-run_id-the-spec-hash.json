@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "run_id",
+    "content-address",
+    "retroactive-measurement",
+    "coverage"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py + tools/health.py",
+  "lessons": [
+    {
+      "claim": "With a content address (run_id = the spec hash), **a new measurement cannot be applied retroactively to a legacy run**. As the code evolves the hash changes, a re-run does not produce the same id but a new directory, and the old run stays permanently unmeasured. Measured: all 79 unmeasured runs failed to reproduce with the current code (trap-drag's tag convention tr0.117647-v4 → v4, and trap-2d-5um changed 3 times as seed was added to the spec). And 'specs/<run_id>.json exists' is no grounds for reproducibility -- stale specs are left behind. So coverage has to take as its denominator not 'what can be filled' but 'runs executed after the measurement was wired up', and the legacy has to be stated as not retroactively fillable.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

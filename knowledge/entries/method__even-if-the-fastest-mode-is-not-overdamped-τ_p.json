@@ -1,0 +1,30 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "BD",
+    "inertia",
+    "overdamped",
+    "mode",
+    "resolved"
+  ],
+  "dimensionless": {
+    "tau_p_over_tau_fast": 0.6
+  },
+  "source": "scratch/verify_chain_bend_gates.py --gate det --collect",
+  "lessons": [
+    {
+      "claim": "Even if the fastest mode is not overdamped (τ_p/τ_fast = 0.60, a damping ratio ζ=0.65<1), if that mode is far enough from the observation band the BD observables are unaffected -- in chain-bend the measured difference is at most 0.159% across the whole De range and increases monotonically with De. The physical reason: for ω ≪ 1/τ_fast the fastest mode follows quasi-statically, so it contributes its static compliance and not its **dynamics**. ★ But this test looks only at the inertial term itself -- it does not cover thermal ringing × nonlinear coupling (in chain-bend max|θ|=2.8e-3 rad so it looks small, but it was not confirmed).",
+      "kind": "method_note",
+      "coords": {
+        "tau_p_over_tau_fast": 0.6
+      }
+    }
+  ],
+  "not_verified": [
+    "the thermal-ringing × nonlinear-coupling route is unconfirmed"
+  ]
+}

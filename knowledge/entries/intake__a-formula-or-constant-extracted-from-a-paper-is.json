@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "literature"
+  ],
+  "dimensionless": {},
+  "source": "scratch/chain_bend_from_papers.py",
+  "lessons": [
+    {
+      "claim": "A formula or constant extracted from a paper is verified by reproducing the number the paper itself reports. Computing κ₀ with Young-Dupré+JKR reproduced the paper's 80 mN/m to +1.6% -- evidence that the extraction is right",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

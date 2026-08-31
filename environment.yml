@@ -1,11 +1,11 @@
-# bdbot 실행 환경 — 재현 가능한 정의
+# bdbot run environment — a reproducible definition
 #
-#   conda env create -f environment.yml      (새로 만들 때)
-#   conda env update -f environment.yml -n simulation_bot --prune   (기존 갱신)
+#   conda env create -f environment.yml      (to create it fresh)
+#   conda env update -f environment.yml -n simulation_bot --prune   (to update an existing one)
 #
-# 현재 사용 중인 환경: simulation_bot  (기존 환경을 확장해서 씀)
-# 검증 상태: 2026-08-03, macOS 26.5 arm64, hoomd 7.1.0 CPU 빌드에서 15개 API 스모크 테스트 통과
-#            (docs/hoomd_capabilities.md 참조)
+# The environment currently in use: simulation_bot  (an existing environment, extended)
+# Verification status: 2026-08-03, macOS 26.5 arm64, 15 API smoke tests pass on the hoomd 7.1.0 CPU build
+#            (see docs/hoomd_capabilities.md)
 name: simulation_bot
 
 channels:
@@ -14,35 +14,35 @@ channels:
 dependencies:
   - python=3.12
 
-  # ── 시뮬레이션 엔진 ────────────────────────────────────────────────
-  # 문서는 v7.1.1 기준이나 설치본은 7.1.0. 패치 차이이며 조사한 API는 전부 동일.
-  # osx-arm64에는 CUDA 빌드가 없으므로 자동으로 CPU 빌드가 선택된다.
+  # ── the simulation engine ──────────────────────────────────────────
+  # The docs are for v7.1.1 but the installed build is 7.1.0. That is a patch difference and every API surveyed is identical.
+  # osx-arm64 has no CUDA build, so the CPU build is selected automatically.
   - hoomd=7.1
   - gsd
 
-  # ── 분석 ──────────────────────────────────────────────────────────
+  # ── analysis ──────────────────────────────────────────────────────
   - freud
   - numpy
   - scipy
   - pandas
-  - pyarrow          # Parquet (observables 테이블)
+  - pyarrow          # Parquet (the observables table)
   - h5py             # hoomd.write.HDF5Log
 
-  # ── 플롯 ──────────────────────────────────────────────────────────
+  # ── plotting ──────────────────────────────────────────────────────
   - matplotlib
 
-  # ── 스펙·단위·CLI ─────────────────────────────────────────────────
-  - pydantic         # SimSpec / PhysicalSystem / Observation 스키마
-  - pint             # ⭐️ 차원 있는 물리량 — 원칙 3의 단위 안전성
+  # ── spec, units, CLI ──────────────────────────────────────────────
+  - pydantic         # the SimSpec / PhysicalSystem / Observation schemas
+  - pint             # ⭐️ dimensional physical quantities — the unit safety of rule 3
   - typer            # CLI
-  - rich             # CLI 출력
+  - rich             # CLI output
   - pyyaml
 
-  # ── 테스트 ────────────────────────────────────────────────────────
+  # ── tests ─────────────────────────────────────────────────────────
   - pytest
 
-  # 선택: 논문 배치 증류 (마스터플랜 §15.9). 평소에는 불필요 —
-  # 소량 증류는 Claude Code의 /bd-distill 로 처리한다.
+  # Optional: batch distillation of papers (master plan §15.9). Not normally needed —
+  # small-volume distillation is handled by Claude Code's /bd-distill.
   # - pip
   # - pip:
   #     - anthropic

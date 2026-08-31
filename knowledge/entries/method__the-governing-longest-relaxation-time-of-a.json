@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "timescale",
+    "eigenvalue",
+    "De",
+    "equilibration",
+    "L3"
+  ],
+  "dimensionless": {
+    "tau_max_over_tau_chain": 9.18
+  },
+  "source": "cases/chain_bend_2d.py#build_ledger lam_min",
+  "lessons": [
+    {
+      "claim": "★★ The governing (longest) relaxation time of a many-body system is not γ/κ built from a representative stiffness but **the lowest eigenvalue of the stiffness matrix**, γ/λ_min. chain-bend used τ_chain = γ/κ_center as the governing scale while τ_max = γ/λ_min is 9.18x longer (λ_min=526.4 vs κ_center=4830.7 kT/d²). Two things went wrong at once -- (a) De was underestimated 9.18x, so the 'De 0.1~10 sweep' was actually 0.99~91.8 and **never entered the quasi-static plateau at all** (it was a sweep that could not produce the saturating curve the sketch asked for) (b) the equilibration of 20 τ_chain = 2.2 τ_max was insufficient, leaving 11% residual transient and putting K* up to 21% out. Confirmed by measurement: raising the equilibration to 10 τ_max cut the block scatter **1000-fold** (σ 5785→0.7) and moved K′ by 21%. Setting dt from λ_max while not looking at λ_min is the trap -- it comes free from the same eigendecomposition.",
+      "kind": "scaling",
+      "coords": {
+        "tau_max_over_tau_chain": 9.18
+      }
+    }
+  ],
+  "not_verified": []
+}

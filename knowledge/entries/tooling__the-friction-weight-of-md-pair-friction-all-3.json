@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "friction",
+    "dlvo",
+    "contact"
+  ],
+  "dimensionless": {
+    "r_well_star": 1.0075926
+  },
+  "source": "scratch/verify_pair_friction.py#T2",
+  "lessons": [
+    {
+      "claim": "The friction weight of md.pair.friction (all 3) is w(r)=-dU_WCA/dr, so it is **exactly 0** outside the WCA cutoff. Under chain-bend-2d-dlvo's core convention (SIGMA_CORE_STAR=2^(-1/6) → the cutoff is exactly r*=1), the DLVO secondary minimum at r*=1.00759 (an 11.16nm gap) is outside the cutoff, so F_tan=|tau|=0.000e+00 (for all 3, at kT=0, V=1). In the control at r*=0.95 it is alive at F_tan=6.19/18.58/1.00, so there is power. That is, contact friction cannot be attached to a secondary-minimum bond where the surfaces are not touching -- which is also physically right (there is no contact). Raising sigma to stretch the cutoff out to the secondary minimum would be putting a fake repulsive core on top of the DLVO.",
+      "kind": "pitfall",
+      "coords": {
+        "r_well_star": 1.0075926
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,131 @@
+{
+ "abp-rod-2d-run-flip": {
+  "tags": [
+   "single_particle"
+  ],
+  "top": [
+   "pair.none"
+  ],
+  "scores": [
+   1.5
+  ]
+ },
+ "chain-bend-2d-dlvo": {
+  "tags": [
+   "aggregate",
+   "bonded",
+   "contact",
+   "gel",
+   "structure",
+   "tangential"
+  ],
+  "top": [
+   "contact.adhesive_bending",
+   "pair.wca",
+   "pair.soft_power"
+  ],
+  "scores": [
+   5.5,
+   1.5,
+   1.5
+  ]
+ },
+ "chain-bend-2d-oscill": {
+  "tags": [
+   "aggregate",
+   "bonded",
+   "contact",
+   "gel",
+   "tangential",
+   "trapped"
+  ],
+  "top": [
+   "contact.adhesive_bending"
+  ],
+  "scores": [
+   5.5
+  ]
+ },
+ "chain-relax-2d-dlvo": {
+  "tags": [
+   "aggregate",
+   "bonded",
+   "contact",
+   "single_particle",
+   "structure",
+   "trapped"
+  ],
+  "top": [
+   "contact.adhesive_bending",
+   "pair.none",
+   "pair.wca"
+  ],
+  "scores": [
+   3.5,
+   1.5,
+   1.5
+  ]
+ },
+ "network": {
+  "tags": [
+   "aggregate",
+   "bonded",
+   "charged",
+   "contact",
+   "gel",
+   "structure",
+   "tangential",
+   "trapped"
+  ],
+  "top": [
+   "contact.adhesive_bending",
+   "pair.yukawa",
+   "pair.wca"
+  ],
+  "scores": [
+   5.5,
+   2.0,
+   1.5
+  ]
+ },
+ "soft-r3-2d-A-sweep": {
+  "tags": [
+   "structure"
+  ],
+  "top": [
+   "pair.wca",
+   "pair.soft_power",
+   "pair.yukawa"
+  ],
+  "scores": [
+   1.5,
+   1.5,
+   1.0
+  ]
+ },
+ "trap-2d-5um": {
+  "tags": [
+   "trapped"
+  ],
+  "top": [],
+  "scores": []
+ },
+ "trap-drag-2d-hex300": {
+  "tags": [
+   "repulsive",
+   "rheology",
+   "structure",
+   "trapped"
+  ],
+  "top": [
+   "pair.soft_power",
+   "pair.yukawa",
+   "pair.wca"
+  ],
+  "scores": [
+   2.5,
+   2.0,
+   1.5
+  ]
+ }
+}

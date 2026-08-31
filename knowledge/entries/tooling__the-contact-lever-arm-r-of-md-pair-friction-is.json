@@ -1,0 +1,26 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "friction",
+    "silent_bug"
+  ],
+  "dimensionless": {
+    "R_over_sigma_half": 1.122462
+  },
+  "source": "scratch/verify_pair_friction.py#T5a",
+  "lessons": [
+    {
+      "claim": "★ The contact lever arm R of md.pair.friction is not the sigma of params but **particles.diameter/2** (measured via |tau|/F_tan: with diameter at its default 1.0 → R=0.5000000000; giving diameter=sigma → R=0.4454493591=sigma/2, following exactly). Set sigma only and leave diameter untouched and at sigma=0.8909 the lever arm is 1.1225x too large, **with no error** -- the torque and the rolling condition quietly go out of step. When using this force, always state frame.particles.diameter explicitly.",
+      "kind": "pitfall",
+      "coords": {
+        "R_over_sigma_half": 1.122462
+      }
+    }
+  ],
+  "not_verified": []
+}

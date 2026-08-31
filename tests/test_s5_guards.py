@@ -1,7 +1,8 @@
-"""S5 — 런타임 가드. 순수 함수는 빠르고, 배위 온도(B8)만 HOOMD 를 쓴다.
+"""S5 — runtime guards. The pure functions are fast; only the configurational
+temperature (B8) uses HOOMD.
 
-가드 테스트의 원칙: **통과만 테스트하면 가드가 죽어도 모른다.**
-발동해야 하는 경우도 반드시 함께 테스트한다.
+The principle for testing a guard: **test only the passing case and you will not
+notice when the guard dies.** The cases where it must fire are always tested too.
 """
 from __future__ import annotations
 
@@ -19,16 +20,16 @@ from .conftest import TRAP_DIM, se_of_mean, sigma_away
 
 
 # =============================================================================
-# 배위 온도 — 순수 함수
+# configurational temperature — pure functions
 # =============================================================================
 def test_configurational_temperature_recovers_kT_analytically():
-    """조화 트랩에서 kT_conf = k^2<r^2>/(d k) = k<r^2>/d.
+    """In a harmonic trap, kT_conf = k^2<r^2>/(d k) = k<r^2>/d.
 
-    d=2, k=1, <r^2> = 2 (즉 <x^2>=1) 이면 kT_conf = 1.
+    With d=2, k=1, <r^2> = 2 (i.e. <x^2>=1), kT_conf = 1.
     """
     rng = np.random.default_rng(0)
     n, d, k, kT = 200000, 2, 1.0, 1.0
-    # Boltzmann 분포: 성분별 표준편차 sqrt(kT/k)
+    # Boltzmann distribution: per-component SD sqrt(kT/k)
     pos = rng.normal(0.0, math.sqrt(kT / k), size=(n, d))
     forces = -k * pos
     kT_conf = configurational_temperature(forces, laplacian_U_total=d * k)
@@ -52,7 +53,7 @@ def test_configurational_temperature_rejects_bad_laplacian():
 
 
 # =============================================================================
-# 스텝당 변위
+# displacement per step
 # =============================================================================
 def test_displacement_guard_passes_for_small_steps():
     dr = np.full((100, 3), 0.001)
@@ -61,9 +62,9 @@ def test_displacement_guard_passes_for_small_steps():
 
 
 def test_displacement_guard_fires_on_explosion():
-    """★ 가드가 실제로 발동하는가."""
+    """★ Does the guard actually fire?"""
     dr = np.zeros((100, 3))
-    dr[7] = [0.5, 0.0, 0.0]              # 0.5 sigma — 폭발 징후
+    dr[7] = [0.5, 0.0, 0.0]              # 0.5 sigma — a sign of blow-up
     r = check_step_displacements(dr, sigma=1.0, max_frac=0.10)
     assert not r.passed
     assert r.n_exceeding == 1
@@ -72,7 +73,7 @@ def test_displacement_guard_fires_on_explosion():
 
 
 def test_displacement_guard_reports_max_over_rms():
-    """균일분포 노이즈에서 max/rms 가 sqrt(3) 근처인지 볼 수 있어야 한다."""
+    """With uniform noise, max/rms must be visible as being near sqrt(3)."""
     rng = np.random.default_rng(3)
     dr = rng.uniform(-1, 1, size=(50000, 1)) * 0.01
     dr = np.hstack([dr, np.zeros((len(dr), 2))])
@@ -82,7 +83,7 @@ def test_displacement_guard_reports_max_over_rms():
 
 
 # =============================================================================
-# 유한성 · 경계
+# finiteness · boundaries
 # =============================================================================
 def test_check_finite_catches_nan_and_inf():
     ok, fails = check_finite(pos=np.ones((3, 3)), force=np.ones((3, 3)))
@@ -106,7 +107,7 @@ def test_check_inside_box():
 
 
 # =============================================================================
-# "항등식을 측정으로 착각하는" 실패 방지 장치
+# the device against "mistaking an identity for a measurement"
 # =============================================================================
 def test_fluctuation_check_passes_for_real_statistic():
     rng = np.random.default_rng(5)
@@ -114,42 +115,45 @@ def test_fluctuation_check_passes_for_real_statistic():
 
 
 def test_fluctuation_check_catches_arithmetic_identity():
-    """★ 2026-07-28 에 실제로 겪은 실패를 테스트로 고정한다.
+    """★ Pin a failure actually experienced on 2026-07-28 as a test.
 
-    변위에서 평균을 뺀 뒤 교차상관을 재면 cross/auto = -1/(n-1) 이 항등적으로
-    나오고, 200회 반복의 표준편차가 6.7e-20 이었다. 결과가 그럴듯해서 통과할 뻔했다.
+    Subtract the mean from the displacements and then measure the cross
+    correlation, and cross/auto = -1/(n-1) comes out identically -- the SD over
+    200 repeats was 6.7e-20. The result was plausible enough that it nearly passed.
     """
     n = 1000
-    identity_values = np.full(300, -1.0 / (n - 1))     # 요동하지 않는 "측정값"
+    identity_values = np.full(300, -1.0 / (n - 1))     # a non-fluctuating "measurement"
     with pytest.raises(AssertionError, match="arithmetic identity"):
         assert_statistic_fluctuates(identity_values, "cross/auto")
 
 
 def test_fluctuation_check_reproduces_the_original_bug(hoomd_mod):
-    """평균을 빼면 정말로 -1/(n-1) 이 나오는지 직접 확인한다 (HOOMD 불필요, 순수 산술)."""
+    """Confirm directly that subtracting the mean really does give -1/(n-1)
+    (no HOOMD needed, pure arithmetic)."""
     rng = np.random.default_rng(7)
     n = 1000
     seen = []
     for _ in range(50):
         d = rng.normal(0.0, 1.0, n)
-        d = d - d.mean()                              # ← 이 한 줄이 측정을 파괴한다
+        d = d - d.mean()                              # ← this one line destroys it
         cross = (d.sum() ** 2 - np.sum(d**2)) / (n * (n - 1))
         seen.append(cross / np.mean(d**2))
     seen = np.array(seen)
     np.testing.assert_allclose(seen, -1.0 / (n - 1), rtol=1e-10)
-    assert seen.std() < 1e-15, "항등식이므로 요동이 없어야 한다"
+    assert seen.std() < 1e-15, "it is an identity, so there must be no fluctuation"
 
 
 # =============================================================================
-# B8 — 배위 온도가 HOOMD 시뮬레이션에서 kT 를 복원하는가  [slow]
+# B8 — does the configurational temperature recover kT in a HOOMD run?  [slow]
 # =============================================================================
 @pytest.mark.slow
 @pytest.mark.benchmark
 def test_B8_configurational_temperature_recovers_kT_in_simulation(
         trap_sim_factory, positions_of):
-    """★ BD 의 진짜 온도계. 운동에너지 온도는 매 스텝 뽑히므로 쓸 수 없다.
+    """★ BD's real thermometer. The kinetic temperature is drawn fresh every step,
+    so it cannot be used.
 
-    조화 트랩: kT_conf = <|grad U|^2>/<lap U> = k^2<r^2>/(d k)
+    Harmonic trap: kT_conf = <|grad U|^2>/<lap U> = k^2<r^2>/(d k)
     """
     dt_star, k = 5e-3, 1.0
     sim, _ = trap_sim_factory(dt_star, seed=303)
@@ -167,27 +171,28 @@ def test_B8_configurational_temperature_recovers_kT_in_simulation(
     se = se_of_mean(blocks)
 
     assert sigma_away(kT_conf, 1.0, se) < 4.0, (
-        f"kT_conf = {kT_conf:.5f}±{se:.5f} 가 입력 kT*=1.0 에서 벗어났다")
+        f"kT_conf = {kT_conf:.5f}±{se:.5f} departed from the input kT*=1.0")
 
 
 @pytest.mark.slow
 def test_kinetic_temperature_cannot_deviate_systematically(trap_sim_factory, hoomd_mod):
-    """★ 가드로 쓸 수 없다는 것을 테스트로 고정한다.
+    """★ Pin as a test that this cannot be used as a guard.
 
-    HOOMD `Brownian` 은 속도를 적분하지 않고 매 스텝 목표 분포에서 **뽑는다.**
-    따라서 kinetic_temperature 는 dt* 를 10배 키워 적분이 엉망이 되어도
-    여전히 kT 근처에 머문다 — 계통 이탈을 감지할 수 없다.
+    HOOMD `Brownian` does not integrate the velocity -- it **draws** it from the
+    target distribution every step. So kinetic_temperature stays near kT even
+    when dt* is raised 10x and the integration is a mess -- it cannot detect a
+    systematic departure.
     """
     hoomd = hoomd_mod
     temps = {}
-    for dt_star in (1e-3, 1e-1):          # 100배 차이. 후자는 적분 정확도가 나쁘다
+    for dt_star in (1e-3, 1e-1):          # 100x apart; the latter integrates badly
         sim, _ = trap_sim_factory(dt_star, seed=404)
         tq = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
         sim.operations.computes.append(tq)
         sim.run(200)
         temps[dt_star] = tq.kinetic_temperature
 
-    # dt* 를 100배 키워도 운동온도는 kT=1 근처에 머문다 → 진단 능력 없음
+    # raise dt* 100x and the kinetic temperature stays near kT=1 → no diagnostic power
     for dt_star, T in temps.items():
         assert T == pytest.approx(1.0, rel=0.1), (
-            f"dt*={dt_star:g} 에서 운동온도 {T:.4f}")
+            f"at dt*={dt_star:g} the kinetic temperature is {T:.4f}")

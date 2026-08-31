@@ -1,12 +1,13 @@
-# L2 PhysicalSystem — 차원 있는 물리계 (SI). 원칙 3.
-# 유도 계산: scratch/propose_3cases.py §B
-# tier 0=스케치 · 1=사용자 확정/관례 승계 · 2=문헌 미검증 · 3=★내 제안
+# L2 PhysicalSystem — the dimensional physical system (SI). Rule 3.
+# Derivation: scratch/propose_3cases.py §B
+# tier 0=sketch · 1=user-fixed/convention inherited · 2=literature, unverified · 3=★my proposal
 
 label: trap-drag-2d-hex300
 derived_from: observation.yaml
 description: >
-  2D 육방 콜로이드 격자를 소프트 반발(A/r³ + WCA)로 만들고, 광집게 트랩 하나를
-  등속으로 끌어 격자를 지나가게 한다. 능동 마이크로레올로지 / 끌린 탐침.
+  Build a 2D hexagonal colloidal lattice out of a soft repulsion (A/r³ + WCA), and drag a
+  single optical-tweezer trap through the lattice at constant speed. Active microrheology /
+  a dragged probe.
 dimensions: 2
 
 particle:
@@ -14,55 +15,57 @@ particle:
   diameter:
     value: 5.0
     unit: um
-    source: "sketch 'R = 5 µm' — 1-A에서 사용자 확인된 '지름' 관례 적용"
+    source: "sketch, 'R = 5 µm' — applying the 'diameter' convention the user confirmed in 1-A"
     tier: 1
   density:
     value: 2000
     unit: kg/m^3
-    source: "★제안: 실리카 가정. τ_p(모델 타당성)에만 쓰임"
+    source: "★proposal: assumed silica. Used only for τ_p (model validity)"
     tier: 3
   count:
     value: 306
     unit: dimensionless
-    source: "sketch 'N ~ 300' (~ 표기 → 격자에 맞춰 조정 가능, observation.yaml B4).
-             ★ 정합 육방을 위해 N = n_x·n_y = 17×18 로 확정 (사용자 승인 2026-08-04).
-             Δ+2.0% 로 300에 가장 가깝고, 끌기 방향 격자 주기 n_x=17 이 최대"
+    source: "sketch, 'N ~ 300' (the ~ notation → adjustable to fit the lattice, observation.yaml B4).
+             ★ Fixed at N = n_x·n_y = 17×18 for a commensurate hexagon (user-approved 2026-08-04).
+             At Δ+2.0% it is the closest to 300, and the lattice period along the drag direction, n_x=17, is the largest"
     tier: 0
 
 medium:
   kind: newtonian
   name: water
-  temperature: {value: 300, unit: K, source: "1-A 확인값 승계 (스케치 미기재)", tier: 1}
-  viscosity: {value: 0.851, unit: mPa*s, source: "물@300K 핸드북. 1-A 승계", tier: 1}
+  temperature: {value: 300, unit: K, source: "inherits the value confirmed in 1-A (not stated in the sketch)", tier: 1}
+  viscosity: {value: 0.851, unit: mPa*s, source: "handbook, water@300K. Inherited from 1-A", tier: 1}
 
-# ── ★ 정합 육방 격자 (2026-08-04 변경) ─────────────────────────────────
-#   스케치가 "start from hexagonal equilibrium" 이므로 초기 격자가 주기박스와 **정합**해야
-#   한다. 비정합이면 이음매에 결함이 주입되고, 이 계의 관측량(격자 변형장·ψ₆)이 바로 그
-#   결함에 민감하다. 정합 조건:
-#       L_x = n_x·a_NN            (행 방향 = 최근접 방향)
-#       L_y = n_y·(√3/2)·a_NN     (행 간격)
-#       N   = n_x·n_y ,  n_y 짝수  ← 엇갈린 행의 주기가 2행이므로 짝수여야 이어진다
-#   φ 는 이 구성에서 **정확히** 보존된다: φ = πd²/(2√3 a_NN²) = πd²/(4 a_mean²).
-#   ⚠️ 정사각 박스로는 N=300 이 정합하지 않는다 (15×20 이면 정합이나 종횡비 0.866).
+# ── ★ a commensurate hexagonal lattice (changed 2026-08-04) ────────────
+#   The sketch says "start from hexagonal equilibrium", so the initial lattice has to be
+#   **commensurate** with the periodic box. If it is incommensurate, defects are injected at the
+#   seam, and this system's observables (the lattice deformation field, ψ₆) are sensitive to
+#   exactly those defects. The commensurability conditions:
+#       L_x = n_x·a_NN            (the row direction = the nearest-neighbour direction)
+#       L_y = n_y·(√3/2)·a_NN     (the row spacing)
+#       N   = n_x·n_y ,  n_y even  ← the staggered rows have a period of 2 rows, so it must be even to join up
+#   φ is preserved **exactly** in this construction: φ = πd²/(2√3 a_NN²) = πd²/(4 a_mean²).
+#   ⚠️ N=300 is not commensurate with a square box (15×20 is commensurate but has aspect ratio 0.866).
 geometry:
-  kind: periodic_rect_2d          # ★ 정사각이 아니다 — 정합이 종횡비를 정한다
+  kind: periodic_rect_2d          # ★ not square — commensurability sets the aspect ratio
   area_fraction:
     value: 0.35
     unit: dimensionless
-    source: "★제안: 1-B에서 Γ=29.7(육방 결정 ψ₆=0.885)로 확인된 조합을 재사용"
+    source: "★proposal: reuses the combination confirmed in 1-B as Γ=29.7 (a hexagonal crystal, ψ₆=0.885)"
     tier: 3
-  n_x: {value: 17, unit: dimensionless, source: "정합 육방 — 행 방향 셀 수 = 끌기 방향 격자 주기 수", tier: 1}
-  n_y: {value: 18, unit: dimensionless, source: "정합 육방 — 행 수 (짝수여야 엇갈림이 이어진다)", tier: 1}
-  box_length_x: {value: 136.825, unit: um, source: "derived: n_x·a_NN (끌기 방향)", tier: 1}
+  n_x: {value: 17, unit: dimensionless, source: "commensurate hexagon — the cell count along the row direction = the number of lattice periods along the drag direction", tier: 1}
+  n_y: {value: 18, unit: dimensionless, source: "commensurate hexagon — the row count (must be even for the stagger to join up)", tier: 1}
+  box_length_x: {value: 136.825, unit: um, source: "derived: n_x·a_NN (the drag direction)", tier: 1}
   box_length_y: {value: 125.464, unit: um, source: "derived: n_y·(√3/2)·a_NN", tier: 1}
   aspect_ratio: {value: 1.0906, unit: dimensionless, source: "derived: L_x/L_y", tier: 1}
   a_mean: {value: 7.490, unit: um, source: "derived: d√(π/4φ)", tier: 1}
-  a_nn: {value: 8.049, unit: um, source: "derived: √(2/√3)·a_mean (육방 최근접)", tier: 1}
+  a_nn: {value: 8.049, unit: um, source: "derived: √(2/√3)·a_mean (the hexagonal nearest neighbour)", tier: 1}
   drag_axis: x
   drag_axis_note: >
-    ★ 끌기 방향을 **최근접(행) 방향**으로 잡는다. 그러면 탐침이 겪는 퍼텐셜의 공간 주기가
-    a_NN 이고 횡단당 주기 수 = n_x 다. 행에 수직으로 끌면 주기가 2행 = √3·a_NN 이 되어
-    같은 박스에서 주기 수가 오히려 줄어든다 (17회 → 10회).
+    ★ The drag direction is taken along the **nearest-neighbour (row) direction**. Then the spatial
+    period of the potential the probe experiences is a_NN and the number of periods per crossing is
+    n_x. Dragging perpendicular to the rows makes the period 2 rows = √3·a_NN, which actually
+    reduces the number of periods in the same box (17 → 10).
   periodic: true
 
 interactions:
@@ -71,19 +74,19 @@ interactions:
     amplitude_A:
       value: 100.0
       unit: dimensionless
-      source: "★제안: 스케치 '육방 평형에서 시작'을 만족하는 값. 1-B에서 A=100·φ=0.35 가
-               Γ=29.7 로 육방 결정임을 실측 확인 (ψ₆=0.885, 6배위 98.7%)"
+      source: "★proposal: the value that satisfies the sketch's 'start from hexagonal equilibrium'. 1-B confirmed
+               by measurement that A=100·φ=0.35 gives Γ=29.7, a hexagonal crystal (ψ₆=0.885, 6-coordinated 98.7%)"
       tier: 3
     cutoff:
       value: 37.45
       unit: um
-      source: "r_c = 5 a_mean. 절대 kT 기준이 아니라 a_mean 배수 (1-B 교훈)"
+      source: "r_c = 5 a_mean. A multiple of a_mean rather than an absolute kT criterion (the 1-B lesson)"
       tier: 1
       shift: true
   - kind: pair.wca
-    form: "WCA 배제부피 코어"
-    sigma: {value: 5.0, unit: um, source: "코어를 입자 지름에 (1-B와 동일)", tier: 1}
-    epsilon: {value: 1.0, unit: kT, source: "★제안: 관례값", tier: 3}
+    form: "the WCA excluded-volume core"
+    sigma: {value: 5.0, unit: um, source: "the core at the particle diameter (the same as 1-B)", tier: 1}
+    epsilon: {value: 1.0, unit: kT, source: "★proposal: the conventional value", tier: 3}
 
 external:
   kind: harmonic_trap_moving
@@ -91,22 +94,23 @@ external:
   n_trapped:
     value: 1
     unit: dimensionless
-    source: "sketch — X 표시가 원 하나에만 있음"
+    source: "sketch — the X is on one circle only"
     tier: 0
-  stiffness: {value: 10, unit: pN/um, source: "sketch 'k_t = 10 pN/µm'", tier: 0}
+  stiffness: {value: 10, unit: pN/um, source: "sketch, 'k_t = 10 pN/µm'", tier: 0}
   drag_velocity:
-    # ★ 스윕. 0.5 는 스케치 값(tier 0)이고 나머지는 ★제안(tier 3)입니다 — 어느 점을
-    #   돌릴지는 `--v` 로 고릅니다 (soft-r3 의 A 스윕과 같은 방식).
-    #   경계는 v = 9.19 µm/s: 탐침이 격자 한 칸을 지나는 시간 τ_cell = a_NN/v 가
-    #   격자 이완시간 τ_int 와 같아지는 속도. 아래는 준정적, 위는 격자가 못 따라온다.
+    # ★ A sweep. 0.5 is the sketch value (tier 0) and the rest are ★proposals (tier 3) — which
+    #   point to run is chosen with `--v` (the same way as soft-r3's A sweep).
+    #   The boundary is v = 9.19 µm/s: the speed at which the time for the probe to cross one
+    #   lattice cell, τ_cell = a_NN/v, equals the lattice relaxation time τ_int. Below it is
+    #   quasi-static; above it the lattice cannot keep up.
     value: [0.05, 0.1, 0.5, 1.5, 4.0, 12.0, 32.0]
     unit: um/s
-    source: "sketch 'v_x = 0.5 µm/s' (tier 0). 나머지 6점은 ★제안 — τ_cell/τ_int 를
-             184 ~ 0.29 로 훑어 준정적↔동적 교차를 덮는다"
+    source: "sketch, 'v_x = 0.5 µm/s' (tier 0). The other 6 points are ★proposals — they sweep
+             τ_cell/τ_int from 184 down to 0.29, covering the quasi-static↔dynamic crossover"
     tier: 0
 
 targets:
-  - name: drag_force            # ★제안 — 스케치에 목표 미기재
+  - name: drag_force            # ★proposal — no goal is stated in the sketch
   - name: lattice_deformation
   - name: radial_distribution_function
 
@@ -117,41 +121,41 @@ derived_scales:
   tau_B: {value: 242.05, unit: s, expr: "d^2/D_t"}
   tau_p: {value: 3.264e-6, unit: s, expr: "m/gamma"}
   kT: {value: 4.1419e-21, unit: J}
-  tau_k: {value: 4.010e-3, unit: s, expr: "gamma/k_t", role: "★ 가장 빠른 척도 → dt를 정한다"}
-  tau_int: {value: 0.8756, unit: s, expr: "gamma/U''(r_min), r_min=1.341d", role: "페어 — 트랩보다 218배 느리다"}
-  tau_v: {value: 10.0, unit: s, expr: "d/v_x", role: "끌기"}
+  tau_k: {value: 4.010e-3, unit: s, expr: "gamma/k_t", role: "★ the fastest scale → it sets dt"}
+  tau_int: {value: 0.8756, unit: s, expr: "gamma/U''(r_min), r_min=1.341d", role: "the pair — 218× slower than the trap"}
+  tau_v: {value: 10.0, unit: s, expr: "d/v_x", role: "dragging"}
   l_k: {value: 20.35, unit: nm, expr: "sqrt(kT/k_t)"}
-  dr_ss: {value: 2.005, unit: nm, expr: "gamma v/k_t", role: "끌림의 정상상태 지연"}
+  dr_ss: {value: 2.005, unit: nm, expr: "gamma v/k_t", role: "the steady-state lag of the dragging"}
 
 dimensionless:
   reference: {length: d, time: tau_B, energy: kT, strategy: thermal}
   groups:
-    - {name: "Gamma", value: 29.75, expr: "A (d/a_mean)^3", meaning: "페어 결합세기 → 육방 결정"}
-    - {name: "k*", value: 6.036e4, expr: "k_t d^2/kT", meaning: "트랩 vs 열요동 (매우 뻣뻣)"}
+    - {name: "Gamma", value: 29.75, expr: "A (d/a_mean)^3", meaning: "the pair coupling strength → a hexagonal crystal"}
+    - {name: "k*", value: 6.036e4, expr: "k_t d^2/kT", meaning: "trap vs thermal fluctuation (very stiff)"}
     - {name: "phi", value: 0.35}
     - {name: "Pe_drag", value: 24.205, expr: "v_x d/D_t"}
-    - {name: "SNR", value: 0.0985, expr: "dr_ss/l_k", meaning: "★ 끌림 신호가 열요동의 1/10"}
-    - {name: "r_c/(L_min/2)", value: 0.597, meaning: "최소이미지 여유 1.68× (짧은 변 L_y 기준)"}
-    - {name: "n_cell", value: 17.0, expr: "L_x/a_NN = n_x", meaning: "★ 횡단당 격자 주기 수 (정수)"}
-    - {name: "tau_k/tau_int", value: 4.58e-3, meaning: "★ 트랩이 페어보다 218배 빠르다 → dt 지배"}
+    - {name: "SNR", value: 0.0985, expr: "dr_ss/l_k", meaning: "★ the drag signal is 1/10 of the thermal fluctuation"}
+    - {name: "r_c/(L_min/2)", value: 0.597, meaning: "minimum-image margin 1.68× (referenced to the short side L_y)"}
+    - {name: "n_cell", value: 17.0, expr: "L_x/a_NN = n_x", meaning: "★ the number of lattice periods per crossing (an integer)"}
+    - {name: "tau_k/tau_int", value: 4.58e-3, meaning: "★ the trap is 218× faster than the pair → it dominates dt"}
 
 numerics:
   dt:
     value: 40.10
     unit: us
-    source: "10⁻² × τ_k. ★ 트랩과 페어 두 강성이 경쟁하는데 트랩이 218배 빠르다"
+    source: "10⁻² × τ_k. ★ Two stiffnesses compete, the trap and the pair, and the trap is 218× faster"
     tier: 1
   production_s: 273.6
-  production_note: "박스 횡단 L_x/v_x (끌기 방향). 6.8e6 steps"
+  production_note: "one box crossing, L_x/v_x (the drag direction). 6.8e6 steps"
   stat_target_pct: 2.0
-  equilibration: "정합 육방 격자에서 시작 → 트랩 끌기 전 완화 구간 필요"
+  equilibration: "start from the commensurate hexagonal lattice → a relaxation stretch is needed before the trap starts dragging"
 
 not_verified:
-  - "★ SNR=0.0985 — 끌림 신호가 열요동의 1/10. Δr_ss를 1% 정확도로 재려면 물리시간 2.3h(2e8 steps).
-     v를 5.07 µm/s로 올리면 SNR=1 이 된다 (또는 격자 306개의 변형장을 관측량으로 쓴다)"
-  - "★ 정합 육방으로 바꾸면서 박스가 종횡비 1.091 의 직사각이 됐다. 유한크기 인공효과가
-     x·y로 비대칭일 수 있다 — 격자 변형장(관측량 2)이 그 비대칭에 민감한지 미확인.
-     대안은 15×20(N=300 정확, 종횡비 0.866)·16×18(N=288, 종횡비 1.026)이었다"
-  - "A=100·φ=0.35 는 1-B의 조합을 옮긴 것 — 이 계(트랩 포함)에서 육방 결정인지 미확인"
-  - "측정 목표가 스케치에 없어서 ★제안으로 채웠다 (끌림힘·격자 변형장)"
-  - "이동 트랩은 bd-hoomd 의 variant 스니펫으로 가능하나 이 케이스에서 미검증"
+  - "★ SNR=0.0985 — the drag signal is 1/10 of the thermal fluctuation. Measuring Δr_ss to 1% accuracy needs 2.3h of
+     physical time (2e8 steps). Raising v to 5.07 µm/s makes SNR=1 (or use the deformation field of the 306 lattice particles as the observable)"
+  - "★ Switching to a commensurate hexagon made the box a rectangle of aspect ratio 1.091. The finite-size artefacts
+     may be asymmetric in x vs y — whether the lattice deformation field (observable 2) is sensitive to that asymmetry
+     is unconfirmed. The alternatives were 15×20 (N=300 exactly, aspect ratio 0.866) and 16×18 (N=288, aspect ratio 1.026)"
+  - "A=100·φ=0.35 is carried over from the 1-B combination — whether it is a hexagonal crystal in this system (with the trap) is unconfirmed"
+  - "The measurement goal is absent from the sketch and was filled in with ★proposals (the drag force, the lattice deformation field)"
+  - "A moving trap is possible with the variant snippet in bd-hoomd, but it is unverified in this case"

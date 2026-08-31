@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rheology",
+    "stress",
+    "virial",
+    "bd_implementation"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#2.4 ← [L] (2.27),(2.59) pp.37,47",
+  "lessons": [
+    {
+      "claim": "The direct thermodynamic stress of a many-body system with interaction forces is the force moment (1/V)*sum_alpha F_i^alpha x_j^alpha (= the virial / force dipole). Brownian motion is replaced exactly by the effective force F_Br = -kT grad ln P_N, and sum F_Br = 0. ★ The grounds for actually being able to compute the stress in BD code. But adding the instantaneous value of the random force straight into the virial double-counts with F_Br, so it has to be confirmed by comparison against a kT=0 deterministic run",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": [
+    "whether it double-counts has not yet been confirmed by execution"
+  ]
+}

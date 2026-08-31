@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "tooling",
+    "numerics",
+    "minimization",
+    "tolerance"
+  ],
+  "dimensionless": {
+    "roundoff_floor_rel": 1e-13
+  },
+  "source": "scratch/verify_rolling_contact.py#G2,G3",
+  "lessons": [
+    {
+      "claim": "The check tolerance for an energy made by cancellation has to be set **against the energy scale and not against the resulting value**. The rolling resistance U = k_r R^2 (2 - (a_i-a_j).n_hat) is a cancellation of O(k_r R^2)=2.78e6 terms so the absolute residual floor is ~1e-8. ① The rigid-rotation golden test was set as |U|<1e-18*k_r and gave a false failure at U=-1.5e-8 -- the right criterion is |U|/(k_r R^2)<1e-13 (measured 5.3e-15, passing). ② Measuring the tangential-only residual of 3-point bending against k_harm gives false failures as n grows, because k_harm shrinks as 1/L^3 while the round-off floor does not (1.2e-5 at n=9, 6.2e-5 at n=15) -- measured against k_s*R^2 it is 5.3e-7 independently of n. ③ **Without giving scipy's minimization an analytic gradient**, such a cancellation energy cannot come down (U coming out negative was the sign of non-convergence).",
+      "kind": "pitfall",
+      "coords": {
+        "roundoff_floor_rel": 1e-13
+      }
+    }
+  ],
+  "not_verified": []
+}

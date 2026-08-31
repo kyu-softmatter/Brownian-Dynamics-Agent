@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "friction",
+    "rheology",
+    "bending",
+    "jkr",
+    "contact"
+  ],
+  "dimensionless": {
+    "roll_over_slide": 0.0
+  },
+  "source": "scratch/verify_pair_friction.py#T4,T5b",
+  "lessons": [
+    {
+      "claim": "All 3 md.pair.friction classes are **dissipative** and **exempt** for slip-free rolling -- they cannot create a bending stiffness. ① Even with a tangential displacement, if the relative velocity is 0 then F_tan=|tau|=0.000e+00 (the normal WCA 6.1926 is still alive) ⟹ no elastic storage; it contributes to K'' only and 0 to K', and vanishes in the quasi-static limit. ② Imposing the slip-free condition omega=V/2R with the measured R (=diameter/2) makes F_tan exactly 0 for all 3 (a reduction ratio of 0.000e+00) ⟹ the bond deformation of 3-point bending is rolling rather than slipping, so this friction cannot stand the chain up. ③ The sensitivity to residual slip differs per model: Linear/CoulombNewton are proportional to u (u/V=1e-4 → 6.19e-4/1e-4) but **Coulomb gives full force, 18.5777, even at u/V=1e-4** -- being a regularized kinetic Coulomb law it depends on u only through its direction. ⟹ To be an alternative to the JKR bending stiffness what is needed is not sliding friction but **a tangential spring with history + a rolling resistance** (Cundall-Strack / Dominik-Tielens), and HOOMD does not have it.",
+      "kind": "method_note",
+      "coords": {
+        "roll_over_slide": 0.0
+      }
+    }
+  ],
+  "not_verified": []
+}

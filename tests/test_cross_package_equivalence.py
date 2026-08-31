@@ -272,16 +272,16 @@ def test_the_handbook_anchor_is_internally_consistent():
 @pytest.mark.parametrize("payload,expect_same", [
     ({"d": 5e-6, "eta": 8.51e-4, "T": 300}, True),
     ({"N": 512, "k_star": 1.0}, True),
-    ({"d": 5e-6, "src": "물@300K 핸드북"}, False),
-    ({"점도": 8.51e-4}, False),
+    ({"d": 5e-6, "src": "η-table@300K"}, False),
+    ({"η": 8.51e-4}, False),
 ])
 def test_the_two_spec_hashes_agree_on_ascii_and_differ_otherwise(payload, expect_same):
     """⚠ `bdbot.runid.spec_hash` and `simbot.io.sha256_payload` are NOT the same.
 
     The single difference is `ensure_ascii`. They agree on every ASCII payload,
-    which is why the divergence never surfaced -- and this repository is full of
-    Korean strings. Deliberately unmerged: 263 run directories and 279 spec files
-    are named by the `bdbot` one.
+    which is why the divergence never surfaced -- and the archive (`specs/`,
+    `runs/`) is still full of non-ASCII strings. Deliberately unmerged: 263 run
+    directories and 279 spec files are named by the `bdbot` one.
 
     What holds the ASCII agreement together is `physics_only`, which strips
     `source`, `note`, `description` and the rest of `DOC_KEYS` -- exactly the

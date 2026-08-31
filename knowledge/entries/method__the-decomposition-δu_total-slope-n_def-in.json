@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L4",
+    "relaxation",
+    "defects",
+    "regression",
+    "decomposition"
+  ],
+  "dimensionless": {
+    "Gamma": 29.7
+  },
+  "source": "runs/trap-drag-2d-hex300__ENSEMBLE#relax_vs_v",
+  "lessons": [
+    {
+      "claim": "The decomposition ΔU_total = (slope)·n_def + (intercept) is **valid only at low speed**. The correlation r falls from 0.70 at low speed to 0.46 at high speed while the slope inflates from 4.2 to 21.4 kT per defect, and that is not the energy per defect growing but **the regression becoming invalid** -- at high speed 69% of the stored energy is the elastic deformation field around the probe and unrelated to the defects, so the linear regression misattributes it to them. The citable value is the low-speed **4.2~5.2 kT per defect** (r≈0.70). ⚠️ Without reporting r alongside, this invalidation is invisible.",
+      "kind": "pitfall",
+      "coords": {
+        "Gamma": 29.7
+      }
+    }
+  ],
+  "not_verified": []
+}

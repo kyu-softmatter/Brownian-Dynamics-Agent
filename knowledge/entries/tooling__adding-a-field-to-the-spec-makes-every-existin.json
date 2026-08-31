@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py / this session 2026-08-06",
+  "lessons": [
+    {
+      "claim": "Adding a field to the spec **makes every existing run a re-run target** (because run_id is a content address). Measured: putting drive_mode into params changed all 137 runs' ids, and calling the same command again did not skip but re-ran under new ids. The physics was completely identical -- K' matched to 13 decimal places at -166.4602377003598 (the same seed = the same trajectory). ★ This is not a bug but the design: drive_mode fixes the physics so it is right for it to be in the hash. Two responses -- ① group ensemble aggregation **by tag + spec content** (n, ω, a, the branch, the mode) and not by id. The tag does not change so glob aggregation keeps working. ② If a spec field is going to be added, settle it **before running a large batch**. (The same incident happened 3 times in trap-2d-5um from adding seed, and once in 1-A from adding derived_from.)",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

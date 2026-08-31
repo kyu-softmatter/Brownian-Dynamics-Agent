@@ -1,213 +1,217 @@
-# L0 Observation — 스케치에서 읽어낸 것. **초안: 사람 확인 대기**
-# 프로토콜: 전사 먼저 → 구조화 → 모호/미판독 명시 → 없는 값은 null (지어내지 않음)
-# 확인 방법: 각 ambiguities / missing_required 의 resolution 을 채워주세요.
-# 무차원화 초안: scratch/intake_scales.py (Phase 1-B 대상)
+# L0 Observation — what was read out of the sketch. **Draft: awaiting human confirmation**
+# Protocol: transcribe first → structure → state what is ambiguous/unread → absent values stay null (never invented)
+# How to confirm: please fill in the resolution of each ambiguity / missing_required.
+# Non-dimensionalization draft: scratch/intake_scales.py (Phase 1-B target)
 
 source_files:
   - intake/soft-r3-2d-A-sweep/sketch_01.jpeg
 
-# ── ① 전사 (보이는 그대로. 해석 안 함) ─────────────────────────────────
+# ── ① transcription (exactly as visible. No interpretation) ───────────
 raw_transcription: |
-  [상단]
+  [top]
     U_ij / k_B T  =  A / r_ij³
     r_ij = |r̄_i − r̄_j|
     A = 0.1 ,  1 ,  10 ,  100
 
-  [중단 — 사각형 박스 안에 작은 원 8개가 불규칙하게 흩어져 있음]
-    박스 좌변에서 좌상단 원으로 향하는 화살표에 "r̄_i"
-    박스 좌하단에서 원 하나로 향하는 화살표에 "r̄_j"
-    박스 우변 바깥에 "L_y",  박스 하변 아래에 "L_x"
-    우측 글:  L_x = L_y
-              N = 100 [판독 불확실한 기호 1개] particles
+  [middle — 8 small circles scattered irregularly inside a rectangular box]
+    an arrow from the left edge of the box to the upper-left circle, labelled "r̄_i"
+    an arrow from the lower-left of the box to one circle, labelled "r̄_j"
+    "L_y" outside the right edge of the box,  "L_x" below the bottom edge
+    text on the right:  L_x = L_y
+              N = 100 [1 symbol, illegible] particles
 
-  [하단]
+  [bottom]
     final configuration ?
       { rdf
       { voronoi plot
       { other structure analysis.
 
-# ── ② 구조화 ──────────────────────────────────────────────────────────
-system_guess: "2D 주기박스 안의 소프트 반발 콜로이드 (r⁻³ 페어 퍼텐셜), 결합세기 A 스윕"
+# ── ② structured ──────────────────────────────────────────────────────
+system_guess: "soft-repulsive colloids in a 2D periodic box (r⁻³ pair potential), a sweep of the coupling strength A"
 
 entities:
   - kind: particle
-    note: "박스 안 원 8개로 그려짐(도식). 개수는 우측에 N=100으로 별도 명시"
+    note: "drawn as 8 circles inside the box (schematic). The count is stated separately on the right as N=100"
   - kind: pair_interaction
     form: "soft repulsive power law"
     expression: "U_ij/kT = A / r_ij^3,  r_ij = |r_i - r_j|"
-    note: "부호 명시 없음. A>0 이므로 반발로 읽음"
+    note: "no sign stated. Read as repulsive since A>0"
   - kind: box
-    note: "2D 정사각 (L_x = L_y). 주기경계 여부는 미기재 — 박스만 그려져 있음"
+    note: "2D square (L_x = L_y). Whether the boundary is periodic is not stated — only a box is drawn"
 
 stated_quantities:
   - symbol: A
     value: [0.1, 1, 10, 100]
-    unit: null                # ★ 차원이 모호 — ambiguities A1
-    source: "스케치 상단, 명시"
+    unit: null                # ★ the dimension is ambiguous — ambiguities A1
+    source: "top of the sketch, explicit"
     confidence: 1
   - symbol: N
     value: 100
     unit: dimensionless
-    source: "스케치 우측, 'N = 100 ? particles'"
+    source: "right side of the sketch, 'N = 100 ? particles'"
     confidence: 1
-    note: "100 뒤에 판독 불확실한 기호 1개 — unread_regions 참조"
+    note: "1 illegible symbol after the 100 — see unread_regions"
   - symbol: L_x/L_y
     value: null
     unit: null
-    source: "스케치: 'L_x = L_y' 라는 관계만 있고 숫자 없음"
+    source: "sketch: only the relation 'L_x = L_y', with no number"
     confidence: 1
 
 stated_goals:
-  - "final configuration (최종 배치)"
-  - "rdf (동경분포함수)"
+  - "final configuration"
+  - "rdf (radial distribution function)"
   - "voronoi plot"
   - "other structure analysis"
 
-# ── ③ 모호한 것 (반드시 채울 것) ───────────────────────────────────────
+# ── ③ what is ambiguous (must be filled in) ───────────────────────────
 ambiguities:
   - id: A1
-    issue: "A는 무차원인가, 아니면 길이³ 차원을 갖는가?"
+    issue: "is A dimensionless, or does it carry a dimension of length³?"
     detail: |
-      U/kT = A/r³ 이 차원적으로 성립하려면 둘 중 하나여야 한다.
-        (i)  r을 입자 지름 단위로 읽음 → A 무차원.  U/kT = A (d/r)³
-        (ii) r을 µm로 읽음            → [A] = µm³. U/kT = A[µm³]/r[µm]³
+      For U/kT = A/r³ to hold dimensionally, one of these two must be true.
+        (i)  read r in units of the particle diameter → A dimensionless.  U/kT = A (d/r)³
+        (ii) read r in µm                             → [A] = µm³. U/kT = A[µm³]/r[µm]³
     impact: |
-      d = 1 µm 앵커를 쓰면 (i)과 (ii)가 수치적으로 완전히 일치한다.
-      d ≠ 1 µm 이면 두 해석이 d³배 어긋난다.
-    lean: "(i) 무차원 A"
+      With a d = 1 µm anchor, (i) and (ii) coincide numerically and exactly.
+      For d ≠ 1 µm the two readings differ by a factor d³.
+    lean: "(i) dimensionless A"
     resolution: |
-      d = 5 µm 로 확정되었으므로(사용자 2026-08-03) 두 해석이 125배 갈린다.
-      해석 (ii)면 A=100 에서도 Γ = 0.238 로 스윕 전 구간이 kT 아래여서
-      rdf·voronoi에 WCA 배제부피 말고는 아무 구조도 안 나온다.
-      스케치의 목표(final configuration / structure analysis)와 일관된 것은
-      해석 (i) 뿐이므로 (i)로 진행한다.  ★ 이건 목표로부터의 추론이며 확인 필요.
-      근거: scratch/soft_r3_design.py §0
-    proposed_by: assistant    # ★ 목표로부터의 추론 — 사용자 확인 대기
+      Since d = 5 µm is now fixed (user 2026-08-03), the two readings differ by 125×.
+      Under reading (ii), even A=100 gives Γ = 0.238, so the whole sweep sits below kT
+      and rdf/voronoi show no structure beyond the WCA excluded volume.
+      The only reading consistent with the sketch's goals (final configuration /
+      structure analysis) is (i), so (i) is what we proceed with.
+      ★ This is an inference from the goals and needs confirmation.
+      Basis: scratch/soft_r3_design.py §0
+    proposed_by: assistant    # ★ inferred from the goals — awaiting user confirmation
 
   - id: A2
-    issue: "★ 밀도(면적분율 φ 또는 박스 크기 L)가 없다"
+    issue: "★ the density (area fraction φ, or the box size L) is missing"
     detail: |
-      구조(rdf·voronoi)를 정하는 실제 제어 파라미터는 A 단독이 아니라
-      평균간격에서의 결합세기 Γ ≡ U(a_mean)/kT = A (d/a_mean)³ 이다
-      (a_mean = L/√N, 2D).
+      The actual control parameter that sets the structure (rdf/voronoi) is not A alone
+      but the coupling strength at the mean spacing, Γ ≡ U(a_mean)/kT = A (d/a_mean)³
+      (a_mean = L/√N, in 2D).
     impact: |
-      같은 A=100 이라도 a_mean=1.2d 면 Γ=57.9, a_mean=4.3d 면 Γ=1.26 —
-      전혀 다른 물리(결정 vs 약상관 유체). 밀도 없이는 A 스윕이 정의되지 않는다.
-      → scratch/intake_scales.py 의 Γ 표 참조
+      At the same A=100, a_mean=1.2d gives Γ=57.9 and a_mean=4.3d gives Γ=1.26 —
+      entirely different physics (crystal vs weakly correlated fluid). Without a
+      density the A sweep is not defined.
+      → see the Γ table in scratch/intake_scales.py
     lean: null
-    resolution: "φ = 0.35 (a_mean = 1.498 d = 7.49 µm). 사용자 확인 2026-08-03"
+    resolution: "φ = 0.35 (a_mean = 1.498 d = 7.49 µm). User-confirmed 2026-08-03"
     confirmed_by: user
-    consequence: "Γ = 0.030 / 0.297 / 2.975 / 29.75 — 약상관 유체에서 결정 후보까지 덮음"
+    consequence: "Γ = 0.030 / 0.297 / 2.975 / 29.75 — covers weakly correlated fluid through crystal candidate"
 
   - id: A3
-    issue: "배제부피 코어(하드코어 / WCA)가 있는가? 아니면 순수 점입자인가?"
+    issue: "is there an excluded-volume core (hard core / WCA)? Or are these pure point particles?"
     detail: |
-      A ≲ 5 에서는 r⁻³ 반발만으로 겹침을 막지 못한다.
-      U(r)=5kT 가 되는 거리:  A=0.1 → 0.271d,  A=1 → 0.585d  (둘 다 지름 안쪽)
+      At A ≲ 5 the r⁻³ repulsion alone does not prevent overlap.
+      The distance at which U(r)=5kT:  A=0.1 → 0.271d,  A=1 → 0.585d  (both inside the diameter)
     impact: |
-      물리: 코어가 없으면 A=0.1, 1 은 '입자가 서로 관통하는' 계가 된다.
-      수치: dt 결정이 뒤집힌다. 코어 없으면 작은 A가 더 어렵고(깊이 관통 →
-            국소 강성 급증), 코어가 있으면 큰 A가 더 어렵다.
-    resolution: "WCA 코어를 d에 추가 (ε = kT). 사용자 확인 2026-08-03"
+      Physics: without a core, A=0.1 and 1 become systems in which 'the particles pass through
+      each other'.
+      Numerics: the dt decision flips. Without a core, small A is harder (deep penetration →
+            the local stiffness shoots up); with a core, large A is harder.
+    resolution: "add a WCA core at d (ε = kT). User-confirmed 2026-08-03"
     confirmed_by: user
     consequence: |
-      실제 계산해보니 코어가 있어도 A=0.1·1 이 가장 뻣뻣했다 — 이 두 경우는
-      r⁻³가 약해(Γ≤0.3) 입자가 WCA 코어까지 접근하기 때문이다.
-      A=100 은 케이지에 갇혀 1.34d 이하로 못 와서 오히려 dt가 5.6배 느슨하다.
-      → '큰 A가 더 어렵다'는 위 예상은 틀렸다 (scratch/soft_r3_design.py §2)
+      Once actually computed, A=0.1 and 1 were the stiffest even with the core — because in
+      those two cases r⁻³ is weak (Γ≤0.3) so the particles do reach the WCA core.
+      A=100 is caged and cannot come closer than 1.34d, so its dt is in fact 5.6× looser.
+      → the expectation above, that 'large A is harder', was wrong (scratch/soft_r3_design.py §2)
 
   - id: A4
-    issue: "주기경계인가?"
-    note: "박스만 그려져 있고 명시 없음. 'final configuration / rdf'는 보통 주기계"
-    lean: "주기 (2D, Lx=Ly)"
+    issue: "is the boundary periodic?"
+    note: "only a box is drawn, nothing stated. 'final configuration / rdf' usually implies a periodic system"
+    lean: "periodic (2D, Lx=Ly)"
     resolution: >
-      실행으로 확정: 2D 주기 정사각 박스. 7개 런 전부 주기 경계로 실행했고 최소이미지 여유 2.00× 를 검사로 확인했다. lean('주기')이 맞았다.
-    confirmed_by: run     # 실행으로 확정
+      Settled by running: a 2D periodic square box. All 7 runs were run with periodic boundaries and the minimum-image margin of 2.00× was confirmed by a check. The lean ('periodic') was right.
+    confirmed_by: run     # settled by running
 
   - id: A5
-    issue: "컷오프를 어디에 둘 것인가? (r⁻³는 꼬리가 길다)"
+    issue: "where should the cutoff go? (r⁻³ has a long tail)"
     detail: |
-      U(r_c) = u_c·kT 를 만족하는 r_c = (A/u_c)^(1/3) d.
-        u_c=0.01 → A=100 에서 r_c = 21.5 d
-      최소이미지(r_c < L/2)와 함께 풀면 결합세기에 상한이 생긴다:
-        Γ_max = N^(3/2) u_c / 8      ← A와 무관
-        N=100, u_c=0.01 → Γ_max = 1.25 (약상관 유체까지만)
+      The r_c satisfying U(r_c) = u_c·kT is r_c = (A/u_c)^(1/3) d.
+        u_c=0.01 → r_c = 21.5 d at A=100
+      Solving that together with minimum image (r_c < L/2) puts a ceiling on the coupling strength:
+        Γ_max = N^(3/2) u_c / 8      ← independent of A
+        N=100, u_c=0.01 → Γ_max = 1.25 (only up to a weakly correlated fluid)
     impact: |
-      ★ 스케치의 N=100 으로는 강한 결합 구조를 볼 수 없다.
-        Γ=10 → N ≥ 400,  Γ=60 → N ≥ 1321 (u_c=0.01 기준)
-      함정 7(최소이미지 누락, 과거 +1856% 오차)이 정확히 이 지점이다.
+      ★ With the sketch's N=100, strongly coupled structure cannot be seen.
+        Γ=10 → N ≥ 400,  Γ=60 → N ≥ 1321 (on the u_c=0.01 criterion)
+      Trap 7 (a missing minimum image, a past +1856% error) is exactly this point.
     resolution: |
-      N = 400 으로 늘림 (사용자 확인 2026-08-03: 'N을 늘려 r_c를 제대로 확보').
-      다만 절단 기준을 '절대 kT'에서 **a_mean의 배수**로 바꿨다 — 2D r⁻³의
-      꼬리 에너지는 1/r_c 로만 줄어서 절대 기준으로는 어떤 r_c도 '충분'하지 않다.
-      구조(rdf·voronoi)를 좌우하는 것은 꼬리가 아니라 근거리이므로
-      r_c = 5 a_mean = 7.49 d 로 잡고, N=400에서 r_c = 5·7·9 a_mean 수렴 확인을 붙인다.
-      최소이미지 여유 2.00×. 근거: scratch/soft_r3_design.py §3
+      N raised to 400 (user-confirmed 2026-08-03: 'raise N so that r_c is properly accommodated').
+      The truncation criterion was however changed from 'absolute kT' to **a multiple of a_mean** —
+      the tail energy of the 2D r⁻³ falls off only as 1/r_c, so on an absolute criterion no r_c
+      is ever 'sufficient'.
+      What governs the structure (rdf/voronoi) is not the tail but the short range, so
+      r_c = 5 a_mean = 7.49 d is taken, with an r_c = 5·7·9 a_mean convergence check attached at N=400.
+      Minimum-image margin 2.00×. Basis: scratch/soft_r3_design.py §3
     confirmed_by: user
 
-# ── ④ 판독 못 한 부분 ─────────────────────────────────────────────────
+# ── ④ what could not be read ──────────────────────────────────────────
 unread_regions:
-  - "'N = 100' 과 'particles' 사이의 기호 1개. 'φ' 또는 '9' 처럼 보이나 확정 불가.
-     N=100 으로 읽었음. 만약 'φ'라면 면적분율을 함께 적으려던 흔적일 수 있음 → A2와 연결"
+  - "1 symbol between 'N = 100' and 'particles'. Looks like 'φ' or '9' but cannot be settled.
+     Read as N=100. If it is 'φ' it may be the trace of an intent to write the area fraction alongside → connects to A2"
 
-# ── ⑤ 스케치에 없어서 채워야 하는 값 ───────────────────────────────────
+# ── ⑤ values absent from the sketch that have to be supplied ──────────
 missing_required:
   - symbol: d
-    what: "입자 지름 — A의 차원 해석과 모든 시간척도의 기준"
+    what: "particle diameter — the basis for the dimensional reading of A and for every timescale"
     assumed_value: 5.0
     assumed_unit: um
-    confidence: 1             # 사용자 확정 (관례 통일)
-    note: "다른 3개 스케치의 'R = 5 µm' 관례와 통일. 같은 노트의 같은 실험계로 읽음"
-    resolution: "d = 5 µm. 사용자 확인 2026-08-03"
+    confidence: 1             # user-fixed (convention unified)
+    note: "unified with the 'R = 5 µm' convention of the other three sketches. Read as the same experimental system in the same notebook"
+    resolution: "d = 5 µm. User-confirmed 2026-08-03"
     confirmed_by: user
 
   - symbol: T
-    what: "온도"
+    what: "temperature"
     assumed_value: 300
     assumed_unit: K
-    confidence: 1             # 1-A에서 사용자 확인된 값 승계
-    note: "스케치 미기재. trap-2d-5um(1-A)에서 300 K 확인 → 같은 노트이므로 승계"
+    confidence: 1             # inherits the value confirmed by the user in 1-A
+    note: "not stated in the sketch. 300 K confirmed in trap-2d-5um (1-A) → same notebook, so inherited"
     resolution: null
 
   - symbol: eta
-    what: "용매 점도"
+    what: "solvent viscosity"
     assumed_value: 0.851
     assumed_unit: mPa*s
     confidence: 1
-    note: "스케치 미기재. 1-A에서 '물' 확인 → 물@300K 핸드북값 승계"
+    note: "not stated in the sketch. 'water' confirmed in 1-A → inherits the handbook value for water @300K"
     resolution: null
 
   - symbol: phi_or_L
-    what: "면적분율 또는 박스 크기 (A2)"
+    what: "area fraction or box size (A2)"
     assumed_value: 0.35
-    confidence: 1             # 사용자 확정
-    resolution: "φ = 0.35, N = 400 → L = 149.8 µm = 30.0 d. 사용자 확인 2026-08-03"
+    confidence: 1             # user-fixed
+    resolution: "φ = 0.35, N = 400 → L = 149.8 µm = 30.0 d. User-confirmed 2026-08-03"
     confirmed_by: user
 
   - symbol: T_obs
-    kind: choice              # 관측 창 — 수치 섹션에서 정한다
-    what: "관측 시간 — 구조 평형화에 τ_B의 몇 배가 필요한가"
+    kind: choice              # the observation window — decided in the numerics section
+    what: "observation time — how many multiples of τ_B the structure needs to equilibrate"
     assumed_value: null
-    note: "τ_B = 242.05 s (d=5µm, 물@300K). 강한 결합에서는 평형화가 느려질 수 있어
-           측정으로 판정해야 함(사후분석 EQ 진단)"
-    proposed: "T_obs = 100 τ_B (통계 검사 T_obs ≥ 10²τ_B 를 만족하는 최소값)"
+    note: "τ_B = 242.05 s (d=5µm, water@300K). At strong coupling equilibration can slow down, so it
+           has to be decided by measurement (the post-mortem EQ diagnosis)"
+    proposed: "T_obs = 100 τ_B (the smallest value satisfying the statistics check T_obs ≥ 10²τ_B)"
     resolution: null
 
-# ── ⑥ 1-A와의 대조 (Phase 1-B의 DoD) ──────────────────────────────────
+# ── ⑥ contrast with 1-A (the DoD of Phase 1-B) ────────────────────────
 contrast_with_1A:
   same:
-    - "기준 스케일 전략 thermal (σ=d, E=kT, τ=τ_B) — 단위계는 계마다 바꾸지 않음"
-    - "γ = 3πηd, D_t = kT/γ 물성 유도식"
-    - "τ_p (관성) 는 모델 타당성 검사 전용 — dt와 비교하지 않음"
-    - "dt는 '가장 빠른 물리 시간척도의 1%'에서 역산"
-    - "이완시간을 국소 곡률에서 정의: 트랩 τ_k=γ/k  ↔  페어 τ_int(r)=γ/U''(r)"
+    - "reference scale strategy thermal (σ=d, E=kT, τ=τ_B) — the unit system is not changed per system"
+    - "the property relations γ = 3πηd, D_t = kT/γ"
+    - "τ_p (inertia) is for the model-validity check only — never compared against dt"
+    - "dt is inverted from '1% of the fastest physical timescale'"
+    - "the relaxation time is defined from the local curvature: trap τ_k=γ/k  ↔  pair τ_int(r)=γ/U''(r)"
   different:
-    - "★ 입자가 같아서 τ_B 도 같다 (d=5µm → τ_B = 242.05 s, 1-A와 동일).
-       그런데 1-A에서는 트랩이 4 ms에 붙잡아 τ_B가 실현되지 않는 '장식'이었고,
-       여기서는 τ_B가 **실제 지배 시간척도**다. 같은 숫자가 한 케이스에서는
-       무의미하고 다른 케이스에서는 지배적 — 기준 스케일을 고정해도 되는 이유이자,
-       '지배 시간척도는 기준 스케일과 다를 수 있다'는 1-A 교훈의 대칭 사례"
-    - "새 길이척도가 A와 밀도에서 나온다: r_u(A,c), a_mean, r_c"
-    - "기하 검사가 처음으로 진짜 게이트가 된다 (1-A는 ℓ_k=20nm로 항상 통과)"
-    - "τ_int가 상수가 아니라 r의 함수 — r_min을 추정해야 dt가 정해진다"
-    - "해석해 없음 → 검증은 극한(희박 → g(r)=exp(-βU)) 대조로"
+    - "★ the particle is the same, so τ_B is the same too (d=5µm → τ_B = 242.05 s, identical to 1-A).
+       But in 1-A the trap caught it in 4 ms so τ_B was never realized — 'decoration' — whereas
+       here τ_B is **the actual governing timescale**. The same number is meaningless in one case
+       and dominant in another — which is both why the reference scale may be held fixed, and
+       the mirror image of the 1-A lesson that 'the governing timescale can differ from the reference scale'"
+    - "new length scales come out of A and the density: r_u(A,c), a_mean, r_c"
+    - "the geometry check becomes a real gate for the first time (1-A always passed with ℓ_k=20nm)"
+    - "τ_int is a function of r rather than a constant — dt is only fixed once r_min has been estimated"
+    - "no analytic solution → verification is by the limit (dilute → g(r)=exp(-βU))"

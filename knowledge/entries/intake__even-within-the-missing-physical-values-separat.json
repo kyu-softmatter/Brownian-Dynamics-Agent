@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "missing",
+    "triage"
+  ],
+  "dimensionless": {},
+  "source": "intake/trap-2d-5um/system.yaml",
+  "lessons": [
+    {
+      "claim": "Even within the missing physical values, separate the ones that enter the result from the ones used only in a check. In trap, rho_p is a tier3 arbitrary assumption but has no effect whatever on the BD result (it is for the tau_p model-validity check only). eta, by contrast, sets tau_k directly. Making this distinction reduces the number of items a human has to confirm",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

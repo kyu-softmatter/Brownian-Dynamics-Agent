@@ -1,6 +1,7 @@
-"""S7 — 조화 트랩 계의 분석. 측정만 하고 판정하지 않는다.
+"""S7 — analysis of the harmonic-trap system. It measures only; it does not judge.
 
-판정은 `simbot.validate` 가 **제안**하고, 확정은 사람이 한다 (CLAUDE.md §판정).
+The verdict is **proposed** by `simbot.validate`; a human confirms it
+(CLAUDE.md §verdicts).
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from scipy.stats import kstest, norm
 
 # =============================================================================
 def msd_model(t: np.ndarray, plateau: float, tau: float) -> np.ndarray:
-    """조화 트랩 MSD 해석해:  2d(kT/k)(1 - e^{-t/tau}).  축약 단위에서 plateau = 2d."""
+    """Harmonic-trap MSD solution: 2d(kT/k)(1 - e^{-t/tau}). plateau = 2d reduced."""
     return plateau * (1.0 - np.exp(-t / tau))
 
 
@@ -30,7 +31,7 @@ class MSDFit:
 
 
 def fit_msd(lags_tau: np.ndarray, msd: np.ndarray, dim: int) -> MSDFit:
-    """MSD 곡선을 `plateau (1 - exp(-t/tau))` 로 피팅. 축약 단위."""
+    """Fit an MSD curve to `plateau (1 - exp(-t/tau))`. Reduced units."""
     t = np.asarray(lags_tau, dtype=np.float64)
     y = np.asarray(msd, dtype=np.float64)
     p0 = (2.0 * dim, 1.0)
@@ -45,17 +46,19 @@ def fit_msd(lags_tau: np.ndarray, msd: np.ndarray, dim: int) -> MSDFit:
 
 # =============================================================================
 def em_uniform_noise_excess_kurtosis(dt_star: float) -> float:
-    """★ HOOMD `Brownian` + 조화 트랩의 **정상분포 초과첨도** — 해석적으로 알려져 있다.
+    """★ The **stationary excess kurtosis** of HOOMD `Brownian` + a harmonic trap
+    -- it is known analytically.
 
-    스킴은 AR(1) 이다:  `x_{n+1} = a x_n + sqrt(2 dt) U`,  `a = 1 - dt*`.
-    iid 노이즈의 초과첨도 `g_u` 에 대해 정상분포의 초과첨도는
+    The scheme is AR(1):  `x_{n+1} = a x_n + sqrt(2 dt) U`,  `a = 1 - dt*`.
+    For iid noise of excess kurtosis `g_u`, the stationary excess kurtosis is
         `g_x = g_u (1-a^2)/(1+a^2)  ~  g_u * dt*`      (dt* << 1)
-    HOOMD 노이즈는 **균일분포**이므로 `g_u = -1.2` (findings §2).
+    HOOMD's noise is **uniform**, so `g_u = -1.2` (findings §2).
         `g_x ~ -1.2 dt*`
-    ⇒ `dt* = 5e-3` 에서 첨도 = `3 - 0.006 = 2.994`.
+    ⇒ at `dt* = 5e-3` the kurtosis is `3 - 0.006 = 2.994`.
 
-    **정확히 3.000 이 나오면 오히려 이상하다.** 위치 분포는 완화시간에 걸쳐
-    CLT 로 Gaussian 에 접근하지만 `dt*` 차수의 잔여 비가우시안성이 남는다.
+    **Getting exactly 3.000 would be the suspicious outcome.** The position
+    distribution approaches Gaussian by the CLT over the relaxation time, but a
+    residual non-Gaussianity of order `dt*` remains.
     """
     a = 1.0 - dt_star
     return -1.2 * (1.0 - a * a) / (1.0 + a * a)
@@ -76,21 +79,24 @@ def check_position_distribution(traj: np.ndarray, *, dt_star: float,
                                 frame_interval_steps: int,
                                 decorrelation_tau: float = 2.0
                                 ) -> DistributionCheck:
-    """평형 위치의 **형태**가 Gaussian 인가. 폭은 P1(`<x^2>`)이 따로 본다.
+    """Is the **shape** of the equilibrium position Gaussian? The width is P1's
+    job (`<x^2>`), separately.
 
-    ⚠ **독립 프레임만 쓴다.** 프레임 간격이 `2 tau_trap` 보다 짧으면 표본이 상관되어
-      KS 의 귀무분포가 틀리고 **거짓 기각**이 난다. 2026-07-28 에 실제로 그랬다:
-      마지막 20 프레임(= 1.6 tau_trap 구간)을 50,000 개 독립표본으로 취급해
-      p = 0.0000 을 얻었다. 상관을 무시하면 KS 는 항상 기각한다.
+    ⚠ **Only independent frames are used.** If the frame interval is shorter than
+      `2 tau_trap` the samples are correlated, KS's null distribution is wrong,
+      and it **falsely rejects**. That actually happened on 2026-07-28: the last
+      20 frames (a 1.6 tau_trap window) were treated as 50,000 independent
+      samples and gave p = 0.0000. Ignore the correlation and KS always rejects.
 
-    ⚠ 표본을 **측정된 표준편차로 규격화**한다. 폭 차이(EM 편향 0.25 %)까지 KS 로
-      잡으면 형태 검정이 아니라 폭 검정이 된다 — 그건 P1 의 일이다.
+    ⚠ The sample is **normalized by the measured standard deviation.** Catch the
+      width difference too (the 0.25 % EM bias) and it stops being a shape test
+      and becomes a width test — which is P1's job.
     """
     frames_per_tau = 1.0 / (frame_interval_steps * dt_star)
     step = max(1, int(math.ceil(decorrelation_tau * frames_per_tau)))
-    frames = traj[::step]                                     # 독립 프레임만
+    frames = traj[::step]                                     # independent frames only
     x = frames.reshape(-1).astype(np.float64)
-    x = (x - x.mean()) / x.std(ddof=1)                        # 형태만 본다
+    x = (x - x.mean()) / x.std(ddof=1)                        # look at the shape only
 
     ks = kstest(x, norm(loc=0.0, scale=1.0).cdf)
     kurt = float(np.mean(x**4))
@@ -105,11 +111,11 @@ def check_position_distribution(traj: np.ndarray, *, dt_star: float,
 # =============================================================================
 @dataclass
 class SeedAggregate:
-    """시드 앙상블 집계. **시드간 산포가 오차의 정직한 추정치다.**"""
+    """Seed-ensemble aggregate. **The seed-to-seed spread is the honest error.**"""
 
     mean: float
-    se: float                 # 시드 평균의 표준오차
-    spread: float             # 시드간 표준편차
+    se: float                 # standard error of the seed mean
+    spread: float             # seed-to-seed standard deviation
     n_seeds: int
     values: list[float]
 

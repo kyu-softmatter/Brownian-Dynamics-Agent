@@ -206,8 +206,8 @@ for T, d_um in ((293.15, 1.0), (298.15, 0.5), (300.0, 5.0)):
 print("\n⑦ spec hash: NOT merged. Pin where the two agree and where they do not")
 for payload, same in (({"d": 5e-6, "T": 300}, True),
                       ({"N": 512, "k_star": 1.0}, True),
-                      ({"src": "물@300K 핸드북"}, False),
-                      ({"점도": 8.51e-4}, False)):
+                      ({"src": "η-table@300K"}, False),
+                      ({"η": 8.51e-4}, False)):
     check(f"spec_hash == sha256_payload for {list(payload)[:1]}... ",
           spec_hash(payload, 12) == SIO.sha256_payload(payload)[:12], same)
 
@@ -264,7 +264,7 @@ SIO.sha256_payload = lambda ob: hashlib.sha256(
 importlib.reload(T2)
 expect_fail("spec-hash divergence silently 'fixed'",
             T2.test_the_two_spec_hashes_agree_on_ascii_and_differ_otherwise,
-            {"점도": 8.51e-4}, False)
+            {"η": 8.51e-4}, False)
 SIO.sha256_payload = _o
 importlib.reload(T2)
 

@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py#build_ledger#tau_fast",
+  "lessons": [
+    {
+      "claim": "When fixing dt, **leaving out even one candidate timescale makes it quietly insufficient**. In chain-bend-2d-dlvo, τ_fast was set as min(τ_bond, τ_bend) and **the trap's τ_k was left out** -- at the default k_t, k_bond (1.04e6) dominates so it never surfaced, but around --kt-scale 200 the trap becomes the fastest mode while dt stayed as it was. The DLVO branch was more dangerous still, having no bending matrix so τ_bend is None. Measured after fixing: kt×1 and ×100 keep dt=59ns, ×300 gives 39ns and ×1000 shrinks automatically to 11.8ns. → When adding a flag that scales a parameter, always confirm **whether that parameter is among the dt candidates**.",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "lennard_jones",
+    "pitfall",
+    "units"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/welty_transport.md#5 ← [W] Appendix K p.712, 7.3 p.104",
+  "lessons": [
+    {
+      "claim": "[W]'s appendix K Lennard-Jones sigma/epsilon are for gas transport coefficients (Chapman-Enskog mu = 2.6693e-6 sqrt(MT)/(sigma^2 Omega_mu)) and share only the symbols with our pair.LJ sigma/epsilon; the physics is different -- taking the values from there into a colloidal pair potential must not be done. And liquid viscosity has no molecular theory (only the Eyring approximation) so it has to be read from a table and must not be computed from a formula",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

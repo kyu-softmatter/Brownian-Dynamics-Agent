@@ -1,22 +1,23 @@
-# L2 PhysicalSystem — `network`: 3D 콜로이드 네트워크 (압축 겔화 → 나중에 1점 구동).
-# 문헌: [P1] Pantina & Furst, PRL 94, 138301 (2005)
-#       [P2] Pantina & Furst, Langmuir 24, 1141-1146 (2008)
-# 스케치: intake/network/KakaoTalk_Photo_2026-08-06-14-36-42.jpeg — 수치가 하나도 없어
-#         물성은 전부 `chain-bend-2d-dlvo` 승계다 (tier 로 표시). 지어낸 값 없음.
-# tier 0=스케치/핸드북 · 1=사용자 확정 또는 확인된 관례 승계 · 2=문헌 추출 · 3=★내 제안
+# L2 PhysicalSystem — `network`: a 3D colloidal network (compression gelation → single-point driving later).
+# Literature: [P1] Pantina & Furst, PRL 94, 138301 (2005)
+#             [P2] Pantina & Furst, Langmuir 24, 1141-1146 (2008)
+# Sketch: intake/network/KakaoTalk_Photo_2026-08-06-14-36-42.jpeg — it has not a single number in it,
+#         so the properties are all inherited from `chain-bend-2d-dlvo` (marked by tier). No invented values.
+# tier 0=sketch/handbook · 1=user-fixed or an inherited confirmed convention · 2=extracted from the literature · 3=★my proposal
 #
-# ★★ 이 파일은 **1단계(겔화)** 를 실행 가능하게 하는 것이 목적이다 (CLAUDE.md 규칙 8:
-#    정적인 계를 먼저 세우고 움직임은 그 다음에 얹는다). `external` 은 2단계 예고로
-#    적어두되 1단계에서 실행되지 않는다 — `external.enabled_stage: 2` 로 명시.
+# ★★ The purpose of this file is to make **stage 1 (gelation)** runnable (CLAUDE.md rule 8:
+#    build the static system first and add motion afterwards). `external` is written down as advance
+#    notice of stage 2 but is not run in stage 1 — stated by `external.enabled_stage: 2`.
 
 label: network
 derived_from: intake/network/observation.yaml
 description: >
-  단분산 콜로이드 비드를 3D 박스에 흩뿌리고 DLVO 2차극소로 응집시킨 뒤, 박스를
-  등방 압축해 φ=0.1 의 침투하는 망을 만든다 (사용자 지정 프로토콜 2026-08-06).
-  결합은 DLVO(중심력) + JKR 접착접촉의 굽힘강성을 **함께** 켠다 (A2 확정).
-  1단계 산출물은 동결 가능한 위상(접촉 목록)과 구조 관측량이고, 2단계에서 입자
-  하나를 x(t)=A sin(ωt) 로 강제해 G'(ω)·G''(ω)·응답시간·응력전파를 본다.
+  Scatter monodisperse colloidal beads into a 3D box, aggregate them via the DLVO secondary minimum, then
+  compress the box isotropically to make a percolating network at φ=0.1 (the protocol the user specified
+  2026-08-06).
+  The bonds turn on DLVO (a central force) **together with** the bending stiffness of JKR adhesive contact (A2 settled).
+  Stage 1's output is a freezable topology (the contact list) plus structural observables, and in stage 2
+  one particle is forced as x(t)=A sin(ωt) to watch G'(ω), G''(ω), the response time and stress propagation.
 dimensions: 3
 
 particle:
@@ -24,103 +25,105 @@ particle:
   diameter:
     value: 1.47
     unit: um
-    source: "[P1] p.1 '2a = 1.47 ± 0.01 µm' PMMA — chain-bend-2d-dlvo 관례 승계
-             (이 스케치엔 크기 미기재, 'identical bead' 만 적힘)"
+    source: "[P1] p.1 '2a = 1.47 ± 0.01 µm' PMMA — inheriting the chain-bend-2d-dlvo convention
+             (no size is stated in this sketch, only 'identical bead')"
     tier: 1
   density:
     value: 1180
     unit: kg/m^3
-    source: "★제안: PMMA. BD 는 질량을 쓰지 않으므로 τ_p(St) 검사에만 쓰인다 — 결과 영향 0"
+    source: "★proposal: PMMA. BD does not use the mass, so it is used only for the τ_p (St) check — 0 effect on the result"
     tier: 3
   surface_potential:
     value: 40
     unit: mV
-    source: "[P1] p.1 'a measured surface potential of 40 ± 3 mV' — 승계"
+    source: "[P1] p.1 'a measured surface potential of 40 ± 3 mV' — inherited"
     tier: 2
   count:
     value: [512, 1528]
     unit: dimensionless
     source: >
-      ★제안. 그림의 원 21개는 **도식**이다 (observation A6 — 위상이 트리라 G'(ω) 가
-      정의되지 않는다). N = φ(L/d)³·6/π 로 φ=0.1 에서:
-        512 → L/d=13.89 (파일럿 · 유한크기 하한)
-        1528 → L/d=20.00 (생산 · L/2=10d 가 전파 측정 유효 반경)
-      상한 근거는 비용이다 — 실측 6384 steps/s (N=1528, 3D, Table+WCA)에서
-      dt=1e-2·τ_bond 이면 겔화 1 τ_B 가 4.5 시간/시드다
+      ★proposal. The 21 circles in the drawing are **a schematic** (observation A6 — the topology being a
+      tree, G'(ω) is not defined). By N = φ(L/d)³·6/π, at φ=0.1:
+        512 → L/d=13.89 (the pilot · the finite-size floor)
+        1528 → L/d=20.00 (production · L/2=10d is the useful radius for the propagation measurement)
+      The grounds for the ceiling are cost — at the measured 6384 steps/s (N=1528, 3D, Table+WCA),
+      with dt=1e-2·τ_bond, 1 τ_B of gelation is 4.5 hours per seed
       (scratch/verify_3d_boxresize.py ⑤).
     tier: 3
 
 medium:
   kind: newtonian
   name: water
-  temperature: {value: 300, unit: K, source: "1-A 승계, 논문은 수용액", tier: 1}
-  viscosity: {value: 0.851, unit: mPa*s, source: "물@300K 핸드북", tier: 1}
-  relative_permittivity: {value: 78.5, unit: dimensionless, source: "물@298K 핸드북 (CRC)", tier: 1}
+  temperature: {value: 300, unit: K, source: "inherited from 1-A; the papers use an aqueous solution", tier: 1}
+  viscosity: {value: 0.851, unit: mPa*s, source: "handbook, water@300K", tier: 1}
+  relative_permittivity: {value: 78.5, unit: dimensionless, source: "handbook, water@298K (CRC)", tier: 1}
   ionic_strength:
     value: 10
     unit: mM
     source: >
-      MgCl2 10mM — chain-bend-2d-dlvo 승계 (사용자 승인 2026-08-05). 250mM 은 이중층
-      반발이 죽어 vdW 가 접촉에서 장벽 없이 발산하고 결합강성이 임의 정규화로 정해진다.
-      10mM 은 교과서적 곡선(장벽 416 kT + 2차극소 −11.7 kT)을 준다.
+      MgCl2 10mM — inherited from chain-bend-2d-dlvo (user-approved 2026-08-05). At 250mM the double-layer
+      repulsion is dead, the vdW diverges at contact with no barrier, and the bond stiffness ends up set by
+      an arbitrary regularization.
+      10mM gives a textbook curve (a barrier of 416 kT + a secondary minimum of −11.7 kT).
     tier: 2
-    note: "MgCl2 (2:1 전해질). I = ½Σcᵢzᵢ² = 0.75×c_salt"
+    note: "MgCl2 (a 2:1 electrolyte). I = ½Σcᵢzᵢ² = 0.75×c_salt"
 
-# ── 기하: 압축되는 3D 주기 박스 ────────────────────────────────────────────
+# ── geometry: a 3D periodic box being compressed ───────────────────────────
 geometry:
   kind: periodic_box_compressed
-  boundary: "3D PBC (x·y·z)"
+  boundary: "3D PBC (x, y and z)"
   volume_fraction_initial:
     value: 0.02
     unit: dimensionless
     source: >
-      ★제안. 충분히 묽어 초기 배치에 겹침·즉시응집이 없고(평균 최근접 간격 ≈1.65d),
-      압축 여유가 총 선형변형 41.5% 로 남는다. observation A8 (φ=0.1 이 최종값)의 짝.
+      ★proposal. Dilute enough that the initial arrangement has no overlap and no immediate aggregation
+      (the mean nearest-neighbour gap is ≈1.65d), and it leaves a compression margin of 41.5% total linear
+      strain. The counterpart of observation A8 (φ=0.1 being the final value).
     tier: 3
   volume_fraction_final:
     value: 0.10
     unit: dimensionless
-    source: "사용자 지정 2026-08-06 ('0.1 성긴 겔'). 콜로이드 겔의 전형 범위"
+    source: "user-specified 2026-08-06 ('0.1, a sparse gel'). A typical range for a colloidal gel"
     tier: 1
   compression:
     mode: isotropic
     source: >
-      ★제안 등방. 1축(uniaxial)으로 하면 겔에 전역 축이 생겨 2단계의 '망에 수직/평행'
-      (observation A9-ⓑ)이 정의되지만 계가 이방성 겔로 바뀐다. 등방을 기본으로 두고
-      A9 는 **국소 결합 좌표계**로 해소한다 (A9-ⓐ).
+      ★proposal, isotropic. Doing it uniaxially gives the gel a global axis, which would define stage 2's
+      'perpendicular/parallel to the network' (observation A9-ⓑ) but changes the system into an anisotropic
+      gel. Isotropic is taken as the default and A9 is resolved with a **local bond coordinate frame** (A9-ⓐ).
     tier: 3
   n_stages:
     value: 178
     unit: dimensionless
     source: >
-      derived. 허용 변형 ε_crit = (h_min−h_barrier)/ℓ = 0.7031% 에 안전계수 1.76 을 두어
-      **트리거당 0.4%** 를 쓴다 (실측: 0.40% 결합 유지 h*=0.007591 / 0.80% 붕괴
+      derived. Putting a safety factor of 1.76 on the allowable strain ε_crit = (h_min−h_barrier)/ℓ = 0.7031%,
+      **0.4% per trigger** is used (measured: at 0.40% the bond holds, h*=0.007591 / at 0.80% it collapses,
       h*=−0.042257 — scratch/verify_3d_boxresize.py ④, docs/hoomd_capabilities.md §5.5).
-      ★ 단계 수는 **보간 방식에 따라 다르다**:
-        · 상대변형 일정(등비): ln(0.5848)/ln(1−0.004) = 134
-        · `variant.box.Interpolate` 는 **L 에 선형**이라 ΔL 이 일정하고 L 이 줄어드는
-          만큼 상대변형이 커진다 — **최악은 마지막 단계**다. (L₀/L₁−1)/ε = 0.7100/0.004
-          = 177.5 → **178**. 이때 최대 단계변형 0.3989% (안전계수 1.76).
-      ⚠️ 134 를 쓰면 마지막 단계가 0.53% 로 실측 안전선(0.40%)을 넘는다 — 예측
-      문턱(0.703%)보다는 아래지만 **측정되지 않은 구간**이다. 178 을 쓴다.
+      ★ The number of stages **depends on the interpolation**:
+        · constant relative strain (geometric): ln(0.5848)/ln(1−0.004) = 134
+        · `variant.box.Interpolate` is **linear in L**, so ΔL is constant and the relative strain grows as
+          L shrinks — **the worst stage is the last one**. (L₀/L₁−1)/ε = 0.7100/0.004
+          = 177.5 → **178**. The maximum per-stage strain is then 0.3989% (safety factor 1.76).
+      ⚠️ Using 134 puts the last stage at 0.53%, over the measured safety line (0.40%) — below the predicted
+      threshold (0.703%), but **an unmeasured region**. 178 is used.
     tier: 1
 
-# ── 상호작용: DLVO(중심력) + JKR 굽힘. 둘 다 ON (observation A2 확정) ────────
+# ── interactions: DLVO (central force) + JKR bending. Both ON (observation A2 settled) ────────
 interactions:
   - kind: pair.dlvo_secondary_minimum
-    form: "U(h) = U_edl(h) + U_vdw(h), h=표면간극. HHF(등전위,약한중첩)+Derjaguin 비지연 vdW"
+    form: "U(h) = U_edl(h) + U_vdw(h), h=surface gap. HHF (constant potential, weak overlap) + Derjaguin non-retarded vdW"
     rationale: >
-      스케치가 "DLVO, & JKR" 이라고 적었고 사용자가 **합쳐서 한 계**로 확정했다
-      (observation A2). 식과 축약 파라미터는 chain-bend-2d-dlvo 에서 SI로 검증된 것을
-      그대로 쓴다 (cases/chain_bend_dlvo_2d.py 의 dlvo_reduced_params/U_star/F_h_star).
-      NN(접촉) 쌍이 "결합"이고, 겔화 단계에서는 위상을 선언하지 않고 **페어 퍼텐셜만**
-      쓴다 — 결합이 런 중에 생기기 때문이다 (observation N5).
+      The sketch wrote "DLVO, & JKR" and the user settled it as **combined, one system**
+      (observation A2). The expressions and the reduced parameters are used exactly as verified in SI in
+      chain-bend-2d-dlvo (dlvo_reduced_params/U_star/F_h_star in cases/chain_bend_dlvo_2d.py).
+      NN (contacting) pairs are the "bonds", and in the gelation stage no topology is declared and
+      **only the pair potential** is used — because the bonds form during the run (observation N5).
     hamaker_constant:
       value: 1.05e-20
       unit: J
       source: >
-        chain-bend-2d-dlvo 승계. 그 케이스에서 Tabor-Winterton 근사로 독립 교차검증됨
-        (A_calc=9.40e-21 J, −10.5%; scratch/hamaker_crosscheck.py). 1차 출처 미확인.
+        Inherited from chain-bend-2d-dlvo. Independently cross-checked in that case with the
+        Tabor-Winterton approximation (A_calc=9.40e-21 J, −10.5%; scratch/hamaker_crosscheck.py). Primary source unconfirmed.
       tier: 2
     debye_length:
       value: 1.7618
@@ -131,101 +134,103 @@ interactions:
       value: 416.390
       unit: dimensionless
       source: >
-        derived: max U_tot(h)/kT @ h=0.7468 nm. ★ 촘촘 격자(4e5점)로 재확인한 값이고
-        `find_well()` 과 일치한다. ⚠️ chain-bend-2d-dlvo/system.yaml 에는 381.70 @
-        0.489nm 로 적혀 있는데 그것은 **최댓값이 아닌 점의 값**이다 (dlvo_ledger.py 의
-        성긴 격자 — 장벽 8.3%·위치 35% 과소). 결론(장벽 ≫ 1 kT)은 양쪽 다 같다.
+        derived: max U_tot(h)/kT @ h=0.7468 nm. ★ A value re-confirmed on a fine grid (4e5 points), and it
+        agrees with `find_well()`. ⚠️ chain-bend-2d-dlvo/system.yaml records 381.70 @
+        0.489nm, but that is **the value at a point that is not the maximum** (the coarse grid of
+        dlvo_ledger.py — 8.3% low in the barrier and 35% low in its location). The conclusion
+        (the barrier ≫ 1 kT) is the same either way.
       tier: 1
-      note: "단위=kT. 1차극소로의 열적 전이가 사실상 불가능함을 보장"
+      note: "unit=kT. Guarantees that a thermal transition into the primary minimum is effectively impossible"
     well_depth:
       value: -11.7155
       unit: dimensionless
-      source: "derived: U_tot(h)/kT 2차극소 @ h=11.1611nm"
+      source: "derived: the secondary minimum of U_tot(h)/kT @ h=11.1611nm"
       tier: 1
       note: >
-        단위=kT. ★ 11.7 kT 는 열에너지 규모라 **결합이 가역적**이다 — 탈출시간
-        τ_esc ≈ τ_bond·exp(11.7) ≈ 0.115 τ_B. 즉 이 망은 영구 겔이 아니라
-        재배열하는 가역 겔이고, 압축 중 구조 이완의 기준 시간이 τ_B 가 아니라
-        τ_esc 다 (압축 단계 길이를 정하는 값 — numerics 참조).
+        unit=kT. ★ 11.7 kT is on the scale of the thermal energy, so **the bonds are reversible** — the
+        escape time is τ_esc ≈ τ_bond·exp(11.7) ≈ 0.115 τ_B. That is, this network is not a permanent gel
+        but a reversible, rearranging one, and the reference time for structural relaxation during
+        compression is not τ_B but τ_esc (the value that sets the compression stage length — see numerics).
     well_location:
       value: 11.1611
       unit: nm
-      source: "derived: argmin U_tot(h) (장벽 이후)"
+      source: "derived: argmin U_tot(h) (past the barrier)"
       tier: 1
     bond_stiffness:
       value: 1.998e-3
       unit: N/m
       source: "derived: d²U_tot/dh² @ well_location = 1.0424e6 kT/d²"
       tier: 1
-      note: "방사(신축) 강성. dt 를 정하는 최속 모드 후보 → τ_bond = γ/k_bond"
+      note: "the radial (stretching) stiffness. The candidate fastest mode that sets dt → τ_bond = γ/k_bond"
 
   - kind: contact.adhesive_bending
-    form: "접선 굽힘 강성 κ_θ = EI/ℓ. [P1][P2] 의 JKR 접착접촉에서 유도"
+    form: "the tangential bending stiffness κ_θ = EI/ℓ. Derived from [P1][P2]'s JKR adhesive contact"
     enabled_stage: 2
     rationale: >
-      ★ 1단계(겔화)에서는 **끄고**, 2단계(구동)에서 동결된 위상 위에 켠다 —
-      HOOMD 의 angle/bond 는 정적 토폴로지라 응집 중에는 선언할 수 없다 (N5).
-      ⛔ 그리고 `md.angle.Harmonic` 은 쓸 수 없다: sinθ 를 √2e-3 으로 클램프해
-      거의 곧은 삼중항에서 **힘이 최대 96% 틀리고 에너지는 정확하다**
-      (skill bd-hoomd 함정 15). 겔의 사슬 구간에는 곧은 삼중항이 반드시 생긴다.
-      → `force.Custom` (정확, 26배 느림) 또는 해석 경로. 2단계 설계에서 확정한다.
+      ★ **Off** in stage 1 (gelation), turned on in stage 2 (driving) on top of the frozen topology —
+      HOOMD's angle/bond are a static topology and cannot be declared during aggregation (N5).
+      ⛔ And `md.angle.Harmonic` cannot be used: it clamps sinθ at √2e-3, so for a nearly straight triplet
+      **the force is up to 96% wrong while the energy is exact**
+      (skill bd-hoomd trap 15). Straight triplets inevitably appear in a gel's chain segments.
+      → `force.Custom` (accurate, 26× slower) or an analytic path. To be settled in the stage-2 design.
     kappa_0:
       value: 64
       unit: mN/m
-      source: "[P1] p.3 'experimental value at 10 mM MgCl₂ is 64 ± 0.5 mN/m' — 염 조건 일치"
+      source: "[P1] p.3 'experimental value at 10 mM MgCl₂ is 64 ± 0.5 mN/m' — the salt condition matches"
       tier: 2
     angle_stiffness:
       value: 5.7624e-15
       unit: J
-      source: "derived: κ_θ = EI/ℓ, EI = κ₀a³/3, ℓ=d. chain-bend-2d-oscill 에서 검증 승계"
+      source: "derived: κ_θ = EI/ℓ, EI = κ₀a³/3, ℓ=d. Inheriting the verification from chain-bend-2d-oscill"
       tier: 1
-      note: "= 1.391e6 kT — DLVO 2차극소 깊이(11.7 kT)의 12만 배"
+      note: "= 1.391e6 kT — 120 thousand times the depth of the DLVO secondary minimum (11.7 kT)"
 
-# ── 2단계 예고 (1단계에서 실행되지 않음) ──────────────────────────────────
+# ── advance notice of stage 2 (not run in stage 1) ─────────────────────────
 external:
   kind: position_forced_oscillation
   enabled_stage: 2
-  form: "구동 비드 하나의 위치를 x(t) = A sin(ωt) 로 직접 강제 (트랩 아님 — observation A3)"
+  form: "force one driven bead's position directly as x(t) = A sin(ωt) (not a trap — observation A3)"
   drive_direction:
     value: [0, 30, 60, 90]
     unit: degree
     source: >
-      ★사용자 지정 2026-08-06 ('네트워크의 수직방향, 평행방향 등 다양한 각도').
-      각도는 **국소 결합 좌표계** 기준 (0°=결합축 평행, 90°=수직) — 등방 압축 겔에는
-      전역 축이 없기 때문이다 (observation A9). 중심력 DLVO 는 평행으로는
-      k_bond=1.998e-3 N/m 이지만 수직으로는 선형강성이 정확히 0 이라, 이 스윕이
-      DLVO 대 JKR 굽힘의 대비를 직접 재는 축이 된다.
+      ★User-specified 2026-08-06 ('various angles: perpendicular to the network, parallel, and so on').
+      The angle is referenced to the **local bond coordinate frame** (0°=parallel to the bond axis,
+      90°=perpendicular) — because an isotropically compressed gel has no global axis (observation A9).
+      Central-force DLVO has k_bond=1.998e-3 N/m along the parallel direction but a linear stiffness of
+      exactly 0 along the perpendicular, so this sweep becomes the axis that directly measures the
+      contrast between DLVO and JKR bending.
     tier: 1
   amplitude:
     value: null
     unit: nm
-    source: "미정 (observation A_amplitude) — 선형응답 영역 확인이 첫 검사여야 한다"
+    source: "undecided (observation A_amplitude) — confirming the linear-response region has to be the first check"
     tier: 3
   omega_range:
     value: null
     unit: rad/s
     source: >
-      미정 (observation omega_range). ⚠️ G' 고원을 보려면 저주파 끝이 반드시 준정적
-      이어야 한다 — chain-bend 에서 De(ω_min)=0.993 으로 고원에 못 닿은 전례가 있다.
+      undecided (observation omega_range). ⚠️ For a G' plateau to be visible the low-frequency end has to
+      be quasi-static — there is a precedent in chain-bend where De(ω_min)=0.993 failed to reach the plateau.
     tier: 3
 
 targets:
-  # ── 1단계 (겔화) — 이번에 재는 것 ──
-  - name: coordination_number       # z — 압축 전후
-  - name: independent_loops         # 독립 고리 수 (Betti-1). 그림의 트리는 0 이었다
-  - name: dangling_fraction         # 자유단 비율. 그림은 6/21 = 29%
-  - name: fractal_dimension         # d_f — DLCA 인지 조밀 그물인지
-  - name: percolation               # 침투 여부 (PBC 스패닝 클러스터)
-  - name: rdf                       # g(r) — 2차극소 결합거리 피크가 서는지
-  - name: crushed_bond_fraction     # ★ 압축이 부순 결합 비율 (h<0 접촉으로 떨어진 쌍)
-  # ── 2단계 (구동) — 나중 ──
+  # ── stage 1 (gelation) — what is measured this time ──
+  - name: coordination_number       # z — before and after compression
+  - name: independent_loops         # the number of independent loops (Betti-1). The drawing's tree was 0
+  - name: dangling_fraction         # the free-end fraction. The drawing was 6/21 = 29%
+  - name: fractal_dimension         # d_f — whether it is DLCA or a dense mesh
+  - name: percolation               # whether it percolates (a PBC-spanning cluster)
+  - name: rdf                       # g(r) — whether a peak stands at the secondary-minimum bond distance
+  - name: crushed_bond_fraction     # ★ the fraction of bonds the compression broke (pairs that fell to h<0 contact)
+  # ── stage 2 (driving) — later ──
   - name: storage_modulus           # G'(ω)
   - name: loss_modulus              # G''(ω)
   - name: response_time
   - name: stress_propagation
 
 derived_scales:
-  source: "bdbot.materials.sphere_bulk + cases/chain_bend_dlvo_2d.find_well (승계 검증)"
+  source: "bdbot.materials.sphere_bulk + cases/chain_bend_dlvo_2d.find_well (inherited, verified)"
   kT: {value: 4.14195e-21, unit: J, expr: "k_B T"}
   gamma: {value: 1.17901e-8, unit: kg/s, expr: "3 pi eta d"}
   D_t: {value: 3.51307e-13, unit: m^2/s, expr: "kT/gamma"}
@@ -235,97 +240,99 @@ derived_scales:
     value: 5.901e-6
     unit: s
     expr: "gamma/k_bond"
-    role: "★ 최속 모드 — dt 를 정한다. = 9.5936e-7 tau_B"
+    role: "★ the fastest mode — it sets dt. = 9.5936e-7 tau_B"
   tau_esc:
     value: 0.7076
     unit: s
     expr: "tau_bond * exp(|well_depth|/kT)"
-    role: "★ 결합 탈출시간 = 0.115 tau_B. **압축 단계 길이의 기준** (구조 이완 시간)"
-  sigma_bond: {value: 1.4398, unit: nm, expr: "sqrt(kT/k_bond)", role: "결합 열요동 폭"}
-  ell: {value: 1481.16, unit: nm, expr: "d + h_min", role: "결합길이(중심간 평형거리)"}
+    role: "★ the bond escape time = 0.115 tau_B. **The reference for the compression stage length** (the structural relaxation time)"
+  sigma_bond: {value: 1.4398, unit: nm, expr: "sqrt(kT/k_bond)", role: "the width of the bond's thermal fluctuation"}
+  ell: {value: 1481.16, unit: nm, expr: "d + h_min", role: "bond length (the equilibrium centre-to-centre distance)"}
   eps_crit:
     value: 0.007031
     unit: dimensionless
     expr: "(h_min - h_barrier)/ell"
-    role: "★ 압축 트리거당 허용 선형변형. 실측 0.40% 유지 / 0.80% 붕괴 로 확인"
+    role: "★ the allowable linear strain per compression trigger. Confirmed by measurement: 0.40% holds / 0.80% collapses"
   h_bond_edge:
     value: 26.505
     unit: nm
-    expr: "U(h) = well_depth/2 의 외곽 해 (h > h_min)"
+    expr: "the outer solution of U(h) = well_depth/2 (h > h_min)"
     role: >
-      ★ **결합 판정 경계** — 이보다 가까우면 결합으로 센다 (r* < 1.018031).
-      h_min 의 2.375배. 임의 컷오프가 아니라 우물 깊이의 절반으로 정의해
-      z·고리 수·자유단 비율이 임의 선택에 안 흔들리게 한다.
+      ★ **the bond-detection boundary** — closer than this counts as a bond (r* < 1.018031).
+      2.375× h_min. Not an arbitrary cutoff: defining it as half the well depth keeps z, the number of
+      loops and the free-end fraction from wobbling with an arbitrary choice.
 
 dimensionless:
   reference: {length: d, time: tau_B, energy: kT, strategy: thermal}
   groups:
-    - {name: "phi_final", value: 0.10, meaning: "부피분율 — 성긴 겔"}
-    - {name: "well_depth/kT", value: -11.7155, meaning: "★ 가역 결합 (τ_esc=0.115 τ_B)"}
-    - {name: "barrier/kT", value: 416.390, meaning: "1차극소 전이 사실상 불가능"}
-    - {name: "k_bond_star", value: 1.0424e6, meaning: "k_bond d²/kT — 신축 강성"}
-    - {name: "tau_bond/tau_B", value: 9.5936e-7, meaning: "★ 척도 분리 6자릿수 — dt 비용의 근원"}
-    - {name: "tau_esc/tau_B", value: 0.115, meaning: "결합 재배열 / 확산. 압축 준정적성 기준"}
-    - {name: "eps_crit", value: 0.007031, meaning: "압축 단계당 허용 변형 → 134 단계"}
-    - {name: "sigma_bond/h_min", value: 0.129, meaning: "결합 열요동 폭 / 우물 위치"}
+    - {name: "phi_final", value: 0.10, meaning: "the volume fraction — a sparse gel"}
+    - {name: "well_depth/kT", value: -11.7155, meaning: "★ reversible bonds (τ_esc=0.115 τ_B)"}
+    - {name: "barrier/kT", value: 416.390, meaning: "a transition to the primary minimum is effectively impossible"}
+    - {name: "k_bond_star", value: 1.0424e6, meaning: "k_bond d²/kT — the stretching stiffness"}
+    - {name: "tau_bond/tau_B", value: 9.5936e-7, meaning: "★ 6 orders of scale separation — the origin of the dt cost"}
+    - {name: "tau_esc/tau_B", value: 0.115, meaning: "bond rearrangement / diffusion. The criterion for the quasi-staticity of the compression"}
+    - {name: "eps_crit", value: 0.007031, meaning: "the allowable strain per compression stage → 134 stages"}
+    - {name: "sigma_bond/h_min", value: 0.129, meaning: "the width of the bond's thermal fluctuation / the well location"}
 
 numerics:
   dt:
     value: null
     unit: null
     source: >
-      L3 에서 유도. 후보 최속 모드는 τ_bond (= 9.5936e-7 τ_B). 설계 관례
+      Derived in L3. The candidate fastest mode is τ_bond (= 9.5936e-7 τ_B). By the design convention
       dt/τ_fast = 1e-2 → dt ≈ 9.59e-9 τ_B.
-      ⚠️ **압축 중에는 후보가 하나 더 있다** — 붕괴한 쌍이 앉는 자리(h*≈−0.042,
-      WCA 코어와 vdW 가 균형)의 곡률은 k_bond 보다 크다. 붕괴가 생기면 dt 를
-      다시 봐야 한다 (crushed_bond_fraction 을 재는 이유).
+      ⚠️ **During compression there is one more candidate** — the curvature at the seat a collapsed pair
+      settles into (h*≈−0.042, where the WCA core and the vdW balance) is larger than k_bond. If collapses
+      occur, dt has to be looked at again (which is why crushed_bond_fraction is measured).
     tier: 3
   compression_stage_length:
     value: null
     unit: null
     source: >
-      ★ **이것이 1단계 비용을 정한다.** 두 극단이 서로 다른 물리다:
-        · 단계 = τ_esc(0.115 τ_B) → 총 15.4 τ_B → 1.6e9 스텝 → 70 시간/시드 (N=1528)
-          = 각 단계에서 결합이 재배열할 시간이 있는 **준정적** 압축
-        · 단계 = τ_bond 규모(1e-3 τ_B) → 총 0.13 τ_B → 1.4e7 스텝 → 37 분/시드
-          = 결합은 안 부서지지만 확산이 개입하지 않은 **아핀 압축**
-      → 파일럿에서 2~3점 비교해 **압축 속도 무관성을 실측**한다 (observation A8).
-      무관하지 않으면 그 자체가 결과다 (원칙 7).
+      ★ **This is what sets the stage-1 cost.** The two extremes are different physics:
+        · stage = τ_esc (0.115 τ_B) → 15.4 τ_B in total → 1.6e9 steps → 70 hours per seed (N=1528)
+          = **quasi-static** compression, in which the bonds have time to rearrange at every stage
+        · stage = the τ_bond scale (1e-3 τ_B) → 0.13 τ_B in total → 1.4e7 steps → 37 minutes per seed
+          = **affine** compression, in which the bonds do not break but diffusion never intervenes
+      → Compare 2~3 points in the pilot and **measure the independence from the compression rate**
+      (observation A8). If it is not independent, that is itself a result (rule 7).
     tier: 3
   aggregation_time:
     value: null
     unit: null
     source: >
-      ★ 압축 전 응집 시간. 미정 — 파일럿에서 침투·z 의 시간 곡선을 재서 정한다.
-      어림: φ₀=0.02 에서 평균 최근접 간격 0.65d 를 확산하는 데 0.07 τ_B.
-      전체 겔화(침투)는 그보다 길다. 1 τ_B = 4.5 시간/시드(N=1528)이므로
-      **측정 없이 크게 잡으면 안 된다** (N3: 판정 전에 재라).
+      ★ The aggregation time before compression. Undecided — fixed by measuring the time curves of
+      percolation and z in the pilot.
+      An estimate: at φ₀=0.02 it takes 0.07 τ_B to diffuse the mean nearest-neighbour gap of 0.65d.
+      Full gelation (percolation) is longer than that. Since 1 τ_B = 4.5 hours per seed (N=1528),
+      **it must not be set large without measuring** (N3: measure it before ruling).
     tier: 3
   stat_target_pct: 5.0
-  production_note: "1단계는 스윕이 아니라 구조 생성 — 시드 앙상블이 통계의 전부다"
+  production_note: "stage 1 is not a sweep but structure generation — the seed ensemble is the whole of the statistics"
 
 required_convergence_checks:
-  - "dt 절반 수렴 — 구조 관측량(z·고리 수·d_f)이 dt 에 안 변하는지 (Brownian 은 O(δt))"
-  - "압축 속도 무관성 — compression_stage_length 2~3점 (A8)"
-  - "유한크기 — N 512 ↔ 1528 에서 z·고리 수·침투가 유지되는지"
-  - "crushed_bond_fraction ≈ 0 확인 — 0 이 아니면 ε 를 더 줄여야 한다"
+  - "dt halving convergence — whether the structural observables (z, the number of loops, d_f) stay put with dt (Brownian is O(δt))"
+  - "independence from the compression rate — 2~3 points of compression_stage_length (A8)"
+  - "finite size — whether z, the number of loops and percolation are retained at N 512 ↔ 1528"
+  - "confirm crushed_bond_fraction ≈ 0 — if it is not 0, ε has to be reduced further"
 
 not_verified:
-  - "★★ 압축이 겔을 부수지 않고 φ=0.1 까지 갈 수 있는지 — ε_crit 은 **쌍 하나**로
-     실측했다. 침투한 망이 강직해지면 아핀 압축이 여러 결합에 동시에 걸려 문턱이
-     내려갈 수 있다. crushed_bond_fraction 으로 재서 판정한다"
-  - "★★ 겔화에 필요한 물리 시간(aggregation_time)이 미측정 — 이것이 1단계 비용 전체를
-     정하는데 어림밖에 없다. 파일럿이 먼저다"
-  - "Hamaker 상수(1.05e-20 J)의 1차 출처 미확인 (tier 2). 결론이 A 값에 민감하면 재확인"
-  - "이 프로젝트 최초의 3D 케이스 — 3D 자유확산은 검증했으나(⟨r²⟩=6Dt, −1.40%)
-     bdbot 의 다른 모듈이 2D 를 가정하는 곳이 남아 있을 수 있다 (observation N4)"
-  - "τ_p/τ_bond = 0.0282 로 관성 무시 기준(1e-2)을 2.82배 넘긴다. ζ=2.98 로 과감쇠
-     조건은 만족하고, chain-bend-2d-oscill 이 훨씬 심한 ζ=0.65 에서 OverdampedViscous
-     vs Langevin(kT=0) 대조로 영향 0.159% 를 실측했다 — 하지만 **이 계에서 그 대조를
-     직접 한 것은 아니다.** 구조 관측량이 예상과 어긋나면 여기를 먼저 의심할 것.
-     (chain-bend-2d-dlvo 도 같은 값·같은 미검증 상태다 — 같은 입자·같은 결합이므로)"
-  - "★ 압축이 '아핀 압축'인지 '준정적'인지는 T_stage/τ_esc 로 갈린다. 파일럿의
-     T_stage=1e-3 τ_B 는 비 0.0085 로 **확산이 개입하지 않는** 쪽이다 — 구조가
-     압축 전 배치의 아핀 상이라는 뜻일 수 있다. A8(압축 속도 무관성)을 재기 전에는
-     '겔화했다'고 말하지 말 것"
-  - "2단계의 굽힘 구현(force.Custom 26배 느림)이 N=1528·ω스윕에서 감당되는지 미측정"
+  - "★★ whether the compression can reach φ=0.1 without breaking the gel — ε_crit was measured on
+     **a single pair**. If a percolating network stiffens, affine compression loads several bonds at once
+     and the threshold may come down. Judged by measuring crushed_bond_fraction"
+  - "★★ the physical time needed for gelation (aggregation_time) is unmeasured — it sets the whole stage-1
+     cost and there is only an estimate. The pilot comes first"
+  - "The primary source of the Hamaker constant (1.05e-20 J) is unconfirmed (tier 2). If the conclusion is sensitive to the value of A, re-confirm"
+  - "The project's first 3D case — 3D free diffusion has been verified (⟨r²⟩=6Dt, −1.40%) but there may
+     remain places in bdbot that assume 2D (observation N4)"
+  - "τ_p/τ_bond = 0.0282 exceeds the criterion for neglecting inertia (1e-2) by 2.82×. With ζ=2.98 the
+     overdamped condition is satisfied, and chain-bend-2d-oscill measured the effect as 0.159% by
+     contrasting OverdampedViscous vs Langevin(kT=0) at a far worse ζ=0.65 — but **that contrast was not
+     done directly in this system.** If the structural observables come out against expectation, suspect
+     here first.
+     (chain-bend-2d-dlvo has the same value and the same unverified status — the same particle and the same bond)"
+  - "★ Whether the compression is 'affine' or 'quasi-static' is divided by T_stage/τ_esc. The pilot's
+     T_stage=1e-3 τ_B gives a ratio of 0.0085, which is on the side where **diffusion does not intervene** —
+     which may mean the structure is an affine image of the pre-compression arrangement. Do not say
+     'it gelled' before A8 (the independence from the compression rate) has been measured"
+  - "Whether stage 2's bending implementation (force.Custom, 26× slower) is affordable at N=1528 with an ω sweep is unmeasured"

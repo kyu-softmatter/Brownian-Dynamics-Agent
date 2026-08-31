@@ -1,18 +1,20 @@
-"""S3 — 시스템 명세 데이터 모델 + 타당성 검사. LLM 0줄.
+"""S3 — the system-specification data model + validity checks. 0 lines of LLM.
 
-이 모듈이 지키는 것 셋:
+Three things this module enforces:
 
-1. **모든 물리량에 provenance 가 있다.** `Quantity` 없이 맨 float 을 넣을 수 없다.
-   근거 없는 숫자는 나중에 "이 값이 어디서 왔는가"에 답할 수 없고, 그러면 감도
-   분석도 재현도 불가능해진다.
+1. **Every physical quantity has a provenance.** A bare float cannot be entered
+   without a `Quantity`. A number with no basis cannot later answer "where did
+   this value come from", and then neither sensitivity analysis nor reproduction
+   is possible.
 
-2. **파생값은 저장하지 않고 다시 계산한다.** `derived:` 블록이 파일에 있으면
-   재계산과 대조해서 불일치를 잡는다. 손으로 고친 파생값은 조용히 틀린다 —
-   2026-07-28 에 `kT(293.15 K)` 4번째 자리 오류를 실제로 겪었다.
+2. **Derived values are recomputed, not stored.** If a `derived:` block is in the
+   file it is compared against the recomputation to catch a mismatch. A
+   hand-edited derived value is quietly wrong -- on 2026-07-28 a 4th-digit error
+   in `kT(293.15 K)` actually happened.
 
-3. **게이트를 끄려면 이유를 적어야 한다.** 그리고 게이트 이름은 등록된 것만
-   쓸 수 있다 — 오타 난 게이트 이름은 **한 번도 실행되지 않는 검사**가 된다.
-   어느 게이트가 켜지는지는 (계 × 목적동역학) 카드가 정한다:
+3. **Turning a gate off requires writing down why.** And only registered gate
+   names may be used -- a mistyped gate name becomes **a check that never runs
+   once**. Which gates are on is decided by the (system × target dynamics) card:
    `knowledge/wiki/systems/_index.md`
 """
 from __future__ import annotations
@@ -26,25 +28,28 @@ import yaml
 
 from .io import sha256_payload
 from .units import kT_si, stokes_drag_si, stokes_einstein_D_si
+from bdbot.constants import sphere_mass_si   # one definition, shared with bdbot.materials
 
 # =============================================================================
 # provenance
 # =============================================================================
 PROVENANCE_KINDS: frozenset[str] = frozenset({
-    "from_drawing",    # 그림에서 직접 읽음
-    "observation",     # 그림/자료에서 직접 읽음 (from_drawing 의 모달리티 일반형)
-    "inference",       # 자료 + 물리지식으로 유도
-    "assumed",         # 자료에 없어 채움 → S7b 감도 분석 대상
-    "derived",         # 다른 필드에서 계산 (simbot 함수 호출 결과)
-    "rule",            # 정책에서 유도 (config/run_policy.yaml)
-    "from_knowledge",  # knowledge/wiki 항목
-    "from_paper",      # knowledge/source/papers 증류
-    "measured",        # 실험값
-    "user",            # 사람이 이 런에서 직접 지정 (세션 `set`). 가정이 아니다 —
-                       # S7b 감도 분석이 흔들 대상에서 제외된다
+    "from_drawing",    # read directly off the drawing
+    "observation",     # read directly off the drawing/source (from_drawing's
+                       # modality-general form)
+    "inference",       # derived from the source + physics knowledge
+    "assumed",         # filled in because the source lacks it → an S7b sensitivity
+                       # target
+    "derived",         # computed from other fields (the return of a simbot call)
+    "rule",            # derived from policy (config/run_policy.yaml)
+    "from_knowledge",  # a knowledge/wiki entry
+    "from_paper",      # a knowledge/source/papers distillation
+    "measured",        # an experimental value
+    "user",            # a human set this directly in this run (session `set`). Not
+                       # an assumption -- excluded from what S7b shakes
 })
 
-# master_plan §12.2 — 이 provenance 는 값싼 모델이 채울 수 없다
+# master_plan §12.2 — these provenances cannot be filled in by a cheap model
 LLM_RESTRICTED: frozenset[str] = frozenset({"inference", "assumed"})
 CHEAP_MODELS: frozenset[str] = frozenset({"haiku", "sonnet"})
 
@@ -53,9 +58,9 @@ CONFIDENCE_LEVELS: frozenset[str] = frozenset({"high", "medium", "low", ""})
 
 @dataclass
 class Quantity:
-    """물리량 래퍼. **값 하나에 근거 하나.**
+    """A physical-quantity wrapper. **One value, one basis.**
 
-    `value` 는 float 이 기본이지만 정수·문자열·리스트도 허용한다
+    `value` is a float by default but an int, a string or a list is allowed too
     (`dim=2`, `boundary="periodic"`, `center=[0,0,0]`).
     """
 
@@ -64,64 +69,68 @@ class Quantity:
     provenance: str = "assumed"
     basis: str = ""
     confidence: str = ""
-    ambiguity: str = ""          # 01_intake.md 의 모호성 id (A1, A2 …)
-    sensitivity: str = ""        # none | low | high — S7b 결과를 되기록
+    ambiguity: str = ""          # ambiguity id from 01_intake.md (A1, A2 …)
+    sensitivity: str = ""        # none | low | high — S7b's result written back
     affects: list[str] = field(default_factory=list)
-    written_by: str = ""         # 모델 티어링 검사용 (§12.2)
+    written_by: str = ""         # for the model-tiering check (§12.2)
 
     def __post_init__(self) -> None:
         if self.provenance not in PROVENANCE_KINDS:
             raise ValueError(
-                f"provenance {self.provenance!r} 는 등록되지 않았다. "
-                f"허용: {sorted(PROVENANCE_KINDS)}")
+                f"provenance {self.provenance!r} is not registered. "
+                f"allowed: {sorted(PROVENANCE_KINDS)}")
         if self.confidence not in CONFIDENCE_LEVELS:
-            raise ValueError(f"confidence {self.confidence!r} 는 "
-                             f"{sorted(CONFIDENCE_LEVELS)} 중 하나여야 한다")
+            raise ValueError(f"confidence {self.confidence!r} must be one of "
+                             f"{sorted(CONFIDENCE_LEVELS)}")
 
     @property
     def si(self) -> float:
-        """수치 값. 문자열/리스트면 예외 — 단위 산술에 쓰지 못하게 막는다."""
+        """The numeric value. A string or list raises — that blocks it from being
+        used in unit arithmetic."""
         if isinstance(self.value, bool) or not isinstance(self.value, (int, float)):
-            raise TypeError(f"{self.value!r} 은 수치가 아니다 (unit={self.unit!r})")
+            raise TypeError(f"{self.value!r} is not numeric (unit={self.unit!r})")
         return float(self.value)
 
     def problems(self) -> list[str]:
-        """이 값 하나에 대한 규약 위반 목록."""
+        """The convention violations of this one value."""
         out = []
         if not str(self.basis).strip():
-            out.append("basis 가 비어 있다 — 근거 없는 숫자는 감도 분석도 재현도 불가")
+            out.append("basis is empty — a number with no basis allows neither "
+                       "sensitivity analysis nor reproduction")
         if self.provenance in LLM_RESTRICTED and not self.confidence:
-            out.append(f"provenance={self.provenance} 인데 confidence 가 없다 "
-                       f"(추론·가정은 신뢰도를 밝혀야 한다)")
+            out.append(f"provenance={self.provenance} with no confidence "
+                       f"(an inference or assumption has to state its confidence)")
         if (self.provenance in LLM_RESTRICTED
                 and self.written_by.lower() in CHEAP_MODELS):
-            out.append(f"provenance={self.provenance} 를 {self.written_by} 가 채웠다 — "
-                       f"master_plan §12.2 위반 (Opus 만 허용)")
+            out.append(f"provenance={self.provenance} was filled in by "
+                       f"{self.written_by} — master_plan §12.2 violation "
+                       f"(Opus only)")
         return out
 
 
 def Q(value, unit: str = "", provenance: str = "assumed", basis: str = "", **kw):
-    """`Quantity` 짧은 생성자. YAML 을 손으로 쓰지 않을 때 쓴다."""
+    """A short `Quantity` constructor. For when the YAML is not hand-written."""
     return Quantity(value=value, unit=unit, provenance=provenance, basis=basis, **kw)
 
 
 # =============================================================================
-# 게이트 — 카드가 켜고 끈다
+# gates — the card turns them on and off
 # =============================================================================
 GATE_STATUSES: frozenset[str] = frozenset({"required", "pass", "fail", "off",
                                            "applicable", "unknown"})
 
-# 등록된 게이트 이름. 오타 난 이름은 "한 번도 실행되지 않는 검사"가 되므로 거부한다.
+# Registered gate names. A mistyped name becomes "a check that never runs", so it
+# is rejected.
 KNOWN_GATES: frozenset[str] = frozenset({
-    # 전제
+    # premises
     "overdamped", "stokes_reynolds", "hydrodynamics_neglected",
-    # 평형·구조
+    # equilibrium and structure
     "equilibration_detection", "equipartition", "configurational_temperature",
     "self_consistency_D", "polydispersity",
-    # 수치
+    # numerics
     "em_bias_reproduced", "dt_over_tau_trap", "thermal_displacement",
     "force_displacement", "active_displacement", "step_displacement_vs_sigma",
-    # 기하
+    # geometry
     "box_much_larger_than_l_trap", "r_cut_le_half_box", "finite_size_L",
     "persistence_length_vs_box", "packing_fraction", "debye_length_consistency",
 })
@@ -134,12 +143,12 @@ class Gate:
 
     def __post_init__(self) -> None:
         if self.status not in GATE_STATUSES:
-            raise ValueError(f"게이트 status {self.status!r} 는 "
-                             f"{sorted(GATE_STATUSES)} 중 하나여야 한다")
+            raise ValueError(f"gate status {self.status!r} must be one of "
+                             f"{sorted(GATE_STATUSES)}")
 
 
 # =============================================================================
-# 구성 요소
+# components
 # =============================================================================
 @dataclass
 class Species:
@@ -153,15 +162,23 @@ class Species:
 
     @property
     def sigma_si(self) -> float:
-        """대표 직경. ⚠ `σ = 2a`. 반지름과 혼동하면 모든 시간척도가 2배 틀린다."""
+        """The representative diameter. ⚠ `σ = 2a`. Confuse it with the radius and
+        every timescale is wrong by 2x."""
         return 2.0 * self.radius_si.si
 
     def mass_si(self) -> float | None:
-        """구형 가정 질량. 밀도가 없으면 `None` (과감쇠 검사를 못 한다)."""
+        """Sphere-assumed mass. `None` without a density (no overdamped check then).
+
+        ★ The expression is `bdbot.constants.sphere_mass_si`, shared with
+          `bdbot.materials.sphere_mass`. It used to be written here as
+          `rho*(4/3)*pi*a**3`, which is the same number on paper and **1 ULP
+          different in floating point** from bdbot's `rho*(pi/6)*d**3` -- so the
+          two halves could never compare equal. Merged 2026-08-29.
+          ⚠ The kernel takes a **diameter**; this class stores a radius.
+        """
         if self.density_si is None:
             return None
-        a = self.radius_si.si
-        return self.density_si.si * (4.0 / 3.0) * math.pi * a**3
+        return sphere_mass_si(self.density_si.si, 2.0 * self.radius_si.si)
 
 
 @dataclass
@@ -169,15 +186,16 @@ class Medium:
     T_si: Quantity
     eta_si: Quantity
     rho_fluid_si: Quantity | None = None
-    species: Quantity | None = None      # "water" 등
+    species: Quantity | None = None      # "water" and the like
 
 
 @dataclass
 class Geometry:
     dim: Quantity
     boundary: Quantity
-    box_si: Quantity | None = None       # [Lx, Ly, Lz] 명시
-    box_over_ref: Quantity | None = None  # 카드 기준길이의 배수 (트랩 계 관행)
+    box_si: Quantity | None = None       # [Lx, Ly, Lz] stated explicitly
+    box_over_ref: Quantity | None = None  # multiples of the card's reference length
+                                          # (the convention for trap systems)
 
     @property
     def d(self) -> int:
@@ -195,31 +213,33 @@ class PairInteraction:
 
 @dataclass
 class BondInteraction:
-    """결합 1종. HOOMD `md.bond.Harmonic` 대응.
+    """One bond kind. Maps to HOOMD `md.bond.Harmonic`.
 
     `params`: `k_si` [N/m = J/m²] · `r0_si` [m].
 
-    ⚠ **각(`AngleInteraction`)과 한 클래스로 합치지 않는다.** 결합의 `k` 는 N/m 이고
-      각의 `k` 는 J/rad² 다 — 같은 이름의 필드에 다른 차원을 담으면 `λ_max` 를 만들 때
-      조용히 틀린다. 안정성 게이트가 그 값을 쓴다.
+    ⚠ **Do not merge this into one class with the angle (`AngleInteraction`).** A
+      bond's `k` is N/m and an angle's `k` is J/rad² -- put two different
+      dimensions in a same-named field and building `λ_max` goes quietly wrong.
+      The stability gate uses that value.
 
-    ⚠ 거리 구속(`constrain.Distance`)은 `Brownian` 과 함께 쓰지 않는다.
-      근거: `knowledge/wiki/findings/dead-end-distance-constraint-with-brownian.md`
+    ⚠ Do not use a distance constraint (`constrain.Distance`) together with
+      `Brownian`. Basis:
+      `knowledge/wiki/findings/dead-end-distance-constraint-with-brownian.md`
     """
 
-    name: str = "backbone"               # HOOMD bond type 이름
+    name: str = "backbone"               # the HOOMD bond type name
     potential: str = "harmonic"
     params: dict = field(default_factory=dict)
 
 
 @dataclass
 class AngleInteraction:
-    """각 1종. HOOMD `md.angle.Harmonic` 대응.
+    """One angle kind. Maps to HOOMD `md.angle.Harmonic`.
 
     `params`: `k_si` [J/rad²] · `t0_rad` [rad].
     """
 
-    name: str = "backbone"               # HOOMD angle type 이름
+    name: str = "backbone"               # the HOOMD angle type name
     potential: str = "harmonic"
     params: dict = field(default_factory=dict)
 
@@ -235,7 +255,7 @@ class ExternalField:
 @dataclass
 class Friction:
     model: str = "stokes_infinite_medium"
-    gamma_si: Quantity | None = None     # 없으면 6πηa 로 파생
+    gamma_si: Quantity | None = None     # if absent, derived as 6πηa
     wall_correction: str = "none"
     note: str = ""
 
@@ -255,7 +275,7 @@ class Numerics:
     n_seeds: Quantity | None = None
     integrator: str = "hoomd.md.methods.Brownian"
     scheme: str = "euler_maruyama"
-    noise_distribution: str = "uniform"  # ★ Gaussian 아님. findings §2
+    noise_distribution: str = "uniform"  # ★ NOT Gaussian. findings §2
 
 
 # =============================================================================
@@ -263,7 +283,8 @@ class Numerics:
 # =============================================================================
 @dataclass
 class SystemSpec:
-    """물리 단위 완전 명세. **입력만 담는다** — 파생값은 `derive()` 가 만든다."""
+    """The complete specification in physical units. **Inputs only** — derived
+    values are produced by `derive()`."""
 
     card: str
     question: str
@@ -281,7 +302,7 @@ class SystemSpec:
     tier: str = ""
     notes: list[str] = field(default_factory=list)
 
-    # --- 편의 접근 ---
+    # --- convenience accessors ---
     @property
     def primary(self) -> Species:
         return self.species[0]
@@ -294,38 +315,43 @@ class SystemSpec:
 
     @property
     def has_neighbor_interaction(self) -> bool:
-        """겹칠 상대(쌍) 또는 **결합 상대**(결합·각)가 있는가.
+        """Is there something to overlap with (a pair) or **to be bonded to** (a
+        bond or angle)?
 
-        ★ 변위 게이트의 활성 조건이다. `bool(spec.pair)` 로 판정하면 결합만 있는 계
-          (콜로이드 사슬)에서 게이트가 조용히 꺼진다 — 실제로 그렇게 꺼져 있었다.
-          근거: `knowledge/wiki/findings/dt-gate-needs-a-stability-term-for-stiff-bonds.md`
+        ★ This is the displacement gate's activation condition. Deciding it with
+          `bool(spec.pair)` turns the gate quietly off in a bond-only system (a
+          colloidal chain) -- and it actually was off that way. Basis:
+          `knowledge/wiki/findings/dt-gate-needs-a-stability-term-for-stiff-bonds.md`
         """
         return bool(self.pair or self.bonds or self.angles)
 
     def bond_stiffness_si(self) -> float | None:
-        """가장 강한 결합 스프링 [N/m]. **최댓값**이어야 한다 — 안정성은 최악 모드가 정한다."""
+        """The stiffest bond spring [N/m]. Must be the **maximum** — stability is
+        set by the worst mode."""
         ks = [b.params["k_si"].si for b in self.bonds if "k_si" in b.params]
         return max(ks) if ks else None
 
     def angle_stiffness_si(self) -> float | None:
-        """가장 강한 각 스프링 [J/rad²]."""
+        """The stiffest angle spring [J/rad²]."""
         ks = [a.params["k_si"].si for a in self.angles if "k_si" in a.params]
         return max(ks) if ks else None
 
     def bond_length_si(self) -> float | None:
-        """가장 짧은 결합 평형길이 [m]. 각 강성을 횡방향 강성으로 환산할 때의 지레팔이고,
-        짧을수록 강성이 커지므로 최솟값을 쓴다."""
+        """The shortest bond equilibrium length [m]. It is the lever arm when
+        converting an angular stiffness into a transverse one, and shorter means
+        stiffer, so the minimum is used."""
         rs = [b.params["r0_si"].si for b in self.bonds if "r0_si" in b.params]
         return min(rs) if rs else None
 
     def gamma_si(self) -> float:
-        """항력계수. 명시값이 있으면 그것, 없으면 Stokes `6πηa`."""
+        """Drag coefficient. The stated value if there is one, else Stokes `6πηa`."""
         if self.friction.gamma_si is not None:
             return self.friction.gamma_si.si
         return stokes_drag_si(self.medium.eta_si.si, self.primary.radius_si.si)
 
     def box_lengths_si(self, ref_length_si: float | None = None) -> list[float] | None:
-        """박스 변 길이 [m]. `box_over_ref` 만 있으면 `ref_length_si` 가 필요하다."""
+        """Box edge lengths [m]. With only `box_over_ref`, `ref_length_si` is
+        required."""
         if self.geometry.box_si is not None:
             return [float(x) for x in self.geometry.box_si.value]
         if self.geometry.box_over_ref is not None and ref_length_si is not None:
@@ -335,10 +361,10 @@ class SystemSpec:
         return None
 
     def hash(self) -> str:
-        """spec 해시 — `run_id` 와 캐시 키. 파생값은 포함하지 않는다."""
+        """The spec hash — `run_id` and the cache key. Derived values excluded."""
         return sha256_payload(to_dict(self))
 
-    # --- 직렬화 ---
+    # --- serialization ---
     def to_yaml(self) -> str:
         return dump_yaml(self)
 
@@ -357,11 +383,12 @@ class SystemSpec:
 
 
 # =============================================================================
-# 예측 (S2) — 봉인되는 과학적 주장
+# predictions (S2) — the scientific claim that gets sealed
 # =============================================================================
 @dataclass
 class PredictionItem:
-    """반증 가능한 형태의 예측 1개. 4요소가 전부 있어야 한다 (master_plan §S2-4)."""
+    """One prediction in falsifiable form. All 4 elements are required
+    (master_plan §S2-4)."""
 
     quantity: str
     value: float | str
@@ -369,14 +396,14 @@ class PredictionItem:
     basis: str
     discriminates: str = ""
     unit: str = ""
-    competing_value: float | None = None   # 경쟁 가설 (검정력 계산용)
+    competing_value: float | None = None   # the competing hypothesis (for power)
     note: str = ""
 
     def problems(self) -> list[str]:
         out = []
         for name in ("tolerance", "basis"):
             if not str(getattr(self, name)).strip():
-                out.append(f"{self.quantity}: {name} 가 비어 있다")
+                out.append(f"{self.quantity}: {name} is empty")
         return out
 
 
@@ -388,17 +415,18 @@ class Prediction:
 
     def problems(self) -> list[str]:
         if not self.items:
-            return ["정량 예측이 0개다 — S2 게이트는 최소 1개를 요구한다"]
+            return ["0 quantitative predictions — the S2 gate requires at least 1"]
         return [p for it in self.items for p in it.problems()]
 
 
 # =============================================================================
-# 파생값 — 저장하지 않고 계산한다
+# derived values — computed, never stored
 # =============================================================================
 def derive(spec: SystemSpec) -> dict[str, float]:
-    """spec 에서 파생되는 SI 스케일 전량. **모든 값이 함수 호출 결과다.**
+    """Every SI scale derived from the spec. **Every value is a function's return.**
 
-    여기 없는 파생값을 리포트에 쓰지 않는다 — 손계산이 끼어들 자리를 없앤다.
+    A derived value that is not here does not go in the report -- that removes the
+    place a hand calculation could slip in.
     """
     sp = spec.primary
     T = spec.medium.T_si.si
@@ -432,12 +460,15 @@ def derive(spec: SystemSpec) -> dict[str, float]:
         out["msd_plateau_si"] = 2.0 * spec.geometry.d * kT / k
         out["k_star_sigma"] = k * sigma**2 / kT
 
-    # --- 결합·각 → 강성행렬 최대고유값 λ_max ---
-    #  사슬 강성행렬의 최대고유값 근사: 1D 스프링 사슬이 4k, 굽힘은 4계 차분이라 16k.
-    #  각 스프링은 J/rad² 이므로 지레팔 b² 로 나눠 횡방향 강성 [N/m] 으로 환산한다.
-    #  이 값이 **명시적 오일러의 안정 한계** Δt ≤ 2γ/λ_max 를 정한다. 정확도가 아니라
-    #  발산 여부를 정하는 양이고, 변위 게이트로는 잡히지 않는다 (직선 사슬은 |F| = 0).
-    #  실측 교정 (비율 1.22–2.80):
+    # --- bonds and angles → λ_max, the largest eigenvalue of the stiffness matrix -
+    #  Approximation for a chain's stiffness matrix: 4k for a 1D spring chain, and
+    #  16k for bending because it is a 4th-order difference. An angular spring is
+    #  in J/rad², so it is divided by the lever arm b² to become a transverse
+    #  stiffness [N/m].
+    #  This value sets **explicit Euler's stability limit** Δt ≤ 2γ/λ_max. It is
+    #  the quantity that decides divergence, not accuracy, and the displacement
+    #  gate cannot catch it (a straight chain has |F| = 0).
+    #  Measured calibration (ratio 1.22–2.80):
     #  knowledge/wiki/findings/dt-gate-needs-a-stability-term-for-stiff-bonds.md
     k_bond = spec.bond_stiffness_si()
     k_angle = spec.angle_stiffness_si()
@@ -452,7 +483,7 @@ def derive(spec: SystemSpec) -> dict[str, float]:
             lam += 4.0 * k_bond
         if k_angle is not None:
             out["k_angle_si"] = k_angle
-            out["k_angle_star"] = k_angle / kT        # J/rad² 는 길이를 안 쓴다
+            out["k_angle_star"] = k_angle / kT        # J/rad² uses no length
             out["tau_angle_si"] = gamma * b**2 / k_angle
             lam += 16.0 * k_angle / b**2
         out["lambda_max_si"] = lam
@@ -461,24 +492,26 @@ def derive(spec: SystemSpec) -> dict[str, float]:
 
 
 def reference_length_si(spec: SystemSpec, derived: dict | None = None) -> float:
-    """카드의 기준 길이 [m]. 트랩 계면 `ℓ_trap`, 그 외 `σ`.
+    """The card's reference length [m]. `ℓ_trap` for a trap system, `σ` otherwise.
 
-    (계 × 목적동역학) 카드가 소유하는 선택이다 — CLAUDE.md §무차원화 규약.
+    The choice is owned by the (system × target dynamics) card —
+    CLAUDE.md §non-dimensionalization convention.
     """
     d = derived if derived is not None else derive(spec)
     return d.get("l_trap_si", d["sigma_si"])
 
 
 # =============================================================================
-# 타당성 검사
+# validity checks
 # =============================================================================
 @dataclass
 class Check:
-    """검사 1건.
+    """One check.
 
-    `declared` 는 **결과가 아니다** — 카드가 이 게이트를 켜라고 선언했지만
-    S3 이 계산할 수 없는 양이라는 뜻이다 (등분배·EM 편향 등은 S7 이 판정한다).
-    `declared` 를 `pass` 로 적으면 사람이 한 번도 보지 않은 합격 도장이 찍힌다.
+    `declared` is **not a result** -- it means the card declared this gate on but
+    it is a quantity S3 cannot compute (equipartition, EM bias and the like are
+    decided by S7). Write `declared` as `pass` and a pass stamp gets applied that
+    no human ever looked at.
     """
 
     name: str
@@ -490,7 +523,8 @@ class Check:
 
 @dataclass
 class SpecReport:
-    """검사 결과. **판정하지 않는다** — `ok` 는 규약 위반 유무일 뿐이다."""
+    """The check results. **It does not judge** — `ok` only means whether there is
+    a convention violation."""
 
     checks: list[Check]
     problems: list[str]
@@ -504,14 +538,15 @@ class SpecReport:
         return [c for c in self.checks if c.status == "fail"]
 
     def deferred(self) -> list[Check]:
-        """S7 이 판정해야 하는 게이트 — S3 에서는 계산할 수 없다."""
+        """Gates S7 has to decide — S3 cannot compute them."""
         return [c for c in self.checks if c.status == "declared"]
 
     def table(self) -> str:
-        """마크다운 표. `03_spec_rationale.md` 와 `REPORT.md` 가 쓴다."""
-        rows = ["| 검사 | 상태 | 값 | 문턱 | 비고 |", "|---|---|---|---|---|"]
+        """A markdown table. Used by `03_spec_rationale.md` and `REPORT.md`."""
+        rows = ["| check | status | value | threshold | note |",
+                "|---|---|---|---|---|"]
         mark = {"pass": "✅ pass", "fail": "❌ **fail**", "off": "— off",
-                "na": "— n/a", "warn": "⚠️ warn", "declared": "⏳ S7 판정"}
+                "na": "— n/a", "warn": "⚠️ warn", "declared": "⏳ S7 decides"}
         for c in self.checks:
             v = "" if c.value is None else f"`{c.value:.4g}`"
             t = "" if c.threshold is None else f"`{c.threshold:.4g}`"
@@ -521,7 +556,7 @@ class SpecReport:
 
 
 def _iter_quantities(obj, path: str = "") -> list[tuple[str, Quantity]]:
-    """중첩 구조에서 모든 `Quantity` 를 (경로, 값) 으로 뽑는다."""
+    """Pull every `Quantity` out of a nested structure as (path, value)."""
     out: list[tuple[str, Quantity]] = []
     if isinstance(obj, Quantity):
         out.append((path, obj))
@@ -538,7 +573,7 @@ def _iter_quantities(obj, path: str = "") -> list[tuple[str, Quantity]]:
 
 
 def packing_fraction(spec: SystemSpec, box_si: list[float] | None) -> float | None:
-    """φ (3D 부피분율 / 2D 면적분율). 박스를 모르면 `None`."""
+    """φ (3D volume fraction / 2D area fraction). `None` if the box is unknown."""
     if not box_si:
         return None
     d = spec.geometry.d
@@ -554,13 +589,14 @@ def packing_fraction(spec: SystemSpec, box_si: list[float] | None) -> float | No
 
 def validate(spec: SystemSpec, *, stored_derived: dict | None = None,
              rel_tol: float = 1e-3) -> SpecReport:
-    """규약 위반 + 물리적 타당성 검사.
+    """Convention violations + physical validity checks.
 
     Args:
-        stored_derived: 파일에 적혀 있던 파생값. 주면 재계산과 대조한다
-            (손으로 고친 파생값을 잡는 유일한 방법).
-        rel_tol: 파생값 대조 허용 상대오차. 문서에 유효숫자 4~5자리로 적히므로
-            기본 `1e-3`.
+        stored_derived: the derived values as written in the file. Given them, they
+            are compared against the recomputation (the only way to catch a
+            hand-edited derived value).
+        rel_tol: relative tolerance for that comparison. Documents record 4 to 5
+            significant figures, so the default is `1e-3`.
     """
     problems: list[str] = []
     d = derive(spec)
@@ -569,85 +605,90 @@ def validate(spec: SystemSpec, *, stored_derived: dict | None = None,
     def put(c: Check) -> None:
         computed[c.name] = c
 
-    # --- 1. provenance 완전성 -------------------------------------------------
+    # --- 1. provenance completeness -------------------------------------------
     for path, q in _iter_quantities(spec):
         problems += [f"{path}: {p}" for p in q.problems()]
 
-    # --- 2. 게이트 선언 형식 --------------------------------------------------
+    # --- 2. the form of a gate declaration ------------------------------------
     unknown = sorted(set(spec.gates) - KNOWN_GATES)
     if unknown:
         problems.append(
-            f"등록되지 않은 게이트 이름 {unknown} — 오타는 '한 번도 실행되지 않는 "
-            f"검사'가 된다. 새 게이트면 KNOWN_GATES 에 먼저 추가할 것")
+            f"unregistered gate name {unknown} — a typo becomes 'a check that "
+            f"never runs'. For a new gate, add it to KNOWN_GATES first")
     for name, g in spec.gates.items():
         if g.status == "off" and not g.reason.strip():
-            problems.append(f"게이트 {name} 를 껐는데 이유가 없다 — "
-                            f"끄는 근거는 카드에 있어야 한다")
+            problems.append(f"gate {name} was turned off with no reason — "
+                            f"the basis for turning it off belongs in the card")
 
-    # --- 3. 과감쇠 -----------------------------------------------------------
+    # --- 3. overdamped --------------------------------------------------------
     tau_proc = d.get("tau_trap_si", d["tau_D_si"])
     if "tau_inertial_si" in d:
         ratio = d["tau_inertial_si"] / tau_proc
         put(Check("overdamped", "pass" if ratio < 1e-2 else "fail", value=ratio,
                   threshold=1e-2,
-                  detail=("τ_i/τ_process ≪ 1 — BD 전제 유효" if ratio < 1e-2
-                          else "관성이 무시되지 않는다 → Langevin 검토")))
+                  detail=("τ_i/τ_process ≪ 1 — the BD premise holds"
+                          if ratio < 1e-2
+                          else "inertia is not negligible → consider Langevin")))
     else:
-        put(Check("overdamped", "na", detail="밀도가 없어 질량을 모른다 — 검사 불가"))
+        put(Check("overdamped", "na",
+                  detail="no density, so the mass is unknown — cannot check"))
 
     # --- 4. Reynolds --------------------------------------------------------
     rho_f = spec.medium.rho_fluid_si
     if rho_f is not None:
-        # 특성 속도: 기준 길이를 기준 시간에 지나는 속도
+        # characteristic velocity: the reference length per reference time
         v = reference_length_si(spec, d) / tau_proc
         Re = rho_f.si * v * spec.primary.radius_si.si / spec.medium.eta_si.si
         put(Check("stokes_reynolds", "pass" if Re < 1e-2 else "fail",
                   value=Re, threshold=1e-2,
-                  detail="Re ≪ 1 — Stokes 항력 유효" if Re < 1e-2
-                  else "관성 유체효과 의심"))
+                  detail="Re ≪ 1 — Stokes drag holds" if Re < 1e-2
+                  else "inertial fluid effects suspected"))
     else:
-        put(Check("stokes_reynolds", "na", detail="ρ_fluid 없음"))
+        put(Check("stokes_reynolds", "na", detail="no ρ_fluid"))
 
-    # --- 5. 박스 · φ · r_cut ------------------------------------------------
+    # --- 5. box · φ · r_cut ---------------------------------------------------
     ref = reference_length_si(spec, d)
     box = spec.box_lengths_si(ref)
     if box is None:
-        problems.append("박스 크기를 알 수 없다 — box_si 또는 box_over_ref 필요")
+        problems.append("box size unknown — box_si or box_over_ref is required")
     else:
         n_ref = min(x for x in box[:spec.geometry.d]) / ref
         put(Check("box_much_larger_than_l_trap",
                   "pass" if n_ref >= 10 else "fail", value=n_ref, threshold=10.0,
-                  detail=f"박스가 기준길이의 {n_ref:.3g}배"))
+                  detail=f"box is {n_ref:.3g}x the reference length"))
         phi = packing_fraction(spec, box)
         if phi is not None:
             cap = 0.9 if spec.geometry.d == 2 else 0.64
-            kind = "면적" if spec.geometry.d == 2 else "부피"
+            kind = "area" if spec.geometry.d == 2 else "volume"
             if not spec.pair:
-                # ★ 쌍 상호작용이 없으면 배제부피가 없다 → φ 는 물리적 의미가 없다.
-                #   N 개 입자는 같은 트랩 안의 **독립 복제**이지 서스펜션이 아니다.
-                #   여기서 φ 를 게이트로 걸면 φ=4741 로 통과 불가 판정이 나온다 —
-                #   존재하지 않는 문제다. 값은 보여주되 판정하지 않는다.
+                # ★ With no pair interaction there is no excluded volume → φ has
+                #   no physical meaning. N particles in the same trap are
+                #   **independent replicas**, not a suspension.
+                #   Gating on φ here gives φ=4741 and a can-never-pass verdict --
+                #   a problem that does not exist. Show the value, do not judge it.
                 put(Check("packing_fraction", "off", value=phi, threshold=cap,
-                          detail=f"{kind}분율은 의미 없음 — 쌍 상호작용이 없어 "
-                                 f"배제부피가 없다 (입자는 독립 복제)"))
+                          detail=f"{kind} fraction is meaningless — no pair "
+                                 f"interaction, so no excluded volume (the "
+                                 f"particles are independent replicas)"))
             else:
                 put(Check("packing_fraction", "pass" if phi < cap else "fail",
                           value=phi, threshold=cap,
-                          detail=f"{kind}분율 (상한 = "
-                                 f"{'2D 한계' if spec.geometry.d == 2 else 'RCP'})"))
+                          detail=f"{kind} fraction (cap = "
+                                 f"{'2D limit' if spec.geometry.d == 2 else 'RCP'})"))
         if spec.pair:
             half = min(box[:spec.geometry.d]) / 2.0
             worst = max((p.r_cut_si.si for p in spec.pair
                          if p.r_cut_si is not None), default=None)
             if worst is None:
-                problems.append("쌍 상호작용이 있는데 r_cut 이 없다")
+                problems.append("there is a pair interaction but no r_cut")
             else:
                 put(Check("r_cut_le_half_box", "pass" if worst <= half else "fail",
-                          value=worst, threshold=half, detail="최소이미지 규약"))
+                          value=worst, threshold=half,
+                          detail="minimum-image convention"))
         else:
-            put(Check("r_cut_le_half_box", "off", detail="쌍 포텐셜 없음"))
+            put(Check("r_cut_le_half_box", "off", detail="no pair potential"))
 
-    # --- 6. 파생값 대조 ------------------------------------------------------
+    # --- 6. comparing the derived values --------------------------------------
     if stored_derived:
         bad, n_compared, skipped = [], 0, []
         for k, stored in stored_derived.items():
@@ -657,23 +698,26 @@ def validate(spec: SystemSpec, *, stored_derived: dict | None = None,
             n_compared += 1
             rel = abs(float(stored) - d[k]) / max(abs(d[k]), 1e-300)
             if rel > rel_tol:
-                bad.append(f"{k}: 파일 {stored:.6g} vs 재계산 {d[k]:.6g} "
-                           f"(상대차 {rel:.2e})")
-        problems += [f"파생값 불일치 — {b} — 손으로 고친 값일 가능성" for b in bad]
-        # ★ 대조한 개수를 보고한다. 0건 대조를 pass 로 보고하면 "검사했다"가 거짓이 된다.
-        detail = f"{n_compared}개 대조"
+                bad.append(f"{k}: file {stored:.6g} vs recomputed {d[k]:.6g} "
+                           f"(relative diff {rel:.2e})")
+        problems += [f"derived-value mismatch — {b} — possibly a hand-edited value"
+                     for b in bad]
+        # ★ Report how many were compared. Reporting 0 comparisons as pass makes
+        #   "it was checked" a false statement.
+        detail = f"{n_compared} compared"
         if bad:
-            detail += f" · {len(bad)}개 불일치"
+            detail += f" · {len(bad)} mismatched"
         if skipped:
-            detail += f" · 대조 불가 {len(skipped)}개 ({', '.join(skipped[:3])}…)" \
-                if len(skipped) > 3 else f" · 대조 불가 {skipped}"
+            detail += f" · {len(skipped)} uncomparable ({', '.join(skipped[:3])}…)" \
+                if len(skipped) > 3 else f" · uncomparable {skipped}"
         put(Check("derived_consistency",
                   "fail" if bad else ("na" if n_compared == 0 else "pass"),
                   value=float(n_compared), detail=detail))
 
-    # --- 7. 게이트 ∪ 계산결과 --------------------------------------------------
-    # 계산된 결과가 선언을 채운다. 계산할 수 없는 게이트는 `declared` 로 남아
-    # S7 로 넘어간다 — 여기서 pass 를 찍으면 아무도 보지 않은 합격이 된다.
+    # --- 7. gates ∪ computed results -------------------------------------------
+    # Computed results fill in the declarations. A gate that cannot be computed
+    # stays `declared` and passes to S7 -- stamping pass here would be a pass
+    # nobody looked at.
     checks: list[Check] = []
     for name, g in spec.gates.items():
         if name in computed:
@@ -687,8 +731,8 @@ def validate(spec: SystemSpec, *, stored_derived: dict | None = None,
             checks.append(Check(name, "off", detail=g.reason))
         else:
             checks.append(Check(name, "declared",
-                                detail=g.reason or f"카드 선언: {g.status}"))
-    # 카드가 선언하지 않았는데 계산된 것들 (선언 누락을 드러낸다)
+                                detail=g.reason or f"card declares: {g.status}"))
+    # computed but never declared by the card (this surfaces a missing declaration)
     for c in computed.values():
         checks.append(c)
 
@@ -696,18 +740,20 @@ def validate(spec: SystemSpec, *, stored_derived: dict | None = None,
 
 
 # =============================================================================
-# YAML 직렬화 — 왕복 오차 0 이어야 한다
+# YAML serialization — the round-trip error must be 0
 # =============================================================================
 _QUANTITY_DEFAULTS = {f.name: f.default for f in fields(Quantity)
                       if f.name not in ("value",)}
 
 
 def to_dict(obj):
-    """dataclass 트리 → 순수 dict. `Quantity` 는 기본값 필드를 생략해 짧게 쓴다."""
+    """A dataclass tree → a plain dict. A `Quantity` omits default-valued fields to
+    stay short."""
     if isinstance(obj, Quantity):
-        # provenance 는 기본값이어도 **항상 적는다.** `assumed` 가 기본값이라는 이유로
-        # 생략하면 "가정했다"와 "적기를 잊었다"가 파일에서 구별되지 않는다 —
-        # 그런데 `assumed` 는 S7b 감도 분석의 대상 목록을 정하는 필드다.
+        # provenance is **always written**, even at its default. Omitting it
+        # because `assumed` is the default makes "I assumed it" and "I forgot to
+        # write it" indistinguishable in the file -- and `assumed` is the field
+        # that decides S7b's sensitivity target list.
         out = {"value": obj.value, "provenance": obj.provenance}
         if obj.unit:
             out = {"value": obj.value, "unit": obj.unit,
@@ -750,12 +796,12 @@ def _build_quantity(raw) -> Quantity:
         return raw
     if isinstance(raw, dict) and "value" in raw:
         return Quantity(**raw)
-    # 맨 값이 들어온 경우 — provenance 가 없으므로 규약 위반으로 흘려보낸다
+    # a bare value arrived — it has no provenance, so let it through as a violation
     return Quantity(value=raw, provenance="assumed", basis="")
 
 
 def from_dict(cls, raw):
-    """dict → dataclass. `Quantity` 필드는 `{value, provenance, …}` 형태를 받는다."""
+    """dict → dataclass. A `Quantity` field takes the `{value, provenance, …}` form."""
     if raw is None:
         return None
     if cls is Quantity:
@@ -775,7 +821,7 @@ def from_dict(cls, raw):
     return cls(**kwargs)
 
 
-# 필드 이름 → 원소 타입. 문자열 annotation 을 파싱하지 않고 명시 표로 둔다.
+# field name → element type. An explicit table rather than parsing string annotations.
 _LIST_FIELD_TYPES = {
     ("SystemSpec", "species"): Species,
     ("SystemSpec", "pair"): PairInteraction,
@@ -791,7 +837,8 @@ _NESTED_FIELD_TYPES = {
     ("SystemSpec", "timing"): Timing,
     ("SystemSpec", "numerics"): Numerics,
 }
-# Quantity 로 감싸야 하는 필드 (이름 기준). `params` 안의 값도 전부 Quantity 다.
+# Fields that must be wrapped in a Quantity (by name). Values inside `params` are
+# all Quantity too.
 _QUANTITY_FIELDS = {
     "n_simulated", "n_physical", "radius_si", "density_si", "charge",
     "T_si", "eta_si", "rho_fluid_si", "species", "dim", "boundary", "box_si",
@@ -809,7 +856,7 @@ def _coerce(name: str, ann, v, owner):
     if name == "gates":
         return {k: from_dict(Gate, g) for k, g in v.items()}
     if name == "params" and isinstance(v, dict):
-        # 트랩의 k_si 등은 Quantity, active_axes 같은 순수 설정은 그대로
+        # a trap's k_si and so on are Quantity; pure config like active_axes is not
         return {k: (_build_quantity(x) if isinstance(x, dict) and "value" in x else x)
                 for k, x in v.items()}
     if name in _QUANTITY_FIELDS:
@@ -818,7 +865,7 @@ def _coerce(name: str, ann, v, owner):
 
 
 class _Dumper(yaml.SafeDumper):
-    """들여쓰기를 사람이 읽기 좋게. 손으로 쓴 03_spec.yaml 과 같은 모양."""
+    """Indentation a person can read. The same shape as a hand-written 03_spec.yaml."""
 
     def increase_indent(self, flow=False, indentless=False):
         return super().increase_indent(flow, False)

@@ -1,30 +1,31 @@
-# L0 Observation — 스케치에서 읽어낸 것. **초안: 사람 확인 대기**
-# 프로토콜: 전사 먼저 → 구조화 → 모호/미판독 명시 → 없는 값은 null (지어내지 않음)
-# 확인 방법: 아래 각 항목에 confirmed: true/false 를 채우거나 값을 고쳐주세요.
+# L0 Observation — what was read off the sketch. **Draft: awaiting human confirmation**
+# Protocol: transcribe first → structure → state what is ambiguous or unread → leave
+#           what is absent as null (never invent it)
+# How to confirm: fill in confirmed: true/false on each item below, or correct the value.
 
 source_files:
   - intake/trap-2d-5um/sketch_01.jpeg
 
-# ── ① 전사 (보이는 그대로. 해석 안 함) ─────────────────────────────────
+# ── ① transcription (exactly as drawn. No interpretation) ──────────────
 raw_transcription: |
-  [좌측 그림]
-    y축(수직) / x축(수평), 원점에서 교차
-    원점 중심의 원 하나, 원 안쪽에 작은 표시
-    "R = 5μm"  (원을 가리키는 선과 함께)
+  [left, the drawing]
+    y axis (vertical) / x axis (horizontal), crossing at the origin
+    one circle centred on the origin, with a small mark inside it
+    "R = 5μm"  (with a line pointing at the circle)
 
-  [우측 글]
+  [right, the text]
     potential trap  at (0.0)
       U(r) = ½ k_t r²
       r = √(x² + y²)
 
     k_t = 10 pN/μm            T = 300 K. (~27°C)
 
-# ── ② 구조화 ──────────────────────────────────────────────────────────
-system_guess: "2D 조화 퍼텐셜 트랩 안의 브라운 입자 (광집게 형태)"
+# ── ② structured ──────────────────────────────────────────────────────
+system_guess: "a Brownian particle in a 2D harmonic potential trap (optical-tweezer form)"
 
 entities:
   - kind: particle
-    note: "원점 부근에 원으로 그려짐. 개수는 1개로 보이나 명시 없음"
+    note: "drawn as a circle near the origin. Appears to be 1, but not stated"
   - kind: external_potential
     form: "isotropic 2D harmonic"
     center: [0, 0]
@@ -34,84 +35,86 @@ stated_quantities:
   - symbol: k_t
     value: 10
     unit: pN/um
-    source: "스케치 우측 하단, 명시"
+    source: "lower right of the sketch, stated"
     confidence: 1
   - symbol: T
     value: 300
     unit: K
-    source: "스케치 우측 하단, 명시 (~27°C 병기)"
+    source: "lower right of the sketch, stated (with ~27°C alongside)"
     confidence: 1
   - symbol: R
     value: 5
     unit: um
-    source: "스케치 좌측, 원을 가리킴"
+    source: "left of the sketch, pointing at the circle"
     confidence: 1
-    note: "★ 무엇의 반지름인지 모호 — ambiguities 참조"
+    note: "★ ambiguous what it is the radius of — see ambiguities"
 
-stated_goals: []          # ★ 스케치에 관측 목표가 적혀 있지 않음
+stated_goals: []          # ★ no observation target is written on the sketch
 
-# ── ③ 모호한 것 (반드시 채울 것. 비어 있으면 다시 볼 것) ────────────────
+# ── ③ what is ambiguous (must be filled in. If empty, look again) ──────
 ambiguities:
   - id: A1
-    issue: "R = 5 µm 가 무엇의 크기인가?"
+    issue: "what size is R = 5 µm?"
     options:
-      - "입자 반지름 → d = 10 µm"
-      - "입자 지름 → d = 5 µm"
+      - "the particle radius → d = 10 µm"
+      - "the particle diameter → d = 5 µm"
     impact: |
-      평형 결과 ⟨x²⟩ = kT/k 는 d에 무관하므로 영향 없음.
-      시간척도만 정확히 2배 차이 (τ_k = 8.02 ms vs 4.01 ms).
-    lean: "입자 반지름(d=10µm)"
-    resolution: "d = 5 µm (지름). 사용자 확인 2026-08-03. → 내 추정이 틀렸음"
+      The equilibrium result ⟨x²⟩ = kT/k is independent of d, so there is no effect.
+      Only the timescale differs, by exactly 2x (τ_k = 8.02 ms vs 4.01 ms).
+    lean: "the particle radius (d=10µm)"
+    resolution: "d = 5 µm (the diameter). User-confirmed 2026-08-03. → my guess was wrong"
     confirmed_by: user
 
   - id: A2
-    issue: "입자가 몇 개인가?"
-    note: "그림에는 1개. 통계를 위해 독립 입자 여러 개를 동시에 돌릴지는 시뮬레이션 선택 사항."
+    issue: "how many particles are there?"
+    note: "1 in the drawing. Whether to run several independent particles at once for statistics is a simulation choice."
     resolution: >
-      실행으로 확정: N = 1000 독립 입자 앙상블 (스케치엔 1개). 트랩 안 입자들은 서로 상호작용하지 않으므로 통계 배수를 얻는 장치일 뿐이고, 관측량 4종이 해석해와 일치함을 확인했다 (runs/trap-2d-5um__a49f2508556b). 시뮬레이션 선택 사항 (tier 3).
-    confirmed_by: run     # 실행으로 확정
+      Settled by execution: N = 1000 independent particles (the sketch shows 1). The particles in the trap do not interact, so it is purely a device for gaining a statistical multiple, and all 4 observables were confirmed to match their analytic solutions (runs/trap-2d-5um__a49f2508556b). A simulation choice (tier 3).
+    confirmed_by: run     # settled by execution
 
   - id: A3
-    issue: "무엇을 측정할 것인가? (스케치에 목표 미기재)"
+    issue: "what is to be measured? (no target written on the sketch)"
     note: |
-      abp-rod 스케치에는 'measure MSD, MSAD'가 있었으나 여기엔 없음.
-      후보: 위치 분포 P(x), ⟨x²⟩, 위치 자기상관 → 이완시간 τ, 파워스펙트럼(Lorentzian),
-            트랩 강성 역추정(equipartition / PSD 방법)
-    resolution: "제시한 4종 전부. 사용자 확인 2026-08-03"
+      The abp-rod sketch had 'measure MSD, MSAD' but this one does not.
+      Candidates: the position distribution P(x), ⟨x²⟩, position autocorrelation →
+                  the relaxation time τ, the power spectrum (Lorentzian), inverting
+                  for the trap stiffness (equipartition / PSD method)
+    resolution: "all 4 of the proposed ones. User-confirmed 2026-08-03"
     confirmed_by: user
 
-unread_regions: []        # 판독 못 한 부분 없음. 필기 선명.
+unread_regions: []        # nothing went unread. The handwriting is clear.
 
-# ── ④ 스케치에 없어서 채워야 하는 값 (지어내지 않고 출처 표기) ──────────
+# ── ④ values absent from the sketch that have to be filled in (never
+#      invented; the source is always stated) ──────────────────────────
 missing_required:
   - symbol: eta
-    what: "용매 점도"
-    note: "매질이 무엇인지 스케치에 없음. 물이라면 300K에서 0.851 mPa·s (핸드북, tier 0)"
+    what: "solvent viscosity"
+    note: "the sketch does not say what the medium is. If water, 0.851 mPa·s at 300K (handbook, tier 0)"
     assumed_value: 0.851
     assumed_unit: mPa*s
-    confidence: 1           # 물 확인됨 (사용자 2026-08-03). 값 자체는 핸드북 tier 0
-    resolution: "물. 사용자 확인 2026-08-03"
+    confidence: 1           # water confirmed (user, 2026-08-03). The value itself is handbook tier 0
+    resolution: "water. User-confirmed 2026-08-03"
     confirmed_by: user
-    followup: "비뉴턴(점탄성) 매질도 하고 싶다는 요청 → medium.* 모듈로 별도 케이스"
+    followup: "a request to also do a non-Newtonian (viscoelastic) medium → a separate case via the medium.* module"
 
   - symbol: rho_p
-    what: "입자 밀도"
-    note: "τ_p(관성 이완) 계산에만 쓰임. 실리카 2000 / 폴리스티렌 1050 kg/m³.
-           BD 결과에는 영향 없고 '과감쇠 모델이 타당한가' 판정에만 사용."
+    what: "particle density"
+    note: "used only to compute τ_p (inertial relaxation). Silica 2000 / polystyrene 1050 kg/m³.
+           No effect on the BD result; used only to decide whether the overdamped model is valid."
     assumed_value: 2000
     assumed_unit: kg/m^3
-    confidence: 3           # 임의 가정
+    confidence: 3           # an arbitrary assumption
     resolution: null
 
   - symbol: L
-    kind: choice              # 시뮬레이션 선택 — L2를 막지 않는다
-    what: "박스 크기"
-    note: "시뮬레이션 선택 사항. ℓ_k=20nm 이므로 어떤 합리적 L이든 여유 충분."
+    kind: choice              # a simulation choice — it does not block L2
+    what: "box size"
+    note: "a simulation choice. ℓ_k=20nm, so any reasonable L has ample margin."
     resolution: null
 
   - symbol: dimensionality
-    what: "2D 확정?"
-    note: "스케치가 x,y 와 r=√(x²+y²)로 명시 → 2D로 읽음. 실제 광집게는 3D이나
-           축방향을 따로 보는 관례가 있음."
+    what: "is 2D settled?"
+    note: "the sketch states x,y and r=√(x²+y²) → read as 2D. A real optical trap is 3D,
+           but there is a convention of treating the axial direction separately."
     lean: "2D"
-    resolution: "2D (스케치가 r=√(x²+y²)로 명시)"
+    resolution: "2D (the sketch states r=√(x²+y²))"

@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "bdbot/metrics.py#build,bdbot/run.py#execute",
+  "lessons": [
+    {
+      "claim": "MET.build(extra=...) merges with m.update(extra) -- the result finalize() returned arrives not at metrics.json's extra.result but at the top-level result key. Reading it back in the case main() as m['extra']['result'] always gives an empty dict and a nan comes out silently (found during the trap-2d-5um L5 migration).",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

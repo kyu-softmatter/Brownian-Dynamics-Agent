@@ -1,0 +1,30 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "microrheology",
+    "statistics",
+    "trap",
+    "drag"
+  ],
+  "dimensionless": {
+    "SNR": 0.0985
+  },
+  "source": "cases/trap_drag_2d.py#analyze_scales",
+  "lessons": [
+    {
+      "claim": "Every separation check can pass and the system still be unmeasurable. trap-drag passes all 7 hard checks, and yet the drag lag Δr_ss=γv/k_t=2.0nm is 1/10 of the trap's thermal fluctuation ℓ_k=20.4nm (SNR=0.0985), so the precision of ⟨F_drag⟩ over one crossing (independent samples T_obs/2τ_k=32,350) is 5.6% against a 2% target. 'Measurability SNR' and 'the target precision SEM/signal' have to go into L3 as statistical checks for it to be visible before running -- the separation checks alone do not show it.",
+      "kind": "method_note",
+      "coords": {
+        "SNR": 0.0985
+      }
+    }
+  ],
+  "not_verified": [
+    "a prediction based on the analytic expression (SEM=ℓ_k/√n). Not confirmed by a run"
+  ]
+}

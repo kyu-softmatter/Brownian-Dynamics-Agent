@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "water",
+    "viscosity",
+    "temperature",
+    "error_budget"
+  ],
+  "dimensionless": {
+    "d_ln_eta_dT_pct_per_K": 2.06
+  },
+  "source": "docs/books/welty_transport.md#1.2 ← [W] Appendix I p.686 + intake/*/system.yaml",
+  "lessons": [
+    {
+      "claim": "★ Water's viscosity has a temperature sensitivity of 2.06 %/K (measured 293-313 K). Our 5 cases inherited T=300 K from 1-A and the 1-A sketch had no temperature -- that is, this value marked tier1 is a choice and not a measurement. If the truth is 298.15 K (25C) the eta error is -4.4%, and at 293.15 K (20C) it is -15.0% (reference: our 0.851 against the IAPWS direct row -- do NOT use [W]'s 20K table for this question; interpolation limits give -4.7%/-14.0% there), and tau_B follows directly. The qualitative conclusion does not change, but this error budget has to be exposed when comparing quantitatively against the literature, and it has to be checked that kT and eta use the same T (if they diverge it is wrong twice over)",
+      "kind": "pitfall",
+      "coords": {
+        "d_ln_eta_dT_pct_per_K": 2.06
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "stokes",
+    "reynolds",
+    "drag",
+    "discipline"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/welty_transport.md#2.2 ← [W] 12.2 pp.140,148",
+  "lessons": [
+    {
+      "claim": "C_D = 24/Re is exactly the same thing as F=3 pi mu d v (confirmed by execution, relative difference 0). ★ The discipline [W]'s worked example uses is the same as our health gate -- 'solve assuming Stokes' law holds, then check the Reynolds number to verify its use'. The Stokes validity range is Re<~1 (regime 1, creeping flow). Our systems are always here at Re~1e-5, but BD does not compute Re; it assumes Re=0, so for a new case with a larger driving speed computing it once is free",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

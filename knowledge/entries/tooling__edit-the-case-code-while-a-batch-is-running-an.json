@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "this session 2026-08-06 / code edited mid-batch",
+  "lessons": [
+    {
+      "claim": "**Edit the case code while a batch is running and the runs that start in between die.** Measured: putting the _bow call into sample first and adding the function definition in the next edit wiped out **11 runs xargs launched between the two edits with a NameError**. A process already running has the module loaded and is safe, but a newly launched process reads a half-written file. The response: if editing mid-batch is unavoidable, change it atomically in one edit, or stop the batch and fix it. And after a batch, do not look only at the 'done' count but count **the metrics.json files** -- xargs prints done from the following echo even when the child crashes (measured 48/48 done with only 37 metrics).",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

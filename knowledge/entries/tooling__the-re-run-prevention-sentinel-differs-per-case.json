@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "run_id",
+    "rerun-prevention",
+    "sentinel",
+    "data-loss",
+    "RUN.execute"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py#prepare_outdir · scratch/run_trap_drag_ensemble.py",
+  "lessons": [
+    {
+      "claim": "The re-run-prevention sentinel differs per case and is thereby **quietly neutered**. prepare_outdir judges 'complete' by the existence of result.txt, while cases on the RUN.execute path do not write result.txt (they leave only l4.json, metrics.json, observables.npz, spec.json and traj_A.gsd). Measured: 151 of 168 runs (chain-bend-dlvo 76 · trap-drag 68 · chain-bend-oscill 7) have no result.txt so the re-run prevention does not work at all -- CLAUDE.md's promise of 'the same spec → the same run_id → no re-run' is false for those cases. It does not merely get slower; **data is lost**: rather than skipping, it keeps only record.json and deletes and overwrites the rest (33 legacy trap-drag runs lost, 2026-08-06). The lesson: a completion sentinel has to be **a file the execution contract (RUN.execute) writes itself** and must not be based on a file the case main() writes later.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

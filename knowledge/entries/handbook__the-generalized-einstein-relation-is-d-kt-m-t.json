@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "diffusion",
+    "mobility",
+    "anisotropy",
+    "abp_rod"
+  ],
+  "dimensionless": {},
+  "source": "docs/books/leal_microstructural_rheology.md#2.5 ← [L] (2.42),(2.48) footnote 11 pp.42-45",
+  "lessons": [
+    {
+      "claim": "The generalized Einstein relation is D = kT*M (the mobility tensor), and for rotation Dr = kT*varpi. ★ That is, the anisotropy of the diffusion comes from the mobility tensor, and the anisotropic components of the mobility tensor are made by hydrodynamics (HI) -- BD does not make M itself; it only uses what we put in. This is the theoretical background of abp-rod's conclusion that 'anisotropic translational friction is impossible in BD'",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

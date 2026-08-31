@@ -1,13 +1,19 @@
-"""`scratch/rolling_contact.py` 의 구름 저항 + 접선 스프링 모델을 정적으로 검증한다.
+"""Static verification of the rolling-resistance + tangential-spring model in
+`verify/rolling_contact.py`.
 
-원칙 8 — 정적인 계를 먼저 세우고 움직임은 그 다음에 얹는다. 여기서 확정할 것:
-  G0  ★ 해석적 힘·토크 == 에너지의 수치 기울기 (bd-hoomd 함정 15: 에너지만 맞고 힘이 틀리는 사례)
-  G1  기준(곧은) 상태에서 U=0, F=0, τ=0
-  G2  쌍 전체 강체회전에서 U=0  ← 골든 테스트
-  G3  ★ 접선 스프링만이면 사슬 굽힘강성 = 0  (예측 P3, 실행 전 고정)
-  G4  ★ 구름 저항만이면 κ_θ,eff = ½k_rR²  (예측 P4) — 조화굽힘 행렬과 직접 대조
-  G5  방향이 얼면 곡률이 아니라 절대 회전을 벌한다 (예측 P5)
-  G6  HOOMD `force.Custom(aniso=True)` 가 넘파이 참조 모델과 같은 힘·토크를 낸다
+Principle 8 -- build the static system first, add motion afterwards. What is settled
+here:
+  G0  ★ analytic force/torque == numerical gradient of the energy
+      (bd-hoomd trap 15: the case where energy is right and force is wrong)
+  G1  in the reference (straight) state, U=0, F=0, torque=0
+  G2  U=0 under rigid rotation of the whole pair  <- golden test
+  G3  ★ with the tangential spring alone, chain bending stiffness = 0
+      (prediction P3, fixed before running)
+  G4  ★ with rolling resistance alone, kappa_theta,eff = 0.5*k_r*R^2
+      (prediction P4) -- compared directly against the harmonic-bending matrix
+  G5  frozen orientations penalise absolute rotation, not curvature (prediction P5)
+  G6  HOOMD `force.Custom(aniso=True)` gives the same force and torque as the numpy
+      reference model
 
     $PY scratch/verify_rolling_contact.py
 """
@@ -34,10 +40,10 @@ def check(name, ok, detail=""):
     print(f"  {'✓' if ok else '✗'} {name}" + (f"   {detail}" if detail else ""))
 
 
-# ── 계 설정 (chain-bend-2d-dlvo 의 실제 값) ────────────────────────────────
+# ── System setup (the actual chain-bend-2d-dlvo values) ────────────────────
 H_MIN_STAR = 0.00759259035993831
 ELL = 1.0 + H_MIN_STAR
-R_C = 0.5                                  # 접촉 반경(입자 반경, d* 단위)
+R_C = 0.5                                  # contact radius (particle radius, in d*)
 KAPPA_THETA = 1391229.7767209478           # specs/...jkr...json  params.kappa_theta_star
 K_ROLL = k_roll_from_kappa_theta(KAPPA_THETA, R_C)
 
@@ -54,13 +60,14 @@ def bonds_of(n):
 
 
 def zrot(theta):
-    """2D — z축 회전 쿼터니언 배열."""
+    """2D -- an array of quaternions for rotation about z."""
     return q_from_axis_angle([0, 0, 1.0], np.asarray(theta, float))
 
 
 # ══════════════════════════════════════════════════════════════════════════
 print("=" * 84)
-print("G0 · ★ 해석적 힘·토크 vs 에너지의 수치 기울기 (함정 15 규율)")
+print("G0 . ★ analytic force/torque vs the numerical gradient of the energy "
+      "(the trap-15 discipline)")
 print("=" * 84)
 n = 4
 pos0, quat0 = straight_chain(n)
@@ -93,20 +100,21 @@ for i in range(n):
 
 fe = np.abs(F_an - F_num).max() / max(np.abs(F_num).max(), 1e-30)
 te = np.abs(T_an - T_num).max() / max(np.abs(T_num).max(), 1e-30)
-print(f"  최대 |F| = {np.abs(F_num).max():.6g}   최대 |τ| = {np.abs(T_num).max():.6g}")
-check("힘이 −∂U/∂r 과 일치", fe < 1e-6, f"상대 최대차 {fe:.3e}")
-check("토크가 −∂U/∂θ 와 일치", te < 1e-6, f"상대 최대차 {te:.3e}")
+print(f"  max |F| = {np.abs(F_num).max():.6g}   "
+      f"max |torque| = {np.abs(T_num).max():.6g}")
+check("force agrees with -dU/dr", fe < 1e-6, f"max relative diff {fe:.3e}")
+check("torque agrees with -dU/dtheta", te < 1e-6, f"max relative diff {te:.3e}")
 
 # ══════════════════════════════════════════════════════════════════════════
 print()
 print("=" * 84)
-print("G1/G2 · 기준 상태와 강체회전 — 골든 테스트")
+print("G1/G2 . reference state and rigid rotation -- golden test")
 print("=" * 84)
 pos0, quat0 = straight_chain(5)
 m = RollingContact(bonds_of(5), pos0, quat0, R_C, K_ROLL, K_ROLL)
 U0 = m.energy(pos0, quat0)
 F0, T0 = m.force_torque(pos0, quat0)
-check("G1 기준 상태 U=0, F=0, τ=0", U0 == 0.0 and np.abs(F0).max() == 0.0
+check("G1 reference state U=0, F=0, torque=0", U0 == 0.0 and np.abs(F0).max() == 0.0
       and np.abs(T0).max() == 0.0,
       f"U={U0:.3e}, max|F|={np.abs(F0).max():.3e}, max|τ|={np.abs(T0).max():.3e}")
 
@@ -116,19 +124,21 @@ for ang in (0.1, 0.7, 2.0):
     pr = pos0 @ Rz.T
     qr = np.array([[np.cos(ang / 2), 0, 0, np.sin(ang / 2)]] * 5)
     Ur = m.energy(pr, qr)
-    # 허용오차는 **에너지 스케일 k_rR² 대비 기계정밀도**로 잡는다. U 는 O(k_rR²) 항들의
-    # 상쇄로 만들어지므로 절대 잔차가 k_rR²·1e-16 규모인 것이 정상이다.
+    # The tolerance is machine precision **relative to the energy scale k_r*R^2**. U is
+    # produced by cancellation among O(k_r*R^2) terms, so an absolute residual of
+    # order k_r*R^2 * 1e-16 is normal.
     scale = K_ROLL * R_C ** 2
-    check(f"G2 강체회전 {ang} rad 에서 U=0", abs(Ur) / scale < 1e-13,
-          f"U/(k_rR²) = {Ur/scale:+.2e}   (U = {Ur:.3e}, 스케일 {scale:.4g})")
+    check(f"G2 U=0 under rigid rotation by {ang} rad", abs(Ur) / scale < 1e-13,
+          f"U/(k_r*R^2) = {Ur/scale:+.2e}   (U = {Ur:.3e}, scale {scale:.4g})")
 
 # ══════════════════════════════════════════════════════════════════════════
 print()
 print("=" * 84)
-print("G3/G4 · ★ 3점 굽힘 강성 — 접선 스프링만 vs 구름 저항만")
+print("G3/G4 . ★ three-point bending stiffness -- tangential spring only vs rolling "
+      "resistance only")
 print("=" * 84)
-print("  양끝 y=0, 중앙 y=δ 고정. 나머지 y 와 **모든 방향 θ** 를 이완시켜 U 를 최소화하고")
-print("  k_center = 2U/δ² 를 잰다. 조화굽힘(bending_matrix) 예측과 대조한다.")
+print("  Ends pinned at y=0, centre at y=delta. Minimise U over the remaining y and")
+print("  **every orientation theta**, then measure k_center = 2U/delta^2 and compare")
 
 
 def bending_matrix(n, kappa_theta, ell):
@@ -165,8 +175,10 @@ def rolling_3point(n, k_roll, k_slide, delta, ell=ELL, relax_orientation=True):
         p[:, 1] = y
         return p, zrot(th)
 
-    # ★ 해석적 기울기를 준다 — 수치 기울기로는 U 가 O(k_rR²) 상쇄라 최소화기가 못 내려간다
-    #   (첫 시도에서 접선-only 의 U 가 **음수**로 나왔다 = 미수렴의 증거).
+    # ★ Analytic gradients are supplied -- with numerical gradients the minimiser
+    #   cannot descend, because U is a cancellation among O(k_r*R^2) terms (the first
+    #   attempt returned a **negative** U for tangential-only, which is evidence of
+    #   non-convergence).
     #   dU/dy_i = −F_i,y,  dU/dθ_i = −τ_i,z
     def fun_jac(x):
         p, q = unpack(x)
@@ -186,7 +198,8 @@ DELTA = 1e-4 * ELL
 print()
 print(f"  δ = {DELTA:.3e} d,  R = {R_C},  κ_θ = {KAPPA_THETA:.6g} kT  →  "
       f"k_r = 2κ_θ/R² = {K_ROLL:.6g}")
-print(f"  {'n':>4} {'접선만 k':>14} {'구름만 k':>14} {'조화굽힘 k':>14} {'구름/조화':>11}")
+print(f"  {'n':>4} {'tangential k':>14} {'rolling k':>14} {'harmonic k':>14} "
+      f"{'roll/harm':>11}")
 print("  " + "-" * 62)
 for nb in (3, 5, 9, 15):
     k_slide_only, _ = rolling_3point(nb, 0.0, K_ROLL, DELTA)
@@ -194,21 +207,24 @@ for nb in (3, 5, 9, 15):
     k_harm = harmonic_3point(nb, kappa_theta_eff(K_ROLL, R_C), ELL, DELTA)
     print(f"  {nb:4d} {k_slide_only:14.6g} {k_roll_only:14.6g} {k_harm:14.6g} "
           f"{k_roll_only/k_harm:11.6f}")
-    # ★ 정규화는 k_harm 이 아니라 **접촉 강성 스케일 k·R²** 로 한다 — k_harm 은 n 에 따라
-    #   1/L³ 로 줄어드는데 반올림 바닥은 안 줄어서, 비를 쓰면 n 이 커질수록 거짓 실패한다.
+    # ★ Normalise against the **contact stiffness scale k*R^2**, NOT k_harm -- k_harm
+    #   falls as 1/L^3 with n while the rounding floor does not, so using the ratio
+    #   produces false failures at larger n.
     scale = K_ROLL * R_C ** 2
-    check(f"G3 n={nb}: 접선 스프링만 → 굽힘강성 ≈ 0",
+    check(f"G3 n={nb}: tangential spring only -> bending stiffness ~ 0",
           abs(k_slide_only) / scale < 1e-5,
           f"k_slide/(k_sR²) = {k_slide_only/scale:+.2e}  vs  "
           f"k_roll/(k_rR²) = {k_roll_only/scale:.4e}")
-    check(f"G4 n={nb}: 구름만 == 조화굽힘(κ_θ=½k_rR²)",
+    check(f"G4 n={nb}: rolling only == harmonic bending "
+          f"(kappa_theta=0.5*k_r*R^2)",
           abs(k_roll_only / k_harm - 1.0) < 2e-3,
-          f"비 = {k_roll_only/k_harm:.8f}")
+          f"ratio = {k_roll_only/k_harm:.8f}")
 
 print()
-print("  ★ 판별 — 접선-only 의 잔차가 진짜 강성인가 반올림인가:")
-print("    진짜 2차 강성이면 k = 2U/δ² 가 δ 에 **무관**하고, 상쇄 반올림이면 **k ∝ 1/δ²** 다.")
-print(f"    {'δ/d':>10} {'접선만 k':>14} {'구름만 k':>14}")
+print("  ★ Discriminator -- is the tangential-only residual a real stiffness or "
+      "rounding?")
+print("    A real quadratic stiffness makes k = 2U/delta^2 **independent** of delta;")
+print(f"    {'delta/d':>10} {'tangential k':>14} {'rolling k':>14}")
 print("    " + "-" * 40)
 ref_s = ref_r = None
 for mult in (1, 10, 100):
@@ -218,30 +234,35 @@ for mult in (1, 10, 100):
     if ref_s is None:
         ref_s, ref_r = abs(ks), kr
     else:
-        check(f"G3′ δ×{mult}: 접선 잔차가 1/δ² 로 줄어듦 (= 반올림)",
+        check(f"G3' delta x{mult}: the tangential residual falls as 1/delta^2 "
+              f"(= rounding)",
               abs(ks) < ref_s / (mult ** 2) * 5,
-              f"|k_slide| {ref_s:.3g} → {abs(ks):.3g} (예상 ~{ref_s/mult**2:.3g})")
-        check(f"G4′ δ×{mult}: 구름 강성은 δ 에 무관 (= 진짜 2차 강성)",
-              abs(kr / ref_r - 1.0) < 1e-4, f"k_roll 비 = {kr/ref_r:.8f}")
+              f"|k_slide| {ref_s:.3g} -> {abs(ks):.3g} "
+              f"(expected ~{ref_s/mult**2:.3g})")
+        check(f"G4' delta x{mult}: the rolling stiffness is delta-independent "
+              f"(= a real quadratic stiffness)",
+              abs(kr / ref_r - 1.0) < 1e-4, f"k_roll ratio = {kr/ref_r:.8f}")
 
 # ══════════════════════════════════════════════════════════════════════════
 print()
 print("=" * 84)
-print("G5 · P5 방향이 얼면 다른 물리가 된다 (곡률 → 절대 회전)")
+print("G5 . P5 freezing the orientations changes the physics "
+      "(curvature -> absolute rotation)")
 print("=" * 84)
-print(f"  {'n':>4} {'θ 이완':>14} {'θ 고정':>14} {'비':>10}")
+print(f"  {'n':>4} {'theta relaxed':>14} {'theta frozen':>14} {'ratio':>10}")
 print("  " + "-" * 46)
 for nb in (5, 9, 15):
     k_free, _ = rolling_3point(nb, K_ROLL, 0.0, DELTA, relax_orientation=True)
     k_frozen, _ = rolling_3point(nb, K_ROLL, 0.0, DELTA, relax_orientation=False)
     print(f"  {nb:4d} {k_free:14.6g} {k_frozen:14.6g} {k_frozen/k_free:10.4f}")
-    check(f"G5 n={nb}: θ 고정이 더 뻣뻣", k_frozen > k_free * 1.5,
-          f"{k_frozen/k_free:.3f}배 — 준정적↔고주파에서 갈린다")
+    check(f"G5 n={nb}: frozen theta is stiffer", k_frozen > k_free * 1.5,
+          f"{k_frozen/k_free:.3f}x -- the two diverge between quasi-static and high "
+          f"frequency")
 
 # ══════════════════════════════════════════════════════════════════════════
 print()
 print("=" * 84)
-print("G6 · HOOMD force.Custom(aniso=True) ↔ 넘파이 참조 모델")
+print("G6 . HOOMD force.Custom(aniso=True) vs the numpy reference model")
 print("=" * 84)
 import gsd.hoomd                                                       # noqa: E402
 import hoomd                                                           # noqa: E402
@@ -277,9 +298,9 @@ F_ref, T_ref = mdl.force_torque(pos, quat)
 F_h, T_h = np.array(rf.forces), np.array(rf.torques)
 ef = np.abs(F_h - F_ref).max() / max(np.abs(F_ref).max(), 1e-30)
 et = np.abs(T_h - T_ref).max() / max(np.abs(T_ref).max(), 1e-30)
-check("HOOMD 힘 == 참조 모델", ef < 1e-12, f"상대 최대차 {ef:.3e}")
-check("HOOMD 토크 == 참조 모델", et < 1e-12, f"상대 최대차 {et:.3e}")
-check("HOOMD 총 에너지 == 참조 모델",
+check("HOOMD force == reference model", ef < 1e-12, f"max relative diff {ef:.3e}")
+check("HOOMD torque == reference model", et < 1e-12, f"max relative diff {et:.3e}")
+check("HOOMD total energy == reference model",
       abs(rf.energy - mdl.energy(pos, quat)) < 1e-9 * max(1.0, abs(rf.energy)),
       f"{rf.energy:.10g} vs {mdl.energy(pos, quat):.10g}")
 

@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rod",
+    "semidilute",
+    "doi_edwards",
+    "rotational_diffusion",
+    "case_candidate"
+  ],
+  "dimensionless": {
+    "beta_DE": 1300.0
+  },
+  "source": "docs/books/leal_microstructural_rheology.md#6.1 ← [L] (6.45) pp.219-223",
+  "lessons": [
+    {
+      "claim": "★ The rotational diffusion of a semi-dilute rod is suppressed as Dr = beta*Dr_dilute/(n L^3)^2 with beta=1.3e3 (Bitsanis MD) (the book's example n=0.1, L=50 -> 8.32e-6 = O(1e-5), reproduced). ★★ This suppression is an excluded-volume (steric) effect and not HI, and in the slender limit HI does not modify Jeffery's rotational convection (Shaqfeh-Fredrickson 1990) -> a rare piece of physics that HI-free BD can capture honestly, and being a quantitative prediction with a single free parameter it can be registered in the hypothesis role of rule 7' (abp-rod had 0 discoveries because all 5 of its predictions were implementation_check)",
+      "kind": "scaling",
+      "coords": {
+        "beta_DE": 1300.0
+      }
+    }
+  ],
+  "not_verified": []
+}

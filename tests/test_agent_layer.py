@@ -1,18 +1,21 @@
-"""L1 에이전트 층 (`.claude/`) 의 구조 검사.
+"""Structural checks on the L1 agent layer (`.claude/`).
 
-## 왜 마크다운을 테스트하는가
+## Why markdown gets tested
 
-이 층은 코드가 아니라 문서다. 그런데 **frontmatter 는 기계가 읽는 계약**이고,
-링크가 깨지면 에이전트가 프로토콜을 못 찾고, 티어링 경계가 빠지면 값싼 모델이
-물리 판단을 하게 된다. 전부 조용히 실패하는 종류다.
+This layer is documentation, not code. But **the frontmatter is a contract a machine
+reads**, a broken link means the agent cannot find the protocol, and a missing
+tiering boundary means a cheap model makes a physics judgment. All of them fail
+silently.
 
-## 검사하는 것
+## What is checked
 
-1. frontmatter 유효 (`name`·`description`·`model`), 이름과 파일명 일치
-2. 상대 링크가 실제로 존재
-3. **모델 티어링** — §12.2 배분표와 일치, 저가 모델에 권한 경계 명시
-4. **스킬이 물리를 다시 적지 않는다** — 코어 함수를 인용하는가
-5. `settings.json` 이 봉인 문서 편집을 거부하는가
+1. valid frontmatter (`name`, `description`, `model`), with the name matching the
+   filename
+2. relative links actually resolve
+3. **model tiering** — matches the §12.2 allocation table, with permission
+   boundaries stated for the cheap models
+4. **a skill does not re-write the physics** — does it cite the core function
+5. does `settings.json` refuse edits to a sealed document
 """
 from __future__ import annotations
 
@@ -24,19 +27,21 @@ import pytest
 import yaml
 
 CLAUDE = Path(".claude")
-pytestmark = pytest.mark.skipif(not CLAUDE.exists(), reason=".claude/ 없음")
+pytestmark = pytest.mark.skipif(not CLAUDE.exists(), reason=".claude/ is absent")
 
 SKILLS = sorted(CLAUDE.glob("skills/*/SKILL.md"))
 AGENTS = sorted(CLAUDE.glob("agents/*.md"))
 
-# 2026-08-28 병합으로 스킬이 두 부류가 됐다. 섞어서 한 규칙으로 재면 안 된다 —
-# 오케스트레이션 스킬끼리는 **서로 배타적**이라 잘못 트리거되면 엉뚱한 절차가
-# 돌아가므로 상호참조가 필수다. 도메인 스킬은 파이프라인이 단계마다 *불러 읽는*
-# 참조물이라 배타적이지 않고, 대신 파이프라인이 그것들을 가리켜야 한다.
+# The 2026-08-28 merge split the skills into two kinds, and they must not be measured
+# by one rule. The orchestration skills are **mutually exclusive** -- trigger the
+# wrong one and an entirely different procedure runs -- so cross-references are
+# mandatory. The domain skills are references the pipeline *pulls in* at each stage,
+# so they are not exclusive; instead the pipeline has to point at them.
 ORCH_SKILLS = {"bd-pipeline", "bd-diagnose", "bd-knowledge"}
 DOMAIN_SKILLS = {"bd-intake", "bd-physics", "bd-hoomd"}
 
-# master_plan §12.1 배분표. 여기서 벗어나면 설계와 코드가 갈린 것이다.
+# The master_plan §12.1 allocation table. A departure means the design and the code
+# have drifted apart.
 EXPECTED_MODELS = {
     "bd-intake-extract": "haiku",
     "bd-intake-interpret": "opus",
@@ -52,12 +57,12 @@ EXPECTED_MODELS = {
 
 def frontmatter(path: Path) -> dict:
     m = re.match(r"^---\n(.*?)\n---\n", path.read_text(encoding="utf-8"), re.S)
-    assert m, f"{path}: frontmatter 가 없다 — 기계가 읽는 계약이다"
+    assert m, f"{path}: no frontmatter — it is a contract a machine reads"
     return yaml.safe_load(m.group(1))
 
 
 # =============================================================================
-# 존재
+# Existence
 # =============================================================================
 def test_all_six_skills_exist():
     assert {p.parent.name for p in SKILLS} == ORCH_SKILLS | DOMAIN_SKILLS
@@ -79,8 +84,10 @@ def test_pipeline_has_all_reference_docs():
 @pytest.mark.parametrize("path", SKILLS, ids=lambda p: p.parent.name)
 def test_skill_frontmatter(path):
     fm = frontmatter(path)
-    assert fm["name"] == path.parent.name, "name 이 디렉터리명과 달라 호출되지 않는다"
-    assert len(fm["description"]) > 40, "description 이 짧으면 트리거되지 않는다"
+    assert fm["name"] == path.parent.name, \
+        "the name differs from the directory name, so it never gets invoked"
+    assert len(fm["description"]) > 40, \
+        "too short a description does not trigger"
 
 
 @pytest.mark.parametrize("path", AGENTS, ids=lambda p: p.stem)
@@ -93,37 +100,41 @@ def test_agent_frontmatter(path):
 
 @pytest.mark.parametrize("path", AGENTS, ids=lambda p: p.stem)
 def test_agent_model_matches_the_tiering_table(path):
-    """★ master_plan §12.1 배분표와 일치하는가.
+    """★ Does it match the master_plan §12.1 allocation table.
 
-    어긋나면 설계 문서와 실제 위임이 갈린 것이다 — 어느 쪽이 맞는지 결정해야 한다.
+    A mismatch means the design document and the actual delegation have drifted --
+    and which one is right has to be decided.
     """
     fm = frontmatter(path)
     assert fm["model"] == EXPECTED_MODELS[path.stem]
 
 
 def test_orch_skill_descriptions_say_when_not_to_use():
-    """배타적인 스킬끼리는 서로를 가리켜야 잘못된 스킬이 트리거되지 않는다."""
+    """Mutually exclusive skills have to point at each other, or the wrong one gets
+    triggered."""
     for path in SKILLS:
         if path.parent.name not in ORCH_SKILLS:
             continue
         desc = frontmatter(path)["description"]
         others = ORCH_SKILLS - {path.parent.name}
-        assert any(o in desc for o in others), f"{path.parent.name}: 다른 스킬 언급 없음"
+        assert any(o in desc for o in others), \
+            f"{path.parent.name}: no mention of the other skills"
 
 
 def test_pipeline_points_at_every_domain_skill():
-    """도메인 스킬은 스스로 트리거되지 않는다 — 파이프라인이 불러야 읽힌다.
+    """A domain skill does not trigger itself — it only gets read when the pipeline
+    pulls it in.
 
-    병합 직후 이것이 실제로 비어 있었다: S5 가 HOOMD 코드를 쓰는데 함정 20개를
-    담은 bd-hoomd 를 아무도 가리키지 않았다. 이 검사가 그 공백을 지킨다.
+    Right after the merge this was actually empty: S5 writes HOOMD code and nothing
+    pointed at bd-hoomd, which holds 20 traps. This check guards that gap.
     """
     body = (CLAUDE / "skills/bd-pipeline/SKILL.md").read_text(encoding="utf-8")
     missing = sorted(s for s in DOMAIN_SKILLS if s not in body)
-    assert not missing, f"bd-pipeline 이 가리키지 않는 도메인 스킬: {missing}"
+    assert not missing, f"domain skills bd-pipeline does not point at: {missing}"
 
 
 # =============================================================================
-# 링크
+# Links
 # =============================================================================
 def _links(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
@@ -134,7 +145,7 @@ def _links(path: Path) -> list[str]:
 @pytest.mark.parametrize("path", sorted(CLAUDE.rglob("*.md")),
                          ids=lambda p: str(p.relative_to(CLAUDE)))
 def test_relative_links_resolve(path):
-    """깨진 링크는 에이전트가 프로토콜을 못 찾는다는 뜻이다."""
+    """A broken link means the agent cannot find the protocol."""
     for link in _links(path):
         assert (path.parent / link).resolve().exists(), f"{path}: {link}"
 
@@ -142,11 +153,11 @@ def test_relative_links_resolve(path):
 def test_pipeline_skill_links_every_reference():
     text = (CLAUDE / "skills/bd-pipeline/SKILL.md").read_text(encoding="utf-8")
     for ref in (CLAUDE / "skills/bd-pipeline/references").glob("*.md"):
-        assert ref.name in text, f"SKILL.md 가 {ref.name} 를 인용하지 않는다"
+        assert ref.name in text, f"SKILL.md does not cite {ref.name}"
 
 
 # =============================================================================
-# 티어링 안전장치 — 저가 모델이 물리 판단을 하지 못하게
+# The tiering safeguard — keeping a cheap model out of physics judgments
 # =============================================================================
 @pytest.mark.parametrize(
     "path", [p for p in AGENTS if EXPECTED_MODELS[p.stem] != "opus"],
@@ -173,13 +184,13 @@ def test_cheap_agents_state_their_authority_boundary(path):
 
 
 def test_extract_agent_cannot_write_files():
-    """추출 에이전트에 Write 를 주면 spec 을 직접 고칠 수 있다."""
+    """Give the extraction agent Write and it can edit the spec directly."""
     tools = frontmatter(CLAUDE / "agents/bd-intake-extract.md")["tools"]
     assert "Write" not in tools
 
 
 # =============================================================================
-# 스킬이 물리를 다시 적지 않는다
+# A skill does not re-write the physics
 # =============================================================================
 def test_skills_delegate_to_the_core_rather_than_restating_physics():
     """The skill cites core functions and the CLI -- it does not produce numbers.
@@ -218,7 +229,8 @@ def test_pipeline_skill_states_the_question_budget():
 
 
 def test_s1_reference_is_the_substantive_one():
-    """S1 판독은 코드로 표현할 수 없는 유일한 단계 — 문서가 가장 두꺼워야 한다."""
+    """The S1 reading is the one stage that cannot be expressed as code — its
+    documentation has to be the thickest."""
     refs = {p.name: len(p.read_text(encoding="utf-8"))
             for p in (CLAUDE / "skills/bd-pipeline/references").glob("*.md")}
     assert refs["s1_intake_drawing.md"] > 3000
@@ -270,24 +282,25 @@ def test_settings_allows_the_project_interpreter():
 
 
 def test_settings_denies_conda_activate():
-    """CLAUDE.md: non-interactive shell 에서 불안정하다."""
+    """CLAUDE.md: it is unreliable in a non-interactive shell."""
     s = json.loads((CLAUDE / "settings.json").read_text(encoding="utf-8"))
     assert any("conda activate" in d for d in s["permissions"]["deny"])
 
 
 def test_settings_denies_editing_sealed_documents():
-    """★ 사후합리화의 가장 쉬운 경로를 구조적으로 닫는다.
+    """★ Structurally closes the easiest route to post-hoc rationalisation.
 
-    봉인 검증이 사후에 잡지만, 애초에 못 하게 하는 것이 낫다.
+    Seal verification catches it after the fact, but preventing it in the first place
+    is better.
     """
     s = json.loads((CLAUDE / "settings.json").read_text(encoding="utf-8"))
     deny = " ".join(s["permissions"]["deny"])
     for sealed in ("02_prediction.md", "01_intake.md", "SEALED.sha256"):
-        assert sealed in deny, f"{sealed} 편집이 허용돼 있다"
+        assert sealed in deny, f"editing {sealed} is permitted"
 
 
 def test_settings_does_not_deny_reading_inputs():
-    """S1 이 손그림을 읽어야 한다 — 여기를 막으면 파이프라인이 죽는다."""
+    """S1 has to read the hand sketch — block this and the pipeline dies."""
     s = json.loads((CLAUDE / "settings.json").read_text(encoding="utf-8"))
     deny = " ".join(s["permissions"]["deny"])
     assert "Read(./inputs" not in deny
@@ -295,7 +308,7 @@ def test_settings_does_not_deny_reading_inputs():
 
 
 # =============================================================================
-# 문서화된 결정
+# Documented decisions
 # =============================================================================
 def test_readme_records_the_granularity_decision():
     """The reason the references went from 8 to 5 must stay recorded.

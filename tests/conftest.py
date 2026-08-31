@@ -1,55 +1,60 @@
-"""공용 fixture · 마커 · 통계 도우미.
+"""Shared fixtures · markers · statistics helpers.
 
-# 테스트 파일 명명 규약 — 파이프라인 단계별
-#   test_s0_units.py        단위·상수·척도 (모든 단계의 기반)
-#   test_s2_estimators.py   S2 예측 엔진 (해석해)
-#   test_s4_nondim.py       S4 무차원화 왕복        (nondim.py 구현 후)
-#   test_s5_forces.py       S5 포스 정확성
-#   test_s5_scheme.py       S5 적분기·RNG 벤치마크  [slow]
-#   test_s7_analysis.py     S7 분석                (analysis/ 구현 후)
-#   test_knowledge.py       knowledge/wiki/benchmarks 회귀
+# Test-file naming convention — by pipeline stage
+#   test_s0_units.py        units, constants, scales (the base of every stage)
+#   test_s2_estimators.py   the S2 prediction engine (analytic solutions)
+#   test_s4_nondim.py       S4 non-dimensionalization round-trip (after nondim.py)
+#   test_s5_forces.py       S5 force correctness
+#   test_s5_scheme.py       S5 integrator and RNG benchmarks  [slow]
+#   test_s7_analysis.py     S7 analysis                (after analysis/ exists)
+#   test_knowledge.py       knowledge/wiki/benchmarks regression
 
-## 통계 테스트 작성 규칙 (읽고 따를 것)
+## Rules for writing a statistical test (read them and follow them)
 
-1. **허용오차는 이론 통계오차에서 뽑는다.** 관측값을 보고 오차를 재단하면
-   그것은 검증이 아니라 사후합리화다 (master_plan §S2 실패모드).
-   `assert abs(measured - predicted) < n_sigma * SE` 형태로 쓴다.
+1. **Take the tolerance from the theoretical statistical error.** Cutting the
+   tolerance to fit the observed value is not verification but post-hoc
+   rationalisation (master_plan §S2 failure modes). Write it in the form
+   `assert abs(measured - predicted) < n_sigma * SE`.
 
-2. **seed 를 고정한다.** HOOMD `Brownian` 은 같은 seed 에서 비트 단위로 재현된다
-   (2026-07-28 확인: 최대 절대차 `0.0`). 따라서 고정 seed + 이론 허용오차 조합이
-   "재현 가능하면서 정직한" 테스트를 만든다.
+2. **Fix the seed.** HOOMD `Brownian` reproduces bit-for-bit on the same seed
+   (confirmed 2026-07-28: max absolute difference `0.0`). So a fixed seed plus a
+   theoretical tolerance is what makes a test "reproducible and honest" at once.
 
-3. **통계량이 요동하는지 확인한다.** 요동하지 않는 측정값은 산술 항등식이다.
-   `simbot.guards.assert_statistic_fluctuates` 를 쓴다.
+3. **Check that the statistic fluctuates.** A measurement that does not fluctuate
+   is an arithmetic identity. Use
+   `simbot.guards.assert_statistic_fluctuates`.
 
-4. **경쟁 가설을 함께 기각한다.** "예측과 맞다"만으로는 약하다.
-   대안 가설(예: exact 적분 스킴)이 몇 σ 로 기각되는지도 assert 한다.
+4. **Reject the competing hypothesis too.** "It agrees with the prediction" alone
+   is weak. Also assert how many σ the alternative (an exact integration scheme,
+   say) is rejected by.
 """
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-# 조화 트랩 카드 축약 단위:  l_trap = 1, kT = 1, tau_trap = 1  =>  k* = 1, D* = 1, gamma* = 1
-TRAP_BOX = 200.0        # >> l_trap = 1.  트랩 카드 §7 "박스 >> l_trap" 게이트
+# Harmonic-trap card reduced units:  l_trap = 1, kT = 1, tau_trap = 1
+#   =>  k* = 1, D* = 1, gamma* = 1
+TRAP_BOX = 200.0        # >> l_trap = 1.  trap card §7 "box >> l_trap" gate
 TRAP_N = 1000
 TRAP_DIM = 2
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: HOOMD 실행이 필요한 테스트 (초 단위)")
-    config.addinivalue_line("markers", "benchmark: knowledge/wiki/benchmarks 회귀 항목")
+    config.addinivalue_line("markers", "slow: needs a HOOMD run (seconds)")
+    config.addinivalue_line("markers",
+                            "benchmark: a knowledge/wiki/benchmarks regression item")
 
 
 @pytest.fixture(scope="session")
 def hoomd_mod():
-    """HOOMD 를 세션당 한 번만 import (import 비용이 크다)."""
+    """Import HOOMD once per session (the import is expensive)."""
     return pytest.importorskip("hoomd")
 
 
 @pytest.fixture
 def trap_sim_factory(hoomd_mod):
-    """조화 트랩 시뮬레이션 팩토리. 축약 단위, 2D, 비상호작용 N개 입자."""
+    """Harmonic-trap simulation factory. Reduced units, 2D, N non-interacting."""
     hoomd = hoomd_mod
     from simbot.forces import HarmonicTrap
 
@@ -57,7 +62,7 @@ def trap_sim_factory(hoomd_mod):
              dim: int = TRAP_DIM):
         sim = hoomd.Simulation(device=hoomd.device.CPU(), seed=seed)
         snap = hoomd.Snapshot()
-        # Lz = 0 => 2D.  configuration.dimensions 에는 setter 가 없다 (HOOMD 7)
+        # Lz = 0 => 2D.  configuration.dimensions has no setter (HOOMD 7)
         lz = 0.0 if dim == 2 else TRAP_BOX
         snap.configuration.box = [TRAP_BOX, TRAP_BOX, lz, 0, 0, 0]
         snap.particles.N = n
@@ -65,7 +70,7 @@ def trap_sim_factory(hoomd_mod):
         snap.particles.position[:] = 0.0
         snap.particles.typeid[:] = 0
         snap.particles.mass[:] = 1.0
-        snap.particles.moment_inertia[:] = 0.0   # 회전 자유도 끔
+        snap.particles.moment_inertia[:] = 0.0   # rotational DOF off
         sim.create_state_from_snapshot(snap)
 
         trap = None
@@ -83,22 +88,23 @@ def trap_sim_factory(hoomd_mod):
 
 @pytest.fixture
 def positions_of():
-    """시뮬레이션에서 활성 차원의 위치 배열을 꺼낸다."""
+    """Pull the active-dimension position array out of a simulation."""
     def get(sim, dim: int = TRAP_DIM):
         s = sim.state.get_snapshot()
         return np.array(s.particles.position[:, :dim], dtype=np.float64)
     return get
 
 
-# --- 통계 도우미 -----------------------------------------------------------
+# --- statistics helpers ----------------------------------------------------
 def se_of_mean(samples) -> float:
-    """블록 평균들의 표준오차."""
+    """Standard error of the block means."""
     s = np.asarray(samples, dtype=np.float64)
     return float(np.std(s, ddof=1) / np.sqrt(s.size))
 
 
 def sigma_away(measured: float, predicted: float, se: float) -> float:
-    """예측에서 몇 σ 떨어졌는가."""
+    """How many σ away from the prediction."""
     if se <= 0:
-        raise ValueError("se must be > 0 — 요동하지 않는 통계량은 항등식이다")
+        raise ValueError("se must be > 0 — a statistic that does not fluctuate "
+                         "is an identity")
     return abs(measured - predicted) / se

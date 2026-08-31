@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "validation",
+    "separation_check"
+  ],
+  "dimensionless": {
+    "tau_p_over_tau_k": 0.000814
+  },
+  "source": ".claude/skills/bd-physics/SKILL.md §4",
+  "lessons": [
+    {
+      "claim": "A check with no satisfiable solution when real physical values are put in is a check that is wrong. Setting the neglect-of-inertia condition as tau_p/dt <= 1e-2 left trap-2d-5um with no dt at all satisfying 100*tau_p <= dt <= 0.01*tau_k. The cause is that BD has no inertia (HOOMD's Brownian has no mass in the equation) -- tau_p is a model-validity condition rather than a numerical one, so it had to be compared against tau_dyn. That golden_trap was 0.38 percent accurate at tau_p/dt=4000 is the evidence",
+      "kind": "pitfall",
+      "coords": {
+        "tau_p_over_tau_k": 0.000814
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,12 +1,13 @@
-"""물리 상수와 SI ↔ 무차원 변환.
+"""Physical constants and the SI ↔ dimensionless conversion.
 
-규약 (CLAUDE.md):
-  - `*_si`   : SI 단위 물리량 (float, 단위는 이름/문서로 고정)
-  - `*_star` : 무차원 값 (순수 float)
-  두 접미사를 섞은 산술은 버그다. `tests/test_units.py`가 감시한다.
+Convention (CLAUDE.md):
+  - `*_si`   : an SI quantity (a float; the unit is pinned by the name and docs)
+  - `*_star` : a dimensionless value (a bare float)
+  Arithmetic mixing the two suffixes is a bug. `tests/test_units.py` watches for it.
 
-무차원화의 기준 척도는 **(계 × 목적동역학) 카드**가 소유한다.
-따라서 이 모듈은 보편 규약을 강요하지 않고, `Scales`를 인자로 받는다.
+The reference scales for non-dimensionalization are owned by the
+**(system × target dynamics) card**. So this module does not impose a universal
+convention -- it takes `Scales` as an argument.
   → knowledge/wiki/systems/_index.md
 """
 from __future__ import annotations
@@ -32,35 +33,37 @@ from bdbot.constants import (K_B, WATER_ETA_SI as _WATER_ETA_TABLE_SI,
                              water_density_si, water_viscosity_si)
 
 
-# --- 기본 관계식 ------------------------------------------------------------
+# --- basic relations --------------------------------------------------------
 def kT_si(T_si: float) -> float:
-    """열에너지 [J]."""
+    """Thermal energy [J]."""
     return K_B * T_si
 
 
 def stokes_drag_si(eta_si: float, radius_si: float) -> float:
-    """구의 Stokes 항력계수 gamma = 6*pi*eta*a  [kg/s].
+    """Stokes drag coefficient of a sphere, gamma = 6*pi*eta*a  [kg/s].
 
-    ⚠ 인자는 **반지름**이다. 직경을 넣으면 gamma가 2배, D가 절반이 되어
-       모든 시간척도가 2배 틀린다. knowledge/wiki/concepts/water-298k.md 참조.
+    ⚠ The argument is the **radius**. Pass the diameter and gamma doubles, D
+       halves, and every timescale is wrong by 2x. See
+       knowledge/wiki/concepts/water-298k.md.
     """
     return 6.0 * math.pi * eta_si * radius_si
 
 
 def stokes_einstein_D_si(T_si: float, gamma_si: float) -> float:
-    """병진 확산계수 D = kT/gamma  [m^2/s]."""
+    """Translational diffusion coefficient D = kT/gamma  [m^2/s]."""
     return kT_si(T_si) / gamma_si
 
 
-# --- 무차원화 기준 척도 -----------------------------------------------------
+# --- reference scales for non-dimensionalization ----------------------------
 @dataclass(frozen=True)
 class Scales:
-    """무차원화 기준 3개. 어느 값을 고를지는 (계 × 목적동역학) 카드가 정한다.
+    """The 3 non-dimensionalization references. Which values to pick is decided by
+    the (system × target dynamics) card.
 
-    length_si : 기준 길이 [m]
-    energy_si : 기준 에너지 [J]
-    time_si   : 기준 시간 [s]
-    origin    : 이 선택의 출처 (카드 경로 등)
+    length_si : the reference length [m]
+    energy_si : the reference energy [J]
+    time_si   : the reference time [s]
+    origin    : where this choice came from (a card path, say)
     """
 
     length_si: float
@@ -68,14 +71,14 @@ class Scales:
     time_si: float
     origin: str = ""
 
-    # 파생 척도
+    # derived scales
     @property
     def force_si(self) -> float:
         return self.energy_si / self.length_si
 
     @property
     def stiffness_si(self) -> float:
-        """스프링 상수 척도 [N/m]."""
+        """Spring-constant scale [N/m]."""
         return self.energy_si / self.length_si**2
 
     @property
@@ -88,15 +91,15 @@ class Scales:
 
     @property
     def rate_si(self) -> float:
-        """각주파수·회전확산 등 [1/s]."""
+        """Angular frequency, rotational diffusion and the like [1/s]."""
         return 1.0 / self.time_si
 
     @property
     def modulus_3d_si(self) -> float:
-        """탄성률 척도 [Pa] = energy/length^3."""
+        """Modulus scale [Pa] = energy/length^3."""
         return self.energy_si / self.length_si**3
 
-    # --- 변환 ---
+    # --- conversion ---
     def to_star(self, value_si: float, kind: str) -> float:
         return value_si / self._scale_for(kind)
 
@@ -122,11 +125,11 @@ class Scales:
         return table[kind]
 
 
-# --- 카드별 기준 척도 팩토리 -----------------------------------------------
+# --- per-card reference-scale factories -------------------------------------
 def scales_brownian(sigma_si: float, T_si: float, gamma_si: float) -> Scales:
-    """수동 구형 × 수송:  (sigma, kT, tau_D = sigma^2/D0).
+    """Passive sphere × transport:  (sigma, kT, tau_D = sigma^2/D0).
 
-    카드: knowledge/wiki/systems/passive-sphere--*.md
+    Card: knowledge/wiki/systems/passive-sphere--*.md
     """
     D0 = stokes_einstein_D_si(T_si, gamma_si)
     return Scales(
@@ -139,25 +142,28 @@ def scales_brownian(sigma_si: float, T_si: float, gamma_si: float) -> Scales:
 
 def scales_soft2d(d_si: float, sigma_si: float, T_si: float,
                   gamma_si: float | None = None) -> Scales:
-    """2D 소프트 반발계 × 평형 구조:  (`d = n^{-1/2}`, `kT`, `τ_d = d²/D₀`).
+    """2D soft-repulsive × equilibrium structure:
+    (`d = n^{-1/2}`, `kT`, `τ_d = d²/D₀`).
 
-    카드: knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md §3
+    Card: knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md §3
 
-    ★ **길이 척도와 입자 크기가 다른 유일한 카드다.** 길이 단위는 격자 간격
-      `d = n^{-1/2}` 이고, 항력은 입자 직경 `σ` 가 정한다:
-      `γ = 6πη(σ/2) = 3πησ`. 둘을 같다고 두면 `τ_d` 가 `(d/σ)²` 배 틀린다 —
-      이 스윕의 `d/σ = 3` 에서 **9배**다.
+    ★ **The only card whose length scale differs from the particle size.** The
+      length unit is the lattice spacing `d = n^{-1/2}`, while the drag is set by
+      the particle diameter `σ`: `γ = 6πη(σ/2) = 3πησ`. Treat the two as equal and
+      `τ_d` is wrong by `(d/σ)²` -- **9x** at this sweep's `d/σ = 3`.
 
-    ⚠ `σ` 는 **동역학에 들어가지 않는다** (경질 코어가 없다). 시간 척도와
-      물리적 타당성 판단에만 쓰인다 → `build.coverage_from_sigma_over_d`.
+    ⚠ `σ` **does not enter the dynamics** (there is no hard core). It is used only
+      for the timescale and for judging physical validity →
+      `build.coverage_from_sigma_over_d`.
     """
     if gamma_si is None:
         eta_si, extrapolated = water_viscosity_si(T_si)
         if extrapolated:
             raise ValueError(
-                f"T = {T_si} K 는 물 점도 표(293–308 K) 밖이라 외삽이 된다. "
-                f"gamma_si 를 명시하라 — 외삽값을 조용히 쓰면 provenance 가 "
-                f"'derived' 인 척하는 'assumed' 가 된다")
+                f"T = {T_si} K is outside the water-viscosity table (293–308 K), "
+                f"so it would be extrapolated. State gamma_si explicitly -- using "
+                f"an extrapolated value quietly turns an 'assumed' provenance into "
+                f"one pretending to be 'derived'")
         gamma_si = stokes_drag_si(eta_si, sigma_si / 2.0)
     D0 = stokes_einstein_D_si(T_si, gamma_si)
     return Scales(
@@ -170,14 +176,15 @@ def scales_soft2d(d_si: float, sigma_si: float, T_si: float,
 
 
 def scales_harmonic_trap(k_si: float, T_si: float, gamma_si: float) -> Scales:
-    """조화 트랩:  (l_trap = sqrt(kT/k), kT, tau_trap = gamma/k).
+    """Harmonic trap:  (l_trap = sqrt(kT/k), kT, tau_trap = gamma/k).
 
-    이 선택 하에 무차원 운동방정식이 `dr*/dt* = -r* + sqrt(2) xi` 로 정규화되고
-    `D* = 1`, `k* = 1` 이 된다.
+    Under this choice the dimensionless equation of motion normalizes to
+    `dr*/dt* = -r* + sqrt(2) xi`, giving `D* = 1` and `k* = 1`.
 
-    ★ tau_D 를 강요하면 안 되는 이유: tau_trap/tau_D = kT/(k sigma^2) = 1/k*_sigma.
-      강한 트랩(k*_sigma >> 1)에서 tau_D 기준 dt 는 완화시간보다 커진다.
-      카드: knowledge/wiki/systems/passive-sphere--harmonic-trap.md
+    ★ Why tau_D must not be imposed: tau_trap/tau_D = kT/(k sigma^2) =
+      1/k*_sigma. In a strong trap (k*_sigma >> 1) a dt taken from tau_D is larger
+      than the relaxation time.
+      Card: knowledge/wiki/systems/passive-sphere--harmonic-trap.md
     """
     return Scales(
         length_si=math.sqrt(kT_si(T_si) / k_si),

@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "literature",
+    "force_definition"
+  ],
+  "dimensionless": {},
+  "source": "scratch/chain_bend_from_papers.py §2",
+  "lessons": [
+    {
+      "claim": "When comparing a literature stiffness against a simulation, the definition of the force has to be matched. The κ=F/δ of 3-point bending is referenced to the end-particle force (24EI/L³) while what the simulation measures is the central force (48EI/L³) -- not matching them is wrong by exactly a factor of 2",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "scratch/propagation_speed.py",
+  "lessons": [
+    {
+      "claim": "The stress propagation speed comes from **the phase gradient**: v_phase = ωℓ/|dφ/ds|. Measured for JKR (ω=3000 rad/s, n=9, a=1d, 6 seeds): trap default 31227 µm/s / trap k_t×100 189000 µm/s / position forcing 30144 µm/s. ★ The default trap and position agree to within 3.6% -- because in both **the two end traps are at the default stiffness**. That is, the driving mode (dragging a trap or forcing a position) does not change the propagation speed; **the boundary condition does** (k_t×100 effectively fixes both ends and is 6x faster). ⚠ Two traps -- ① do not read the amplitude decay length λ as a 'penetration depth'. In 3-point bending the amplitude falling off away from the centre is mostly **the static beam shape** (natural, with both ends held) and not decay. The measurement is the evidence: at k_t×100, λ=2.6 while 1/k=42.5, whereas a diffusive wave would need λ≈1/k. The dynamical information is in the phase gradient alone. ② This v is **the value at one ω** and not a material constant -- overdamped bending has an ω~k⁴ dispersion relation so v_phase depends on ω.",
+      "kind": "fact",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

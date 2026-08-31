@@ -1,15 +1,16 @@
-# L2 PhysicalSystem — 차원 있는 물리계 (SI). 원칙 3.
-# 문헌: [P1] Pantina & Furst, PRL 94, 138301 (2005)
-#       [P2] Pantina & Furst, Langmuir 24, 1141-1146 (2008)
-# 유도 검증: scratch/chain_bend_from_papers.py (논문 κ₀=80mN/m 을 +1.6%로 재현,
-#            κ_θ=EI/ℓ 매핑을 이산 사슬 굽힘으로 −0.08% 확인)
-# tier 0=스케치 · 1=사용자 확정/유도 · 2=문헌 추출(미검증) · 3=★내 제안
+# L2 PhysicalSystem — the dimensional physical system (SI). Rule 3.
+# Literature: [P1] Pantina & Furst, PRL 94, 138301 (2005)
+#             [P2] Pantina & Furst, Langmuir 24, 1141-1146 (2008)
+# Derivation check: scratch/chain_bend_from_papers.py (reproduces the papers' κ₀=80mN/m to +1.6%,
+#            confirms the κ_θ=EI/ℓ mapping against discrete-chain bending to −0.08%)
+# tier 0=sketch · 1=user-fixed/derived · 2=extracted from the literature (unverified) · 3=★my proposal
 
 label: chain-bend-2d-oscill
 derived_from: observation.yaml
 description: >
-  광집게 3점 굽힘 기하로 콜로이드 비드 사슬을 진동시켜 복소탄성률 G'(ω), G''(ω)를 잰다.
-  양끝 비드는 고정 트랩(힘 센서), 중앙 비드를 y방향으로 진동. 뉴턴 유체(물).
+  Measure the complex modulus G'(ω), G''(ω) by oscillating a chain of colloidal beads in a
+  3-point optical-tweezer bending geometry. The end beads are in fixed traps (force sensors)
+  and the middle bead is oscillated in the y direction. Newtonian fluid (water).
 dimensions: 2
 
 particle:
@@ -17,19 +18,19 @@ particle:
   diameter:
     value: 1.47
     unit: um
-    source: "[P1] p.1 '2a = 1.47 ± 0.01 µm' PMMA (Bangs Labs). ★ 스케치는 R=5µm 로
-             3.4배 다르다 — 논문 값들(κ₀·M_c)이 전부 이 크기 기준이라 논문을 따랐다"
+    source: "[P1] p.1 '2a = 1.47 ± 0.01 µm' PMMA (Bangs Labs). ★ The sketch says R=5µm, a
+             3.4× difference — the papers' values (κ₀, M_c) are all referenced to this size, so the papers were followed"
     tier: 2
   density:
     value: 1180
     unit: kg/m^3
-    source: "★제안: PMMA 밀도. τ_p(모델 타당성)에만 쓰임"
+    source: "★proposal: the density of PMMA. Used only for τ_p (model validity)"
     tier: 3
   count:
     value: 25
     unit: dimensionless
-    source: "★제안: [P1] Fig.4 의 25입자 사슬. n=11 로 잡으면 진폭 창이 닫힌다
-             (δ_max=74nm ≈ ℓ_k 3배) — δ_max ∝ n² 이라 n=25 에서 429nm로 열린다"
+    source: "★proposal: the 25-particle chain of [P1] Fig.4. Taking n=11 closes the amplitude window
+             (δ_max=74nm ≈ 3× ℓ_k) — δ_max ∝ n², so at n=25 it opens to 429nm"
     tier: 3
   youngs_modulus: {value: 3100, unit: MPa, source: "[P1] p.3, ref 15 (PMMA)", tier: 2}
   poisson_ratio: {value: 0.4, unit: dimensionless, source: "[P1] p.3", tier: 2}
@@ -37,34 +38,34 @@ particle:
 medium:
   kind: newtonian
   name: water
-  temperature: {value: 300, unit: K, source: "논문은 수용액. 온도는 1-A 승계", tier: 1}
-  viscosity: {value: 0.851, unit: mPa*s, source: "물@300K 핸드북", tier: 1}
+  temperature: {value: 300, unit: K, source: "the papers use an aqueous solution. The temperature is inherited from 1-A", tier: 1}
+  viscosity: {value: 0.851, unit: mPa*s, source: "handbook, water@300K", tier: 1}
 
 geometry:
   kind: chain_1d_in_2d
   n_beads: 25
   contour_length: {value: 35.28, unit: um, source: "derived: (n-1)d", tier: 1}
   periodic: false
-  note: "사슬 하나. 주기경계 없음 (트랩이 위치를 고정)"
+  note: "a single chain. No periodic boundary (the traps fix the position)"
 
-# ── ★ 상호작용: 페어 퍼텐셜이 아니다 (논문의 헤드라인 발견) ──────────────
+# ── ★ interactions: not a pair potential (the papers' headline finding) ──
 interactions:
   - kind: contact.adhesive_bending
-    form: "반경: 접착 접촉(JKR, 사실상 비신축) · 접선: 결합각 강성 κ_θ"
+    form: "radial: adhesive contact (JKR, effectively inextensible) · tangential: a bond-angle stiffness κ_θ"
     rationale: >
-      [P1][P2]: 단일 콜로이드 결합이 **토크를 지탱**한다. 중심 페어 퍼텐셜(DLVO 포함)로는
-      이 접선 상호작용을 낼 수 없고, 논문이 그 점을 명시적으로 지적한다.
-      스케치의 빈칸 U_ij 는 페어 퍼텐셜이 아니라 이 접촉 모델이다.
+      [P1][P2]: a single colloidal bond **sustains a torque**. A central pair potential (DLVO
+      included) cannot produce this tangential interaction, and the papers point that out explicitly.
+      The blank U_ij in the sketch is not a pair potential but this contact model.
     kappa_0:
       value: 64
       unit: mN/m
       source: "[P1] p.3 'experimental value at 10 mM MgCl₂ is 64 ± 0.5 mN/m'"
       tier: 2
-      note: "염 농도에 따라 0.1~0.6 N/m ([P1] Fig.3b), 계면활성제로 한 자릿수 감소 ([P2] Fig.4)"
+      note: "0.1~0.6 N/m depending on the salt concentration ([P1] Fig.3b), reduced by an order of magnitude with a surfactant ([P2] Fig.4)"
     contact_radius:
       value: 43.2
       unit: nm
-      source: "derived: κ₀=3πa_c⁴E/(4a³) 역산. [P1] 은 'a_c ≈ 40 nm' (반올림)"
+      source: "derived: inverting κ₀=3πa_c⁴E/(4a³). [P1] gives 'a_c ≈ 40 nm' (rounded)"
       tier: 2
     flexural_rigidity:
       value: 8.4707e-21
@@ -74,40 +75,40 @@ interactions:
     angle_stiffness:
       value: 5.7624e-15
       unit: J
-      source: "derived: κ_θ = EI/ℓ (ℓ=d). 이산↔연속 매핑을 사슬 굽힘으로 검증 —
-               이 계(n=25)에서 −0.35%. (−0.08% 는 같은 수렴표의 n=51 행이다)"
+      source: "derived: κ_θ = EI/ℓ (ℓ=d). The discrete↔continuum mapping verified against chain bending —
+               −0.35% for this system (n=25). (The −0.08% is the n=51 row of the same convergence table)"
       tier: 1
-      note: "= 1.391e6 kT — 사슬이 열적으로 완전히 뻣뻣하다"
+      note: "= 1.391e6 kT — the chain is thermally completely stiff"
     bond_stiffness:
       value: 1917
       unit: pN/um
-      source: "★제안: 열적 신축을 지름의 0.1% 이하로 (√(kT/k_b) ≤ 1e-3 d)"
+      source: "★proposal: keep the thermal stretching below 0.1% of the diameter (√(kT/k_b) ≤ 1e-3 d)"
       tier: 3
     critical_moment:
       value: 35
       unit: pN*um
       source: "[P1] p.2 'M_c plateaus to approximately 35 pN µm' (>10 mM MgCl₂)"
       tier: 2
-      note: "★ 이 위에서는 결합이 미끄러지거나 굴러 조화 angle 퍼텐셜이 무효가 된다"
+      note: "★ above this the bond slips or rolls and the harmonic angle potential becomes invalid"
 
 external:
   kind: harmonic_trap_oscillating
-  form: "양끝 고정 트랩(힘 센서) + 중앙 트랩을 y = a sin(ωt) 로 진동"
-  n_trapped: {value: 3, unit: dimensionless, source: "sketch — X 표시 3개 (1·중앙·끝)", tier: 0}
+  form: "fixed traps at both ends (force sensors) + the middle trap oscillated as y = a sin(ωt)"
+  n_trapped: {value: 3, unit: dimensionless, source: "sketch — 3 X marks (1st, middle, last)", tier: 0}
   stiffness:
     value: 10
     unit: pN/um
-    source: "sketch 'k_t = 10 pN/µm'. 논문은 ~40 pN/µm ([P1] p.1)"
+    source: "sketch, 'k_t = 10 pN/µm'. The papers use ~40 pN/µm ([P1] p.1)"
     tier: 0
   amplitude:
     value: 200
     unit: nm
-    source: "★제안: 창 ℓ_k(20nm) ≪ a < δ_max(429nm). SNR=9.8, 선형 여유 2.1×"
+    source: "★proposal: the window ℓ_k(20nm) ≪ a < δ_max(429nm). SNR=9.8, linear-response margin 2.1×"
     tier: 3
   omega_range:
     value: [85, 7853]
     unit: rad/s
-    source: "★제안: De = ωτ 0.1~10 을 덮음 (τ_k=1.18ms, τ_chain=1.27ms 가 거의 같다)"
+    source: "★proposal: covers De = ωτ 0.1~10 (τ_k=1.18ms and τ_chain=1.27ms are nearly equal)"
     tier: 3
 
 targets:
@@ -121,45 +122,45 @@ derived_scales:
   tau_B: {value: 6.1508, unit: s, expr: "d^2/D_t"}
   tau_p: {value: 1.6647e-7, unit: s, expr: "m/gamma"}
   kT: {value: 4.1419e-21, unit: J}
-  tau_k: {value: 1.1790e-3, unit: s, expr: "gamma/k_t", role: "트랩 이완"}
-  tau_chain: {value: 1.2733e-3, unit: s, expr: "gamma/kappa_center", role: "사슬 집단 굽힘 — τ_k와 거의 같다"}
-  tau_fast: {value: 2.787e-7, unit: s, expr: "gamma/lambda_max(굽힘 강성 행렬)", role: "★ 최속 모드 → dt를 정한다"}
-  kappa_end: {value: 4.63, unit: pN/um, expr: "24 EI/L^3", role: "논문 κ 정의 (끝 힘 기준)"}
-  kappa_center: {value: 9.26, unit: pN/um, expr: "48 EI/L^3", role: "구동 트랩이 느끼는 값"}
+  tau_k: {value: 1.1790e-3, unit: s, expr: "gamma/k_t", role: "trap relaxation"}
+  tau_chain: {value: 1.2733e-3, unit: s, expr: "gamma/kappa_center", role: "collective chain bending — nearly equal to τ_k"}
+  tau_fast: {value: 2.787e-7, unit: s, expr: "gamma/lambda_max(the bending stiffness matrix)", role: "★ the fastest mode → it sets dt"}
+  kappa_end: {value: 4.63, unit: pN/um, expr: "24 EI/L^3", role: "the papers' definition of κ (referenced to the end force)"}
+  kappa_center: {value: 9.26, unit: pN/um, expr: "48 EI/L^3", role: "the value the driving trap feels"}
   l_k: {value: 20.35, unit: nm, expr: "sqrt(kT/k_t)"}
-  delta_max: {value: 429, unit: nm, expr: "M_c L^2/(12 EI)", role: "선형 탄성 한계 진폭"}
+  delta_max: {value: 429, unit: nm, expr: "M_c L^2/(12 EI)", role: "the linear-elastic limit amplitude"}
 
 dimensionless:
   reference: {length: d, time: tau_B, energy: kT, strategy: thermal}
   groups:
-    - {name: "kappa_theta/kT", value: 1.391e6, meaning: "★ 사슬이 열적으로 뻣뻣 (요동이 굽히지 못함)"}
-    - {name: "a/l_k", value: 9.83, meaning: "진폭 vs 열요동 = SNR"}
-    - {name: "a/delta_max", value: 0.467, meaning: "★ 선형 탄성 여유 2.1× (M<M_c)"}
-    - {name: "kappa_end/k_t", value: 0.463, meaning: "사슬 vs 트랩 강성 — 비슷 (측정 창)"}
-    - {name: "De_range", value: 10.0, expr: "omega tau_k", meaning: "0.1~10 스윕"}
-    - {name: "tau_fast/tau_chain", value: 2.19e-4, meaning: "★ 최속 모드가 관심 모드보다 4570배 빠르다"}
+    - {name: "kappa_theta/kT", value: 1.391e6, meaning: "★ the chain is thermally stiff (fluctuations cannot bend it)"}
+    - {name: "a/l_k", value: 9.83, meaning: "amplitude vs thermal fluctuation = SNR"}
+    - {name: "a/delta_max", value: 0.467, meaning: "★ linear-elastic margin 2.1× (M<M_c)"}
+    - {name: "kappa_end/k_t", value: 0.463, meaning: "chain vs trap stiffness — comparable (the measurement window)"}
+    - {name: "De_range", value: 10.0, expr: "omega tau_k", meaning: "a 0.1~10 sweep"}
+    - {name: "tau_fast/tau_chain", value: 2.19e-4, meaning: "★ the fastest mode is 4570× faster than the mode of interest"}
     - {name: "St", value: 3.15e-8, expr: "tau_p/tau_B"}
 
 numerics:
   dt:
     value: 2.787
     unit: ns
-    source: "10⁻² × τ_fast (굽힘 강성 행렬의 최대 고유값에서). 집단 모드가 아니라
-             측정과 무관한 최속 모드가 dt를 정한다"
+    source: "10⁻² × τ_fast (from the largest eigenvalue of the bending stiffness matrix). dt is set
+             not by the collective mode but by the fastest mode, which is irrelevant to the measurement"
     tier: 1
   production_s: 7.41
-  production_note: "최저 ω(85 rad/s)에서 100주기. ★ 2.7e9 steps — 비싸다"
+  production_note: "100 periods at the lowest ω (85 rad/s). ★ 2.7e9 steps — expensive"
   stat_target_pct: 5.0
-  equilibration: "구동 전 사슬 완화 (τ_chain의 수십 배)"
+  equilibration: "chain relaxation before driving (tens of times τ_chain)"
 
 not_verified:
-  - "★ 비용: 2.7e9 steps. κ_θ=1.4e6 kT 라 사슬이 뻣뻣해서 측정과 무관한 최속 굽힘 모드가
-     dt를 정한다. 선택지 — (a) 감수 (b) κ₀를 낮춰(계면활성제, [P2] Fig.4) 스윕
-     (c) 높은 ω만 재고 낮은 ω는 준정적 극한으로 대체"
-  - "d = 1.47 µm (논문) vs 스케치 R = 5 µm — 3.4배 불일치. 논문 값을 택했으나 사람 확인 필요"
-  - "M_c 초과 소성(미끄러짐/구름)은 조화 angle 퍼텐셜로 표현 못 한다 → M<M_c 로 제한해야 하고,
-     그 조건이 진폭 상한 δ_max 를 만든다"
-  - "논문은 등속 20~30 nm/s 준정적 굽힘이다. 진동 구동(G'·G'')은 논문에 없다 —
-     탄성 상수는 옮겨오되 동역학은 새 영역"
-  - "BD + 뉴턴 용매에서는 용매의 G'=0 이다. 여기서 나올 G'는 **사슬의 탄성**이고
-     매질의 점탄성이 아니다"
+  - "★ cost: 2.7e9 steps. With κ_θ=1.4e6 kT the chain is stiff, so the fastest bending mode — which is
+     irrelevant to the measurement — sets dt. The options are — (a) accept it (b) lower κ₀ (a surfactant,
+     [P2] Fig.4) and sweep (c) measure only the high ω and replace the low ω with the quasi-static limit"
+  - "d = 1.47 µm (the papers) vs the sketch's R = 5 µm — a 3.4× discrepancy. The paper value was chosen, but it needs human confirmation"
+  - "Plasticity above M_c (slipping/rolling) cannot be expressed by a harmonic angle potential → it has to be
+     restricted to M<M_c, and that condition is what creates the amplitude ceiling δ_max"
+  - "The papers do quasi-static bending at a constant 20~30 nm/s. Oscillatory driving (G', G'') is not in the papers —
+     the elastic constants are carried over, but the dynamics is new territory"
+  - "In BD with a Newtonian solvent, the solvent's G'=0. The G' that comes out here is **the chain's elasticity**,
+     not the viscoelasticity of the medium"

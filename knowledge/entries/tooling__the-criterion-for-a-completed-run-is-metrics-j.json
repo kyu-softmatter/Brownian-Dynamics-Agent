@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "runid.prepare_outdir / this session 2026-08-06",
+  "lessons": [
+    {
+      "claim": "**The criterion for a completed run is metrics.json, not result.txt.** bdbot.runid.prepare_outdir uses result.txt as the completion marker, while the actual pipeline (run.execute) **does not write result.txt** -- even a completed run has only l4.json, metrics.json, observables.npz, spec.json and traj_A.gsd. In this session, judging 'incomplete' by the presence of result.txt while cleaning up **deleted 6 completed runs**. When cleaning up incomplete runs, always judge by the existence of metrics.json. (The deleted runs were regenerable, but the run_id changed -- because a field had been added to spec.params in between.)",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,4 +1,7 @@
-"""사슬 굽힘 스윕 결과 그림 + SI 환산.  그림의 글자는 영문 (CLAUDE.md)."""
+"""Chain-bending sweep results: figures plus SI conversion.
+
+All figure text is English (CLAUDE.md).
+"""
 from __future__ import annotations
 
 import json
@@ -93,7 +96,7 @@ c.plot(Ls, r, "o", ms=8, mfc="none", mew=1.8, color="#2ca02c",
        label=r"measured  $\tau_{\rm relax}/\tau_\kappa$")
 sl = np.polyfit(Ls, r, 1)[0]
 c.plot(Lf, sl * Lf, "k--", lw=1.2, label=f"linear in $L$, slope {sl:.3f}")
-# 이론: tau_1 = gamma L^4 / (pi^4 EI),  EI = k_theta b,  tau_kappa = L^3/(48 k_theta)
+# theory: tau_1 = gamma L^4 / (pi^4 EI),  EI = k_theta b,  tau_kappa = L^3/(48 k_theta)
 c.plot(Lf, (48 / np.pi ** 4) * Lf, "-", color="#ff7f0e", lw=1.4,
        label=r"$48/\pi^4 \cdot L$  (fundamental mode)")
 c.set_xlabel(r"span  $L^*$")
@@ -111,7 +114,7 @@ print(f"-> {outd/'chain_bend_length_sweep.png'}")
 # =========================================================================
 print()
 print("=" * 74)
-print("측정 요약 (축약 단위)")
+print("measurement summary (reduced units)")
 print("=" * 74)
 print(f"{'N':>4} {'L*':>5} {'static kappa*':>14} {'ratio':>8} | "
       f"{'thermal kappa*':>18} {'ratio':>16}")
@@ -124,14 +127,16 @@ for i, n in enumerate(Ns):
     print(f"{n:>4} {Ls[i]:>5.0f} {k_st[i]:>14.5g} {k_st[i]/k_pr[i]:>8.4f} | {t}")
 
 print()
-print(f"static 지수 (N>={Ns[3]}):  p = {p3:.4f}   (교과서 -3)")
-print(f"static 계수:              exp(a)/(48 k_theta) = {np.exp(a3)/(48*K_THETA):.4f}")
-print(f"tau_relax/tau_kappa 기울기: {sl:.4f}   (기본모드 48/pi^4 = {48/np.pi**4:.4f})")
+print(f"static exponent (N>={Ns[3]}):  p = {p3:.4f}   (textbook -3)")
+print(f"static coefficient:       exp(a)/(48 k_theta) = {np.exp(a3)/(48*K_THETA):.4f}")
+print(f"tau_relax/tau_kappa slope: {sl:.4f}   "
+      f"(fundamental mode 48/pi^4 = {48/np.pi**4:.4f})")
 
 # =========================================================================
 print()
 print("=" * 74)
-print("SI 환산 — 논문값을 그대로 쓰면 얼마인가  [출처, 미재현]")
+print("SI conversion -- what the papers' values give directly  "
+      "[cited, not reproduced]")
 print("=" * 74)
 T_K = 298.15
 eta, _ = water_viscosity_si(T_K)
@@ -139,19 +144,20 @@ A = 1.47e-6 / 2
 SIG = 2 * A
 kT = kT_si(T_K)
 gam = stokes_drag_si(eta, A)
-E_PMMA, A_C = 3.1e9, 40e-9              # Pa, m  [출처, 미재현] PRL
-EI = np.pi * E_PMMA * A_C ** 4 / 4.0     # 논문의 원형 접촉 EI
-KAPPA0 = 64e-3                           # N/m @10 mM  [출처, 미재현]
+E_PMMA, A_C = 3.1e9, 40e-9              # Pa, m  [cited, not reproduced] PRL
+EI = np.pi * E_PMMA * A_C ** 4 / 4.0     # the papers' circular-contact EI
+KAPPA0 = 64e-3                           # N/m @10 mM  [cited, not reproduced]
 print(f"  EI = pi E a_c^4/4 = {EI:.4e} N*m^2     (E={E_PMMA/1e9:g} GPa, a_c={A_C*1e9:g} nm)")
 print(f"  k_theta = EI/sigma = {EI/SIG:.4e} J = {EI/SIG/kT:.4e} kT/rad^2")
 print()
-print(f"{'N':>4} {'L[um]':>8} {'48EI/L^3 [pN/um]':>18} {'kappa_0(a/s)^3 [pN/um]':>24} {'비':>8}")
+print(f"{'N':>4} {'L[um]':>8} {'48EI/L^3 [pN/um]':>18} "
+      f"{'kappa_0(a/s)^3 [pN/um]':>24} {'ratio':>8}")
 for n in (7, 11, 15, 21, 31, 41):
     L = (n - 1) * SIG
     beam = 48 * EI / L ** 3
-    paper = KAPPA0 / (2.0 * (n - 1)) ** 3          # 논문 형태 (a = sigma/2)
+    paper = KAPPA0 / (2.0 * (n - 1)) ** 3          # the papers' form (a = sigma/2)
     print(f"{n:>4} {L*1e6:>8.2f} {beam*1e6:>18.3f} {paper*1e6:>24.3f} {beam/paper:>8.2f}")
 print()
-print("  ★ 두 식이 상수배로 어긋난다. 논문의 kappa_0 정의(계수)를 PDF 추출로는")
-print("    확정할 수 없다 (2단 조판에서 계수가 깨진다 — env-log 3단계).")
-print("    지수 -3 은 양쪽이 같고 우리가 확인했다. 계수는 미결로 남긴다.")
+print("  ★ The two differ by a constant factor. The papers' kappa_0 coefficient")
+print("    cannot be pinned down from the PDF (two-column typesetting corrupts")
+print("    coefficients, env-log stage 3). Exponent -3 agrees; coefficient open.")

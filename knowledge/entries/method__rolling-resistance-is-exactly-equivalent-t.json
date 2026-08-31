@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "contact",
+    "rolling",
+    "bending",
+    "jkr",
+    "chain",
+    "dem"
+  ],
+  "dimensionless": {
+    "kappa_theta_over_kroll_R2": 0.5
+  },
+  "source": "scratch/verify_rolling_contact.py#G4",
+  "lessons": [
+    {
+      "claim": "★ Rolling resistance is **exactly equivalent** to a harmonic bending stiffness -- kappa_theta_eff = (1/2)*k_roll*R^2 (in the limit where the orientational degree of freedom relaxes). The derivation: U_r = k_r R^2 (2 - (a_i - a_j).n_hat) (a = a body-fixed contact-point marker), and minimizing over the orientation theta gives theta_k=(phi_{k-1}+phi_k)/2 for an internal particle while an end particle relaxes fully to theta=phi, leaving U_r = (1/4) k_r R^2 * sum(theta_bend^2) -- the internal particles being shared between both bonds and thereby frustrated is the origin of the bending stiffness. Measured (the 3-point bending stiffness, an analytic-gradient scipy minimization, n=3/5/9/15): rolling/harmonic = 1.00000/0.99999928/0.99999085/0.99999475. Raising delta by 100x leaves k_roll unchanged at 1.000003x (a genuine quadratic stiffness).",
+      "kind": "scaling",
+      "coords": {
+        "kappa_theta_over_kroll_R2": 0.5
+      }
+    }
+  ],
+  "not_verified": []
+}

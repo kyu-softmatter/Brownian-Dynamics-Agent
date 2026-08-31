@@ -1,0 +1,26 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "intake",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "intake",
+    "scales",
+    "workflow"
+  ],
+  "dimensionless": {
+    "tau_k_over_tau_B": 1.657e-05
+  },
+  "source": "cases/trap_2d_5um.py build_ledger",
+  "lessons": [
+    {
+      "claim": "As soon as intake finishes, draw the scale table and feed it back. Looking at the intake alone, trap-2d-5um seemed to have no problem. Only after drawing the scale table did it emerge that tau_B=242s while tau_k=4ms, so free diffusion is never realized, and that changed the dt choice, the observation window and the reporting units entirely. This feedback step sits between observation and system",
+      "kind": "method_note",
+      "coords": {
+        "tau_k_over_tau_B": 1.657e-05
+      }
+    }
+  ],
+  "not_verified": []
+}

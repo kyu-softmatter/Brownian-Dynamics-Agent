@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "contact",
+    "sliding",
+    "bending",
+    "jkr",
+    "dem"
+  ],
+  "dimensionless": {
+    "k_slide_over_ksR2": 5.3e-07
+  },
+  "source": "scratch/verify_rolling_contact.py#G3,G3′",
+  "lessons": [
+    {
+      "claim": "★ With a tangential (sliding) spring alone, a chain's bending stiffness is **exactly 0** -- a rolling resistance is required. The reason: U_s ∝ sum_k (theta_k + theta_{k+1} + 2*phi_k)^2, and the orientations theta outnumber the bonds (n vs n-1), so a solution making every term 0 always exists (determined sequentially starting from an end). Measured: k_slide/(k_s R^2) = 1.8e-7 ~ 5.3e-7 (n=3~15), and raising delta by 10/100x shrinks the residual by 1/100 and 1/10000 (1.46 → 0.00974 → 0.000146) -- since k ∝ 1/delta^2 it is **cancellation round-off** and not a genuine quadratic stiffness. ★ This is **the same structure** as md.pair.friction being exempt for slip-free rolling: a chain does not slip when bent but rolls its way out. ⟹ The reason that, when looking for an alternative mechanism to JKR bending, it is 'rolling resistance' and not 'friction' that has to be implemented.",
+      "kind": "method_note",
+      "coords": {
+        "k_slide_over_ksR2": 5.3e-07
+      }
+    }
+  ],
+  "not_verified": []
+}

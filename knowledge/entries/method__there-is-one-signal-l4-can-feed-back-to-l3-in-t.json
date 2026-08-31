@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "l4",
+    "l3",
+    "feedback",
+    "ledger"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/health.py step_health",
+  "lessons": [
+    {
+      "claim": "There is one signal L4 can feed back to L3. In the dimensionless convention the deterministic drift of one step is itself dt/tau_fast, so subtracting the thermal component from the measured step displacement gives dt/tau_fast by measurement. Much larger than the value L3 predicted from the ledger's timescales means there is a faster timescale missing from the ledger",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -1,18 +1,20 @@
-"""S7 — 2D 구조 분석. 측정만 하고 판정하지 않는다.
+"""S7 — 2D structure analysis. It measures only; it does not judge.
 
-`freud` 3.5 를 쓴다. RDF · 육방 order parameter `ψ₆` · Voronoi 결함 · `S(q)`.
+Uses `freud` 3.5. RDF · hexagonal order parameter `ψ₆` · Voronoi defects · `S(q)`.
 
-## 이 모듈이 조심하는 것
+## What this module is careful about
 
-**① 길이 단위는 `d = n^{-1/2}` 다** (최근접거리 `a = 1.0746 d` 가 아니다).
-`Γ ∝ d^{-3}` 이므로 7 % 혼동이 `Γ` 를 23 % 틀리게 만든다.
+**① The length unit is `d = n^{-1/2}`** (not the nearest-neighbour distance
+`a = 1.0746 d`). `Γ ∝ d^{-3}`, so a 7 % confusion makes `Γ` wrong by 23 %.
 
-**② `ψ₆` 는 이웃 정의에 의존한다.** Voronoi 이웃과 "가장 가까운 6개"는 다른 답을
-준다 — 결함 근처에서 특히. **어느 것을 썼는지 함께 보고한다.**
+**② `ψ₆` depends on the neighbour definition.** Voronoi neighbours and "the nearest
+6" give different answers -- especially near a defect. **Which one was used is
+reported alongside.**
 
-**③ 프레임을 독립으로 취급하지 않는다.** 구조 완화는 느리다. 시드 앙상블과
-프레임 간격을 호출자가 정하고, 이 모듈은 `n_frames` 를 그대로 보고한다.
-근거: [[ks-test-needs-independent-samples]]
+**③ Frames are not treated as independent.** Structural relaxation is slow. The
+caller fixes the seed ensemble and the frame spacing, and this module reports
+`n_frames` as it is.
+Basis: [[ks-test-needs-independent-samples]]
 """
 from __future__ import annotations
 
@@ -27,7 +29,7 @@ def _box(Lx: float, Ly: float):
 
 
 def _xyz(pos_2d: np.ndarray) -> np.ndarray:
-    """freud 는 2D 에서도 (N, 3) 을 요구한다 (z = 0)."""
+    """freud requires (N, 3) even in 2D (z = 0)."""
     p = np.asarray(pos_2d, dtype=np.float64)
     if p.shape[1] == 3:
         return p
@@ -48,7 +50,7 @@ class RDFResult:
     n_frames: int
 
     def coordination(self, r_max: float, density_star: float = 1.0) -> float:
-        """`r < r_max` 안의 평균 이웃 수 `n(r) = 2πn ∫ g(r) r dr` (2D)."""
+        """Mean neighbours inside `r < r_max`: `n(r) = 2πn ∫ g(r) r dr` (2D)."""
         m = self.r <= r_max
         return float(2 * np.pi * density_star
                      * np.trapezoid(self.g[m] * self.r[m], self.r[m]))
@@ -56,7 +58,7 @@ class RDFResult:
 
 def rdf(frames: np.ndarray, *, Lx: float, Ly: float, r_max: float | None = None,
         bins: int = 200) -> RDFResult:
-    """여러 프레임 평균 `g(r)`. `frames` 는 `(n_frames, N, 2)`."""
+    """`g(r)` averaged over several frames. `frames` is `(n_frames, N, 2)`."""
     import freud
     fr = np.asarray(frames, dtype=np.float64)
     if fr.ndim == 2:
@@ -67,7 +69,8 @@ def rdf(frames: np.ndarray, *, Lx: float, Ly: float, r_max: float | None = None,
     for f in fr:
         calc.compute(system=(box, _xyz(f)), reset=False)
     g, r = np.asarray(calc.rdf), np.asarray(calc.bin_centers)
-    # 첫 봉우리 — r > 0.5 d 에서 찾는다 (그 안쪽은 표본이 거의 없다)
+    # the first peak — searched for at r > 0.5 d (inside that there is almost no
+    # sample)
     m = r > 0.5
     i = int(np.argmax(g[m]))
     return RDFResult(r=r, g=g, first_peak_r=float(r[m][i]),
@@ -75,14 +78,14 @@ def rdf(frames: np.ndarray, *, Lx: float, Ly: float, r_max: float | None = None,
 
 
 # =============================================================================
-# 육방 order parameter + Voronoi 결함
+# hexagonal order parameter + Voronoi defects
 # =============================================================================
 @dataclass
 class HexOrderResult:
-    psi6_global: float              # |<psi6>| — 전역 배향 질서
-    psi6_local_mean: float          # <|psi6_i|> — 국소 질서 (전역보다 항상 크거나 같다)
+    psi6_global: float              # |<psi6>| — global orientational order
+    psi6_local_mean: float          # <|psi6_i|> — local order (always >= global)
     psi6_per_frame: list[float]
-    defect_fraction: float          # Voronoi 배위수 != 6 인 입자 분율
+    defect_fraction: float          # fraction with Voronoi coordination != 6
     coordination_hist: dict[int, float]
     neighbor_mode: str
     n_frames: int
@@ -96,10 +99,12 @@ class HexOrderResult:
 
 def _frame_hex(f: np.ndarray, box, hexatic, voro, neighbor_mode: str
                ) -> tuple[np.ndarray, np.ndarray]:
-    """프레임 1개의 `(ψ₆ᵢ, 배위수ᵢ)`. `hex_order` 와 `hex_order_series` 가 공유한다.
+    """`(ψ₆ᵢ, coordinationᵢ)` for one frame. Shared by `hex_order` and
+    `hex_order_series`.
 
-    ★ 공유하는 이유: 시간분해 판본이 따로 계산하면 두 함수가 조용히 갈라진다.
-      "후반 절반 평균" 과 "프레임별 시계열의 후반 평균" 은 **같은 수여야 한다.**
+    ★ Why it is shared: if the time-resolved version computed it separately the two
+      functions would drift apart quietly. "The mean of the second half" and "the
+      late mean of the per-frame series" **have to be the same number.**
     """
     pts = _xyz(f)
     system = (box, pts)
@@ -110,8 +115,8 @@ def _frame_hex(f: np.ndarray, box, hexatic, voro, neighbor_mode: str
         hexatic.compute(system, neighbors={"num_neighbors": 6})
         voro.compute(system)
     else:
-        raise ValueError(f"neighbor_mode {neighbor_mode!r} 는 "
-                         f"'voronoi' 또는 'nearest6' 여야 한다")
+        raise ValueError(f"neighbor_mode {neighbor_mode!r} must be "
+                         f"'voronoi' or 'nearest6'")
     counts = np.bincount(np.asarray(voro.nlist.query_point_indices),
                          minlength=pts.shape[0])
     return np.asarray(hexatic.particle_order), counts
@@ -119,17 +124,19 @@ def _frame_hex(f: np.ndarray, box, hexatic, voro, neighbor_mode: str
 
 def hex_order(frames: np.ndarray, *, Lx: float, Ly: float,
               neighbor_mode: str = "voronoi") -> HexOrderResult:
-    """`ψ₆` 와 Voronoi 결함 분율.
+    """`ψ₆` and the Voronoi defect fraction.
 
     Args:
-        neighbor_mode: `"voronoi"` (권장) 또는 `"nearest6"`.
-            ★ 둘은 다른 답을 준다 — 결함 근처에서 Voronoi 는 5·7 이웃을 그대로
-            세지만 `nearest6` 은 강제로 6개를 만든다. **결함을 보려면 Voronoi 다.**
+        neighbor_mode: `"voronoi"` (recommended) or `"nearest6"`.
+            ★ The two give different answers -- near a defect Voronoi counts the 5
+            and 7 neighbours as they are, while `nearest6` forces 6 of them.
+            **To see defects, use Voronoi.**
 
-    `psi6_global = |⟨ψ₆ᵢ⟩|` 와 `psi6_local_mean = ⟨|ψ₆ᵢ|⟩` 를 **둘 다** 준다:
-      · 국소만 크면 결정립이 있으나 방향이 갈린다 (다결정)
-      · 둘 다 크면 단결정
-      · 국소만 크고 전역이 0 이면 hexatic 후보
+    **Both** `psi6_global = |⟨ψ₆ᵢ⟩|` and `psi6_local_mean = ⟨|ψ₆ᵢ|⟩` are returned:
+      · local large only → there are grains but their orientations differ
+        (polycrystal)
+      · both large → a single crystal
+      · local large with global 0 → a hexatic candidate
     """
     import freud
     fr = np.asarray(frames, dtype=np.float64)
@@ -159,25 +166,29 @@ def hex_order(frames: np.ndarray, *, Lx: float, Ly: float,
 
 
 # =============================================================================
-# 시간분해 — 구조가 **언제** 만들어지는가
+# Time-resolved — **when** the structure gets made
 # =============================================================================
-#  ★ 왜 시간 평균과 따로 두는가
-#  후반 절반 평균은 "무엇이 되었는가" 에 답하고 **"언제 되었는가" 에는 답하지 않는다.**
-#  같은 최종 `ψ₆` 가 (ⅰ) 1 τ_d 에 도달해 머문 것인지 (ⅱ) 아직 오르는 중인 것인지
-#  구별되지 않는다 — 그 구별이 평형화 진단의 전부다.
+#  ★ Why this is kept separate from the time average
+#  A second-half mean answers "what did it become" and **does not answer "when did
+#  it become that."** The same final `ψ₆` is indistinguishable between (ⅰ) reached
+#  at 1 τ_d and stayed there and (ⅱ) still climbing -- and that distinction is the
+#  whole of an equilibration diagnosis.
 #
-#  ⚠ **프레임은 독립 표본이 아니다** (모듈 §③). 시계열의 프레임 간 산포를
-#    통계오차로 쓰면 시간 상관 때문에 과소평가된다. 오차막대는 시드 앙상블에서 온다.
+#  ⚠ **Frames are not independent samples** (module §③). Using the frame-to-frame
+#    scatter of a time series as the statistical error underestimates it, because of
+#    the time correlation. Error bars come from the seed ensemble.
 @dataclass
 class HexOrderSeries:
-    """프레임별 `ψ₆`·결함·배위수. 시간 축은 호출자가 준 `t_star`."""
+    """Per-frame `ψ₆`, defects and coordination. The time axis is the caller's
+    `t_star`."""
 
     t_star: np.ndarray                  # (n_frames,)
-    psi6_global: np.ndarray             # (n_frames,) |⟨ψ₆ᵢ⟩| — 프레임 내 평균의 크기
+    psi6_global: np.ndarray             # (n_frames,) |⟨ψ₆ᵢ⟩| — magnitude of the
+                                        # within-frame mean
     psi6_local: np.ndarray              # (n_frames,) ⟨|ψ₆ᵢ|⟩
-    defect_fraction: np.ndarray         # (n_frames,) 배위수 ≠ 6 분율
-    coord_labels: np.ndarray            # (n_coord,) 배위수 값 (예: [3,4,…,10])
-    coord_fraction: np.ndarray          # (n_frames, n_coord) 프레임별 분율
+    defect_fraction: np.ndarray         # (n_frames,) fraction with coordination ≠ 6
+    coord_labels: np.ndarray            # (n_coord,) coordination values ([3,4,…,10])
+    coord_fraction: np.ndarray          # (n_frames, n_coord) per-frame fractions
     neighbor_mode: str
     n_particles: int
 
@@ -191,24 +202,27 @@ class HexOrderSeries:
 
     @property
     def five_seven_balance(self) -> np.ndarray:
-        """`|n₅ − n₇|/(n₅ + n₇)` 프레임별. **0 이면 전위(5-7 쌍) 서명이다.**
+        """`|n₅ − n₇|/(n₅ + n₇)` per frame. **0 is the signature of dislocations
+        (5-7 pairs).**
 
-        결함 분율만으로는 전위와 액체가 구별되지 않는다 (카드 §8.2) — 이 양이
-        그 구별을 시간축 위에서 유지한다.
+        The defect fraction alone does not distinguish a dislocation from a liquid
+        (card §8.2) -- this quantity keeps that distinction along the time axis.
         """
         n5, n7 = self._col(5), self._col(7)
         return np.abs(n5 - n7) / np.maximum(n5 + n7, 1e-12)
 
     @property
     def coord_kinds(self) -> np.ndarray:
-        """프레임별 '분율 > 0.5 %' 인 배위수 종류 수. 액체는 6종, 결정은 3종."""
+        """Per frame, how many coordination kinds have fraction > 0.5 %. A liquid
+        has 6 kinds, a crystal 3."""
         return (self.coord_fraction > 0.005).sum(axis=1)
 
     def window_mean(self, t_lo: float, t_hi: float) -> dict:
-        """`t_lo ≤ t < t_hi` 구간 평균. **후반 절반 평균과 대조하는 데 쓴다.**"""
+        """Mean over `t_lo ≤ t < t_hi`. **Used to compare against a second-half
+        mean.**"""
         m = (self.t_star >= t_lo) & (self.t_star < t_hi)
         if not m.any():
-            raise ValueError(f"[{t_lo}, {t_hi}) 안에 프레임이 없다")
+            raise ValueError(f"no frames inside [{t_lo}, {t_hi})")
         return {"n_frames": int(m.sum()),
                 "psi6_global": float(self.psi6_global[m].mean()),
                 "psi6_local": float(self.psi6_local[m].mean()),
@@ -219,14 +233,16 @@ def hex_order_series(frames: np.ndarray, *, Lx: float, Ly: float,
                      t_star: np.ndarray | None = None,
                      neighbor_mode: str = "voronoi",
                      coord_range: tuple[int, int] = (3, 10)) -> HexOrderSeries:
-    """`hex_order` 의 **시간분해** 판본 — 프레임을 평균하지 않고 그대로 돌려준다.
+    """The **time-resolved** version of `hex_order` — it returns the frames as they
+    are instead of averaging them.
 
-    `hex_order(frames).psi6_global` 은 이 함수의 `psi6_global.mean()` 과
-    **정확히 같다** (같은 `_frame_hex` 를 쓴다). 테스트가 그것을 감시한다.
+    `hex_order(frames).psi6_global` is **exactly equal** to this function's
+    `psi6_global.mean()` (they use the same `_frame_hex`). A test watches that.
 
     Args:
-        coord_range: 배위수 히스토그램 범위 (양끝 포함). 밖의 값은 마지막 칸에
-            누적하지 않고 **버린다** — 대신 `defect_fraction` 은 전량으로 센다.
+        coord_range: the coordination histogram range (both ends inclusive). Values
+            outside are **discarded** rather than accumulated into the last bin --
+            `defect_fraction`, by contrast, counts all of them.
     """
     import freud
     fr = np.asarray(frames, dtype=np.float64)
@@ -236,7 +252,7 @@ def hex_order_series(frames: np.ndarray, *, Lx: float, Ly: float,
     t = (np.arange(n_frames, dtype=np.float64) if t_star is None
          else np.asarray(t_star, dtype=np.float64))
     if t.size != n_frames:
-        raise ValueError(f"t_star 길이 {t.size} != 프레임 수 {n_frames}")
+        raise ValueError(f"t_star length {t.size} != frame count {n_frames}")
 
     box = _box(Lx, Ly)
     hexatic = freud.order.Hexatic(k=6)
@@ -262,7 +278,7 @@ def hex_order_series(frames: np.ndarray, *, Lx: float, Ly: float,
 
 @dataclass
 class RelaxationFit:
-    """`y(t) = y_inf + (y_0 − y_inf) exp(−t/τ)` 적합. **판정하지 않는다.**"""
+    """A `y(t) = y_inf + (y_0 − y_inf) exp(−t/τ)` fit. **It does not judge.**"""
 
     y0: float
     y_inf: float
@@ -275,30 +291,33 @@ class RelaxationFit:
 
     @property
     def amplitude(self) -> float:
-        """완화 폭 `y_0 − y_inf`. 이것이 잡음보다 작으면 `τ` 는 의미가 없다."""
+        """The relaxation amplitude `y_0 − y_inf`. Smaller than the noise and `τ`
+        is meaningless."""
         return self.y0 - self.y_inf
 
 
 def fit_relaxation(t_star: np.ndarray, y: np.ndarray, *,
                    noise: float | None = None) -> RelaxationFit:
-    """단일지수 완화 시간.
+    """Single-exponential relaxation time.
 
-    ★ **`τ` 를 보고하기 전에 `amplitude` 를 잡음과 비교해야 한다.** 정상상태를
-      요동하는 신호에 지수를 맞추면 항상 어떤 `τ` 가 나온다 — 그것은 완화가 아니라
-      잡음이다. `noise` 를 주면 `converged` 에 그 판정을 반영한다.
+    ★ **Before reporting `τ`, the `amplitude` has to be compared against the
+      noise.** Fitting an exponential to a signal fluctuating about a steady state
+      always yields some `τ` -- and that is noise, not relaxation. Given `noise`,
+      that judgment is reflected in `converged`.
 
     Args:
-        noise: 신호의 프레임 간 표준편차. `|amplitude| < 2·noise` 면
-            `converged=False` 로 두고 이유를 `note` 에 남긴다.
+        noise: the signal's frame-to-frame standard deviation. If
+            `|amplitude| < 2·noise`, `converged=False` and the reason is left in
+            `note`.
     """
     from scipy.optimize import curve_fit
 
     t = np.asarray(t_star, dtype=np.float64)
     yy = np.asarray(y, dtype=np.float64)
     if t.size != yy.size:
-        raise ValueError(f"t({t.size}) 와 y({yy.size}) 길이가 다르다")
+        raise ValueError(f"t({t.size}) and y({yy.size}) have different lengths")
     if t.size < 4:
-        raise ValueError(f"점 {t.size}개로는 3파라미터 적합을 할 수 없다")
+        raise ValueError(f"{t.size} points cannot support a 3-parameter fit")
 
     def model(tt, y0, y_inf, tau):
         return y_inf + (y0 - y_inf) * np.exp(-tt / np.maximum(tau, 1e-12))
@@ -314,7 +333,7 @@ def fit_relaxation(t_star: np.ndarray, y: np.ndarray, *,
         return RelaxationFit(y0=float(yy[0]), y_inf=float(yy[-1]),
                              tau=float("nan"), tau_se=float("nan"),
                              r_squared=float("nan"), n_points=int(t.size),
-                             converged=False, note=f"적합 실패: {e!r}")
+                             converged=False, note=f"fit failed: {e!r}")
     resid = yy - model(t, *popt)
     ss_tot = float(((yy - yy.mean()) ** 2).sum())
     r2 = 1.0 - float((resid ** 2).sum()) / ss_tot if ss_tot > 0 else float("nan")
@@ -324,11 +343,12 @@ def fit_relaxation(t_star: np.ndarray, y: np.ndarray, *,
     amp = float(popt[0] - popt[1])
     if noise is not None and abs(amp) < 2.0 * noise:
         ok = False
-        note = (f"완화 폭 |{amp:.4g}| < 2×잡음({noise:.4g}) — 이것은 완화가 아니라 "
-                f"정상상태 요동이다. τ 를 보고하지 말 것")
+        note = (f"relaxation amplitude |{amp:.4g}| < 2×noise({noise:.4g}) — this is "
+                f"steady-state fluctuation, not relaxation. Do not report τ")
     if np.isfinite(tau_se) and tau_se > abs(popt[2]):
         ok = False
-        note = note or (f"τ = {popt[2]:.4g} ± {tau_se:.4g} — 오차가 값보다 크다")
+        note = note or (f"τ = {popt[2]:.4g} ± {tau_se:.4g} — the error exceeds the "
+                        f"value")
     return RelaxationFit(y0=float(popt[0]), y_inf=float(popt[1]),
                          tau=float(popt[2]), tau_se=tau_se, r_squared=r2,
                          n_points=int(t.size), converged=ok, note=note)
@@ -337,35 +357,39 @@ def fit_relaxation(t_star: np.ndarray, y: np.ndarray, *,
 def bootstrap_relaxation_over_seeds(
         t_star: np.ndarray, per_seed: np.ndarray, *, n_resample: int = 400,
         seed: int = 0, noise: float | None = None) -> dict:
-    """`τ` 의 **시드 앙상블** 오차. `curve_fit` 공분산과 다른 것을 잰다.
+    """The **seed-ensemble** error on `τ`. It measures something different from the
+    `curve_fit` covariance.
 
-    ★ `fit_relaxation` 이 주는 `tau_se` 는 *시드 평균 곡선 하나*에 대한 적합
-      불확실성이다. 이 저장소의 규약은 **"시드 앙상블이 오차의 정직한 추정치"**
-      (`scripts/soft2d_sweep_analyze.py` §①) 이므로, 시드를 재표집해서 다시 적합한
-      분포의 산포가 옳은 오차다.
+    ★ The `tau_se` from `fit_relaxation` is the fit uncertainty of *one seed-mean
+      curve*. This repository's convention is that **"the seed ensemble is the
+      honest error estimate"** (`scripts/soft2d_sweep_analyze.py` §①), so the
+      correct error is the spread of the distribution obtained by resampling the
+      seeds and refitting.
 
-      둘이 크게 다르면 **적합 불확실성이 시드 간 변동을 대표하지 못한다**는 뜻이고,
-      그때 `curve_fit` SE 로 세운 σ 거리는 믿을 수 없다.
+      A large difference between the two means **the fit uncertainty does not
+      represent the seed-to-seed variation**, and then any σ distance built on the
+      `curve_fit` SE cannot be trusted.
 
     Args:
-        per_seed: `(n_seeds, n_frames)` — 시드별 곡선. 평균하지 말고 그대로 준다.
-        n_resample: 복원추출 횟수.
+        per_seed: `(n_seeds, n_frames)` — the per-seed curves. Pass them as they
+            are, do not average.
+        n_resample: number of resamples with replacement.
 
-    Returns: `tau` (전체 평균 곡선 적합) · `tau_se_bootstrap` · `tau_ci95` ·
-        `n_converged` · `tau_se_fit` (비교용).
+    Returns: `tau` (fit of the overall mean curve) · `tau_se_bootstrap` ·
+        `tau_ci95` · `n_converged` · `tau_se_fit` (for comparison).
     """
     y = np.asarray(per_seed, dtype=np.float64)
     if y.ndim != 2:
-        raise ValueError(f"per_seed 는 (n_seeds, n_frames) 여야 한다 — {y.shape}")
+        raise ValueError(f"per_seed must be (n_seeds, n_frames) — got {y.shape}")
     k = y.shape[0]
     if k < 2:
-        raise ValueError(f"시드 {k}개로는 앙상블 오차를 낼 수 없다")
+        raise ValueError(f"{k} seeds cannot give an ensemble error")
 
     full = fit_relaxation(t_star, y.mean(axis=0), noise=noise)
     rng = np.random.default_rng(seed)
     taus: list[float] = []
     for _ in range(int(n_resample)):
-        idx = rng.integers(0, k, size=k)               # 복원추출
+        idx = rng.integers(0, k, size=k)               # resample with replacement
         try:
             f = fit_relaxation(t_star, y[idx].mean(axis=0))
         except Exception:                              # noqa: BLE001
@@ -377,7 +401,8 @@ def bootstrap_relaxation_over_seeds(
         return {"tau": full.tau, "tau_se_bootstrap": float("nan"),
                 "tau_ci95": (float("nan"), float("nan")),
                 "n_converged": int(arr.size), "tau_se_fit": full.tau_se,
-                "note": f"부트스트랩 적합이 {arr.size}회만 수렴 — 오차를 주장할 수 없다"}
+                "note": f"the bootstrap fit converged only {arr.size} times — no "
+                        f"error can be claimed"}
     return {"tau": full.tau,
             "tau_se_bootstrap": float(arr.std(ddof=1)),
             "tau_ci95": (float(np.percentile(arr, 2.5)),
@@ -390,7 +415,8 @@ def bootstrap_relaxation_over_seeds(
 
 @dataclass
 class RDFWindows:
-    """시간창별 `g(r)`. **창 안에서는 평균하고 창끼리는 섞지 않는다.**"""
+    """`g(r)` per time window. **Averaged within a window, never mixed across
+    windows.**"""
 
     r: np.ndarray                       # (bins,)
     g: np.ndarray                       # (n_windows, bins)
@@ -404,17 +430,18 @@ class RDFWindows:
 def rdf_windows(frames: np.ndarray, *, Lx: float, Ly: float,
                 t_star: np.ndarray, n_windows: int = 4,
                 r_max: float | None = None, bins: int = 200) -> RDFWindows:
-    """궤적을 `n_windows` 개 시간창으로 나눠 각각의 `g(r)`.
+    """Split the trajectory into `n_windows` time windows and take `g(r)` in each.
 
-    ★ 창 1개짜리 `g(r)` 은 프레임이 적어 시끄럽다 — 창 수를 늘리면 시간해상도가
-      오르고 신호대잡음이 내린다. **그 교환을 호출자가 정한다.**
+    ★ A single window's `g(r)` is noisy because it has few frames -- more windows
+      raises the time resolution and lowers the signal-to-noise. **The caller
+      decides that trade.**
     """
     fr = np.asarray(frames, dtype=np.float64)
     if fr.ndim == 2:
         fr = fr[None]
     t = np.asarray(t_star, dtype=np.float64)
     if t.size != fr.shape[0]:
-        raise ValueError(f"t_star 길이 {t.size} != 프레임 수 {fr.shape[0]}")
+        raise ValueError(f"t_star length {t.size} != frame count {fr.shape[0]}")
     if n_windows < 1:
         raise ValueError("n_windows ≥ 1")
 
@@ -424,8 +451,9 @@ def rdf_windows(frames: np.ndarray, *, Lx: float, Ly: float,
         m = (t >= edges[w]) & (t < edges[w + 1])
         if not m.any():
             raise ValueError(
-                f"창 {w} [{edges[w]:.4g}, {edges[w + 1]:.4g}) 에 프레임이 없다 — "
-                f"n_windows({n_windows}) 가 프레임 수({t.size}) 에 비해 크다")
+                f"window {w} [{edges[w]:.4g}, {edges[w + 1]:.4g}) has no frames — "
+                f"n_windows({n_windows}) is large relative to the frame count "
+                f"({t.size})")
         res = rdf(fr[m], Lx=Lx, Ly=Ly, r_max=r_max, bins=bins)
         r_ref = res.r if r_ref is None else r_ref
         gs.append(res.g)
@@ -439,27 +467,30 @@ def rdf_windows(frames: np.ndarray, *, Lx: float, Ly: float,
 
 @dataclass
 class VoronoiFrame:
-    """프레임 1개의 Voronoi 타일링 — **그림용**. 측정은 `hex_order_series` 가 한다."""
+    """Voronoi tiling of one frame — **for figures**. The measuring is done by
+    `hex_order_series`."""
 
     positions: np.ndarray               # (N, 2)
-    polygons: list                      # 길이 N, 각 (n_v, 2)
-    coordination: np.ndarray            # (N,) 정수
-    psi6_abs: np.ndarray                # (N,) |ψ₆ᵢ| — 국소 육방성
+    polygons: list                      # length N, each (n_v, 2)
+    coordination: np.ndarray            # (N,) integers
+    psi6_abs: np.ndarray                # (N,) |ψ₆ᵢ| — local hexagonality
     Lx: float
     Ly: float
 
 
 def voronoi_frame(frame: np.ndarray, *, Lx: float, Ly: float,
                   neighbor_mode: str = "voronoi") -> VoronoiFrame:
-    """Voronoi 다각형 + 배위수 + 국소 `ψ₆`. 카드 §10 의 `voronoi plot` 재료.
+    """Voronoi polygons + coordination + local `ψ₆`. The material for card §10's
+    `voronoi plot`.
 
-    ⚠ 다각형 꼭짓점은 **상자 밖으로 나갈 수 있다** (주기 이웃 쪽으로 열린 셀).
-      그림에서 잘라내는 것은 축 한계가 할 일이고, 여기서 자르면 셀 면적이 틀린다.
+    ⚠ Polygon vertices **can fall outside the box** (a cell open toward a periodic
+      neighbour). Clipping for the figure is the axis limits' job; clipping here
+      would make the cell areas wrong.
     """
     import freud
     f = np.asarray(frame, dtype=np.float64)
     if f.ndim != 2:
-        raise ValueError(f"프레임 1개 (N, 2) 를 줘야 한다 — 받은 shape {f.shape}")
+        raise ValueError(f"one frame (N, 2) is required — got shape {f.shape}")
     box = _box(Lx, Ly)
     hexatic = freud.order.Hexatic(k=6)
     voro = freud.locality.Voronoi()
@@ -475,43 +506,48 @@ def voronoi_frame(frame: np.ndarray, *, Lx: float, Ly: float,
 # =============================================================================
 @dataclass
 class StructureFactorResult:
-    """2D `S(k)` — **벡터 맵과 방향 평균을 함께** 준다.
+    """2D `S(k)` — returns **the vector map and the angular average together.**
 
-    ★ 방향 평균만 보면 육방 결정과 hexatic 을 구별할 수 없다. 둘 다 같은 `|k|` 에
-      첫 봉우리가 선다. 갈리는 것은 **각도 의존성**이다:
-        결정   → 6겹 **점** (Bragg)
-        hexatic → 6겹으로 변조된 **고리**
-        액체   → 등방 고리
-      그래서 `S_map` 과 `sixfold_modulation` 이 필요하다.
+    ★ The angular average alone cannot distinguish a hexagonal crystal from a
+      hexatic. Both put their first peak at the same `|k|`. What separates them is
+      **the angular dependence**:
+        crystal → 6-fold **points** (Bragg)
+        hexatic → a **ring** modulated 6-fold
+        liquid  → an isotropic ring
+      Which is why `S_map` and `sixfold_modulation` are needed.
     """
 
-    kx: np.ndarray                  # (n_kx,) 격자와 정합한 k 성분
+    kx: np.ndarray                  # (n_kx,) k components commensurate with the box
     ky: np.ndarray
-    S_map: np.ndarray               # (n_kx, n_ky) 벡터 S(k)
-    k_radial: np.ndarray            # 방향 평균용 |k| 빈 중심
+    S_map: np.ndarray               # (n_kx, n_ky) the vector S(k)
+    k_radial: np.ndarray            # |k| bin centres for the angular average
     S_radial: np.ndarray
     first_peak_k: float
     first_peak_S: float
-    sixfold_modulation: float       # 첫 봉 고리에서의 6겹 세기 (0 = 등방)
-    k_min: float                    # 상자가 허용하는 최소 |k| = 2π/max(L)
+    sixfold_modulation: float       # 6-fold strength on the first-peak ring
+                                    # (0 = isotropic)
+    k_min: float                    # the smallest |k| the box allows = 2π/max(L)
     n_frames: int
 
 
 def structure_factor(frames: np.ndarray, *, Lx: float, Ly: float,
                      n_max: int = 24, bins: int = 120,
                      ring_width: float = 0.15) -> StructureFactorResult:
-    """2D 정적 구조인자를 **직접** 계산한다.
+    """Computes the 2D static structure factor **directly**.
 
-    `S(k) = |Σ_j exp(−i k·r_j)|² / N`, `k = 2π(m/Lx, n/Ly)` — 상자와 정합한
-    k-벡터만 쓰므로 **표집 오차가 없다** (근사 없는 이산 합).
+    `S(k) = |Σ_j exp(−i k·r_j)|² / N`, `k = 2π(m/Lx, n/Ly)` — only k-vectors
+    commensurate with the box are used, so **there is no sampling error** (an exact
+    discrete sum, no approximation).
 
-    ⚠ **`freud` 를 쓰지 않는다.** `freud.diffraction.StaticStructureFactorDirect`
-      는 `ValueError: 2D boxes are not currently supported` 를 던진다 (freud 3.5.0,
-      2026-07-28 실측). 2D 가 이 프로젝트의 1급 지원 대상이라 직접 구현했다.
+    ⚠ **`freud` is not used.** `freud.diffraction.StaticStructureFactorDirect`
+      raises `ValueError: 2D boxes are not currently supported` (freud 3.5.0,
+      measured 2026-07-28). 2D is a first-class target for this project, so this is
+      implemented directly.
 
     Args:
-        n_max: k 격자 반경 (정수 지수). `|k|_max ≈ 2π n_max/min(L)`
-        ring_width: 6겹 변조를 재는 고리의 상대 두께 (첫 봉 `|k|` 기준)
+        n_max: the k-grid radius (integer index). `|k|_max ≈ 2π n_max/min(L)`
+        ring_width: relative thickness of the ring the 6-fold modulation is measured
+            on (relative to the first peak's `|k|`)
     """
     fr = np.asarray(frames, dtype=np.float64)
     if fr.ndim == 2:
@@ -525,7 +561,7 @@ def structure_factor(frames: np.ndarray, *, Lx: float, Ly: float,
 
     S_map = np.zeros(KX.shape)
     for f in fr:
-        # exp(-i k.r) 를 (n_kx, n_ky, N) 없이 계산 — 성분별로 분해
+        # compute exp(-i k.r) without an (n_kx, n_ky, N) array — factored per axis
         px, py = f[:, 0], f[:, 1]
         ex = np.exp(-1j * np.outer(kx, px))          # (n_kx, N)
         ey = np.exp(-1j * np.outer(ky, py))          # (n_ky, N)
@@ -534,9 +570,9 @@ def structure_factor(frames: np.ndarray, *, Lx: float, Ly: float,
     S_map /= n_frames
 
     K = np.hypot(KX, KY)
-    S_map[K == 0.0] = 0.0                            # k=0 은 N (자명) — 제외
+    S_map[K == 0.0] = 0.0                            # k=0 is N (trivial) — excluded
 
-    # 방향 평균
+    # angular average
     k_min = 2 * np.pi / max(Lx, Ly)
     k_hi = float(K.max())
     edges = np.linspace(0.0, k_hi, bins + 1)
@@ -555,7 +591,7 @@ def structure_factor(frames: np.ndarray, *, Lx: float, Ly: float,
     i = int(np.argmax(Sr[valid]))
     k1 = float(kr[valid][i])
 
-    # 첫 봉 고리에서 6겹 변조: S(θ) 의 cos(6θ) 성분 / 평균
+    # 6-fold modulation on the first-peak ring: the cos(6θ) component of S(θ) / mean
     ring = np.abs(K - k1) <= ring_width * k1
     if ring.sum() >= 12:
         th = np.arctan2(KY[ring], KX[ring])
@@ -571,13 +607,13 @@ def structure_factor(frames: np.ndarray, *, Lx: float, Ly: float,
 
 
 # =============================================================================
-# 최소 분리 — 가드
+# Minimum separation — a guard
 # =============================================================================
 def min_separation(frames: np.ndarray, *, Lx: float, Ly: float) -> float:
-    """전 프레임에서 가장 가까운 쌍의 거리.
+    """The closest pair distance over all frames.
 
-    `power_law_table` 의 `r_min` 보다 작아지면 **표를 벗어난다** — HOOMD 가
-    조용히 외삽하거나 죽는다. 런타임 가드가 이 값을 봐야 한다.
+    Fall below `power_law_table`'s `r_min` and it **leaves the table** -- HOOMD
+    either extrapolates quietly or dies. A runtime guard has to watch this value.
     """
     fr = np.asarray(frames, dtype=np.float64)
     if fr.ndim == 2:
@@ -594,29 +630,32 @@ def min_separation(frames: np.ndarray, *, Lx: float, Ly: float) -> float:
 
 
 # =============================================================================
-# 유한크기 스케일링 — `ψ₆` 의 `N` 의존성이 상을 판별한다
+# Finite-size scaling — `ψ₆`'s `N` dependence discriminates the phase
 # =============================================================================
-#  ★★ `|⟨ψ₆⟩|` 의 절대값은 상을 말해주지 않는다. 유한계에서는 무질서한 계도
-#    `1/√N` 규모의 값을 낸다 (`N = 100` 이면 `0.1`). **갈리는 것은 `N` 의존성이다.**
+#  ★★ The absolute value of `|⟨ψ₆⟩|` says nothing about the phase. In a finite
+#    system even a disordered one produces a value of order `1/√N` (`0.1` at
+#    `N = 100`). **What separates them is the `N` dependence.**
 #
-#    `|⟨ψ₆⟩|² = N^{-2} Σ_ij ⟨ψ₆ᵢ ψ₆ⱼ*⟩` 이므로
-#      · 액체 (`g₆` 지수 감쇠, 상관길이 `ξ`):  Σ ~ N ξ²  ⇒  `|⟨ψ₆⟩| ~ N^{-1/2}`
-#      · hexatic (`g₆ ~ r^{-η₆}`):            Σ ~ N L^{2-η₆}  ⇒  `|⟨ψ₆⟩| ~ N^{-η₆/4}`
-#      · 결정 (`g₆ → const`):                 `|⟨ψ₆⟩| ~ N⁰`
+#    Since `|⟨ψ₆⟩|² = N^{-2} Σ_ij ⟨ψ₆ᵢ ψ₆ⱼ*⟩`:
+#      · liquid (`g₆` decays exponentially, correlation length `ξ`):
+#        Σ ~ N ξ²  ⇒  `|⟨ψ₆⟩| ~ N^{-1/2}`
+#      · hexatic (`g₆ ~ r^{-η₆}`):  Σ ~ N L^{2-η₆}  ⇒  `|⟨ψ₆⟩| ~ N^{-η₆/4}`
+#      · crystal (`g₆ → const`):    `|⟨ψ₆⟩| ~ N⁰`
 #
-#    ⇒ 지수 `p ≡ -d ln|⟨ψ₆⟩| / d ln N` 에서 **`η₆ = 4p`** 다.
-#      KTHNY 의 hexatic-액체 경계는 `η₆ = 1/4` → `p = 1/16 = 0.0625`.
-#      `p ≈ 0.5` 는 액체, `p ≲ 0.0625` 는 hexatic 이하다.
+#    ⇒ from the exponent `p ≡ -d ln|⟨ψ₆⟩| / d ln N`, **`η₆ = 4p`**.
+#      KTHNY's hexatic-liquid boundary is `η₆ = 1/4` → `p = 1/16 = 0.0625`.
+#      `p ≈ 0.5` is a liquid; `p ≲ 0.0625` is hexatic or below.
 #
-#  근거: knowledge/source/papers/1999-zahn-two-stage-melting-2d.md §6-3 이 요구하는
-#    `η₆` 를 **두 계 크기만으로** 얻는 경로다 (`g₆(r)` 직접 적합 없이).
-KTHNY_ETA6_HEXATIC_LIQUID = 0.25        # hexatic → 등방 액체 경계
+#  Basis: this is the path to the `η₆` that
+#    knowledge/source/papers/1999-zahn-two-stage-melting-2d.md §6-3 requires, using
+#    **two system sizes alone** (no direct `g₆(r)` fit).
+KTHNY_ETA6_HEXATIC_LIQUID = 0.25        # the hexatic → isotropic liquid boundary
 LIQUID_EXPONENT_P = 0.5                 # `|⟨ψ₆⟩| ~ N^{-1/2}`
 
 
 @dataclass
 class FiniteSizeExponent:
-    """`|⟨ψ₆⟩| ~ N^{-p}` 의 두 점(또는 그 이상) 추정. **판정하지 않는다.**"""
+    """A two-point (or more) estimate of `|⟨ψ₆⟩| ~ N^{-p}`. **It does not judge.**"""
 
     p: float
     p_se: float
@@ -624,48 +663,52 @@ class FiniteSizeExponent:
     eta6_se: float
     n_points: int
     reading: str                         # 'liquid-like' | 'hexatic-or-below' | 'between'
-    #  ★ 형태 검증 — 점 3개 이상에서만 의미가 있다. 두 점은 직선을 **가정**한다.
-    chi2_reduced: float = float("nan")   # χ²/dof (로그-로그 직선 적합)
-    residuals: tuple = ()                # ln y − 적합 (로그 잔차)
-    amplitude: float = float("nan")       # 적합의 절편 exp(b₀)
+    #  ★ Form verification — only meaningful with 3 or more points. Two points
+    #    **assume** a straight line.
+    chi2_reduced: float = float("nan")   # χ²/dof (log-log straight-line fit)
+    residuals: tuple = ()                # ln y − fit (log residuals)
+    amplitude: float = float("nan")       # the fit's intercept exp(b₀)
 
     @property
     def is_liquid_like(self) -> bool:
-        """`p` 가 `0.5` 와 `1σ` 안에서 일치하는가."""
+        """Does `p` agree with `0.5` to within `1σ`?"""
         return abs(self.p - LIQUID_EXPONENT_P) <= self.p_se
 
     @property
     def form_is_testable(self) -> bool:
-        """멱함수 **형태**를 논할 수 있는가 — 점 3개 이상 + `χ²` 계산됨."""
+        """Can the power-law **form** be discussed — 3+ points and `χ²` computed."""
         return self.n_points >= 3 and np.isfinite(self.chi2_reduced)
 
     def form_verdict(self, chi2_max: float = 3.0) -> str:
-        """`χ²/dof` 로 본 형태 판독. **판정이 아니라 보고다.**"""
+        """Reading the form via `χ²/dof`. **A report, not a verdict.**"""
         if not self.form_is_testable:
-            return f"검증 불가 (점 {self.n_points}개) — 멱함수를 가정했다"
+            return f"not testable ({self.n_points} points) — power law assumed"
         if self.chi2_reduced <= chi2_max:
-            return (f"멱함수와 모순 없음 (χ²/dof = {self.chi2_reduced:.2f} "
-                    f"≤ {chi2_max:g})")
-        return (f"⚠ 멱함수에서 벗어난다 (χ²/dof = {self.chi2_reduced:.2f} "
-                f"> {chi2_max:g}) — 단일 지수로 요약하면 안 된다")
+            return (f"consistent with a power law (χ²/dof = "
+                    f"{self.chi2_reduced:.2f} ≤ {chi2_max:g})")
+        return (f"⚠ departs from a power law (χ²/dof = {self.chi2_reduced:.2f} "
+                f"> {chi2_max:g}) — must not be summarized by a single exponent")
 
 
-#  ★★ `η₆ ≤ 1/4` 는 hexatic 의 **필요조건이지 충분조건이 아니다.**
-#  결정도 `η₆ ≈ 0 ≤ 1/4` 를 만족한다 (`ψ₆ → const` 이므로 `p = 0`).
-#  갈리는 것은 **`ψ₆` 의 크기**다:
-#      hexatic:  `ψ₆ → 0` 을 **느리게** (`N^{-η₆/4}`, 유한계에서는 작은 값)
-#      결정:     `ψ₆ → O(1)` 상수
-#  2026-07-29 에 이 구별 없이 판정해서 `A ≥ 13.3` 의 **결정을 hexatic 이라고 불렀다.**
-PSI6_CRYSTAL_FLOOR = 0.5     # 이 위면 결정 후보 — 유한계 무질서 바닥(1/√N)의 5배 이상
+#  ★★ `η₆ ≤ 1/4` is a **necessary but not sufficient** condition for a hexatic.
+#  A crystal also satisfies `η₆ ≈ 0 ≤ 1/4` (`ψ₆ → const`, so `p = 0`).
+#  What separates them is **the magnitude of `ψ₆`**:
+#      hexatic:  `ψ₆ → 0` **slowly** (`N^{-η₆/4}`, a small value in a finite system)
+#      crystal:  `ψ₆ → O(1)`, constant
+#  On 2026-07-29 a verdict was issued without this distinction and **called the
+#  crystal at `A ≥ 13.3` a hexatic.**
+PSI6_CRYSTAL_FLOOR = 0.5     # above this is a crystal candidate — at least 5x the
+                             # finite-size disorder floor (1/√N)
 
 
 def phase_from_finite_size(fit: FiniteSizeExponent, psi6_at_largest_N: float,
                            *, crystal_floor: float = PSI6_CRYSTAL_FLOOR) -> dict:
-    """`(지수, ψ₆ 크기)` 두 축으로 상을 읽는다. **지수만으로는 부족하다.**
+    """Reads the phase on two axes, `(exponent, ψ₆ magnitude)`. **The exponent
+    alone is not enough.**
 
     Args:
-        psi6_at_largest_N: 사다리에서 가장 큰 `N` 의 `|⟨ψ₆⟩|`.
-        crystal_floor: 이 값을 넘으면 결정 후보.
+        psi6_at_largest_N: `|⟨ψ₆⟩|` at the largest `N` on the ladder.
+        crystal_floor: above this value it is a crystal candidate.
 
     Returns: `phase` · `why` · `exponent_alone_would_say`
     """
@@ -676,22 +719,23 @@ def phase_from_finite_size(fit: FiniteSizeExponent, psi6_at_largest_N: float,
 
     if psi6_at_largest_N >= crystal_floor:
         phase = "crystal"
-        why = (f"`ψ₆({fit.n_points} 점 중 최대 N) = {psi6_at_largest_N:.3f}` "
-               f"≥ {crystal_floor:g} — `ψ₆` 가 `O(1)` 로 포화한다. "
-               f"`η₆ ≈ 0` 은 결정의 서명이기도 하다")
+        why = (f"`ψ₆(largest N of {fit.n_points} points) = "
+               f"{psi6_at_largest_N:.3f}` ≥ {crystal_floor:g} — `ψ₆` saturates at "
+               f"`O(1)`. `η₆ ≈ 0` is also the signature of a crystal")
     elif eta_lo > KTHNY_ETA6_HEXATIC_LIQUID:
         phase = "isotropic-liquid"
         why = (f"`η₆ − 3σ = {eta_lo:.2f} > {KTHNY_ETA6_HEXATIC_LIQUID:g}` — "
-               f"hexatic 상한을 넘는다. 그리고 `ψ₆ = {psi6_at_largest_N:.3f}` 가 작다")
+               f"exceeds the hexatic upper bound. And "
+               f"`ψ₆ = {psi6_at_largest_N:.3f}` is small")
     elif eta_hi <= KTHNY_ETA6_HEXATIC_LIQUID:
         phase = "hexatic-candidate"
-        why = (f"`η₆ + 3σ = {eta_hi:.2f} ≤ {KTHNY_ETA6_HEXATIC_LIQUID:g}` 이고 "
-               f"`ψ₆ = {psi6_at_largest_N:.3f}` 가 결정 바닥 {crystal_floor:g} "
-               f"아래다 — 준장거리 질서 후보")
+        why = (f"`η₆ + 3σ = {eta_hi:.2f} ≤ {KTHNY_ETA6_HEXATIC_LIQUID:g}` and "
+               f"`ψ₆ = {psi6_at_largest_N:.3f}` is below the crystal floor "
+               f"{crystal_floor:g} — a quasi-long-range-order candidate")
     else:
         phase = "inconclusive"
-        why = (f"`η₆ = {fit.eta6:.2f} ± {fit.eta6_se:.2f}` 가 상한 "
-               f"{KTHNY_ETA6_HEXATIC_LIQUID:g} 을 걸친다")
+        why = (f"`η₆ = {fit.eta6:.2f} ± {fit.eta6_se:.2f}` straddles the upper "
+               f"bound {KTHNY_ETA6_HEXATIC_LIQUID:g}")
     return {"phase": phase, "why": why,
             "exponent_alone_would_say": exponent_says,
             "psi6_at_largest_N": float(psi6_at_largest_N),
@@ -703,20 +747,23 @@ def phase_from_finite_size(fit: FiniteSizeExponent, psi6_at_largest_N: float,
 def psi6_finite_size_exponent(n_particles: np.ndarray, psi6: np.ndarray,
                               psi6_se: np.ndarray | None = None
                               ) -> FiniteSizeExponent:
-    """`|⟨ψ₆⟩| ~ N^{-p}` 의 지수. 두 점이면 해석해, 셋 이상이면 가중 최소제곱.
+    """The exponent of `|⟨ψ₆⟩| ~ N^{-p}`. Analytic for two points, weighted least
+    squares for three or more.
 
     Args:
-        psi6_se: 각 점의 SE. 주면 `p` 의 오차를 전파한다 (없으면 `nan`).
+        psi6_se: the SE of each point. Given them, the error on `p` is propagated
+            (`nan` otherwise).
 
-    ⚠ **두 점으로는 멱함수 형태를 검증할 수 없다** — 가정하고 지수만 뽑는다.
-      그 사실이 `n_points` 에 드러난다. 셋 이상이어야 형태를 논할 수 있다.
+    ⚠ **Two points cannot verify the power-law form** -- it is assumed and only the
+      exponent is extracted. That fact shows up in `n_points`. Three or more are
+      needed before the form can be discussed.
     """
     N = np.asarray(n_particles, dtype=np.float64)
     y = np.asarray(psi6, dtype=np.float64)
     if N.size != y.size or N.size < 2:
-        raise ValueError(f"점이 {N.size}개 — 최소 2개, 길이가 같아야 한다")
+        raise ValueError(f"{N.size} points — at least 2, and the lengths must match")
     if np.any(y <= 0):
-        raise ValueError("psi6 에 0 이하가 있다 — 로그를 취할 수 없다")
+        raise ValueError("psi6 contains a value <= 0 — the log cannot be taken")
 
     lnN, lny = np.log(N), np.log(y)
     chi2_red, resid, amp = float("nan"), (), float("nan")
@@ -724,14 +771,14 @@ def psi6_finite_size_exponent(n_particles: np.ndarray, psi6: np.ndarray,
         p = -(lny[1] - lny[0]) / (lnN[1] - lnN[0])
         if psi6_se is not None:
             se = np.asarray(psi6_se, dtype=np.float64)
-            #  d(ln y) = dy/y 이므로 상대오차가 전파된다
+            #  d(ln y) = dy/y, so the relative error propagates
             rel = se / y
             p_se = float(np.hypot(rel[0], rel[1]) / abs(lnN[1] - lnN[0]))
         else:
             p_se = float("nan")
         amp = float(np.exp(lny[0] + p * lnN[0]))
     else:
-        #  로그 공간의 오차는 상대오차다: σ_lny = σ_y / y
+        #  the error in log space is the relative error: σ_lny = σ_y / y
         sig = (np.ones_like(y) if psi6_se is None
                else np.maximum(np.asarray(psi6_se, dtype=np.float64) / y, 1e-12))
         w = 1.0 / sig ** 2
@@ -741,7 +788,8 @@ def psi6_finite_size_exponent(n_particles: np.ndarray, psi6: np.ndarray,
         p = -float(beta[1])
         p_se = float(np.sqrt(cov[1, 1]))
         amp = float(np.exp(beta[0]))
-        #  ★ 형태 검증: 잔차가 오차막대와 정합하는가 (dof = n − 2)
+        #  ★ Form verification: are the residuals consistent with the error bars
+        #    (dof = n − 2)
         r = lny - A @ beta
         dof = int(N.size - 2)
         if dof > 0 and psi6_se is not None:
@@ -749,9 +797,9 @@ def psi6_finite_size_exponent(n_particles: np.ndarray, psi6: np.ndarray,
         resid = tuple(float(x) for x in r)
 
     p = float(p)
-    #  ★ `p_se` 가 `nan` 이면 (SE 를 안 준 경우) `max(nan, x)` 가 `nan` 이 되어
-    #    모든 비교가 False 로 떨어진다 — 판독이 조용히 'between' 이 된다.
-    #    SE 를 모를 때는 고정 허용폭을 쓴다.
+    #  ★ When `p_se` is `nan` (no SE was given), `max(nan, x)` is `nan` and every
+    #    comparison falls to False -- the reading quietly becomes 'between'.
+    #    With an unknown SE, a fixed tolerance is used instead.
     tol = 0.05 if not np.isfinite(p_se) else max(p_se, 0.05)
     reading = ("liquid-like" if abs(p - LIQUID_EXPONENT_P) <= tol
                else "hexatic-or-below"
@@ -764,17 +812,18 @@ def psi6_finite_size_exponent(n_particles: np.ndarray, psi6: np.ndarray,
 
 
 # =============================================================================
-# Zahn 상도 환산 — 문헌 대조의 유일한 창
+# Conversion to Zahn's phase diagram — the only window onto the literature
 # =============================================================================
 #  Γ = π^{3/2} A   (A = βU(d), d = n^{-1/2})
-#  근거: knowledge/source/papers/1999-zahn-two-stage-melting-2d.md §2
+#  Basis: knowledge/source/papers/1999-zahn-two-stage-melting-2d.md §2
 ZAHN_GAMMA_OVER_A = float(np.pi ** 1.5)          # 5.568328...
-ZAHN_GAMMA_MELT = 59.88                          # 결정 → hexatic
-ZAHN_GAMMA_ISO = 55.87                           # hexatic → 등방액체
+ZAHN_GAMMA_MELT = 59.88                          # crystal → hexatic
+ZAHN_GAMMA_ISO = 55.87                           # hexatic → isotropic liquid
 
 
 def zahn_phase(amplitude: float) -> dict:
-    """`A` → Zahn 상도 위치. **`reproduced: no` 인 문헌값이다** (`[출처, 미재현]`)."""
+    """`A` → a position on Zahn's phase diagram. **These are literature values with
+    `reproduced: no`** (`[source, not reproduced]`)."""
     G = ZAHN_GAMMA_OVER_A * amplitude
     if G > ZAHN_GAMMA_MELT:
         phase = "crystal"
@@ -786,10 +835,10 @@ def zahn_phase(amplitude: float) -> dict:
         "amplitude": amplitude, "gamma": G, "phase_zahn": phase,
         "distance_to_melt": (G - ZAHN_GAMMA_MELT) / ZAHN_GAMMA_MELT,
         "distance_to_iso": (G - ZAHN_GAMMA_ISO) / ZAHN_GAMMA_ISO,
-        "citation": "[출처, 미재현] Zahn 1999 PRL 82, 2721",
+        "citation": "[source, not reproduced] Zahn 1999 PRL 82, 2721",
     }
 
 
 def amplitude_for_gamma(gamma: float) -> float:
-    """역변환 — 원하는 `Γ` 를 주는 `A`."""
+    """The inverse — the `A` that gives a desired `Γ`."""
     return gamma / ZAHN_GAMMA_OVER_A

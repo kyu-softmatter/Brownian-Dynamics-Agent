@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "statistics",
+    "drift"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/stats.py stationarity",
+  "lessons": [
+    {
+      "claim": "An autocorrelation correction is mandatory for a time-series verdict (drift, error bars). Without it, a t-test judges a run whose whole-range change is 0.026% of the mean as drifting at t=-3.3. Obtain n_eff with the Sokal automatic window, and look at the significance and the magnitude together",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

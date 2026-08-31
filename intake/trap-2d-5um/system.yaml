@@ -1,27 +1,28 @@
-# L2 PhysicalSystem — 차원 있는 물리계 (SI). 원칙 3: 이것이 먼저 확정되어야 한다.
-# 출처: intake/trap-2d-5um/observation.yaml (사람 확인 완료 2026-08-03)
-# tier 0=직접입력/핸드북 · 1=문헌+검증 · 2=문헌 미검증 · 3=임의 가정
+# L2 PhysicalSystem — the dimensional physical system (SI). Rule 3: this is fixed first.
+# Source: intake/trap-2d-5um/observation.yaml (human-confirmed 2026-08-03)
+# tier 0=direct input/handbook · 1=literature+verified · 2=literature unverified
+#      · 3=arbitrary assumption
 
 label: trap-2d-5um
-derived_from: observation.yaml   # ★ L2 불변식 (§5.4): 이 물리계의 근거 L0
-description: 2D 조화 퍼텐셜 트랩 안의 브라운 입자 (광집게). 뉴턴 유체(물).
+derived_from: observation.yaml   # ★ the L2 invariant (§5.4): the L0 this system rests on
+description: a Brownian particle in a 2D harmonic potential trap (optical tweezers). Newtonian fluid (water).
 dimensions: 2
 
 particle:
   diameter:
     value: 5.0
     unit: um
-    source: "sketch:sketch_01.jpeg 'R = 5μm' + 사용자 확인(지름)"
+    source: "sketch:sketch_01.jpeg 'R = 5μm' + user confirmation (it is the diameter)"
     tier: 0
   density:
     value: 2000
     unit: kg/m^3
-    source: "실리카 가정. τ_p(모델 타당성 검사)에만 사용, BD 결과에 영향 없음"
+    source: "assumed silica. Used only for τ_p (the model-validity check); no effect on the BD result"
     tier: 3
   count:
     value: 1000
     unit: dimensionless
-    source: "시뮬레이션 선택 — 독립 입자 앙상블로 통계 확보. 스케치엔 1개"
+    source: "a simulation choice — an ensemble of independent particles for statistics. The sketch shows 1"
     tier: 3
 
 medium:
@@ -35,7 +36,7 @@ medium:
   viscosity:
     value: 0.851
     unit: mPa*s
-    source: "물 @300K 핸드북값. 매질이 물임은 사용자 확인"
+    source: "handbook value for water @300K. The medium being water is user-confirmed"
     tier: 0
 
 external:
@@ -48,18 +49,18 @@ external:
     source: "sketch:sketch_01.jpeg 'k_t = 10 pN/μm'"
     tier: 0
 
-interactions: none          # 페어 퍼텐셜 없음 — 입자들은 서로 독립
+interactions: none          # no pair potential — the particles are independent
 
-# ── 관측 목표 (사용자 확인: 4종 전부) ──────────────────────────────────
+# ── observation targets (user-confirmed: all 4) ────────────────────────
 targets:
   - name: position_distribution      # P(x)  — Gaussian, σ = sqrt(kT/k)
   - name: mean_square_displacement   # <x²>  — kT/k
   - name: autocorrelation            # C(t)  — (kT/k)exp(-t/τ_k)
   - name: power_spectral_density     # S(f)  — Lorentzian, f_c = k/(2πγ)
 
-# ── 수치 목표 (§1.2: 편향으로 dt 역산) ─────────────────────────────────
+# ── numerical targets (§1.2: dt is inverted from the bias) ─────────────
 numerics:
   target_bias: 0.001        # 0.1% → dt/τ_fast = 2e-3
-  equilibration_tau: 20     # 지배 시간척도(τ_k)의 배수
+  equilibration_tau: 20     # multiples of the governing timescale (τ_k)
   production_tau: 2000
-  samples_per_tau: 10       # C(t)·PSD 시간 해상도
+  samples_per_tau: 10       # time resolution for C(t) and the PSD

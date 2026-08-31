@@ -1,20 +1,28 @@
-"""조화 굽힘(JKR 선형화) vs 구름 저항 — 같은 기하·같은 구동에서 동적 응답 비교.
+"""Harmonic bending (linearized JKR) vs rolling resistance -- dynamic response
+compared at identical geometry and identical driving.
 
-정적으로는 이미 결론이 났다 (`scratch/verify_rolling_contact.py`, 24/24):
-  · 접선 스프링만  → 굽힘강성 **정확히 0** (δ×100 에서 잔차가 1/10⁴ 로 → 반올림)
-  · 구름 저항만    → κ_θ,eff = ½k_rR² 로 조화굽힘과 **1e−5 이내 일치** (방향 이완 극한)
-  · 방향을 **얼리면** 6·22·66배 뻣뻣해진다 (곡률이 아니라 절대 회전을 벌함)
+Statically this is already settled (`verify/verify_rolling_contact.py`, 24/24):
+  . tangential spring only -> bending stiffness **exactly 0** (at delta x100 the
+    residual falls by 1/10^4, i.e. it was rounding)
+  . rolling resistance only -> kappa_theta,eff = 0.5*k_r*R^2, agreeing with harmonic
+    bending to **within 1e-5** (in the orientation-relaxed limit)
+  . **freeze** the orientations and it stiffens by 6x, 22x, 66x (it penalises
+    absolute rotation, not curvature)
 
-⟹ 남은 질문은 하나다: **이 계의 구동 주파수에서 방향 자유도가 이완할 시간이 있는가.**
-   있으면 두 모델은 같은 물리이고, 없으면 구름 모델이 훨씬 뻣뻣해진다.
-   교차 주파수 예측: `ω_c = 1/τ_rot`,  `τ_rot = γ_r/(k_r R²)`.
+=> One question remains: **at this system's drive frequency, do the orientational
+   degrees of freedom have time to relax?**
+   If they do the two models are the same physics; if not, the rolling model is far
+   stiffer.
+   Predicted crossover: `omega_c = 1/tau_rot`,  `tau_rot = gamma_r/(k_r R^2)`.
 
-★ kT=0 결정론적으로 잰다 — 이 프로젝트의 교훈("적분기 가정을 시험할 때는 kT=0").
-   잡음이 0 이라 4주기면 락인이 깨끗하고, 두 모델의 과도가 공통모드로 상쇄된다.
-★ 규칙 7(격리): DLVO 표 대신 **우물 곡률과 같은 강성의 방사 본드**를 쓴다. 굽힘 모델
-   두 개의 차이만 남기기 위해서다 (DLVO 의 비선형은 이 질문과 무관하다).
+★ Measured at kT=0, deterministically -- this project's lesson ("test an integrator
+   assumption at kT=0"). With zero noise, 4 cycles give a clean lock-in and the two
+   models' transients cancel as common mode.
+★ Rule 7 (isolation): instead of the DLVO table, a **radial bond whose stiffness
+   equals the well curvature** is used, so only the difference between the two
+   bending models remains (DLVO's nonlinearity is irrelevant to this question).
 
-    $PY scratch/compare_bending_models.py            # 스윕 + 그래프
+    $PY scratch/compare_bending_models.py            # sweep + figures
 """
 from __future__ import annotations
 
@@ -37,24 +45,30 @@ from bdbot import lockin as LI                                          # noqa: 
 from rolling_contact import (k_roll_from_kappa_theta,                   # noqa: E402
                              make_rolling_force)
 
-# ── chain-bend-2d-dlvo (n=9, ω=3000, a=632nm, --jkr) 스펙의 실제 값 ──────────
+# ── Actual values from the chain-bend-2d-dlvo spec
+#    (n=9, omega=3000, a=632nm, --jkr) ──────────
 H_MIN_STAR = 0.00759259035993831
 ELL = 1.0 + H_MIN_STAR
-K_BOND = 1042362.8817700658          # DLVO 2차극소 곡률 [kT/d²] — 방사 강성
+K_BOND = 1042362.8817700658          # DLVO secondary-minimum curvature [kT/d^2]
+                                     # -- the radial stiffness
 KAPPA_THETA = 1391229.7767209478     # [kT] — κ₀=64 mN/m → EI/ℓ
-# ★ 트랩을 방사 본드만큼 뻣뻣하게 쓴다 (생산값 5217 이 아니다).
-#   왜: 생산 트랩의 완화 모드가 τ = γ/k_t = 1.9e−4 로 **최고 ω 주기의 3만 배**라,
-#   주기 단위로 정착시키면 과도가 안 빠져 락인이 오염된다 (첫 스윕에서 K″<0, 비가
-#   0.44↔1.39 로 요동쳤다 — 물리가 아니라 미정착이었다). 여기서 묻는 것은 굽힘 모델
-#   두 개의 차이뿐이므로 트랩은 빠른 경계조건이면 된다 (규칙 7 격리).
-K_T = K_BOND                         # 트랩 강성 [kT/d²]
-AMP = 0.05                           # 구동 진폭 [d] — kT=0 이라 선형응답이면 값 무관
-R_C = 0.5                            # 접촉 반경 = d/2
+# ★ The trap is made as stiff as the radial bond (NOT the production value of 5217).
+#   Why: the production trap's relaxation mode is tau = gamma/k_t = 1.9e-4, which is
+#   **30,000x the period of the highest omega**, so settling in units of periods never
+#   drains the transient and the lock-in is contaminated (the first sweep gave K''<0
+#   and a ratio oscillating 0.44<->1.39 -- not physics, just unsettled). The only
+#   question here is the difference between two bending models, so the trap need only
+#   be a fast boundary condition (rule 7 isolation).
+K_T = K_BOND                         # trap stiffness [kT/d^2]
+AMP = 0.05                           # drive amplitude [d] -- at kT=0, irrelevant if
+                                     # the response is linear
+R_C = 0.5                            # contact radius = d/2
 GAMMA_R = 4 * R_C ** 2 / 3           # γ_r/γ_t = 8πηa³/6πηa = 4a²/3  (a=R_C, γ_t=1)
 K_ROLL = k_roll_from_kappa_theta(KAPPA_THETA, R_C)
 TAU_ROT = GAMMA_R / (K_ROLL * R_C ** 2)
 N_BEADS = 5
-UPDATE_EVERY = 1                     # 유령을 매 스텝 옮긴다 (ZOH 감쇠 최소화 — 함정 17)
+UPDATE_EVERY = 1                     # move the ghost every step (minimises ZOH
+                                     # attenuation -- trap 17)
 OUT = ROOT / "runs" / "_bending_model_compare"
 
 
@@ -67,7 +81,7 @@ def bending_matrix(n, kappa_theta, ell):
 
 
 def make_harmonic_bending(A, n_real):
-    """조화 굽힘 F_y = −A y (chain-bend-2d-dlvo 의 --jkr 구현과 동일)."""
+    """Harmonic bending F_y = -A y (identical to chain-bend-2d-dlvo's --jkr)."""
     class Bending(md.force.Custom):
         def __init__(self):
             super().__init__(aniso=False)
@@ -91,14 +105,17 @@ def make_harmonic_bending(A, n_real):
 
 
 class ClampAndDrive(hoomd.custom.Action):
-    """★ 변형률 제어 — 양끝 비드의 (x,y) 를 고정하고 중앙 비드의 y 를 직접 강제한다.
+    """★ Strain control -- pin the end beads' (x,y) and force the centre bead's y
+    directly.
 
-    왜 트랩을 안 쓰는가: 트랩 구동은 컴플라이언스 때문에 ωτ_trap≫1 에서 추종률이
-    1% 아래로 떨어지고, `K* = k_t·ŷ_c/ŷ − k_t` 가 큰 수의 비가 되어 조건수가 무너진다
-    (첫 스윕 실측 — 추종 0.01~0.00001, K′ 이 음수로 뒤집혔다). 위치 강제는 추종이
-    정의상 100% 라 **모든 ω 에서 조건이 같다**.
-    ★ 비드는 적분기 filter 에 **남겨 둔다** — 그래야 회전 자유도가 계속 적분된다
-    (G4 에서 끝 입자의 방향 이완이 강성의 일부였다). 위치만 매 스텝 덮어쓴다.
+    Why not a trap: trap driving suffers compliance, so above omega*tau_trap >> 1 the
+    tracking ratio falls below 1% and `K* = k_t*y_c_hat/y_hat - k_t` becomes a ratio
+    of large numbers with a collapsing condition number (measured in the first sweep:
+    tracking 0.01 down to 0.00001, with K' flipping negative). Position forcing has
+    100% tracking by definition, so **the conditioning is the same at every omega**.
+    ★ The bead is **left in** the integrator's filter, so its rotational degree of
+    freedom keeps being integrated (in G4 the end particles' orientational relaxation
+    was part of the stiffness). Only the position is overwritten each step.
     """
 
     def __init__(self, clamp_tags, clamp_xy, drive_tag, amp, omega, dt):
@@ -130,7 +147,8 @@ def build(model: str, omega: float, dt: float, n=N_BEADS):
     f.particles.position = pos0
     f.particles.orientation = [(1, 0, 0, 0)] * n
     f.particles.moment_inertia = [(1.0, 1.0, 1.0)] * n
-    f.particles.diameter = [1.0] * n            # bd-hoomd 함정 19 (여기선 안 쓰지만 습관)
+    f.particles.diameter = [1.0] * n            # bd-hoomd trap 19 (unused here, but
+                                                # kept as habit)
     f.bonds.N = n - 1
     f.bonds.types = ["radial"]
     f.bonds.typeid = [0] * (n - 1)
@@ -152,7 +170,7 @@ def build(model: str, omega: float, dt: float, n=N_BEADS):
     elif model != "none":
         raise ValueError(model)
 
-    # kT=0 결정론적 과감쇠 (OverdampedViscous — 잡음 없음)
+    # kT=0 deterministic overdamped (OverdampedViscous -- no noise)
     meth = md.methods.OverdampedViscous(filter=hoomd.filter.All(), default_gamma=1.0,
                                         default_gamma_r=(GAMMA_R,) * 3)
     integ = md.Integrator(dt=dt, methods=[meth], forces=forces)
@@ -165,12 +183,16 @@ def build(model: str, omega: float, dt: float, n=N_BEADS):
 
 
 def timescales(model: str, n=N_BEADS):
-    """이 계의 시간척도. 가장 빠른 것이 dt 를, 가장 느린 것이 **정착 시간**을 정한다."""
+    """This system's timescales.
+
+    The fastest sets dt; the slowest sets the **settling time**.
+    """
     A = bending_matrix(n, KAPPA_THETA, ELL)
     mid = n // 2
     free = [i for i in range(n) if i not in (0, mid, n - 1)]
     lam = np.linalg.eigvalsh(A)
-    lam_ff = np.linalg.eigvalsh(A[np.ix_(free, free)])       # 자유 비드의 완화
+    lam_ff = np.linalg.eigvalsh(A[np.ix_(free, free)])       # relaxation of the free
+                                                             # beads
     fast = [1.0 / K_BOND, 1.0 / lam.max()]
     slow = [1.0 / max(lam_ff.min(), 1e-30)]
     if model == "rolling":
@@ -181,11 +203,14 @@ def timescales(model: str, n=N_BEADS):
 
 def run_one(model: str, omega: float, *, n_cycles=4, samples_per_cycle=48,
             dt_div=200, settle_taus=15):
-    """★ 변형률 제어로 K* 를 잰다 — 중앙 비드의 y 를 강제하고 **그 비드가 받는 힘**을 잰다.
+    """★ Measure K* under strain control -- force the centre bead's y and measure
+    **the force on that bead**.
 
-        K* = −F̂ / ŷ      (F 는 시료 힘만: 방사 본드 + 굽힘. 용매 항력은 안 들어감)
+        K* = -F_hat / y_hat    (F is the sample force only: radial bond + bending.
+                                Solvent drag is excluded)
 
-    트랩 컴플라이언스가 없어 추종이 정의상 100% 이고 조건수가 ω 에 무관하다.
+    With no trap compliance, tracking is 100% by definition and the condition number
+    is independent of omega.
     """
     tau_fast, tau_slow = timescales(model)
     period = 2 * math.pi / omega
@@ -222,16 +247,18 @@ def run_one(model: str, omega: float, *, n_cycles=4, samples_per_cycle=48,
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     print("=" * 88)
-    print("조화 굽힘(JKR 선형화) vs 구름 저항 — kT=0 결정론적 ω 스윕")
+    print("harmonic bending (linearized JKR) vs rolling resistance -- "
+          "kT=0 deterministic omega sweep")
     print("=" * 88)
     print(f"  n = {N_BEADS},  κ_θ = {KAPPA_THETA:.6g} kT,  k_r = 2κ_θ/R² = {K_ROLL:.6g}")
     print(f"  γ_r = 4a²/3 = {GAMMA_R:.6f}   →   τ_rot = γ_r/(k_rR²) = {TAU_ROT:.4e}")
-    print(f"  ★ 예측 교차 주파수  ω_c = 1/τ_rot = {1/TAU_ROT:.4e}  (무차원)")
-    print(f"     생산 런의 ω* = 18453  →  ω τ_rot = {18453*TAU_ROT:.3e}  "
-          f"(≪1 이면 두 모델이 같아야 한다)")
+    print(f"  ★ predicted crossover  omega_c = 1/tau_rot = {1/TAU_ROT:.4e}  (reduced)")
+    print(f"     the production run's omega* = 18453  ->  "
+          f"omega*tau_rot = {18453*TAU_ROT:.3e}  "
+          f"(if <<1 the two models must agree)")
     print()
 
-    # 정적 극한의 절대 기준값 (MD 가 이걸 재현해야 한다)
+    # Absolute reference for the static limit (MD has to reproduce this)
     A = bending_matrix(N_BEADS, KAPPA_THETA, ELL)
     mid = N_BEADS // 2
     fx, fr = [0, mid, N_BEADS - 1], [i for i in range(N_BEADS) if i not in (0, mid, N_BEADS - 1)]
@@ -239,15 +266,18 @@ if __name__ == "__main__":
     yv = np.zeros(N_BEADS); yv[fx] = yfx
     yv[fr] = np.linalg.solve(A[np.ix_(fr, fr)], -A[np.ix_(fr, fx)] @ yfx)
     K_STATIC = float(yv @ A @ yv)
-    print(f"  ★ 정적 극한 기준값 (선형응답 정확해)  K′(ω→0) = {K_STATIC:.6g} kT/d²")
+    print(f"  ★ static-limit reference (exact linear response)  "
+          f"K'(omega->0) = {K_STATIC:.6g} kT/d^2")
     print()
 
-    # ω=1e4·1e5 는 뺐다 — 주기가 길어 dt(빠른 모드가 정함) 대비 스텝이 70분/점이고,
-    # 준정적 극한은 이미 위의 해석적 K_STATIC 으로 정확히 갖고 있다.
+    # omega=1e4 and 1e5 were dropped -- their periods are long enough that, against a
+    # dt set by the fast mode, each point costs 70 minutes, and the quasi-static limit
+    # is already held exactly by the analytic K_STATIC above.
     omegas = [3e5, 1e6, 3e6, 1e7, 3e7, 1e8]
     rows = []
-    print(f"  {'ω*':>10} {'ωτ_rot':>10} | {'조화 K′':>13} {'구름 K′':>13} {'구름/조화':>10} "
-          f"| {'조화/정적':>9} | {'steps/s':>8}")
+    print(f"  {'omega*':>10} {'om.tau_rot':>10} | {'harmonic K1':>13} "
+          f"{'rolling K1':>13} {'roll/harm':>10} "
+          f"| {'harm/static':>9} | {'steps/s':>8}")
     print("  " + "-" * 96)
     for om in omegas:
         h = run_one("harmonic", om)
@@ -259,11 +289,11 @@ if __name__ == "__main__":
         (OUT / "sweep.json").write_text(json.dumps(rows, indent=1, default=float))
 
     print()
-    print("  ★ dt 수렴 확인 (ω*=1e7, dt 절반):")
+    print("  ★ dt convergence check (omega*=1e7, dt halved):")
     for m in ("harmonic", "rolling"):
         a = run_one(m, 1e7, dt_div=200)
         b = run_one(m, 1e7, dt_div=400)
         print(f"    {m:9s}  K′ {a['K_re']:.6g} → {b['K_re']:.6g}   "
-              f"변화 {100*(b['K_re']/a['K_re']-1):+.3f}%")
+              f"change {100*(b['K_re']/a['K_re']-1):+.3f}%")
     print()
     print(f"  → {OUT/'sweep.json'}")

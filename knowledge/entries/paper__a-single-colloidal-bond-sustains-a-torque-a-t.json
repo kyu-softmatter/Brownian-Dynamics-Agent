@@ -1,0 +1,32 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "paper",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "colloid",
+    "aggregate",
+    "bending",
+    "tangential",
+    "PMMA"
+  ],
+  "dimensionless": {
+    "kappa0_mN_per_m": 64.0,
+    "Mc_pN_um": 35.0
+  },
+  "source": "Pantina & Furst, PRL 94, 138301 (2005) — Elasticity and Critical Bending Moment of Model Colloidal Aggregates",
+  "lessons": [
+    {
+      "claim": "A single colloidal bond sustains a torque -- a tangential interaction is real. It is not reproduced by a central pair potential (DLVO included). 3-point bending: κ₀=64±0.5 mN/m @10mM MgCl₂, the JKR prediction 80 mN/m, a_c≈40nm, M_c≈35 pN·µm",
+      "kind": "method_note",
+      "coords": {
+        "kappa0_mN_per_m": 64.0,
+        "Mc_pN_um": 35.0
+      }
+    }
+  ],
+  "not_verified": [
+    "not reproduced with our own simulation (tier 2)"
+  ]
+}

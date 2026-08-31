@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "sphere",
+    "suspension",
+    "normal_stress",
+    "brownian"
+  ],
+  "dimensionless": {
+    "N2_over_N1_hardsphere": 0.877
+  },
+  "source": "docs/books/leal_microstructural_rheology.md#5 ← [L] (3.83) p.76",
+  "lessons": [
+    {
+      "claim": "The normal stress differences of a hard-sphere Brownian suspension (small Pe) are N1/(mu gdot) = +0.899 phi^2 Pe and N2/(mu gdot) = -0.788 phi^2 Pe (Brady-Vicic 1995). The signs (N1>0, N2<0) are the same as for a polymer, but the magnitude ratio |N2/N1| = 0.877 is entirely unlike a polymer's 1/7=0.143 -- the magnitude ratio becomes an indicator that distinguishes the systems. ★ N1 comes entirely from the direct Brownian component (testable by switching it on and off)",
+      "kind": "parameter",
+      "coords": {
+        "N2_over_N1_hardsphere": 0.877
+      }
+    }
+  ],
+  "not_verified": []
+}

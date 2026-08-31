@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "l4",
+    "validation",
+    "timeseries"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/health.py judge_series",
+  "lessons": [
+    {
+      "claim": "Failing to distinguish a cumulative quantity from a steady-state one in a time-series health verdict gives false positives. An MSD growing is normal, and applying a divergence verdict by the later/earlier ratio catches two abp-rod runs as NUM_DIVERGE. For a cumulative quantity, look instead at the growth exponent alpha and only at whether it exceeds the ballistic ceiling of 2",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

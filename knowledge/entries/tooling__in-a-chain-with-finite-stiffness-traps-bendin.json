@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "cases/chain_bend_dlvo_2d.py#_bow",
+  "lessons": [
+    {
+      "claim": "In a chain with finite-stiffness traps, **bending must not be measured by the y displacement** -- the rigid-body motion of the whole chain translating as the traps stretch buries the bending signal. Measured (n=9, ω=3000, a=1d): the full y range differs between DLVO and JKR by 3.4~5.2x, while measured as the maximum deviation from the straight line joining the two ends (the bow) it is **15.6~19.6x**. The discriminating power differs 5-fold. ★ To be kept as a counter-example: the shape_localization (max|θ''|/mean|θ''|) I made first had **0 discriminating power** -- JKR 1.481 vs DLVO 1.470 (0.1σ). And that is so even though they are obviously different to the eye. Because in both, thermal noise dominates the second derivative. An indicator, once made, has to be **actually run against the two extremes** to confirm that it separates.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

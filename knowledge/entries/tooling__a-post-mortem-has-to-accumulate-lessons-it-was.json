@@ -1,0 +1,21 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "tooling",
+    "postmortem"
+  ],
+  "dimensionless": {},
+  "source": "tools/postmortem.py (the 2026-08-04 incident)",
+  "lessons": [
+    {
+      "claim": "A post-mortem has to accumulate lessons. It was implemented as an overwrite and 6 lessons were destroyed across re-runs. run_id being a content address, the same directory means the same spec and the earlier lessons remain valid as they are -- record.json is preserved even under --force",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

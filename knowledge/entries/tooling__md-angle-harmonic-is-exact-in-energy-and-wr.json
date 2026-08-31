@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "angle.Harmonic",
+    "force",
+    "silent",
+    "clamp",
+    "rigid-chain"
+  ],
+  "dimensionless": {
+    "angle_sin_small": 0.001414217
+  },
+  "source": "scratch/verify_angle_force_small_theta.py",
+  "lessons": [
+    {
+      "claim": "★★ md.angle.Harmonic **is exact in energy and wrong in force for a nearly straight chain.** Moving the torque into coordinates uses 1/sin θ with sin θ clamped from below, and the measured SMALL = 1.414217e-03 = √2×10⁻³ (standard deviation 1.4e-7 over 6 amplitudes). For sin θ < SMALL the force is **scaled down by exactly sinθ/SMALL**. With t0=π the equilibrium is itself the singular point sinθ=0, so it bites **hardest in a stiff chain**. Since sinθ≈|θ−π|, the force goes as ∝ κ(θ−π)²/SMALL, becoming **quadratic rather than linear**, so the chain is far softer and more nonlinear than it really is (worse the straighter it is). Measured force ratios: |θ−π|=1.76e-3 → 1.000000 / 8.79e-4 → 0.621320 / 2.93e-4 → 0.207107 / 5.86e-5 → 0.041421. **The energy is 0.0000% throughout.** There is no workaround -- angle.Table gives the same U and tau but a force ratio of 3.27 (its table resolution Δθ=3.1e-3 cannot hold |θ−π|~3e-4), and angle.CosineSquared has U ∝ (π−θ)⁴ at θ₀=π, quartic rather than harmonic bending (excluded analytically). The responses: keep every angle above min|θ−π| > 1.41e-3, implement it directly with force.Custom (26x slower), or if the region is linear do not use MD at all and solve it analytically.",
+      "kind": "pitfall",
+      "coords": {
+        "angle_sin_small": 0.001414217
+      }
+    }
+  ],
+  "not_verified": []
+}

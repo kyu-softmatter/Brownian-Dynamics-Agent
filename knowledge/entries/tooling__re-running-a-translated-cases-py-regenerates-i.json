@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/verify_l3_spec_gaps.py#L152",
+  "lessons": [
+    {
+      "claim": "Re-running a translated cases/*.py regenerates its specs/ JSON with English prose and an unchanged run_id -- measured 2026-08-30 by bisecting which checker dirtied specs/. verify_l3_spec_gaps.py runs the case scripts as subprocesses, and those runs rewrite the spec. Deterministic (second run byte-matched) and verify_hash() still passes, because physics_only() strips DOC_KEYS before hashing. So the archive prose rewrite can be done by re-running the owning tool instead of hand-editing JSON, satisfying rule 2 by construction. Coverage is partial: only fields the case reconstructs.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

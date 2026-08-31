@@ -42,7 +42,8 @@ import soft_r3_2d as S3  # noqa: E402
 FAILS = []
 # ★ The marker the case scripts print. It lives in ONE place because it is a
 #   cross-file coupling: cases/*.py print it, this script parses it. It used to be
-#   the Korean "L3 스펙:" inline in two places, and when cases/ was translated in
+#   the Korean form of "L3 spec:" inline in two places, and when cases/ was
+#   translated in
 #   3d68b57 this script started reporting "the case does not write a spec" for all
 #   three cases -- a misleading diagnosis, since they do write one.
 SPEC_MARKER = "L3 spec:"

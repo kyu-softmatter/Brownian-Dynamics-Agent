@@ -1,0 +1,22 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "l4",
+    "validation",
+    "timeseries"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/health.py growth exponent",
+  "lessons": [
+    {
+      "claim": "The growth exponent alpha has to be measured on the actual time axis and not on the index. If the MSD's lags are logarithmically spaced, an index-based alpha exceeds 2.5 and gets misjudged as divergence. Giving it the actual time axis produced a reasonable alpha of 1.172, between diffusive and ballistic",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

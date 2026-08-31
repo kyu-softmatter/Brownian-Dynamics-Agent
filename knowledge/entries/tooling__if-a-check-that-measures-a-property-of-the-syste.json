@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "L3",
+    "L4",
+    "checks",
+    "protocol",
+    "coupling"
+  ],
+  "dimensionless": {},
+  "source": "cases/trap_drag_2d.py#build_ledger · analyze_scales",
+  "lessons": [
+    {
+      "claim": "If a check that measures a property of the system uses **a protocol knob** as its denominator, the meaning of the check changes quietly when the knob is turned. trap-drag's 'wake healing v·τ_int/L_x' was implemented as τ_int/T_obs, and since T_obs = traverse×L_x/v it was right only at --traverse 1. Reducing traverse to 0.001 for an equilibration study made the value 1000x larger and produced a **hard FAIL** (with the system unchanged). How it was fixed: tau_cross = L_x/v_x, which is independent of the protocol, was put in the ledger separately and the check made to look only at that. The principle -- a check's denominator has to be a scale of the system, with no execution choice such as the observation window mixed in.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

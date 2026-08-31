@@ -244,7 +244,7 @@
   },
   "reference": {
     "strategy": "thermal",
-    "rationale": "thermal 규약 고정 (σ=d, E=kT, τ=τ_B). 단위계는 문헌 비교를 위해 계마다 바꾸지 않는다 (bd-physics §1.1). 지배 시간척도는 계마다 다를 수 있고, dt는 그쪽으로 정한다. 기준 길이는 등가부피 구 지름 d_eq — 타원체는 장축/단축이 따로 있으나 무차원화 기준은 하나여야 한다. 병진 마찰은 BD 제약상 등방 평균 γ̄ (조화평균 — 장시간 MSD가 D̄로 정해지도록).",
+    "rationale": "thermal convention, fixed (sigma=d, E=kT, tau=tau_B). The unit system is not changed per system, so that literature comparison stays possible (bd-physics 1.1). The governing timescale may differ per system, and dt is set from that one. The reference length is the equivalent-volume sphere diameter d_eq -- an ellipsoid has separate major and minor axes but the non-dimensionalization reference must be one length. Translational friction is the isotropic mean gamma_bar, forced by the BD constraint (the harmonic mean, so that the long-time MSD is set by D_bar).",
     "length": {
       "symbol": "d_eq",
       "value": 7.936999999999999e-07,
@@ -275,7 +275,7 @@
         "symbol": "2a_minor",
         "value": 5e-07,
         "unit": "meter",
-        "note": "단축 길이",
+        "note": "minor axis length",
         "role": "",
         "star": false,
         "reduced": 0.6299609424215699
@@ -284,7 +284,7 @@
         "symbol": "d_eq",
         "value": 7.936999999999999e-07,
         "unit": "meter",
-        "note": "등가부피 구 지름 (기준)",
+        "note": "equivalent-volume sphere diameter (reference)",
         "role": "",
         "star": false,
         "reduced": 1.0
@@ -293,7 +293,7 @@
         "symbol": "l_p",
         "value": 1.7167358275214335e-06,
         "unit": "meter",
-        "note": "v·τ_eff 지속길이",
+        "note": "v*tau_eff persistence length",
         "role": "",
         "star": true,
         "reduced": 2.162953039588552
@@ -302,7 +302,7 @@
         "symbol": "2a_major",
         "value": 2e-06,
         "unit": "meter",
-        "note": "장축 길이",
+        "note": "major axis length",
         "role": "",
         "star": false,
         "reduced": 2.5198437696862794
@@ -311,7 +311,7 @@
         "symbol": "L",
         "value": 2.5398e-05,
         "unit": "meter",
-        "note": "박스",
+        "note": "box",
         "role": "box",
         "star": false,
         "reduced": 31.999496031246068
@@ -322,7 +322,7 @@
         "symbol": "tau_p",
         "value": 3.8114494493927906e-08,
         "unit": "second",
-        "note": "m/γ̄ 관성",
+        "note": "m/gamma_bar inertia",
         "role": "inertia",
         "star": false,
         "reduced": 3.474674918820919e-08
@@ -331,7 +331,7 @@
         "symbol": "dt",
         "value": 0.0015873999999999999,
         "unit": "second",
-        "note": "적분 스텝 (numerics.dt, 사람이 정함)",
+        "note": "integration step (numerics.dt, human-chosen)",
         "role": "dt",
         "star": false,
         "reduced": 0.001447139477873711
@@ -340,7 +340,7 @@
         "symbol": "tau_v",
         "value": 0.15874,
         "unit": "second",
-        "note": "d_eq/v 이류",
+        "note": "d_eq/v advection",
         "role": "",
         "star": true,
         "reduced": 0.1447139477873711
@@ -349,7 +349,7 @@
         "symbol": "tau_eff",
         "value": 0.34334716550428673,
         "unit": "second",
-        "note": "방향 상관",
+        "note": "orientational correlation",
         "role": "",
         "star": true,
         "reduced": 0.31300947323755335
@@ -358,7 +358,7 @@
         "symbol": "tau_tumble",
         "value": 0.5,
         "unit": "second",
-        "note": "텀블 간격",
+        "note": "tumble interval",
         "role": "",
         "star": false,
         "reduced": 0.45582067464839077
@@ -367,7 +367,7 @@
         "symbol": "tau_r",
         "value": 1.0958855823118934,
         "unit": "second",
-        "note": "1/D_r 열적 회전확산",
+        "note": "1/D_r thermal rotational diffusion",
         "role": "",
         "star": false,
         "reduced": 0.9990546109337036
@@ -376,7 +376,7 @@
         "symbol": "tau_B",
         "value": 1.0969226009454005,
         "unit": "second",
-        "note": "d_eq²/D̄ 확산 (기준)",
+        "note": "d_eq^2/D_bar diffusion (reference)",
         "role": "",
         "star": false,
         "reduced": 1.0
@@ -385,7 +385,7 @@
         "symbol": "T_obs",
         "value": 219.0,
         "unit": "second",
-        "note": "관측창",
+        "note": "observation window",
         "role": "observation",
         "star": false,
         "reduced": 199.64945549599517
@@ -396,7 +396,7 @@
         "symbol": "kT",
         "value": 4.141947e-21,
         "unit": "kilogram * meter ** 2 / second ** 2",
-        "note": "열에너지 (기준)",
+        "note": "thermal energy (reference)",
         "role": "",
         "star": false,
         "reduced": 1.0
@@ -405,7 +405,7 @@
         "symbol": "fa_d",
         "value": 2.862161569999999e-20,
         "unit": "kilogram * meter ** 2 / second ** 2",
-        "note": "f_a·d_eq 자기추진 일",
+        "note": "f_a*d_eq self-propulsion work",
         "role": "",
         "star": false,
         "reduced": 6.910183954550841
@@ -418,7 +418,7 @@
       "name": "Pe",
       "value": 6.910183954550842,
       "expr": "v d_eq/D̄ = τ_B/τ_v",
-      "meaning": "이류 vs 확산",
+      "meaning": "advection vs diffusion",
       "num": [
         "times",
         "tau_B"
@@ -431,8 +431,8 @@
     {
       "name": "D_r*",
       "value": 1.000946283672534,
-      "expr": "D_r τ_B",
-      "meaning": "회전 vs 병진",
+      "expr": "D_r*tau_B",
+      "meaning": "rotational vs translational",
       "num": [
         "times",
         "tau_B"
@@ -446,7 +446,7 @@
       "name": "l_p/d_eq",
       "value": 2.162953039588552,
       "expr": "",
-      "meaning": "지속길이",
+      "meaning": "persistence length",
       "num": [
         "lengths",
         "l_p"
@@ -460,7 +460,7 @@
       "name": "p",
       "value": 4.0,
       "expr": "a_maj/a_min",
-      "meaning": "종횡비",
+      "meaning": "aspect ratio",
       "num": [
         "lengths",
         "2a_major"
@@ -474,7 +474,7 @@
       "name": "tau_tumble/tau_r",
       "value": 0.45625201031041396,
       "expr": "",
-      "meaning": "★ 텀블 vs 회전확산",
+      "meaning": "* tumbling vs rotational diffusion",
       "num": [
         "times",
         "tau_tumble"
@@ -488,7 +488,7 @@
       "name": "L/d_eq",
       "value": 31.999496031246068,
       "expr": "",
-      "meaning": "박스",
+      "meaning": "box",
       "num": [
         "lengths",
         "L"
@@ -502,7 +502,7 @@
       "name": "T_obs/tau_eff",
       "value": 637.8383805159614,
       "expr": "",
-      "meaning": "관측창",
+      "meaning": "observation window",
       "num": [
         "times",
         "T_obs"
@@ -516,7 +516,7 @@
       "name": "St",
       "value": 3.474674918820919e-08,
       "expr": "tau_p/tau_B",
-      "meaning": "관성 vs 확산",
+      "meaning": "inertia vs diffusion",
       "num": [
         "times",
         "tau_p"
@@ -529,8 +529,8 @@
   ],
   "checks": [
     {
-      "kind": "모델",
-      "name": "관성 무시     τ_p/τ_v",
+      "kind": "model",
+      "name": "inertia negligible   tau_p/tau_v",
       "value": 2.401064287131656e-07,
       "limit": 0.01,
       "op": "<=",
@@ -540,8 +540,8 @@
       "phase": "design"
     },
     {
-      "kind": "적분",
-      "name": "이류 해상     dt/τ_v",
+      "kind": "integration",
+      "name": "advection resolved   dt/tau_v",
       "value": 0.01,
       "limit": 0.01,
       "op": "<=",
@@ -551,8 +551,8 @@
       "phase": "design"
     },
     {
-      "kind": "적분",
-      "name": "회전 해상     dt·D_r",
+      "kind": "integration",
+      "name": "rotation resolved   dt*D_r",
       "value": 0.001448508882333502,
       "limit": 0.01,
       "op": "<=",
@@ -562,8 +562,8 @@
       "phase": "design"
     },
     {
-      "kind": "적분",
-      "name": "텀블 해상     dt/τ_tumble",
+      "kind": "integration",
+      "name": "tumbling resolved   dt/tau_tumble",
       "value": 0.0031747999999999998,
       "limit": 0.01,
       "op": "<=",
@@ -573,8 +573,8 @@
       "phase": "design"
     },
     {
-      "kind": "기하",
-      "name": "유한크기     ℓ_p/(L/4)",
+      "kind": "geometry",
+      "name": "finite size        l_p/(L/4)",
       "value": 0.27037338806542777,
       "limit": 1.0,
       "op": "<=",
@@ -584,8 +584,8 @@
       "phase": "design"
     },
     {
-      "kind": "통계",
-      "name": "관측창       T_obs/τ_eff",
+      "kind": "statistics",
+      "name": "observation window T_obs/tau_eff",
       "value": 637.8383805159614,
       "limit": 100.0,
       "op": ">=",

@@ -1,0 +1,27 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "handbook",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "sphere",
+    "suspension",
+    "viscosity",
+    "dilute_limit"
+  ],
+  "dimensionless": {
+    "phi_dilute_10pct": 0.0403
+  },
+  "source": "docs/books/leal_microstructural_rheology.md#5 ← [L] (2.31) p.40, pp.74-76",
+  "lessons": [
+    {
+      "claim": "A dilute suspension of spheres is exactly Newtonian (if the flow cannot change the microstructure it is Newtonian). mu*/mu = 1 + 2.5 phi + K* phi^2, and for hard-sphere Brownian K* = 6.2 (Batchelor 1977: direct Brownian 0.97 + hydrodynamic 5.2), refined to 5.91 (Brady-Vicic 1995). ★ The phi^2 term reaches 10% of the Einstein term at phi = 4.0%, so above phi>4% 'it is dilute so it is Newtonian' is already broken at the 10% level",
+      "kind": "parameter",
+      "coords": {
+        "phi_dilute_10pct": 0.0403
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,48 +1,51 @@
-"""soft-r3 hexatic 창 (S25) + 고-`A` 절단 해방 (S26) — **큰 사다리**로 둘을 함께.
+"""soft-r3 hexatic window (S25) + high-`A` cutoff relief (S26) -- both at once, via a
+**large ladder**.
 
 usage:
   python scripts/soft2d_hexwin.py --gates
   python scripts/soft2d_hexwin.py
   python scripts/soft2d_hexwin.py --analyze-only
 
-## 왜 한 런인가 — 큰 상자가 두 미결을 동시에 푼다
+## Why one run -- a bigger box resolves two open items simultaneously
 
-앞 스캔(`soft-r3-ascan`)의 사다리는 `N = 64–400` 이었고 `r_cut` 이 최소 상자에
-묶여 `3.80` 이었다. 그래서 둘이 막혔다:
+The previous scan (`soft-r3-ascan`) used a ladder of `N = 64-400`, and `r_cut` was
+bound by the smallest box to `3.80`. That blocked two things:
 
-- **S25 (hexatic 창)** — Zahn 창 `A = 10.03–10.75` (폭 `7 %`) 이 우리 브래킷
-  `A = 10–13.3` (폭 `33 %`) 안에 숨었다. `A` 를 촘촘히 하려면 `ψ₆` 오차가 작아야 하고,
-  그러려면 `N` 이 커야 한다.
-- **S26 (고 `A`)** — `βU(r_cut) = A/r_cut³` 이 `A` 에 비례해서 `A=100` 에서
-  `1.82 kT` 였다. 퍼텐셜을 아직 열에너지 규모인 곳에서 자른다.
+- **S25 (hexatic window)** -- Zahn's window `A = 10.03-10.75` (width `7 %`) hid
+  inside our bracket `A = 10-13.3` (width `33 %`). Refining `A` needs a small `psi6`
+  error, which needs large `N`.
+- **S26 (high `A`)** -- `beta*U(r_cut) = A/r_cut^3` scales with `A`, so at `A=100` it
+  was `1.82 kT`. The potential is being cut where it is still of thermal scale.
 
-**사다리를 `N = 256·576·1024` 로 올리면 `r_cut = 7.80` 이 허용된다** (`N=256` 의
-`L/2 = 8.0`). 그러면 절단오차가 **8.7배** 줄어든다:
+**Raising the ladder to `N = 256, 576, 1024` permits `r_cut = 7.80`** (`N=256` has
+`L/2 = 8.0`). That reduces the truncation error **8.7-fold**:
 
     A       r_cut=3.80    r_cut=7.80
    10.4        0.190          0.022
    31.6        0.576          0.067
   100          1.822          0.211
 
-⇒ `A = 10.0–10.8` 을 `0.2` 간격으로 훑고(S25), `A = 31.6` 을 제대로 된 절단으로
-  다시 본다(S26 부분).
+=> sweep `A = 10.0-10.8` in steps of `0.2` (S25), and revisit `A = 31.6` with a
+  proper cutoff (the S26 part).
 
-## 왜 `A = 100` 은 사다리로 못 보는가 (S26 이 부분만 닫히는 이유)
+## Why `A = 100` cannot be laddered (why S26 closes only partly)
 
-`dt ∝ 1/A` 이므로 `steps ∝ A` 다. `A=100`·`N=1024` 는 런 하나가 `~2100 s` 로
-예산(`600 s`)의 3.5배다. **이 기계에서 `A=100` 의 유한크기 사다리는 불가능하다** —
-`A = 31.6` 까지가 한계다. 그 사실을 결과로 기록한다.
+`dt ~ 1/A`, so `steps ~ A`. At `A=100` with `N=1024` a single run is `~2100 s`, 3.5x
+the budget (`600 s`). **A finite-size ladder at `A=100` is impossible on this
+machine** -- `A = 31.6` is the limit. That fact is recorded as a result.
 
-## 런 길이 — `10 τ_d` 를 쓰는 근거
+## Run length -- the basis for using `10 tau_d`
 
-`soft-r3-ascan` 의 S23 이 `10 τ_d` 로 `A=10` 의 `p` 를 `30 τ_d` 판본과 `0.5σ` 이내로
-재현했다. 이 런의 `A` 는 모두 `10` 근처이므로 그 검증이 직접 적용된다.
-**다만 가정하지 않고 창 내부 표류를 함께 보고한다** (`[6,8]` vs `[8,10]`).
+S23 of `soft-r3-ascan` reproduced `A=10`'s `p` at `10 tau_d` to within `0.5 sigma` of
+the `30 tau_d` version. Every `A` in this run is near `10`, so that verification
+applies directly.
+**But rather than assuming it, drift within the window is reported alongside**
+(`[6,8]` vs `[8,10]`).
 
-## 시드
+## Seeds
 
-`41–44` — `N = 256·576·1024` 전부에서 초기배치 성공 (실측 20/20).
-큰 상자가 오히려 쉽다 (`min_sep = 0.8 d` 기각표집).
+`41-44` -- initial placement succeeded at all of `N = 256, 576, 1024` (measured
+20/20). A larger box is in fact easier (`min_sep = 0.8 d` rejection sampling).
 """
 from __future__ import annotations
 
@@ -77,14 +80,14 @@ RUN_ID = "2026-07-29_soft-r3-hexwin"
 SRC = REPO / "examples" / "soft-r3-hexwin"
 DRIVERS = [Path(__file__), Path(TS.__file__)]
 
-#  S25: Zahn 창 10.03–10.75 를 0.2 간격으로 · S26: 31.6 을 제대로 된 절단으로
+#  S25: Zahn's window 10.03-10.75 in steps of 0.2 . S26: 31.6 with a proper cutoff
 AMPLITUDES = (10.0, 10.2, 10.4, 10.6, 10.8, 31.6)
 N_LADDER = (256, 576, 1024)
 SEEDS = (41, 42, 43, 44)
-R_CUT_FIXED = 7.80                 # N=256 의 L/2 = 8.0 이 허용하는 값
+R_CUT_FIXED = 7.80                 # the value permitted by N=256's L/2 = 8.0
 PROD_TAU, N_FRAMES = 10.0, 200
 WINDOW = (6.0, 10.0)
-DRIFT_SPLIT = 8.0                  # 표류 진단: [6,8] vs [8,10]
+DRIFT_SPLIT = 8.0                  # drift diagnostic: [6,8] vs [8,10]
 CHI2_MAX = 3.0
 
 
@@ -121,10 +124,10 @@ def print_gates(rows, policy) -> None:
     lam = float(policy.get("hardware.throughput_particle_steps_per_s", 6.3e6))
     k = policy.concurrency("default")
     eff = policy.efficiency(k)
-    print(f"## 게이트 — r_cut = {R_CUT_FIXED} 고정 · 사다리 {list(N_LADDER)} · "
-          f"prod {PROD_TAU:g} τ_d / 창 {WINDOW}\n")
-    print(f"{'A':>7} {'Γ':>8} {'βU(rc)':>8} {'rc=3.8 이면':>11} "
-          f"{'dt*':>10} {'N=1024 예상':>12}")
+    print(f"## gates -- r_cut fixed at {R_CUT_FIXED} . ladder {list(N_LADDER)} . "
+          f"prod {PROD_TAU:g} tau_d / window {WINDOW}\n")
+    print(f"{'A':>7} {'Gamma':>8} {'bU(rc)':>8} {'if rc=3.8':>11} "
+          f"{'dt*':>10} {'N=1024 est':>12}")
     print("-" * 62)
     worst, total = 0.0, 0.0
     for A in AMPLITUDES:
@@ -139,13 +142,13 @@ def print_gates(rows, policy) -> None:
               f"{big['beta_u_at_rcut']:>8.4f} {A/3.8**3:>11.4f} "
               f"{big['dt_star']:>10.3g} {wb:>11.0f}s")
     budget = policy.wall_budget_s
-    print(f"\n  런 {len(rows)*len(SEEDS)}개 (A {len(AMPLITUDES)} × N "
-          f"{len(N_LADDER)} × 시드 {len(SEEDS)})")
-    print(f"  최장 런 {worst:.0f} s {'≤' if worst <= budget else '>'} 예산 "
-          f"{budget:.0f} s · 총 작업 {total/60:.0f} 분 → 동시 {k} 에서 "
-          f"약 {total/k/60:.0f} 분")
+    print(f"\n  {len(rows)*len(SEEDS)} runs ({len(AMPLITUDES)} amplitudes x "
+          f"{len(N_LADDER)} N x {len(SEEDS)} seeds)")
+    print(f"  longest run {worst:.0f} s {'<=' if worst <= budget else '>'} budget "
+          f"{budget:.0f} s . total work {total/60:.0f} min -> at concurrency {k}, "
+          f"about {total/k/60:.0f} min")
     if worst > budget:
-        raise SystemExit("⛔ 예산 초과 — 실행하지 않고 보고한다")
+        raise SystemExit("⛔ over budget -- reporting without running")
 
 
 def _one(args):
@@ -167,7 +170,7 @@ def run_batch(rd: RunDir, rows, policy) -> dict:
                 seed=s, label=label)
             jobs.append((asdict(cfg), str(rd.raw / label)))
     k = policy.concurrency("default")
-    print(f"\n## S5 — {len(jobs)} 런 (동시 {k})")
+    print(f"\n## S5 -- {len(jobs)} runs (concurrency {k})")
     t0 = time.perf_counter()
     done, failed = [], []
     with ProcessPoolExecutor(max_workers=k) as ex:
@@ -186,7 +189,7 @@ def run_batch(rd: RunDir, rows, policy) -> dict:
             if i % 12 == 0 or i == len(jobs):
                 print(f"  {i}/{len(jobs)} … ({time.perf_counter()-t0:.0f} s)")
     wall = time.perf_counter() - t0
-    print(f"  배치 wall {wall:.1f} s · 실패 {len(failed)}")
+    print(f"  batch wall {wall:.1f} s . failed {len(failed)}")
     return {"done": len(done), "failed": failed, "batch_wall_s": wall,
             "concurrency": k, "n_jobs": len(jobs), "seeds": list(SEEDS),
             "amplitudes": list(AMPLITUDES), "n_ladder": list(N_LADDER),
@@ -202,7 +205,7 @@ def analyze(rd: RunDir) -> dict:
             dirs = sorted(p for p in rd.raw.glob(f"A{A:g}_N{N}_s*")
                           if (p / "samples.npz").exists())
             if not dirs:
-                raise SystemExit(f"⛔ A={A} N={N} 없다")
+                raise SystemExit(f"⛔ missing A={A} N={N}")
             per = []
             for d in dirs:
                 z = np.load(d / "samples.npz")
@@ -247,8 +250,8 @@ def analyze(rd: RunDir) -> dict:
               f"ψ₆(1024)={psi[-1]:.4f}±{se[-1]:.4f}  "
               f"η₆={fit.eta6:+.3f}±{fit.eta6_se:.3f}  "
               f"χ²/dof={fit.chi2_reduced:>7.2f}  **{ph['phase']}**")
-        print(f"           표류 |ψ₆([8,10])−ψ₆([6,8])| ≤ {dmax:.4f} "
-              f"({dsig:.1f}σ)  결함(1024)={defect[-1]:.4f}")
+        print(f"           drift |psi6([8,10])-psi6([6,8])| <= {dmax:.4f} "
+              f"({dsig:.1f} sigma)  defects(1024)={defect[-1]:.4f}")
     return out
 
 
@@ -286,35 +289,39 @@ def main() -> int:
             "provenance": provenance(DRIVERS),
             "parent_runs": ["runs/2026-07-29_soft-r3-ascan",
                             "runs/2026-07-29_soft-r3-fss"],
-            "closes": ["S25 (hexatic 창)", "S26 부분 (A=31.6 절단 해방)"],
+            "closes": ["S25 (hexatic window)",
+                       "S26 partial (A=31.6 cutoff relief)"],
             "amplitudes": list(AMPLITUDES), "n_ladder": list(N_LADDER),
             "seeds": list(SEEDS), "r_cut_fixed": R_CUT_FIXED,
             "prod_tau": PROD_TAU, "window": list(WINDOW),
             "drift_split": DRIFT_SPLIT, "n_frames": N_FRAMES, "gates": rows,
             "eta6_ceiling": KTHNY_ETA6_HEXATIC_LIQUID,
             "a100_infeasible": (
-                "A=100·N=1024 는 dt ∝ 1/A 때문에 런 하나가 ~2100 s = 예산의 3.5배다. "
-                "이 기계에서 A=100 의 유한크기 사다리는 불가능하다 — A=31.6 이 한계"),
+                "A=100 with N=1024 costs ~2100 s per run because dt ~ 1/A, which is "
+                "3.5x the budget. A finite-size ladder at A=100 is impossible on this "
+                "machine -- A=31.6 is the limit"),
         })
         seal = write_seal(rd)
-        print(f"\n  🔒 봉인 {seal.name} — "
-              f"{len(seal.read_text().splitlines())}개 문서 (실행 전)")
+        print(f"\n  🔒 sealed {seal.name} -- "
+              f"{len(seal.read_text().splitlines())} documents (before running)")
         rd.write_json("manifest", run_batch(rd, rows, policy))
 
-    print(f"\n## S7 — hexatic 창 (사다리 {list(N_LADDER)}, r_cut {R_CUT_FIXED})")
+    print(f"\n## S7 -- hexatic window (ladder {list(N_LADDER)}, "
+          f"r_cut {R_CUT_FIXED})")
     metrics = analyze(rd)
     s = summarise(metrics)
     metrics["_summary"] = s
     metrics["_provenance_at_analysis"] = provenance(DRIVERS)
     rd.write_json("metrics", metrics)
 
-    print(f"\n## Zahn 창 {s['zahn_window']} 안의 상")
+    print(f"\n## the phase inside Zahn's window {s['zahn_window']}")
     for a, p in s["phases_inside_zahn_window"]:
         print(f"  A = {a:g} → {p}")
-    print(f"\n  hexatic 관측? {'**예**' if s['hexatic_observed'] else '**아니다**'}")
+    print(f"\n  hexatic observed? "
+          f"{'**yes**' if s['hexatic_observed'] else '**no**'}")
     for t in s["transitions"]:
-        print(f"  전이: {t['from']} → {t['to']} 가 A = {t['A_lo']:g}–"
-              f"{t['A_hi']:g} 사이 ({t['width_pct']:.0f} % 폭)")
+        print(f"  transition: {t['from']} -> {t['to']} between A = {t['A_lo']:g}-"
+              f"{t['A_hi']:g} ({t['width_pct']:.0f} % width)")
     print(f"\n→ {rd.path.relative_to(REPO)}")
     return 0
 

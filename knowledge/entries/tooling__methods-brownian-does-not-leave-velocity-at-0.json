@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "brownian",
+    "friction",
+    "dpd",
+    "silent_bug"
+  ],
+  "dimensionless": {
+    "v2_over_3kT": 0.924
+  },
+  "source": "scratch/verify_pair_friction.py#T6",
+  "lessons": [
+    {
+      "claim": "★★ methods.Brownian does not leave velocity at 0 -- it redraws it from a Maxwell-Boltzmann every step (measured <v^2>=2.771 vs 3kT/m=3.000, a ratio of 0.924, N=80). And that value is **unrelated to the actual displacement rate** (measured over 1 step of free BD, v/(dx/dt) = -0.044/+0.003/+0.029 -- an overdamped displacement is sqrt(2*D*dt) so it scales as dt^0.5 while v is drawn separately). ⟹ Combine a velocity-dependent pair force (md.pair.friction, the DPD family) with methods.Brownian and what the friction sees is not the actual relative motion but **uncorrelated thermal noise**. A result comes out and there is no error, so it is quietly wrong. It is the concrete consequence of bd-hoomd trap 5 ('BD is overdamped -- the velocity has no physical meaning'), but it differs in that it is not 'the velocity is 0 so the force is 0' but 'the velocity is garbage so the force is garbage'.",
+      "kind": "pitfall",
+      "coords": {
+        "v2_over_3kT": 0.924
+      }
+    }
+  ],
+  "not_verified": []
+}
