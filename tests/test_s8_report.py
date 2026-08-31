@@ -205,7 +205,7 @@ def test_deferred_gates_are_listed(rundir, full_inputs):
 
 def test_off_gates_show_their_reason(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
-    assert "쌍 상호작용이 없어 겹침이 발생할 수 없다" in text
+    assert "no pair interaction, so overlap cannot occur" in text
 
 
 def test_spec_problems_are_surfaced(rundir, spec):
