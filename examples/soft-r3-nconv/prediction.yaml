@@ -1,123 +1,139 @@
-# S2 PREDICTION — N 수렴 + ψ₆ 유한크기 지수  (자동 생성: scripts/soft2d_nconv_predict.py)
+# S2 PREDICTION — N convergence + the ψ₆ finite-size exponent  (auto-generated: scripts/soft2d_nconv_predict.py)
 #
-# ⚠ 이 파일은 S5 실행 전에 봉인된다 (SEALED.sha256). 실행 후 수정 금지.
-# 허용오차는 부모 런(N=100)의 시드 SE 를 스케일링해서 유도했다.
+# ⚠ This file is sealed before S5 runs (SEALED.sha256). No editing after the run.
+# The tolerances were derived by scaling the parent run's (N=100) seed SE.
 #
-question: N=100 → 256 에서 ① ψ₆ 가 1/√N 으로 줄어드는가 (= 유한크기 바닥인가) ② 국소량(결함 분율·ψ₆ 국소)이 변하지 않는가 ③ 절단오차가 줄어드는가
+question: from N=100 → 256, ① does ψ₆ shrink as 1/√N (= is it the finite-size floor) ② do the local quantities (defect fraction, local ψ₆) stay unchanged ③ does the truncation error shrink
 parent_run: runs/2026-07-29_soft-r3-time-resolved
-card_open_item: 카드 §9 (N ≥ 252 요구) · §10 (g₆ 지수 η₆ 미구현)
+card_open_item: card §9 (the N ≥ 252 requirement) · §10 (the g₆ exponent η₆, unimplemented)
 items:
 - quantity: psi6_global__A0.1__N256
   value: 0.029821626374541662
   tolerance: ±0.00508785
-  basis: '액체 가설 `|⟨ψ₆⟩| ~ N^-1/2`: 0.0477146 × (2.56)^-0.5 = 0.0298216. **경쟁 가설(hexatic, η₆=1/4 → p=1/16)은
-    0.0449921** 이고 둘의 간격이 0.0151705 = 허용오차의 3.0배다 — 판별 가능하다'
-  discriminates: A=0.1 의 ψ₆ 가 유한크기 바닥인가 진짜 준장거리 질서인가
+  basis: 'the liquid hypothesis `|⟨ψ₆⟩| ~ N^-1/2`: 0.0477146 × (2.56)^-0.5 = 0.0298216.
+    **The competing hypothesis (hexatic, η₆=1/4 → p=1/16) gives 0.0449921**, and the gap
+    between them is 0.0151705 = 3.0x the tolerance — it is decidable'
+  discriminates: is ψ₆ at A=0.1 the finite-size floor or genuine quasi-long-range order
   competing_value: 0.0449921046953466
 - quantity: psi6_exponent_p__A0.1
   value: 0.5
   tolerance: ±0.15
-  basis: '`p = -dln|⟨ψ₆⟩|/dlnN`. 액체면 0.5, KTHNY hexatic 경계면 0.0625. 허용오차 ±0.15 는 두 점 추정의 오차 전파(부모 SE 0.001919
-    상대 4.0%, /ln2.56=0.9400) 규모다'
-  discriminates: A=0.1 의 상 판독 (η₆ = 4p)
+  basis: '`p = -dln|⟨ψ₆⟩|/dlnN`. 0.5 for a liquid, 0.0625 at the KTHNY hexatic
+    boundary. The ±0.15 tolerance is the scale of the two-point estimate error
+    propagation (parent SE 0.001919, relative 4.0%, /ln2.56=0.9400)'
+  discriminates: the phase reading at A=0.1 (η₆ = 4p)
   competing_value: 0.0625
 - quantity: defect_fraction__A0.1__N256
   value: 0.6444999999999999
   tolerance: ±0.0120275
-  basis: '**국소량이므로 `N` 에 무관해야 한다.** `N=100` 관측 0.6445 ± 0.002835. 허용오차 3√2·SE. 어긋나면 `N=100` 에 유한크기 효과가
-    있었다는 뜻이다'
-  discriminates: defect_fraction 가 N=100 에서 이미 수렴했는가
+  basis: '**a local quantity, so it has to be independent of `N`.** `N=100`
+    measured 0.6445 ± 0.002835. Tolerance 3√2·SE. A mismatch means there was a
+    finite-size effect at `N=100`'
+  discriminates: had defect_fraction already converged at N=100
   competing_value: null
 - quantity: psi6_local__A0.1__N256
   value: 0.3611549796164035
   tolerance: ±0.00517919
-  basis: '**국소량이므로 `N` 에 무관해야 한다.** `N=100` 관측 0.361155 ± 0.001221. 허용오차 3√2·SE. 어긋나면 `N=100` 에 유한크기 효과가
-    있었다는 뜻이다'
-  discriminates: psi6_local 가 N=100 에서 이미 수렴했는가
+  basis: '**a local quantity, so it has to be independent of `N`.** `N=100`
+    measured 0.361155 ± 0.001221. Tolerance 3√2·SE. A mismatch means there was a
+    finite-size effect at `N=100`'
+  discriminates: had psi6_local already converged at N=100
   competing_value: null
 - quantity: psi6_global__A1__N256
   value: 0.03732159153005341
   tolerance: ±0.00656739
-  basis: '액체 가설 `|⟨ψ₆⟩| ~ N^-1/2`: 0.0597145 × (2.56)^-0.5 = 0.0373216. **경쟁 가설(hexatic, η₆=1/4 → p=1/16)은
-    0.0563074** 이고 둘의 간격이 0.0189858 = 허용오차의 2.9배다 — 판별 가능하다'
-  discriminates: A=1 의 ψ₆ 가 유한크기 바닥인가 진짜 준장거리 질서인가
+  basis: 'the liquid hypothesis `|⟨ψ₆⟩| ~ N^-1/2`: 0.0597145 × (2.56)^-0.5 = 0.0373216.
+    **The competing hypothesis (hexatic, η₆=1/4 → p=1/16) gives 0.0563074**, and the gap
+    between them is 0.0189858 = 2.9x the tolerance — it is decidable'
+  discriminates: is ψ₆ at A=1 the finite-size floor or genuine quasi-long-range order
   competing_value: 0.05630735669569704
 - quantity: psi6_exponent_p__A1
   value: 0.5
   tolerance: ±0.15
-  basis: '`p = -dln|⟨ψ₆⟩|/dlnN`. 액체면 0.5, KTHNY hexatic 경계면 0.0625. 허용오차 ±0.15 는 두 점 추정의 오차 전파(부모 SE 0.002477
-    상대 4.1%, /ln2.56=0.9400) 규모다'
-  discriminates: A=1 의 상 판독 (η₆ = 4p)
+  basis: '`p = -dln|⟨ψ₆⟩|/dlnN`. 0.5 for a liquid, 0.0625 at the KTHNY hexatic
+    boundary. The ±0.15 tolerance is the scale of the two-point estimate error
+    propagation (parent SE 0.002477, relative 4.1%, /ln2.56=0.9400)'
+  discriminates: the phase reading at A=1 (η₆ = 4p)
   competing_value: 0.0625
 - quantity: defect_fraction__A1__N256
   value: 0.5488999999999999
   tolerance: ±0.0129684
-  basis: '**국소량이므로 `N` 에 무관해야 한다.** `N=100` 관측 0.5489 ± 0.003057. 허용오차 3√2·SE. 어긋나면 `N=100` 에 유한크기 효과가
-    있었다는 뜻이다'
-  discriminates: defect_fraction 가 N=100 에서 이미 수렴했는가
+  basis: '**a local quantity, so it has to be independent of `N`.** `N=100`
+    measured 0.5489 ± 0.003057. Tolerance 3√2·SE. A mismatch means there was a
+    finite-size effect at `N=100`'
+  discriminates: had defect_fraction already converged at N=100
   competing_value: null
 - quantity: psi6_local__A1__N256
   value: 0.3916287848353386
   tolerance: ±0.00358632
-  basis: '**국소량이므로 `N` 에 무관해야 한다.** `N=100` 관측 0.391629 ± 0.0008453. 허용오차 3√2·SE. 어긋나면 `N=100` 에 유한크기
-    효과가 있었다는 뜻이다'
-  discriminates: psi6_local 가 N=100 에서 이미 수렴했는가
+  basis: '**a local quantity, so it has to be independent of `N`.** `N=100`
+    measured 0.391629 ± 0.0008453. Tolerance 3√2·SE. A mismatch means there was a
+    finite-size effect at `N=100`'
+  discriminates: had psi6_local already converged at N=100
   competing_value: null
 - quantity: psi6_global__A10__N256
   value: 0.15493777482770385
   tolerance: ±0.0210782
-  basis: '액체 가설 `|⟨ψ₆⟩| ~ N^-1/2`: 0.2479 × (2.56)^-0.5 = 0.154938. **경쟁 가설(hexatic, η₆=1/4 → p=1/16)은
-    0.233756** 이고 둘의 간격이 0.078818 = 허용오차의 3.7배다 — 판별 가능하다'
-  discriminates: A=10 의 ψ₆ 가 유한크기 바닥인가 진짜 준장거리 질서인가
+  basis: 'the liquid hypothesis `|⟨ψ₆⟩| ~ N^-1/2`: 0.2479 × (2.56)^-0.5 = 0.154938.
+    **The competing hypothesis (hexatic, η₆=1/4 → p=1/16) gives 0.233756**, and the gap
+    between them is 0.078818 = 3.7x the tolerance — it is decidable'
+  discriminates: is ψ₆ at A=10 the finite-size floor or genuine quasi-long-range order
   competing_value: 0.23375574821979261
 - quantity: psi6_exponent_p__A10
   value: 0.5
   tolerance: ±0.15
-  basis: '`p = -dln|⟨ψ₆⟩|/dlnN`. 액체면 0.5, KTHNY hexatic 경계면 0.0625. 허용오차 ±0.15 는 두 점 추정의 오차 전파(부모 SE 0.007949
-    상대 3.2%, /ln2.56=0.9400) 규모다'
-  discriminates: A=10 의 상 판독 (η₆ = 4p)
+  basis: '`p = -dln|⟨ψ₆⟩|/dlnN`. 0.5 for a liquid, 0.0625 at the KTHNY hexatic
+    boundary. The ±0.15 tolerance is the scale of the two-point estimate error
+    propagation (parent SE 0.007949, relative 3.2%, /ln2.56=0.9400)'
+  discriminates: the phase reading at A=10 (η₆ = 4p)
   competing_value: 0.0625
 - quantity: defect_fraction__A10__N256
   value: 0.294975
   tolerance: ±0.0287428
-  basis: '**국소량이므로 `N` 에 무관해야 한다.** `N=100` 관측 0.294975 ± 0.006775. 허용오차 3√2·SE. 어긋나면 `N=100` 에 유한크기 효과가
-    있었다는 뜻이다'
-  discriminates: defect_fraction 가 N=100 에서 이미 수렴했는가
+  basis: '**a local quantity, so it has to be independent of `N`.** `N=100`
+    measured 0.294975 ± 0.006775. Tolerance 3√2·SE. A mismatch means there was a
+    finite-size effect at `N=100`'
+  discriminates: had defect_fraction already converged at N=100
   competing_value: null
 - quantity: psi6_local__A10__N256
   value: 0.5687030825018882
   tolerance: ±0.0175345
-  basis: '**국소량이므로 `N` 에 무관해야 한다.** `N=100` 관측 0.568703 ± 0.004133. 허용오차 3√2·SE. 어긋나면 `N=100` 에 유한크기 효과가
-    있었다는 뜻이다'
-  discriminates: psi6_local 가 N=100 에서 이미 수렴했는가
+  basis: '**a local quantity, so it has to be independent of `N`.** `N=100`
+    measured 0.568703 ± 0.004133. Tolerance 3√2·SE. A mismatch means there was a
+    finite-size effect at `N=100`'
+  discriminates: had psi6_local already converged at N=100
   competing_value: null
 - quantity: beta_u_at_rcut__A0.1__N256
   value: 0.0002
   tolerance: ±0.0005
-  basis: '`r_cut = 0.98·L/2 − buffer`, `L* = √256 = 16` → `r_cut = 7.740`. `βU(r_cut) = 0.1/7.740³`. 결정론적이므로
-    오차는 반올림뿐이다. `N=100` 에서는 `r_cut = 4.800` 이었다'
-  discriminates: 카드 §9 의 절단오차가 실제로 줄었는가
+  basis: '`r_cut = 0.98·L/2 − buffer`, `L* = √256 = 16` → `r_cut = 7.740`.
+    `βU(r_cut) = 0.1/7.740³`. Deterministic, so the only error is rounding. At
+    `N=100` it was `r_cut = 4.800`'
+  discriminates: did card §9's truncation error actually shrink
   competing_value: null
 - quantity: beta_u_at_rcut__A1__N256
   value: 0.0022
   tolerance: ±0.0005
-  basis: '`r_cut = 0.98·L/2 − buffer`, `L* = √256 = 16` → `r_cut = 7.740`. `βU(r_cut) = 1/7.740³`. 결정론적이므로
-    오차는 반올림뿐이다. `N=100` 에서는 `r_cut = 4.800` 이었다'
-  discriminates: 카드 §9 의 절단오차가 실제로 줄었는가
+  basis: '`r_cut = 0.98·L/2 − buffer`, `L* = √256 = 16` → `r_cut = 7.740`.
+    `βU(r_cut) = 1/7.740³`. Deterministic, so the only error is rounding. At
+    `N=100` it was `r_cut = 4.800`'
+  discriminates: did card §9's truncation error actually shrink
   competing_value: null
 - quantity: beta_u_at_rcut__A10__N256
   value: 0.0216
   tolerance: ±0.0005
-  basis: '`r_cut = 0.98·L/2 − buffer`, `L* = √256 = 16` → `r_cut = 7.740`. `βU(r_cut) = 10/7.740³`. 결정론적이므로
-    오차는 반올림뿐이다. `N=100` 에서는 `r_cut = 4.800` 이었다'
-  discriminates: 카드 §9 의 절단오차가 실제로 줄었는가
+  basis: '`r_cut = 0.98·L/2 − buffer`, `L* = √256 = 16` → `r_cut = 7.740`.
+    `βU(r_cut) = 10/7.740³`. Deterministic, so the only error is rounding. At
+    `N=100` it was `r_cut = 4.800`'
+  discriminates: did card §9's truncation error actually shrink
   competing_value: null
 - quantity: coord_kinds_aggregate__A10__N256
   value: 3
   tolerance: ±0
-  basis: '`N=100` 집계에서 3종. **집계 추정량**을 쓴다 — 프레임별 문턱은 `N` 에 의존한다 (입자 1개가 `N=100` 에서 1 %, `N=256` 에서 0.39
-    %). 근거: findings/fraction-threshold-flips-meaning-*.md'
-  discriminates: 결함의 성격이 N 에 무관한가
+  basis: '3 kinds in the `N=100` aggregate. The **aggregate estimator** is used --
+    a per-frame threshold depends on `N` (one particle is 1 % at `N=100` and 0.39 %
+    at `N=256`). Basis: findings/fraction-threshold-flips-meaning-*.md'
+  discriminates: is the character of the defects independent of N
   competing_value: null
 regimes:
   n_ref: 100
@@ -139,7 +155,7 @@ regimes:
   L_star_ref: 10.0
   L_star_new: 16.0
   coverage: 0.08726646259971647
-  note_coverage: ★ 커버리지는 N 에 무관하다 (n* = 1 이라 입자당 면적이 정확히 d²). 상자만 √N 으로 커진다 — L = 150 → 240 µm
+  note_coverage: ★ The coverage is independent of N (n* = 1, so the area per particle is exactly d²). Only the box grows as √N — L = 150 → 240 µm
   L_si_ref: 0.00015000000000000001
   L_si_new: 0.00024000000000000003
   tau_d_si: 2292.427238845818
@@ -147,12 +163,17 @@ regimes:
   exponent_hexatic_boundary: 0.0625
   eta6_hexatic_boundary: 0.25
 alternatives:
-- '★ 가장 중요한 경쟁 가설: A=10 의 ψ₆ = 0.248 이 **유한크기 바닥**일 가능성. p ≈ 0.5 가 나오면 카드 §8.3 의 ''hexatic-유사'' 판독을 약화시켜야
-  한다 — 0.248 은 그저 N=100 의 바닥이었다는 뜻이 된다.'
-- '두 점으로는 멱함수 **형태**를 검증할 수 없다. 지수만 뽑는 것이고, 그 한계를 psi6_finite_size_exponent 의 n_points 가 나른다. 형태를 논하려면
-  셋 이상(예: N=64·144·400)이 필요하다.'
-- A=0.1 과 A=1 은 p ≈ 0.5 가 나와야 정상이다 (깊은 액체). 만약 그것도 작게 나오면 지수 추정 자체가 틀린 것이므로 **A ≤ 1 이 대조군 역할**을 한다.
-- 에너지/입자는 N 사이에서 직접 비교할 수 없다 — power_law_table 이 U(r_cut) = 0 으로 이동시키므로 r_cut 이 바뀌면 이동량도 바뀐다. 기록은 하되 예측
-  항목으로 세우지 않았다.
-- 커버리지 대조군(3.71 %)은 **돌리지 않는다.** 축약 config 가 비트 단위로 같아서 산술 항등식이다 — tests/test_s7_structure.py::test_coverage_does_not_touch_the_reduced_config_at_all
-  로 고정했다.
+- '★ The most important competing hypothesis: that ψ₆ = 0.248 at A=10 is the
+  **finite-size floor**. If p ≈ 0.5 comes out, card §8.3''s ''hexatic-like'' reading
+  has to be weakened -- it would mean 0.248 was merely the floor at N=100.'
+- 'Two points cannot verify the power-law **form**. Only the exponent is extracted,
+  and that limit is carried by psi6_finite_size_exponent''s n_points. Discussing the
+  form needs three or more (N=64, 144, 400, say).'
+- A=0.1 and A=1 should give p ≈ 0.5 (they are deep liquids). If those come out small
+  too, the exponent estimate itself is wrong -- so **A ≤ 1 serves as the control.**
+- Energy per particle cannot be compared directly between N values -- power_law_table
+  shifts U(r_cut) to 0, so changing r_cut changes the shift. It is recorded but not
+  raised as a prediction item.
+- The coverage control (3.71 %) is **not run.** The reduced config is bit-identical,
+  so it is an arithmetic identity -- pinned by
+  tests/test_s7_structure.py::test_coverage_does_not_touch_the_reduced_config_at_all.
