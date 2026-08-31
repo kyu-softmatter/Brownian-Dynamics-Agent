@@ -1,667 +1,668 @@
 # Simulation Bot — Master Plan
 
-> Brownian Dynamics 시뮬레이션 에이전트. 손그림 한 장에서 검증된 결론까지.
+> A Brownian Dynamics simulation agent. From one hand drawing to a verified conclusion.
 >
-> 상태: **설계 확정 v0.1 / 결정론 코어 완성 / 첫 물리 캠페인 완주** · 최종 수정 2026-07-30
+> Status: **design settled v0.1 / the deterministic core complete / the first physics campaign run to the end** · last modified 2026-07-30
 >
-> **규모** 커밋 28 · `simbot` 19 모듈 · `scripts` 18 · 테스트 **562** ·
-> systems 카드 11 · findings 23 · 프로덕션 런 **3,856** (배치 wall 85 분)
+> **Scale** commits 28 · `simbot` 19 modules · `scripts` 18 · tests **562** ·
+> systems cards 11 · findings 23 · production runs **3,856** (batch wall 85 min)
 
 ---
 
-## 진행상황 대시보드
+## The progress dashboard
 
-**표기 규약** — `[O]` 완료·검증됨 · `[~]` 진행중 · `[X]` 미착수 · `[-]` 이번 버전 비범위
-> 이 대시보드가 진행상황의 단일 진실 원천이다. 작업을 마치면 **코드보다 먼저 여기를 갱신**한다.
+**Notation convention** — `[O]` done and verified · `[~]` in progress · `[X]` not started · `[-]` out of scope for this version
+> This dashboard is the single source of truth for progress. When work finishes, **update here before the code**.
 
-### 마일스톤
-| | 마일스톤 | 상태 |
+### Milestones
+| | Milestone | Status |
 |---|---|---|
-| `[O]` | **M0** 골격 (env·디렉터리·문서·knowledge·테스트) | 완료 |
-| `[O]` | **M1+M2** 수직 슬라이스 — **손그림으로 S1→S8 전체 관통** | **완료.** 자유확산 대신 조화 트랩으로. 예측 9개 중 7 PASS / 2 INCONCLUSIVE / **0 FAIL** · 16런 wall **10.6 s** |
-| `[O]` | **M2.5** 결정론 코어 — **관통을 코드로 재현 가능하게** | **완료 (2026-07-28).** `spec` `nondim` `io` `validate` `report` `policy` `session` `viz` + `cli.py`. 손그림 관통이 `cli.py run` 한 줄로 재현된다 (**2.3 s**, 첫 런과 비트 일치) |
-| `[O]` | **M2.7** L1 에이전트 층 (`.claude/`) | **완료 (2026-07-28).** 스킬 3 + 참조문서 5 + 서브에이전트 9 + `settings.json`. 구조를 `test_agent_layer.py` (64개) 가 감시한다 |
-| `[~]` | **M3** 물리 도메인 A→D 확장 | 트랩 분기 + **2D 소프트 반발계 완주** (§4.1). 도메인 B·C·D 는 카드만 |
-| `[O]` | **M4** 검증 강화 | **완료 (2026-07-29).** dt래더·시드앙상블·자기일관성·판별력·`converge` + **부트스트랩·유한크기 스캔·설계검정력 사전계산·순차 사전등록** |
-| `[O]` | **M4.5** 첫 물리 캠페인 — **소프트 반발 2D** | **완료 (2026-07-29~30).** 6 런 · 3,856 프로덕션 런. 카드가 `draft` → 벤치마크 31개. §4.1 |
-| `[X]` | **M5** 인풋 모달리티 확장 | 손그림 완료 → 다음은 실험 데이터 대조 (A2 를 닫으려면 필요) |
+| `[O]` | **M0** the skeleton (env · directories · documents · knowledge · tests) | done |
+| `[O]` | **M1+M2** the vertical slice — **S1→S8 all the way through, from a hand drawing** | **done.** With a harmonic trap instead of free diffusion. Of 9 predictions, 7 PASS / 2 INCONCLUSIVE / **0 FAIL** · 16 runs, wall **10.6 s** |
+| `[O]` | **M2.5** the deterministic core — **making the run reproducible in code** | **done (2026-07-28).** `spec` `nondim` `io` `validate` `report` `policy` `session` `viz` + `cli.py`. The hand-drawing run reproduces with one line, `cli.py run` (**2.3 s**, bit-identical to the first run) |
+| `[O]` | **M2.7** the L1 agent layer (`.claude/`) | **done (2026-07-28).** 3 skills + 5 reference documents + 9 subagents + `settings.json`. The structure is watched by `test_agent_layer.py` (64 tests) |
+| `[~]` | **M3** extending the physics domains A→D | the trap branch + **the 2D soft-repulsive system run to the end** (§4.1). Domains B, C and D have cards only |
+| `[O]` | **M4** strengthening verification | **done (2026-07-29).** the dt ladder · the seed ensemble · self-consistency · discriminating power · `converge` + **bootstrap · a finite-size scan · pre-computed design power · sequential pre-registration** |
+| `[O]` | **M4.5** the first physics campaign — **soft repulsion in 2D** | **done (2026-07-29~30).** 6 runs · 3,856 production runs. The card went `draft` → 31 benchmarks. §4.1 |
+| `[X]` | **M5** extending the input modalities | hand drawings done → next is comparison against experimental data (needed to close A2) |
 
-### 첫 완주 결과 (run `2026-07-28_trap-2d-5um_2dfb9d`)
+### The result of the first full run (run `2026-07-28_trap-2d-5um_2dfb9d`)
 | | |
 |---|---|
-| 입력 | 손그림 1장 (2D 광집게, `R=5 μm`, `k=10 pN/μm`, `T=300 K`) |
-| 확정 답 | `⟨x²⟩ = 416.58 ± 1.85 nm²` · `τ_trap = 8.0567 ± 0.0300 ms` · `f_c = 19.7 Hz` |
-| 최고 정밀도 | `τ_fit/τ = 0.9998 ± 0.0008` (**0.08 %**) · MSD `R² = 0.99998` |
-| 총 계산 | **10.6 s** (16런, 동시 8) |
-| 잡힌 오류 | 4건 — S0 지식 수치 · S3 절단 solver · S5 GC detach · **S7 상관표본 KS 거짓기각** |
+| input | 1 hand drawing (2D optical tweezers, `R=5 μm`, `k=10 pN/μm`, `T=300 K`) |
+| the settled answer | `⟨x²⟩ = 416.58 ± 1.85 nm²` · `τ_trap = 8.0567 ± 0.0300 ms` · `f_c = 19.7 Hz` |
+| the highest precision | `τ_fit/τ = 0.9998 ± 0.0008` (**0.08 %**) · MSD `R² = 0.99998` |
+| total computation | **10.6 s** (16 runs, 8 concurrent) |
+| errors caught | 4 — an S0 knowledge value · the S3 truncation solver · an S5 GC detach · **an S7 correlated-sample KS false rejection** |
 
-### M0 세부
-| | 항목 | 비고 |
+### M0 details
+| | Item | Notes |
 |---|---|---|
-| `[O]` | `simulation_bot` conda env 생성 | python 3.12 · hoomd 7.1.0 · gsd 5.0.1 · numpy · scipy |
-| `[O]` | 로컬 CPU 병렬성 검토 + 최적 코어 수 실측 | §7.3 · `wiki/findings/local-cpu-parallelism.md` |
-| `[O]` | `master_plan.md` | 이 문서 |
-| `[O]` | 진행상황 대시보드 | 이 절 |
-| `[O]` | `config/run_policy.yaml` — 최적 조건 제안 + 사람 override | §7.4 |
-| `[O]` | **`knowledge/` — BD_agent에서 이식** | §10. `source/papers` 42편 · `wiki/{systems 11, findings 23, benchmarks 5, concepts 2}` (2026-07-30 현재) + `wiki/CLAUDE.md` 계약 |
-| `[O]` | `CLAUDE.md` 프로젝트 규약 | 제1원칙(제안하되 모르면 묻는다) 중심 |
-| `[O]` | 감도 분석 설계 (S7b) | §11 |
-| `[O]` | 모델 티어링 설계 | §12 |
-| `[O]` | 첫 예시 인풋 저장 | `inputs/trap-2d-5um/sketch_01.jpeg` + sha256 |
-| `[O]` | `environment.yml` + `wiki/techniques/env-log.md` | §7.1. HOOMD 7.1 호환 최신 11개 패키지 |
-| `[O]` | `passive-sphere--harmonic-trap` 카드 | 첫 예시 그림의 (계×동역학) 쌍 |
-| `[O]` | CLI·세션 층 범위 결정 | **전장 채택** (세션 + converge + params) |
-| `[O]` | git 초기화 + 초기 커밋 | `4ac2a53`, 78파일. BD_agent와 독립. 현재 커밋 28개 |
-| `[O]` | **S1 판독 + S2 예측 (첫 손그림)** | `runs/2026-07-28_trap-2d-5um_2dfb9d/` |
-| `[O]` | `simbot/` 4개 모듈 | `units` `estimators` `forces` `guards` — 전부 테스트됨 |
-| `[O]` | **테스트 스위트 (단계별)** | **562 통과 / 1 skip / 94 s.** `pytest -m "not slow"` 는 14 s |
-| `[O]` | HOOMD 스킴 실측 판정 | EM 확정 · 노이즈 균일분포 · 입자 독립 · 배위온도 |
-| `[O]` | **`simbot/` 결정론 코어** | `units` `estimators` `forces` `guards` `build` `run` `cutoff` `analysis/trap` `spec` `nondim` `io` `validate` `report` `policy` `session` `viz` — **16 모듈, 전부 테스트됨** |
-| `[O]` | **`cli.py`** | `run` `resume` `converge` `params` `calibrate` 전부 동작 확인 |
-| `[O]` | **`examples/trap-2d-5um/`** | 기계가 읽는 `spec.yaml` + `prediction.yaml`. 손으로 쓴 첫 런의 파생값 10개를 재현 |
-| `[O]` | **`.claude/` 에이전트 층** | 스킬 3 · 참조문서 5 · 서브에이전트 9 · `settings.json`. §12.3 |
-| `[O]` | **`simbot/viz.py`** | 그림 5장 자동 생성. **캡션·`shows` 를 생성 시점에 강제**, 건너뛴 그림에 이유 필수 |
-| `[~]` | `simbot/analysis/` | `trap` `structure` **완료** (`structure` 는 캠페인이 열었다 — RDF·`ψ₆`·Voronoi·`S(k)`·시간분해·유한크기·부트스트랩, 테스트 37). 남음: `msd` `microrheo` `active` `equilibration` — **계가 생길 때.** 이 원칙이 옳았다: `structure` 는 검증 런이 생기고 나서 만들었고 그래서 버그 3개를 테스트가 잡았다 |
+| `[O]` | create the `simulation_bot` conda env | python 3.12 · hoomd 7.1.0 · gsd 5.0.1 · numpy · scipy |
+| `[O]` | review local CPU parallelism + measure the optimal core count | §7.3 · `wiki/findings/local-cpu-parallelism.md` |
+| `[O]` | `master_plan.md` | this document |
+| `[O]` | the progress dashboard | this section |
+| `[O]` | `config/run_policy.yaml` — propose the optimal conditions + a human override | §7.4 |
+| `[O]` | **`knowledge/` — ported from BD_agent** | §10. `source/papers` 42 papers · `wiki/{systems 11, findings 23, benchmarks 5, concepts 2}` (as of 2026-07-30) + the `wiki/CLAUDE.md` contract |
+| `[O]` | the `CLAUDE.md` project conventions | centred on the first principle (propose, but ask when you do not know) |
+| `[O]` | the sensitivity-analysis design (S7b) | §11 |
+| `[O]` | the model-tiering design | §12 |
+| `[O]` | store the first example input | `inputs/trap-2d-5um/sketch_01.jpeg` + sha256 |
+| `[O]` | `environment.yml` + `wiki/techniques/env-log.md` | §7.1. The 11 latest packages compatible with HOOMD 7.1 |
+| `[O]` | the `passive-sphere--harmonic-trap` card | the (system × dynamics) pair of the first example drawing |
+| `[O]` | decide the scope of the CLI and session layers | **adopted in full** (session + converge + params) |
+| `[O]` | git init + the initial commit | `4ac2a53`, 78 files. Independent of BD_agent. Currently 28 commits |
+| `[O]` | **S1 reading + S2 prediction (the first hand drawing)** | `runs/2026-07-28_trap-2d-5um_2dfb9d/` |
+| `[O]` | 4 `simbot/` modules | `units` `estimators` `forces` `guards` — all tested |
+| `[O]` | **the test suite (per stage)** | **562 passing / 1 skip / 94 s.** `pytest -m "not slow"` is 14 s |
+| `[O]` | measure and settle the HOOMD scheme | EM settled · the noise is uniformly distributed · the particles are independent · the configurational temperature |
+| `[O]` | **the `simbot/` deterministic core** | `units` `estimators` `forces` `guards` `build` `run` `cutoff` `analysis/trap` `spec` `nondim` `io` `validate` `report` `policy` `session` `viz` — **16 modules, all tested** |
+| `[O]` | **`cli.py`** | `run` `resume` `converge` `params` `calibrate`, all confirmed working |
+| `[O]` | **`examples/trap-2d-5um/`** | a machine-readable `spec.yaml` + `prediction.yaml`. Reproduces the 10 derived values of the hand-written first run |
+| `[O]` | **the `.claude/` agent layer** | 3 skills · 5 reference documents · 9 subagents · `settings.json`. §12.3 |
+| `[O]` | **`simbot/viz.py`** | 5 figures generated automatically. **The caption and `shows` are forced at generation time**, and a skipped figure requires a reason |
+| `[~]` | `simbot/analysis/` | `trap` and `structure` **done** (`structure` was opened by the campaign — RDF, `ψ₆`, Voronoi, `S(k)`, time-resolved, finite-size, bootstrap; 37 tests). Remaining: `msd` `microrheo` `active` `equilibration` — **when the system appears.** This principle was right: `structure` was made after the verification runs existed, and so the tests caught 3 bugs |
 
-### 테스트 현황 — **562 통과 / 1 skip / 94 s** (`-m "not slow"` 는 14 s)
-| 파일 | 대상 | 개수 |
+### Test status — **562 passing / 1 skip / 94 s** (`-m "not slow"` is 14 s)
+| File | Target | Count |
 |---|---|---|
-| `test_s0_units.py` | 단위·상수·척도 왕복 | 28 |
-| `test_s2_estimators.py` | 해석해 항등식·극한·비용모델 | 32 |
-| `test_s3_cutoff.py` | `r_cut` 제안 (WCA/LJ/Yukawa/Morse) | 36 |
-| `test_s3_spec.py` | provenance·게이트·파생값 회귀·YAML 왕복 | 47 |
-| `test_s4_nondim.py` | 카드 척도·왕복<1e-12·dt 제약·정책 | 55 |
-| `test_s5_forces.py` | `HarmonicTrap` 힘/에너지/수치미분 | 9 (1 skip) |
-| `test_s5_guards.py` | 배위온도 + 가드 발동 | 15 |
-| `test_s5_scheme.py` | B1·B2·B5·B7·B9 + 재현성 | 8 |
-| **`test_s6_viz.py`** | **캡션 강제**·이중축·건너뛴 이유·독립 프레임 | **34** |
-| **`test_s5_pair.py`** | **쌍 상호작용 러너**·상자 모양·Table 포텐셜 | **42** |
-| **`test_s7_structure.py`** | **시간분해·유한크기 지수·부트스트랩·상 판독** | **37** |
-| `test_s7_validate.py` | tolerance 파싱·판정·검정력·봉인 | 53 |
-| `test_s8_io.py` | 해시·run 디렉터리·**봉인**·provenance | 31 |
-| `test_s8_report.py` | REPORT.md — 나쁜 소식이 빠지지 않는가 | 33 |
-| `test_cli_session.py` | 세션 append-only·예산 게이트·`session run`·전체 관통 | 54 |
-| **`test_agent_layer.py`** | **`.claude/` 구조** — frontmatter·링크·티어링·권한 | **64** |
+| `test_s0_units.py` | units, constants, the scale round trip | 28 |
+| `test_s2_estimators.py` | analytic identities, limits, the cost model | 32 |
+| `test_s3_cutoff.py` | the `r_cut` proposal (WCA/LJ/Yukawa/Morse) | 36 |
+| `test_s3_spec.py` | provenance, gates, derived-value regression, the YAML round trip | 47 |
+| `test_s4_nondim.py` | the card scales, the round trip <1e-12, the dt constraints, the policy | 55 |
+| `test_s5_forces.py` | `HarmonicTrap` force/energy/numerical derivative | 9 (1 skip) |
+| `test_s5_guards.py` | the configurational temperature + guard firing | 15 |
+| `test_s5_scheme.py` | B1 · B2 · B5 · B7 · B9 + reproducibility | 8 |
+| **`test_s6_viz.py`** | **caption enforcement** · the twin axis · the skip reason · independent frames | **34** |
+| **`test_s5_pair.py`** | **the pair-interaction runner** · the box shape · the Table potential | **42** |
+| **`test_s7_structure.py`** | **time-resolved · the finite-size exponent · bootstrap · the phase reading** | **37** |
+| `test_s7_validate.py` | tolerance parsing, the verdict, the power, the seal | 53 |
+| `test_s8_io.py` | the hash, the run directory, **the seal**, provenance | 31 |
+| `test_s8_report.py` | REPORT.md — does the bad news not fall out | 33 |
+| `test_cli_session.py` | the session being append-only, the budget gate, `session run`, the full run | 54 |
+| **`test_agent_layer.py`** | **the `.claude/` structure** — frontmatter, links, tiering, permissions | **64** |
 
-### 파이프라인 단계 구현 (§2)
-| | 단계 | 코어 모듈 | 상태 |
+### The pipeline stage implementation (§2)
+| | Stage | Core module | Status |
 |---|---|---|---|
-| `[O]` | S1 Intake | — (LLM) | 프로토콜: `.claude/skills/bd-pipeline/references/s1_intake_drawing.md` |
-| `[O]` | S2 Predict | `estimators.py` · `spec.Prediction` | 예측 YAML + 봉인. 9항목 예시 |
-| `[O]` | S3 Specify | `spec.py` `units.py` `cutoff.py` | provenance 강제 · 게이트 선언 · 파생값 재계산 대조 |
-| `[O]` | S4 Nondim | `nondim.py` `policy.py` | 카드별 척도 · 왕복 `1.6e-16` · dt 4제약 |
-| `[O]` | S5 Run | `build.py` `forces.py` `run.py` `guards.py` | 배치 동시 실행 + 실패 런 기록 |
-| `[O]` | S6 Visualize | `viz.py` | 그림 5장 + `06_figures.md`. 캡션 없는 그림은 **만들 수 없다** |
-| `[O]` | S7 Validate | `analysis/trap.py` `validate.py` | PASS/FAIL/**INCONCLUSIVE** + 설계 검정력 |
-| `[O]` | S8 Conclude | `report.py` `io.py` | `REPORT.md` 자동 생성. 결론 **서술**은 에이전트 |
+| `[O]` | S1 Intake | — (LLM) | the protocol: `.claude/skills/bd-pipeline/references/s1_intake_drawing.md` |
+| `[O]` | S2 Predict | `estimators.py` · `spec.Prediction` | the prediction YAML + the seal. A 9-item example |
+| `[O]` | S3 Specify | `spec.py` `units.py` `cutoff.py` | provenance enforced · gates declared · derived values recomputed and compared |
+| `[O]` | S4 Nondim | `nondim.py` `policy.py` | the scales per card · the round trip `1.6e-16` · 4 dt constraints |
+| `[O]` | S5 Run | `build.py` `forces.py` `run.py` `guards.py` | concurrent batch execution + recording failed runs |
+| `[O]` | S6 Visualize | `viz.py` | 5 figures + `06_figures.md`. A figure with no caption **cannot be made** |
+| `[O]` | S7 Validate | `analysis/trap.py` `validate.py` | PASS/FAIL/**INCONCLUSIVE** + the design power |
+| `[O]` | S8 Conclude | `report.py` `io.py` | `REPORT.md` generated automatically. **Narrating** the conclusion is the agent |
 
-### 물리 도메인 (§4)
-| | 도메인 | 참조 케이스 | 회귀 기준 | 상태 |
+### The physics domains (§4)
+| | Domain | Reference case | Regression criterion | Status |
 |---|---|---|---|---|
-| `[~]` | **A** 자유·구속 BD | `examples/trap-2d-5um/` | 등분배 `⟨x²⟩=kT/k` | **구속 분기만.** ★ **자유확산 `D*=1.00±0.03` 이 아직 없다** (Q9) |
-| `[X]` | **B** 미세유변학 | — | 뉴턴유체 극한 `G''=ηω` | 카드 없음 |
-| `[X]` | **C** 활성물질 (ABP) | — | ABP MSD 해석식 | 카드 `draft`, 척도 규칙 미구현 |
-| `[X]` | **D** 응집 콜로이드 | — | `B₂` vs `βU_min` | 카드 없음 |
-| `[O]` | **E** **2D 소프트 반발 `A/r³`** ★신규 | `runs/2026-07-29_soft-r3-*` (6런) | 완벽격자 `ψ₆=1`·액체 지수 `p=1/2` | **가장 발전된 도메인.** 벤치마크 31개 · §4.1 |
+| `[~]` | **A** free and confined BD | `examples/trap-2d-5um/` | equipartition `⟨x²⟩=kT/k` | **the confined branch only.** ★ **free diffusion `D*=1.00±0.03` is still missing** (Q9) |
+| `[X]` | **B** microrheology | — | the Newtonian-fluid limit `G''=ηω` | no card |
+| `[X]` | **C** active matter (ABP) | — | the ABP MSD analytic expression | the card is `draft`, the scale rules are unimplemented |
+| `[X]` | **D** aggregating colloids | — | `B₂` vs `βU_min` | no card |
+| `[O]` | **E** **2D soft repulsion `A/r³`** ★new | `runs/2026-07-29_soft-r3-*` (6 runs) | a perfect lattice `ψ₆=1` · the liquid exponent `p=1/2` | **the most developed domain.** 31 benchmarks · §4.1 |
 
-> ★ **도메인 E 가 이 저장소 최대 지식체다** — 6런 · 3,856 프로덕션 런 ·
-> 벤치마크 31개 · 방법론 finding 6개. 전문은 **§4.1**.
+> ★ **Domain E is this repository's largest body of knowledge** — 6 runs · 3,856 production runs ·
+> 31 benchmarks · 6 methodology findings. The full text is in **§4.1**.
 
-> ★ **도메인 A 의 기본 검증이 비어 있다.** 트랩 분기는 등분배·완화시간·EM 편향까지
-> 검증됐지만, **자유확산 `D* = 1`** 은 한 번도 측정하지 않았다. M1 의 원래 DoD 였고
-> 손그림이 트랩이어서 건너뛰었다 (§8). 그 결과:
-> - `CARD_SCALE_RULES` 의 `brownian` 경로(`σ`, `τ_D`)가 **end-to-end 로 실행된 적 없다**
-> - `dt` **변위 게이트가 실제로 구속한 런이 0건**이다 (트랩 계에서는 꺼진다)
-> - `analysis/msd.py` 를 만들 검증 대상이 없다
+> ★ **Domain A's basic verification is empty.** The trap branch is verified down to equipartition, the relaxation
+> time and the EM bias, but **free diffusion `D* = 1`** has never once been measured. It was M1's original DoD and
+> was skipped because the hand drawing was a trap (§8). As a result:
+> - the `brownian` route (`σ`, `τ_D`) of `CARD_SCALE_RULES` **has never been executed end to end**
+> - **the `dt` displacement gate has bound 0 runs** (it is off in a trap system)
+> - there is no verification target from which to build `analysis/msd.py`
 >
-> **정정 (2026-07-28, 위 3항 재검증):** 둘째 항은 **파이프라인에 한해서만** 참이다.
-> `scripts/chain_bend.py:113` 이 같은 임계값(`0.03`/`0.005`)을 재구현한 경로에서
-> 변위 게이트가 **이미 구속했다** — `runs/chain-bend/smoke/batch.json`:
+> **Correction (2026-07-28, the 3 items above re-verified):** the second item is true **only as far as the pipeline goes**.
+> On the route where `scripts/chain_bend.py:113` re-implements the same thresholds (`0.03`/`0.005`),
+> the displacement gate **has already bound** — `runs/chain-bend/smoke/batch.json`:
 > `binding: "force"`, `dt_force = 4.82e-6` vs `dt_diffusion = 4.5e-4`,
-> 실측 `max|F*| = 1037.7` (힘 제약이 `dt` 를 100배 줄였다).
-> ⇒ `simbot.nondim.choose_dt` 는 여전히 구속 0건이고, **게이트 로직이 두 곳에 복제됐다.**
-> 그리고 `choose_dt` 의 변위 제약은 `active=has_pair`, `has_pair = bool(spec.pair)` 인데
-> `SystemSpec` 에 bond·angle 필드가 없다 → **결합만 있는 계를 파이프라인에 올리면
-> 게이트가 조용히 꺼진다.** 위 실측이 바로 그 게이트가 필요한 계에서 나왔다.
-> (첫째·셋째 항은 재검증에서 그대로 참: `scales_brownian` 호출자는 `nondim.py:68` 과
-> `test_s0_units.py` 뿐 · `simbot/analysis/` 에는 `trap.py` 하나뿐)
+> measured `max|F*| = 1037.7` (the force constraint reduced `dt` 100-fold).
+> ⇒ `simbot.nondim.choose_dt` still has 0 bindings, and **the gate logic has been duplicated in two places.**
+> And `choose_dt`'s displacement constraint has `active=has_pair`, `has_pair = bool(spec.pair)`, while
+> `SystemSpec` has no bond or angle field → **put a bond-only system on the pipeline and the gate goes quietly off.**
+> The measurement above came out of exactly the system that gate is needed for.
+> (The first and third items remain true on re-verification: the callers of `scales_brownian` are only `nondim.py:68` and
+> `test_s0_units.py` · `simbot/analysis/` has only `trap.py`)
 
-### 인풋 모달리티 (§8 M5)
-| | 모달리티 | 상태 |
+### Input modalities (§8 M5)
+| | Modality | Status |
 |---|---|---|
-| `[O]` | **손그림 사진** ← v1 목표 | ✅ **완주.** 판독 프로토콜 + 실제 사용자 그림 1장 |
-| `[~]` | 텍스트 설명 | spec YAML 을 직접 쓰면 동작. 자연어 → spec 경로는 없음 |
-| `[X]` | 실험 화면/영상 | M5. **A2(`a` vs `R`)를 측정으로 닫으려면 필요** |
-| `[X]` | 논문 PDF | M5 (`bd-lit-distill` 이 증류는 한다) |
-| `[X]` | 음성 | M5 |
+| `[O]` | **a photo of a hand drawing** ← the v1 goal | ✅ **run to the end.** The reading protocol + 1 real user drawing |
+| `[~]` | a text description | it works if you write the spec YAML directly. There is no natural-language → spec route |
+| `[X]` | an experimental screen or video | M5. **Needed to close A2 (`a` vs `R`) by measurement** |
+| `[X]` | a paper PDF | M5 (`bd-lit-distill` does distil) |
+| `[X]` | voice | M5 |
 
-### 추가 제안 채택 여부 (§9) — 상세는 §9
-| | 제안 | 결정 |
+### Whether the additional proposals were adopted (§9) — the details are in §9
+| | Proposal | Decision |
 |---|---|---|
-| `[O]` | 1. git 초기화 | ✅ 커밋 28개 |
-| `[O]` | 2. **예측 봉인** | ✅ `io.py`. `shasum -c` 호환 · 깨지면 대조표를 만들지 않는다 |
-| `[X]` | 3. 파일럿 런 | 미구현. 정책에 `mandatory: true` 로 선언됐으나 `cli.py` 가 실행하지 않는다 |
-| `[O]` | 4. 단위 접미사 강제 (`_si`/`_star`) | ✅ `Quantity.si` 가 문자열·bool 거부 + 왕복 테스트 |
-| `[~]` | 5. 질문 예산 | 규약은 `CLAUDE.md`·스킬에. **코드 강제 장치는 없다** |
-| `[O]` | 6. **`bd-diagnose` 스킬** | ✅ `.claude/skills/bd-diagnose/` |
-| `[~]` | 7. 파라미터 스윕 (`sweep: [...]`) | **`spec.yaml` 에는 아직 없다.** 그러나 `scripts/soft2d_*.py` 6개가 `A`·`N`·시드 스윕을 실제로 돌렸다 (3,856 런) — **패턴이 확립됐으므로 이제 일반화할 재료가 있다** |
-| `[~]` | 8. run 캐시 | 재료는 있다 (`spec.hash()`, `completed_stages()`). **`spec_hash` 조회는 없다** |
-| `[X]` | 9. HTML 리포트 | 미구현. 그림이 생겼으므로 이제 이득이 있다 |
-| `[X]` | 10. **손그림 작성 가이드** | 미작성. 첫 그림 모호성 2건 + **`soft-r3` 의 `r` 단위 공백** (Zahn 규약 `d = n^{-1/2}` 로 해석해야 `Γ = π^{3/2}A` 가 성립 — 다르게 읽으면 물리가 달라진다). 근거가 늘었다 |
-| `[-]` | 11. Langevin 폴백 | 검토 후 결정. `overdamped` 게이트가 위반을 잡고 권고만 한다 |
-| `[-]` | 12. HI 근사 (RPY) | v1 비범위 |
-| `[-]` | 13. 실험 데이터 직접 대조 | 검토 후 결정. A2 를 닫으려면 필요 |
+| `[O]` | 1. git init | ✅ 28 commits |
+| `[O]` | 2. **sealing the prediction** | ✅ `io.py`. `shasum -c` compatible · if it breaks, no comparison table gets made |
+| `[X]` | 3. a pilot run | unimplemented. Declared in the policy as `mandatory: true` but `cli.py` does not run it |
+| `[O]` | 4. enforcing the unit suffix (`_si`/`_star`) | ✅ `Quantity.si` rejects strings and bools + a round-trip test |
+| `[~]` | 5. a question budget | the convention is in `CLAUDE.md` and the skills. **There is no code enforcement** |
+| `[O]` | 6. the **`bd-diagnose` skill** | ✅ `.claude/skills/bd-diagnose/` |
+| `[~]` | 7. a parameter sweep (`sweep: [...]`) | **not in `spec.yaml` yet.** But the 6 `scripts/soft2d_*.py` actually ran `A`, `N` and seed sweeps (3,856 runs) — **the pattern is established, so there is now material to generalize** |
+| `[~]` | 8. a run cache | the material exists (`spec.hash()`, `completed_stages()`). **There is no `spec_hash` lookup** |
+| `[X]` | 9. an HTML report | unimplemented. Now that there are figures there is a benefit |
+| `[X]` | 10. **a hand-drawing guide** | unwritten. 2 ambiguities in the first drawing + **the blank unit of `r` in `soft-r3`** (it has to be read by the Zahn convention `d = n^{-1/2}` for `Γ = π^{3/2}A` to hold — read differently and the physics changes). The grounds have grown |
+| `[-]` | 11. a Langevin fallback | to be decided after review. The `overdamped` gate catches a violation and only advises |
+| `[-]` | 12. an HI approximation (RPY) | out of scope for v1 |
+| `[-]` | 13. direct comparison against experimental data | to be decided after review. Needed to close A2 |
 
 ---
 
-## 0. 목표와 범위
+## 0. The goal and the scope
 
-### 0.1 한 줄 정의
-사용자가 제공한 자료(v1: **손그림**)를 해석해 Brownian Dynamics 시뮬레이션을
-**설계 → 예측 → 실행 → 검증 → 결론**까지 자율 수행하고, 그 과정에서 얻은 판단 근거를
-지식 베이스에 축적하는 Claude Code 네이티브 에이전트.
+### 0.1 The one-line definition
+A Claude Code native agent that interprets material the user provides (v1: **a hand drawing**) and autonomously
+carries a Brownian Dynamics simulation from **design → prediction → execution → verification → conclusion**,
+accumulating the grounds for its judgments in a knowledge base along the way.
 
-### 0.2 확정된 설계 결정
-| 항목 | 결정 | 비고 |
+### 0.2 The settled design decisions
+| Item | Decision | Notes |
 |---|---|---|
-| 챗봇 런타임 | **Claude Code 네이티브** | 이 대화창이 곧 챗봇. API 키 불필요 |
-| 물리 엔진 | **HOOMD-Blue 7.1.0** | `md.methods.Brownian` (overdamped Langevin) |
-| 실행 환경 | **로컬 CPU 단독** | Apple Silicon, GPU 없음. N ≲ 10⁴ 스케일 |
-| conda env | **`simulation_bot`** (신규) | 패키지 단계적 적립, `knowledge/env_log.md`에 이력 |
-| v1 인풋 | **손그림 사진** | 이후 실험영상 → 논문 PDF → 음성 → 텍스트로 확장 |
-| 물리 도메인 | 4개 전부 (§4) | 자유/구속 BD · 미세유변학 · 활성물질 · 응집콜로이드 |
+| the chatbot runtime | **Claude Code native** | this conversation window is the chatbot. No API key needed |
+| the physics engine | **HOOMD-Blue 7.1.0** | `md.methods.Brownian` (overdamped Langevin) |
+| the execution environment | **local CPU alone** | Apple Silicon, no GPU. The N ≲ 10⁴ scale |
+| the conda env | **`simulation_bot`** (new) | packages accumulated in stages, with a history in `knowledge/env_log.md` |
+| the v1 input | **a photo of a hand drawing** | later extended to experimental video → paper PDFs → voice → text |
+| the physics domains | all 4 (§4) | free/confined BD · microrheology · active matter · aggregating colloids |
 
-### 0.3 명시적 비범위 (v1에서 안 함)
-- 유체동역학 상호작용(HI): Oseen/RPY/Stokesian dynamics **없음**. 자유배수(free-draining) 근사.
-  → 이 근사가 깨지는 조건은 `knowledge/models/no_hydrodynamics.md`에 명시.
-- GPU / MPI / 클러스터 제출
-- 반응(화학), 유동장 결합(CFD), 전자기 완전결합
+### 0.3 Explicit non-scope (not done in v1)
+- hydrodynamic interactions (HI): Oseen/RPY/Stokesian dynamics **absent**. The free-draining approximation.
+  → the conditions under which this approximation breaks are stated in `knowledge/models/no_hydrodynamics.md`.
+- GPU / MPI / cluster submission
+- reactions (chemistry), flow-field coupling (CFD), full electromagnetic coupling
 
-### 0.4 설계 원칙 (전 단계 관통)
-1. **에이전트는 판단하고, 코어는 계산한다.**
-   LLM이 숫자를 "머리로" 계산하는 일은 금지. 모든 수치는 `simbot/` 함수를 호출해서 얻는다.
-   LLM의 역할은 *어떤 모델을 쓸지, 어떤 값을 가정할지, 왜 그런지*를 결정하고 기록하는 것.
-2. **예측을 먼저 봉인한다.**
-   S2 예측 문서는 S5 실행 전에 해시로 봉인. 사후합리화(post-hoc rationalization)를 구조적으로 차단.
-3. **모든 숫자에 출처(provenance)가 있다.**
-   `from_drawing` / `from_paper` / `from_knowledge` / `assumed` / `derived` 중 하나.
-4. **단위를 타입으로 취급한다.**
-   변수명 접미사 `_si`(물리 단위) vs `_star`(무차원)를 강제. 혼용은 테스트로 잡는다.
-5. **실패도 산출물이다.**
-   폭발한 시뮬레이션, 틀린 예측, 잘못된 그림 해석 → 전부 `knowledge/failures/`에 기록.
-6. **재현성이 기본값이다.**
-   run 하나가 `spec + seed + env + 코드 해시`만으로 완전 복원 가능해야 한다.
+### 0.4 Design principles (running through every stage)
+1. **The agent judges, and the core computes.**
+   The LLM computing a number "in its head" is forbidden. Every number is obtained by calling a `simbot/` function.
+   The LLM's role is to decide and record *which model to use, what values to assume, and why*.
+2. **Seal the prediction first.**
+   The S2 prediction document is sealed with a hash before S5 execution. Post-hoc rationalization is blocked structurally.
+3. **Every number has a provenance.**
+   One of `from_drawing` / `from_paper` / `from_knowledge` / `assumed` / `derived`.
+4. **Treat units as a type.**
+   The variable-name suffixes `_si` (physical units) vs `_star` (dimensionless) are enforced. Mixing them is caught by tests.
+5. **Failures are outputs too.**
+   A simulation that exploded, a wrong prediction, a misread drawing → all recorded in `knowledge/failures/`.
+6. **Reproducibility is the default.**
+   One run has to be fully restorable from `spec + seed + env + code hash` alone.
 
 ---
 
-## 1. 시스템 아키텍처
+## 1. The system architecture
 
-### 1.1 4개 레이어
+### 1.1 The 4 layers
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ L1  에이전트 레이어 —  .claude/skills/ , CLAUDE.md            │
-│     Claude Code가 직접 수행. 해석·판단·리즈닝·질문·기록.       │
-│     결정론적 계산은 절대 하지 않고 L2를 호출한다.              │
+│ L1  the agent layer —  .claude/skills/ , CLAUDE.md            │
+│     Claude Code performs it directly. Interpretation, judgment, reasoning, questions, records. │
+│     It never does a deterministic computation; it calls L2.    │
 └───────────────┬──────────────────────────────────────────────┘
-                │ 호출 (python -m simbot.… / import)
+                │ calls (python -m simbot.… / import)
 ┌───────────────▼──────────────────────────────────────────────┐
-│ L2  결정적 코어 —  simbot/                                    │
-│     순수 Python. LLM 없음. pytest로 전수 검증.                │
-│     단위변환·무차원화·해석해·HOOMD 실행·분석·플롯·리포트.       │
+│ L2  the deterministic core —  simbot/                         │
+│     Pure Python. No LLM. Exhaustively verified by pytest.      │
+│     Unit conversion, non-dimensionalization, analytic solutions, HOOMD execution, analysis, plots, reports. │
 └───────────────┬──────────────────────────────────────────────┘
-                │ 읽기/쓰기
+                │ read/write
 ┌───────────────▼──────────────┐  ┌───────────────────────────┐
-│ L3  지식 레이어 — knowledge/  │  │ L4  산출물 — runs/<run_id>/│
-│     시스템 아키타입, 파라미터  │  │     단계별 아티팩트 전체,   │
-│     근거, 모델링 근거, 실패    │  │     궤적, 그림, 리포트.     │
-│     사례, 검증 벤치마크.       │  │     자기완결·재현가능.      │
-│     ← 누적, 버전관리 대상      │  │     ← .gitignore 대상      │
+│ L3  the knowledge layer — knowledge/ │  │ L4  outputs — runs/<run_id>/│
+│     System archetypes, parameter │  │     Every per-stage artifact, │
+│     grounds, modelling grounds, failure │  │     the trajectory, figures, the report. │
+│     cases, verification benchmarks. │  │     Self-contained, reproducible. │
+│     ← accumulated, under version control │  │     ← a .gitignore target │
 └──────────────────────────────┘  └───────────────────────────┘
 ```
 
-**L3가 이 프로젝트의 진짜 자산이다.** L2 코드는 다시 쓸 수 있지만,
-"왜 이 물질에 η=1.2 mPa·s를 썼는가", "왜 dt=5e-5에서 터졌는가"는 축적하지 않으면 사라진다.
+**L3 is this project's real asset.** The L2 code can be rewritten, but
+"why was η=1.2 mPa·s used for this material", "why did it blow up at dt=5e-5" disappear unless accumulated.
 
-### 1.2 디렉터리 구조
+### 1.2 The directory structure
 
-> 표기: `[O]` 존재하고 테스트됨 · `[X]` 계획만 · `[~]` 부분 구현
-> (2026-07-28 실측. 이 절은 실제 트리와 일치해야 한다 — 어긋나면 설계 문서가 아니라 소설이다)
+> Notation: `[O]` exists and is tested · `[X]` planned only · `[~]` partially implemented
+> (measured 2026-07-28. This section has to match the actual tree — if it does not, it is not a design document but fiction)
 
 ```
 Simulation_bot/
-├── master_plan.md            [O] 이 문서. 전체 설계의 단일 진실 원천
-├── CLAUDE.md                 [O] 에이전트가 매 세션 읽는 프로젝트 규약
-├── environment.yml           [O] simulation_bot env 재현
-├── pyproject.toml            [O] pytest 설정 (마커·경로)
+├── master_plan.md            [O] this document. The single source of truth for the whole design
+├── CLAUDE.md                 [O] the project conventions the agent reads every session
+├── environment.yml           [O] simulation_bot env reproduction
+├── pyproject.toml            [O] pytest configuration (markers, paths)
 ├── cli.py                    [O] run · resume · converge · params · calibrate
-├── README.md                 [X] 사람용 사용법 — 아직 없다
+├── README.md                 [X] usage for humans — not there yet
 │
-├── .claude/                  [O] L1 에이전트 층. §12.3–12.4
-│   ├── README.md                 [O] 구성 + 티어링 표 + Q6 결정 근거
+├── .claude/                  [O] L1 agent layer. §12.3–12.4
+│   ├── README.md                 [O] the composition + the tiering table + the Q6 decision grounds
 │   ├── skills/
-│   │   ├── bd-pipeline/          [O] [메인] S1→S8 오케스트레이터
-│   │   │   ├── SKILL.md              단계·게이트·금지사항 체크리스트
+│   │   ├── bd-pipeline/          [O] [main] the S1→S8 orchestrator
+│   │   │   ├── SKILL.md              stages, gates, a checklist of prohibitions
 │   │   │   └── references/       [O] s1_intake_drawing ★ · s2_prediction
 │   │   │                             s3_s5_execute · s6_s7_validate · s8_knowledge
-│   │   ├── bd-diagnose/          [O] 터진 런 진단 (배제 순서)
-│   │   └── bd-knowledge/         [O] knowledge/ 검색·추가·정리
-│   ├── agents/                   [O] 서브에이전트 9개. model: frontmatter 로 티어링
-│   └── settings.json             [O] 인터프리터 허용 + **봉인 문서 편집 거부**
+│   │   ├── bd-diagnose/          [O] diagnosing a blown-up run (the exclusion order)
+│   │   └── bd-knowledge/         [O] knowledge/ search, add, tidy
+│   ├── agents/                   [O] 9 subagents. Tiered by the model: frontmatter
+│   └── settings.json             [O] interpreter allow-list + **refusing to edit a sealed document**
 │
-├── simbot/                   ← L2 결정적 코어. LLM 0줄
-│   ├── units.py              [O] 물리상수, Scales, 카드별 척도 팩토리
-│   ├── spec.py               [O] Quantity/SystemSpec/Prediction + 게이트 검사
-│   ├── nondim.py             [O] 카드별 무차원화, 무차원수, dt 4제약
-│   ├── policy.py             [O] run_policy.yaml 로더 + overrides 깊은 병합
-│   ├── estimators.py         [O] 해석해·스케일링 (S2 예측 엔진)
-│   ├── cutoff.py             [O] r_cut 제안 (WCA/LJ/Yukawa/Morse)
-│   ├── build.py              [~] 트랩 스냅샷만. 겹침 제거는 아직 없음
-│   ├── forces.py             [~] HarmonicTrap (md.force.Custom) 만
-│   ├── run.py                [O] 트랩 BD 러너 + 배치 동시 실행
-│   ├── guards.py             [O] NaN/변위/배위온도/요동 검사
+├── simbot/                   ← L2 deterministic core. 0 lines of LLM
+│   ├── units.py              [O] physical constants, Scales, the per-card scale factory
+│   ├── spec.py               [O] Quantity/SystemSpec/Prediction + the gate checks
+│   ├── nondim.py             [O] per-card non-dimensionalization, dimensionless numbers, the 4 dt constraints
+│   ├── policy.py             [O] run_policy.yaml loader + a deep merge of overrides
+│   ├── estimators.py         [O] analytic solutions and scalings (the S2 prediction engine)
+│   ├── cutoff.py             [O] r_cut proposal (WCA/LJ/Yukawa/Morse)
+│   ├── build.py              [~] the trap snapshot only. Overlap removal is not there yet
+│   ├── forces.py             [~] HarmonicTrap (md.force.Custom) only
+│   ├── run.py                [O] the trap BD runner + concurrent batch execution
+│   ├── guards.py             [O] NaN/displacement/configurational-temperature/fluctuation checks
 │   ├── analysis/
-│   │   ├── trap.py           [O] MSD 피팅, 시드 집계, 분포 검정
-│   │   ├── msd.py            [X] 일반 MSD, D, 블록평균 오차
-│   │   ├── structure.py      [X] RDF, S(q), 클러스터, 밀도프로파일
+│   │   ├── trap.py           [O] MSD fitting, seed aggregation, distribution tests
+│   │   ├── msd.py            [X] the general MSD, D, the block-average error
+│   │   ├── structure.py      [X] RDF, S(q), clusters, the density profile
 │   │   ├── microrheo.py      [X] GSER → G'(ω), G''(ω)
-│   │   ├── active.py         [X] ABP MSD crossover, MIPS 판정
-│   │   └── equilibration.py  [X] 평형 도달 판정
-│   ├── validate.py           [O] 예측 vs 측정, PASS/FAIL/INCONCLUSIVE, 검정력
-│   ├── report.py             [O] REPORT.md 생성
-│   ├── session.py            [O] 세션 상태 (턴 append-only), set = 추정만
-│   ├── io.py                 [O] run 디렉터리, 해시, **봉인**
-│   └── viz.py                [X] ★ 없음. S6 그림은 scripts/ 에 일회성으로
+│   │   ├── active.py         [X] ABP MSD crossover, MIPS verdict
+│   │   └── equilibration.py  [X] the verdict on reaching equilibrium
+│   ├── validate.py           [O] prediction vs measurement, PASS/FAIL/INCONCLUSIVE, the power
+│   ├── report.py             [O] REPORT.md generation
+│   ├── session.py            [O] the session state (turns append-only), set = an estimate only
+│   ├── io.py                 [O] run directory, hashes, **the seal**
+│   └── viz.py                [X] ★ absent. The S6 figures live one-off in scripts/
 │
-├── scripts/                  [~] 일회성 — simbot 으로 옮겨야 할 코드
-│   ├── trap_batch.py             → run.run_trap_batch 로 흡수됨 (중복)
-│   └── trap_analyze.py           → viz.py 가 없어서 아직 여기 산다
+├── scripts/                  [~] one-off — code that should move into simbot
+│   ├── trap_batch.py             → run.run_trap_batch absorbed it (a duplicate)
+│   └── trap_analyze.py           → viz.py does not exist, so it still lives here
 │
-├── examples/                 [O] 기계가 읽는 참조 케이스
+├── examples/                 [O] machine-readable reference cases
 │   └── trap-2d-5um/
-│       ├── spec.yaml             S3 명세 (provenance 18필드)
-│       └── prediction.yaml       S2 예측 9항목 (봉인 대상)
+│       ├── spec.yaml             S3 specification (18 provenance fields)
+│       └── prediction.yaml       S2 prediction, 9 items (the seal target)
 │
-├── knowledge/                ← L3 지식 베이스. 스키마는 §10 (BD_agent 정본)
-│   ├── source/papers/        [O] 문헌 증류 42편 + INDEX
-│   └── wiki/                 [O] CLAUDE.md 계약 + systems 5 · findings 13
+├── knowledge/                ← L3 knowledge base. The schema is §10 (BD_agent is authoritative)
+│   ├── source/papers/        [O] 42 literature distillations + an INDEX
+│   └── wiki/                 [O] CLAUDE.md contract + systems 5 · findings 13
 │       │                         concepts 3 · benchmarks 2 · questions 2
-│       ├── systems/              ★ (계 × 목적동역학) 카드 — 무차원화·게이트 소유
+│       ├── systems/              ★ (system × target dynamics) cards — they own the non-dimensionalization and the gates
 │       ├── findings/             Q→A + dead-end
 │       ├── concepts/  techniques/  benchmarks/  questions/
 │
-├── inputs/                   [O] 사용자 제공 원자료 (gitignore, .sha256 만 추적)
+├── inputs/                   [O] the raw material the user provides (gitignored, only .sha256 tracked)
 │   └── <topic>/…
 │
-├── sessions/                 [O] 세션 상태 (gitignore)
+├── sessions/                 [O] the session state (gitignored)
 │   └── <session_id>/session.yaml + spec_turnNN.yaml
 │
-├── config/run_policy.yaml    [O] 자원·티어·dt 정책. 사람의 overrides: 우선
+├── config/run_policy.yaml    [O] the resource, tier and dt policy. A human's overrides: take precedence
 │
-├── tests/                    [O] pytest — 373 통과 / 1 skip / 28 s
+├── tests/                    [O] pytest — 373 passing / 1 skip / 28 s
 │   └── test_s0_units · test_s2_estimators · test_s3_cutoff · test_s3_spec
 │       test_s4_nondim · test_s5_{forces,guards,scheme} · test_s7_validate
 │       test_s8_{io,report} · test_cli_session
 │
-└── runs/                     [O] 산출물 (gitignore, 단 .md/.json/.yaml 추적)
-    └── 2026-07-28_trap-2d-5um_2dfb9d/     첫 손그림 완주 (사람+에이전트)
-        2026-07-28_cli-e2e-test/           같은 계를 cli.py 로 재현 (2.3 s)
+└── runs/                     [O] outputs (gitignored, but .md/.json/.yaml tracked)
+    └── 2026-07-28_trap-2d-5um_2dfb9d/     the first hand-drawing full run (human + agent)
+        2026-07-28_cli-e2e-test/           the same system reproduced with cli.py (2.3 s)
 ```
 
-### 1.3 run 디렉터리 규약 (자기완결성)
+### 1.3 The run directory convention (self-sufficiency)
 
 ```
 runs/<run_id>/
-├── 00_input/            원자료 사본 (손그림 사진 등) + sha256
-├── 01_intake.md         관찰/추론/가정 분리 기록
+├── 00_input/            a copy of the raw material (the hand-drawing photo and so on) + sha256
+├── 01_intake.md         observations/inferences/assumptions recorded separately
 ├── 01_intake.json
-├── 02_prediction.md     ⚠ 봉인됨. S5 이후 수정 금지
+├── 02_prediction.md     ⚠ sealed. No modification after S5
 ├── 02_prediction.json
-├── 03_spec.yaml         물리 단위 완전 명세
-├── 03_spec_rationale.md 각 값의 출처와 근거
-├── 04_reduced.yaml      무차원 명세 + 역변환 계수
-├── 04_nondim.md         변환표
-├── 05_run_manifest.json 코드해시·env해시·seed·HOOMD버전·wall time
-├── traj.gsd             궤적
-├── thermo.h5            열역학 로그
-├── 06_figures.md        그림 목록 + 캡션
+├── 03_spec.yaml         the full specification in physical units
+├── 03_spec_rationale.md the source and the grounds for each value
+├── 04_reduced.yaml      the dimensionless specification + the inverse-transform coefficients
+├── 04_nondim.md         the conversion table
+├── 05_run_manifest.json the code hash, the env hash, the seed, the HOOMD version, the wall time
+├── traj.gsd             the trajectory
+├── thermo.h5            the thermodynamic log
+├── 06_figures.md        the figure list + captions
 ├── figs/*.png
-├── 07_validation.md     예측 vs 측정 대조표
-├── metrics.json         측정값 + 오차
-├── 08_conclusion.md     결론
-└── REPORT.md            전체 요약 (사람이 읽는 최종 산출물)
+├── 07_validation.md     the prediction vs measurement comparison table
+├── metrics.json         the measured values + errors
+├── 08_conclusion.md     the conclusion
+└── REPORT.md            the whole summary (the final output a human reads)
 ```
 
-`run_id = <ISO시각>_<슬러그>_<spec해시 앞6자리>`
+`run_id = <ISO time>_<slug>_<the first 6 characters of the spec hash>`
 
 ---
 
-## 2. 8단계 파이프라인 — 상세
+## 2. The 8-stage pipeline — in detail
 
-각 단계는 **입력 → 처리 → 산출물 → 게이트(통과조건) → 실패모드**로 정의된다.
-게이트를 통과하지 못하면 다음 단계로 넘어가지 않고, 사용자에게 보고하거나 이전 단계로 되돌아간다.
+Each stage is defined as **input → processing → output → gate (the pass condition) → failure mode**.
+Failing the gate means not moving to the next stage but reporting to the user or going back to the previous stage.
 
 ---
 
-### S1. Intake — 자료 해석
+### S1. Intake — interpreting the material
 
-**입력** `inputs/<topic>/` 의 손그림 사진 (+ 사용자의 구두 설명)
+**Input** the hand-drawing photo in `inputs/<topic>/` (+ the user's verbal explanation)
 
-**처리**
-1. 이미지를 읽고 다음을 목록화한다:
-   - 입자: 개수(정확/대략), 크기 차이, 종류(색·해칭·라벨로 구분), 특별 표시된 개체(프로브 등)
-   - 경계: 상자 테두리, 벽(실선), 주기경계(점선/화살표), 슬릿/원통/구 형상, 차원(2D/3D)
-   - 화살표: 위치·방향·길이 → **힘 / 속도 / 흐름 / 시간진행 중 무엇인지 후보 나열**
-   - 텍스트: 숫자, 단위, 기호(η, T, k, φ, v₀…), 축 라벨, 캡션
-   - 그래프: 손으로 그린 예상 곡선(있으면 S2 예측과 대조할 근거)
-2. **관찰/추론/가정 3단 분리** — 이것이 S1의 핵심 산출물이다.
+**Processing**
+1. Read the image and list the following:
+   - particles: the count (exact/approximate), size differences, kinds (distinguished by colour, hatching or labels), specially marked individuals (a probe and so on)
+   - boundaries: the box border, walls (solid lines), periodic boundaries (dashed lines/arrows), slit/cylinder/sphere shapes, the dimensionality (2D/3D)
+   - arrows: position, direction, length → **list the candidates for which it is: force / velocity / flow / time progression**
+   - text: numbers, units, symbols (η, T, k, φ, v₀…), axis labels, captions
+   - graphs: a hand-drawn expected curve (if present, grounds for comparison with the S2 prediction)
+2. **The 3-way separation of observation/inference/assumption** — this is S1's core output.
 
-   | 등급 | 정의 | 예 |
+   | Grade | Definition | Example |
    |---|---|---|
-   | `observation` | 그림에서 직접 읽음 | "입자 약 30개", "왼쪽·오른쪽에 실선 벽" |
-   | `inference` | 그림 + 물리지식으로 유도 | "실선 벽 + 상하 점선 → 슬릿 기하, y·z 주기" |
-   | `assumption` | 그림에 없어 내가 채움 | "매질은 물, η=1.0 mPa·s, T=298 K" |
+   | `observation` | read directly from the drawing | "about 30 particles", "solid-line walls on the left and right" |
+   | `inference` | derived from the drawing + physics knowledge | "solid-line walls + dashed above and below → a slit geometry, periodic in y and z" |
+   | `assumption` | absent from the drawing, filled in by me | "the medium is water, η=1.0 mPa·s, T=298 K" |
 
-   각 항목에 `confidence: high/medium/low`와 한 줄 근거를 붙인다.
-3. **gaps** — 시뮬레이션에 필수인데 없는 정보를 나열하고 처리방침 결정:
-   `ask_user` (질문 예산 내) / `fill_from_knowledge` / `assume_and_flag` / `sweep` (파라미터 스캔)
-4. `knowledge/systems/` 검색 → 유사 아키타입이 있으면 재사용.
+   Each entry gets a `confidence: high/medium/low` and a one-line justification.
+3. **gaps** — list the information essential to the simulation that is absent, and decide how to handle it:
+   `ask_user` (within the question budget) / `fill_from_knowledge` / `assume_and_flag` / `sweep` (a parameter scan)
+4. Search `knowledge/systems/` → if a similar archetype exists, reuse it.
 
-**손그림 특화 규칙** (`references/s1_intake_drawing.md`)
-- 손그림의 **절대 크기는 신뢰하지 않는다.** 신뢰하는 것은 ① 토폴로지(무엇이 무엇 안에/옆에)
-  ② 비율(입자:상자 ≈ 1:20) ③ 개수 ④ 대칭성 ⑤ 명시된 숫자·단위.
-- 화살표 굵기/길이의 절대값은 무의미. 상대 비교만 사용.
-- 모호한 요소는 임의 해석 대신 **후보 2~3개를 명시**하고 S2에서 각 후보의 결과 차이를 예측.
-  → 어느 해석이 맞는지 사용자가 즉시 판별할 수 있게 된다.
-- 그림에 스케일 정보가 전무하면 φ(부피분율)를 자유 파라미터로 두고 sweep 후보로 표시.
+**Hand-drawing-specific rules** (`references/s1_intake_drawing.md`)
+- **Do not trust the absolute sizes in a hand drawing.** What is trusted is ① the topology (what is inside/next to what)
+  ② the ratios (particle:box ≈ 1:20) ③ the counts ④ the symmetry ⑤ the stated numbers and units.
+- The absolute values of arrow thickness and length are meaningless. Use relative comparison only.
+- For an ambiguous element, rather than interpreting arbitrarily, **state 2~3 candidates** and predict in S2 how the
+  results differ per candidate.
+  → The user then becomes able to tell immediately which interpretation is right.
+- If the drawing has no scale information at all, leave φ (the volume fraction) as a free parameter and mark it as a sweep candidate.
 
-**산출물** `01_intake.md`, `01_intake.json`
+**Output** `01_intake.md`, `01_intake.json`
 
-**게이트**
-- 필수 필드 확정: 공간차원 `d`, 입자 종류 수, 경계조건, 구동/활성 유무, 질문(question)이 무엇인지
-- `question` 필드가 반증 가능한 형태인가 (예: "확산이 얼마나 느려지는가" ✅ / "어떻게 되는가" ❌)
+**Gate**
+- The required fields fixed: the spatial dimension `d`, the number of particle species, the boundary condition, whether there is driving/activity, and what the question is
+- Is the `question` field in a falsifiable form (e.g. "how much does the diffusion slow down" ✅ / "what happens" ❌)
 
-**실패모드** → `knowledge/failures/intake_*.md`
-- 화살표를 힘으로 읽었는데 실제론 속도장이었음
-- 2D 그림을 2D 시뮬레이션으로 읽었는데 실제론 3D의 단면
-- 손그림 입자 개수를 실제 N으로 착각 (그림은 스케치, N은 통계적으로 필요한 수)
+**Failure modes** → `knowledge/failures/intake_*.md`
+- An arrow was read as a force when it was actually a velocity field
+- A 2D drawing was read as a 2D simulation when it was actually a cross-section of a 3D one
+- The hand-drawing particle count was mistaken for the actual N (the drawing is a sketch; N is the number statistically needed)
 
 ---
 
-### S2. Predict — 예상 결과 리즈닝
+### S2. Predict — reasoning out the expected result
 
-> **시뮬레이션 전에 답을 적는다.** 이 단계가 이 프로젝트의 과학적 정직성을 담보한다.
+> **Write down the answer before the simulation.** This stage is what secures this project's scientific honesty.
 
-**입력** `01_intake.json`, `knowledge/`
+**Input** `01_intake.json`, `knowledge/`
 
-**처리**
-1. **지배 물리 식별** — 어떤 힘/시간척도가 경쟁하는가. 무엇이 결과를 결정하는가.
-2. **무차원수 자릿수 추정** — φ, Pe, κσ, T*=kT/ε, k σ²/kT, D_r τ_B … (`simbot.nondim`)
-   각 무차원수가 어느 레짐에 있는지, 레짐 경계에서 얼마나 떨어져 있는지.
-3. **정량 예측** — `simbot.estimators` 의 해석해/스케일링 호출. 예:
+**Processing**
+1. **Identify the governing physics** — which forces/timescales compete. What determines the result.
+2. **Estimate the order of magnitude of the dimensionless numbers** — φ, Pe, κσ, T*=kT/ε, k σ²/kT, D_r τ_B … (`simbot.nondim`)
+   Which regime each dimensionless number is in, and how far it is from the regime boundary.
+3. **Quantitative prediction** — call the analytic solutions/scalings of `simbot.estimators`. For example:
    - Stokes–Einstein `D₀ = k_BT / 6πηa`
-   - 자유확산 `⟨Δr²⟩ = 2d D t`
-   - 광집게 `⟨Δr²⟩(t) = (2d k_BT/k)(1−e^{−t/τ_k})`, `τ_k = γ/k`, 등분배 `⟨x²⟩ = k_BT/k`
-   - 침강 `ρ(z) ∝ e^{−z/ℓ_g}`, `ℓ_g = k_BT/(Δρ V g)`
+   - free diffusion `⟨Δr²⟩ = 2d D t`
+   - optical tweezers `⟨Δr²⟩(t) = (2d k_BT/k)(1−e^{−t/τ_k})`, `τ_k = γ/k`, equipartition `⟨x²⟩ = k_BT/k`
+   - sedimentation `ρ(z) ∝ e^{−z/ℓ_g}`, `ℓ_g = k_BT/(Δρ V g)`
    - ABP `⟨Δr²⟩ = 2dD_t t + (2v₀²/λ²)(λt − 1 + e^{−λt})`, `λ = (d−1)D_r`
      `D_eff = D_t + v₀²/[d(d−1)D_r]`
-   - 농후계 장시간 확산 감소, MIPS 상경계 등은 문헌 상관식 (출처 명기)
-4. **반증 가능한 형태로 봉인** — 각 예측은 다음 4요소를 반드시 가진다:
+   - the long-time diffusion reduction of a dense system, the MIPS phase boundary and so on are literature correlations (with the source stated)
+4. **Sealed in a falsifiable form** — each prediction must have these 4 elements:
 
    ```yaml
    - quantity: D_long / D_0
      value: 0.42
-     tolerance: "±25%"          # 이 밖이면 FAIL
-     basis: "Batchelor + φ=0.35 준희박 보정, knowledge/validation/dense_diffusion.md"
-     discriminates: "HI 무시가 타당한지 여부를 가른다"
+     tolerance: "±25%"          # outside this is a FAIL
+     basis: "Batchelor + φ=0.35 semi-dilute correction, knowledge/validation/dense_diffusion.md"
+     discriminates: "HI being ignored -- whether that is justified"
    ```
-5. **대안 시나리오** — 예측이 틀릴 수 있는 방식과, 그때 나타날 신호를 미리 적는다.
-   (예: "dt가 너무 크면 D가 과대평가된다 → dt 절반 재실행에서 D가 바뀌면 수치 문제")
+5. **Alternative scenarios** — write down in advance the ways the prediction could be wrong, and the signal that would then appear.
+   (e.g. "if dt is too large D gets overestimated → if D changes on a half-dt re-run it is a numerical problem")
 
-**산출물** `02_prediction.md`, `02_prediction.json`
-→ 두 파일의 sha256을 `05_run_manifest.json`에 기록해 **봉인**. S7은 이 해시를 검증한다.
+**Output** `02_prediction.md`, `02_prediction.json`
+→ the sha256 of both files is recorded in `05_run_manifest.json` to **seal** them. S7 verifies this hash.
 
-**게이트**
-- 정량 예측 ≥ 1개, 각각에 `tolerance`와 판정기준 존재
-- 그림에 사용자가 그린 예상 곡선이 있으면 그것과의 정합/불일치를 명시
+**Gate**
+- ≥ 1 quantitative prediction, each with a `tolerance` and a verdict criterion
+- If the drawing has an expected curve the user drew, state the agreement or disagreement with it
 
-**실패모드** → `knowledge/failures/prediction_*.md`
-- 무차원수 자릿수를 틀려 레짐을 오판
-- 문헌 상관식을 적용범위 밖에 적용
-- tolerance를 너무 넓게 잡아 어떤 결과든 PASS (검증 무력화) — **금지, 리뷰 대상**
+**Failure modes** → `knowledge/failures/prediction_*.md`
+- Getting the order of magnitude of a dimensionless number wrong and misjudging the regime
+- Applying a literature correlation outside its range of applicability
+- Setting the tolerance so wide that any result PASSes (neutering the verification) — **forbidden, a review target**
 
 ---
 
-### S3. Specify — 시스템 구체화 (물리 단위)
+### S3. Specify — making the system concrete (in physical units)
 
-**입력** `01_intake.json`, `knowledge/parameters/`, `knowledge/systems/`
+**Input** `01_intake.json`, `knowledge/parameters/`, `knowledge/systems/`
 
-**처리** 완전한 `SystemSpec`(SI 단위)을 채운다. 빈 필드가 남아선 안 된다.
+**Processing** Fill in a complete `SystemSpec` (in SI units). No empty field may remain.
 
-| 그룹 | 필드 |
+| Group | Fields |
 |---|---|
-| 기하 | `dim`, `box_si` (Lx,Ly,Lz), `boundary` (pbc/wall/slit/cylinder/sphere) |
-| 입자 | `species[]`: `name, N, radius_si, mass_si, density_si, charge, active` |
-| 매질 | `T_si` (K), `eta_si` (Pa·s), `rho_fluid_si`, `epsilon_r` |
-| 마찰 | `gamma_si` = 6πηa (Stokes) 또는 명시값; 벽 근접 보정 여부 |
-| 상호작용 | `pair[]`: 타입쌍별 포텐셜(WCA/LJ/Yukawa/Morse/DLVO) + 파라미터 + `r_cut` |
-| 외장 | `traps[]`, `gravity`, `shear_rate`, `field` |
-| 활성 | `v0_si`, `D_r_si` 또는 `tau_r_si` |
-| 시간 | `t_total_si`, `t_equil_si`, `dump_interval_si`, `thermo_interval_si` |
-| 수치 | `seed`, `dt_policy` |
+| geometry | `dim`, `box_si` (Lx,Ly,Lz), `boundary` (pbc/wall/slit/cylinder/sphere) |
+| particles | `species[]`: `name, N, radius_si, mass_si, density_si, charge, active` |
+| medium | `T_si` (K), `eta_si` (Pa·s), `rho_fluid_si`, `epsilon_r` |
+| friction | `gamma_si` = 6πηa (Stokes) or an explicit value; whether a near-wall correction applies |
+| interactions | `pair[]`: the potential per type pair (WCA/LJ/Yukawa/Morse/DLVO) + parameters + `r_cut` |
+| external | `traps[]`, `gravity`, `shear_rate`, `field` |
+| activity | `v0_si`, `D_r_si` or `tau_r_si` |
+| time | `t_total_si`, `t_equil_si`, `dump_interval_si`, `thermo_interval_si` |
+| numerics | `seed`, `dt_policy` |
 
-**모든 필드에 provenance 필수:**
+**A provenance is mandatory on every field:**
 ```yaml
 eta_si:
-  value: 0.890e-3          # 298.15 K. 20 °C 값(1.002e-3)과 혼동 금지
+  value: 0.890e-3          # 298.15 K. 20 °C value (1.002e-3) -- do not confuse
   unit: "Pa*s"
   provenance: from_knowledge
   source: "knowledge/parameters/water_298k.md"
-  note: "298.15 K 순수 물, IAPWS"
+  note: "298.15 K pure water, IAPWS"
 ```
 
-**물리적 타당성 자동 체크** (`simbot.spec.validate`)
-- φ < 0.64 (RCP), 2D면 φ_A < 0.9
-- Reynolds `Re = ρ v a/η ≪ 1` (BD 전제)
-- 관성 시간척도 `τ_i = m/γ ≪ dt` (overdamped 전제) — 위반 시 Langevin 권고
-- Debye 길이 vs 입자간 거리 정합
-- `r_cut` < L/2 (최소이미지)
-- 활성계: `v₀ τ_r` (persistence length) vs box 크기
+**Automatic physical-validity checks** (`simbot.spec.validate`)
+- φ < 0.64 (RCP), and in 2D φ_A < 0.9
+- the Reynolds number `Re = ρ v a/η ≪ 1` (the BD premise)
+- the inertial timescale `τ_i = m/γ ≪ dt` (the overdamped premise) — advise Langevin on a violation
+- the Debye length vs the interparticle distance, consistent
+- `r_cut` < L/2 (the minimum image)
+- for an active system: `v₀ τ_r` (the persistence length) vs the box size
 
-**산출물** `03_spec.yaml`, `03_spec_rationale.md`
+**Output** `03_spec.yaml`, `03_spec_rationale.md`
 
-**게이트** 모든 필드 채워짐 + provenance 존재 + 타당성 체크 전항 통과(또는 명시적 예외 승인)
+**Gate** every field filled + a provenance present + all the validity checks passing (or an explicit exception approved)
 
-**실패모드** → `knowledge/failures/spec_*.md`
-- γ를 6πηa 대신 6πηd로 계산 (반지름/직경 혼동) — **가장 흔한 실수**
-- 2D 시뮬레이션에서 3D Stokes 마찰 사용 (의도적이면 명시)
-- box가 persistence length보다 작아 유한크기 인공물
-
----
-
-### S4. Nondimensionalize — 무차원화
-
-> 상세 규약은 §5. 여기서는 파이프라인 관점만.
-
-**입력** `03_spec.yaml`
-
-**처리**
-1. 기준 척도 3개 선택 (기본: `L*=σ`, `E*=k_BT`, `T*=τ_B=σ²/D₀`)
-2. 모든 SI 값 → 무차원 값 변환, 역변환 계수 저장
-3. 무차원수 전량 계산 및 표로 정리
-4. **dt 선택** — §5.4의 4개 제약 중 최소값 채택, 근거 기록
-5. 왕복 변환 테스트: `to_reduced → to_si` 상대오차 < 1e-12
-
-**산출물** `04_reduced.yaml`, `04_nondim.md`(변환표: 물리량 | SI | 무차원 | 역변환계수)
-
-**게이트** 왕복오차 통과 + dt 제약 전항 만족 + 무차원수 표 완성
-
-**실패모드** → `knowledge/failures/nondim_*.md`
-- HOOMD 시간 단위(τ_LJ = σ√(m/ε))와 Brownian 시간(τ_B = σ²/D₀) 혼동 → **치명적**
-- 2D에서 τ_B 정의의 차원 계수(2d) 누락
-- kT와 ε를 둘 다 1로 잡아 T*=1로 고정해버림 (의도 아니면 버그)
+**Failure modes** → `knowledge/failures/spec_*.md`
+- Computing γ as 6πηd instead of 6πηa (confusing the radius and the diameter) — **the most common mistake**
+- Using 3D Stokes friction in a 2D simulation (state it if deliberate)
+- The box being smaller than the persistence length, giving finite-size artefacts
 
 ---
 
-### S5. Run — HOOMD-Blue 실행
+### S4. Nondimensionalize — non-dimensionalization
 
-**입력** `04_reduced.yaml`
+> The detailed convention is §5. Here it is only the pipeline view.
 
-**처리**
-1. **초기배치** (`simbot.build`) — 격자/랜덤/비중첩 삽입. 겹침 있으면 soft pushoff(점진적 σ 증가)로 제거.
-2. **파일럿 런** (기본 활성) — 본실행의 0.5% 스텝만 돌려서
-   ① 가드 위반 없는지 ② 예상 wall time ③ dt 타당성 확인. 문제 있으면 여기서 중단.
-3. **포스/적분기** (`simbot.forces`, `simbot.run`)
+**Input** `03_spec.yaml`
+
+**Processing**
+1. Choose the 3 reference scales (default: `L*=σ`, `E*=k_BT`, `T*=τ_B=σ²/D₀`)
+2. Convert every SI value → a dimensionless value, and store the inverse-transform coefficients
+3. Compute the whole set of dimensionless numbers and tabulate them
+4. **Choose dt** — adopt the minimum of §5.4's 4 constraints, and record the grounds
+5. The round-trip conversion test: the relative error of `to_reduced → to_si` < 1e-12
+
+**Output** `04_reduced.yaml`, `04_nondim.md` (the conversion table: quantity | SI | dimensionless | the inverse-transform coefficient)
+
+**Gate** the round-trip error passing + all the dt constraints satisfied + the dimensionless-number table complete
+
+**Failure modes** → `knowledge/failures/nondim_*.md`
+- Confusing HOOMD's time unit (τ_LJ = σ√(m/ε)) with the Brownian time (τ_B = σ²/D₀) → **fatal**
+- Omitting the dimensional factor (2d) in the definition of τ_B in 2D
+- Setting both kT and ε to 1 and thereby fixing T*=1 (a bug unless deliberate)
+
+---
+
+### S5. Run — executing HOOMD-Blue
+
+**Input** `04_reduced.yaml`
+
+**Processing**
+1. **The initial placement** (`simbot.build`) — lattice/random/non-overlapping insertion. If there is overlap, remove it with a soft pushoff (a gradual increase in σ).
+2. **The pilot run** (active by default) — run only 0.5% of the main run's steps to confirm
+   ① no guard violations ② the expected wall time ③ the validity of dt. If there is a problem, halt here.
+3. **Forces and the integrator** (`simbot.forces`, `simbot.run`)
    - `md.methods.Brownian(filter, kT, default_gamma)` — D = kT/γ
-   - 활성: `md.force.Active` + `md.update.ActiveRotationalDiffusion`
-   - 벽: `md.external.wall.{LJ,Morse,Yukawa,ForceShiftedLJ}` + `hoomd.wall.{Plane,Sphere,Cylinder}`
-   - 광집게/조화구속: `md.force.Custom` 서브클래스 (내장 없음)
-   - 중력/전기장: `md.force.Constant` 또는 `md.external.field.Electric`
-4. **평형화 → 프로덕션** 분리. 평형 판정은 `simbot.analysis.equilibration`.
-5. **런타임 가드** (`simbot.guards`) — 매 `thermo_interval`마다 검사, 위반 시 즉시 중단 + 진단 저장:
-   - NaN/Inf 위치·힘
-   - 스텝당 최대 변위 > 0.1σ (폭발 징후).
-     ⚠ **변위 분포를 Gaussian으로 가정하지 말 것** — HOOMD 노이즈는 균일분포다 (`max/σ = √3`)
-   - 벽 관통 (경계 밖 입자)
-   - **배위 온도** `kT_conf = ⟨|∇U|²⟩/⟨∇²U⟩` 가 입력 `kT`와 일치하는가
-     — 실측 `1.00382 ± 0.00480` (조화 트랩). 힘이 이미 계산되어 있어 추가 비용 거의 없음
-   - 압력/포텐셜 에너지 발산
+   - active: `md.force.Active` + `md.update.ActiveRotationalDiffusion`
+   - walls: `md.external.wall.{LJ,Morse,Yukawa,ForceShiftedLJ}` + `hoomd.wall.{Plane,Sphere,Cylinder}`
+   - optical tweezers / harmonic confinement: an `md.force.Custom` subclass (not built in)
+   - gravity / an electric field: `md.force.Constant` or `md.external.field.Electric`
+4. **Equilibration → production**, separated. The equilibration verdict is `simbot.analysis.equilibration`.
+5. **Runtime guards** (`simbot.guards`) — checked every `thermo_interval`, halting immediately on a violation and saving a diagnosis:
+   - the position and force of a NaN/Inf
+   - the maximum displacement per step > 0.1σ (a sign of an explosion).
+     ⚠ **Do not assume the displacement distribution is Gaussian** — HOOMD's noise is uniformly distributed (`max/σ = √3`)
+   - wall penetration (a particle outside the boundary)
+   - **the configurational temperature** `kT_conf = ⟨|∇U|²⟩/⟨∇²U⟩` matching the input `kT`
+     — measured `1.00382 ± 0.00480` (a harmonic trap). The forces are already computed so the extra cost is almost nil
+   - a divergence of the pressure or the potential energy
 
-   > ❌ **삭제됨: "운동에너지 온도가 목표 kT에서 이탈"** — 작동할 수 없는 가드였다.
-   > HOOMD `Brownian`은 속도를 적분하지 않고 **매 스텝 목표 분포에서 뽑는다.**
-   > `kinetic_temperature`는 입력값을 되풀어 말할 뿐 계통적으로 이탈하지 못한다.
-   > 근거: [`findings/hoomd-brownian-scheme-and-noise.md`](../../knowledge/wiki/findings/hoomd-brownian-scheme-and-noise.md)
+   > ❌ **Deleted: "the kinetic-energy temperature deviates from the target kT"** — it was a guard that could not work.
+   > HOOMD's `Brownian` does not integrate the velocity but **draws it from the target distribution every step.**
+   > `kinetic_temperature` merely echoes the input back and cannot deviate systematically.
+   > Grounds: [`findings/hoomd-brownian-scheme-and-noise.md`](../../knowledge/wiki/findings/hoomd-brownian-scheme-and-noise.md)
    >
-   > **`kT` 자체는 여전히 1급 입력이다** — `U/kT`가 Boltzmann 가중치를 정하고 모든
-   > 무차원수(`k* = kσ²/kT`, `T* = kT/ε`, `Pe = Fσ/kT`)에 들어간다. 쓸 수 없는 것은
-   > 운동에너지 되읽기뿐이고, 그 자리를 배위온도가 대신한다.
-6. **로깅** — GSD 궤적(위치·방향·이미지 플래그), `ThermodynamicQuantities` → HDF5.
-   재현성: seed, HOOMD 버전, `simbot` 코드 해시, env 해시, spec 해시, wall time.
+   > **`kT` itself is still a first-class input** — `U/kT` sets the Boltzmann weight and it enters every
+   > dimensionless number (`k* = kσ²/kT`, `T* = kT/ε`, `Pe = Fσ/kT`). What is unusable is
+   > only reading the kinetic energy back, and the configurational temperature takes that place.
+6. **Logging** — the GSD trajectory (positions, orientations, image flags), `ThermodynamicQuantities` → HDF5.
+   Reproducibility: the seed, the HOOMD version, the `simbot` code hash, the env hash, the spec hash, the wall time.
 
-**산출물** `traj.gsd`, `thermo.h5`, `05_run_manifest.json`
+**Output** `traj.gsd`, `thermo.h5`, `05_run_manifest.json`
 
-**게이트** 완주 + 가드 무위반 + 평형 도달 + 프로덕션 구간 길이 ≥ 요구 상관시간의 10배
+**Gate** completion + no guard violation + equilibrium reached + the production stretch ≥ 10× the required correlation time
 
-**실패모드** → `knowledge/failures/run_*.md`
-- ABP에서 `moment_inertia`를 0으로 안 두고 `Brownian`을 써서 회전 자유도가 이중 적분됨
-- `r_cut` > L/2 로 최소이미지 위반
-- dt가 커서 WCA 코어를 관통 (입자 겹침 후 폭발)
-- 초기 겹침을 제거하지 않고 시작 → 1스텝에 발산
-
----
-
-### S6. Visualize — 시각화
-
-**입력** `traj.gsd`, `thermo.h5`
-
-**처리**
-1. **필수 진단 세트** (도메인 무관, 항상 생성)
-   - MSD log–log + 기울기 1 참조선
-   - RDF g(r)
-   - thermo 시계열 (PE, P, 온도추정)
-   - 스텝당 변위 분포 (가드 사후 확인)
-   - 초기/중간/최종 스냅샷 3연
-2. **도메인별 플롯** — §4 표 참조
-3. **애니메이션** — 2D는 matplotlib, 3D는 fresnel 레이트레이싱. GIF/MP4.
-   (ffmpeg 미설치 → GIF 우선, 필요 시 ffmpeg 설치 후 MP4)
-4. **모든 축에 무차원 값과 물리 단위 이중 표기** (`t/τ_B` 위, `t [ms]` 아래)
-
-**산출물** `figs/*.png`, `figs/*.gif`, `06_figures.md`(각 그림 캡션 = 무엇을 보이려는 그림인가)
-
-**게이트** 축 라벨·단위·캡션 전부 존재. 캡션 없는 그림은 산출물로 인정하지 않는다.
+**Failure modes** → `knowledge/failures/run_*.md`
+- In an ABP, not setting `moment_inertia` to 0 and using `Brownian`, so the rotational degree of freedom is double-integrated
+- `r_cut` > L/2 violates the minimum image
+- dt being large so the WCA core is penetrated (the particles overlap and then it explodes)
+- Starting without removing the initial overlap → diverging in 1 step
 
 ---
 
-### S7. Analyze & Validate — 분석 및 검증
+### S6. Visualize — visualization
 
-**입력** `traj.gsd`, `02_prediction.json`(봉인 해시 검증), `04_reduced.yaml`
+**Input** `traj.gsd`, `thermo.h5`
 
-**처리**
-1. **봉인 검증** — `02_prediction.*`의 sha256이 manifest와 일치하는지 확인. 불일치면 **중단하고 보고**.
-2. **정량 측정** (`simbot.analysis`) — 각 측정값에 통계오차 동반
-   - MSD 피팅 → D (블록평균 + bootstrap 신뢰구간)
-   - 구조: g(r), S(q), 클러스터 크기 분포, 밀도 프로파일
-   - 미세유변학: GSER(Mason) → G'(ω), G''(ω)
-   - 활성: MSD crossover 시각, D_eff, MIPS 판정지표
-3. **예측 vs 측정 대조표** — 각 항목 `PASS` / `FAIL` / `INCONCLUSIVE`
-   `INCONCLUSIVE`는 통계오차가 tolerance보다 커서 판정 불가인 경우 → 더 긴 런 필요
-4. **수치 수렴 체크**
-   - dt 래더: dt/2로 재실행해 측정값 변화 < 통계오차인지 (기본: 핵심 지표 1개에 대해 수행)
-   - 유한크기: N 또는 L을 √2배 해서 재실행 (요청 시)
-   - 유한시간: 궤적 전반부/후반부 측정값 일치 여부
-5. **알려진 해석해 대조 (sanity)** — 항상 실행
-   - 무차원 자유확산이면 `D* = 1.00 ± stat`
-   - 조화구속이면 등분배 `⟨x*²⟩ = 1/k*`
-   - ABP면 해석 MSD 곡선과 중첩
-6. **FAIL 항목마다 원인 가설** — 4분류: `numerical` / `modeling` / `interpretation` / `analysis`
+**Processing**
+1. **The mandatory diagnostic set** (domain-independent, always generated)
+   - the MSD log–log + a slope-1 reference line
+   - the RDF g(r)
+   - the thermo time series (PE, P, the temperature estimate)
+   - the per-step displacement distribution (a post-hoc guard check)
+   - a triptych of initial/middle/final snapshots
+2. **Domain-specific plots** — see the §4 table
+3. **Animation** — matplotlib for 2D, fresnel ray tracing for 3D. GIF/MP4.
+   (ffmpeg not installed → GIF first, MP4 after installing ffmpeg if needed)
+4. **Dual labelling of every axis in dimensionless values and physical units** (`t/τ_B` above, `t [ms]` below)
 
-**산출물** `07_validation.md`, `metrics.json`
+**Output** `figs/*.png`, `figs/*.gif`, `06_figures.md` (each figure's caption = what the figure is trying to show)
 
-**게이트** sanity 체크 통과 + 모든 FAIL에 원인 가설 존재
+**Gate** the axis labels, units and captions all present. A figure with no caption is not accepted as an output.
 
 ---
 
-### S8. Conclude — 결론 요약 + 지식 커밋
+### S7. Analyze & Validate — analysis and verification
 
-**입력** 전 단계 산출물
+**Input** `traj.gsd`, `02_prediction.json` (the seal hash verified), `04_reduced.yaml`
 
-**처리**
-1. **질문 → 답** — S1의 `question`에 직접 답한다. 한 문단.
-2. **근거 3줄** — 어떤 측정이 그 답을 지지하는가.
-3. **신뢰도와 한계** — HI 무시, 유한 N/t, dt 수렴, 가정의 영향.
-4. **다음 실험 제안** — 이 결론을 더 굳히거나 반증할 최소 비용 실험 1~2개.
-5. **knowledge/ 업데이트 (필수, 생략 불가)**
-   - `systems/`: 이 시스템 아키타입 요약 (또는 기존 항목 갱신)
-   - `parameters/`: 새로 확정한 파라미터 근거
-   - `models/`: 모델링 결정 근거 (왜 이 포텐셜/근사인가)
-   - `failures/`: 발생한 모든 실패 (사소한 것도)
-   - `validation/`: 이번에 확인된 벤치마크 수치 → pytest 회귀 테스트로 승격 후보
+**Processing**
+1. **Seal verification** — confirm that the sha256 of `02_prediction.*` matches the manifest. On a mismatch, **halt and report**.
+2. **Quantitative measurement** (`simbot.analysis`) — every measured value accompanied by a statistical error
+   - MSD fitting → D (a block average + a bootstrap confidence interval)
+   - structure: g(r), S(q), the cluster size distribution, the density profile
+   - microrheology: GSER (Mason) → G'(ω), G''(ω)
+   - active: the time of the MSD crossover, D_eff, the MIPS verdict indicator
+3. **The prediction vs measurement comparison table** — `PASS` / `FAIL` / `INCONCLUSIVE` per entry
+   `INCONCLUSIVE` is when the statistical error is larger than the tolerance so no verdict is possible → a longer run is needed
+4. **Numerical convergence checks**
+   - the dt ladder: re-run at dt/2 and see whether the change in the measured value is < the statistical error (default: done for 1 key indicator)
+   - finite size: re-run with N or L multiplied by √2 (on request)
+   - finite time: whether the measured values from the first and second halves of the trajectory agree
+5. **Comparison against known analytic solutions (sanity)** — always run
+   - for dimensionless free diffusion, `D* = 1.00 ± stat`
+   - for harmonic confinement, equipartition `⟨x*²⟩ = 1/k*`
+   - for an ABP, superposition with the analytic MSD curve
+6. **A cause hypothesis for every FAIL item** — 4 classes: `numerical` / `modeling` / `interpretation` / `analysis`
 
-**산출물** `08_conclusion.md`, `REPORT.md`, knowledge 항목 N개
+**Output** `07_validation.md`, `metrics.json`
 
-**게이트** knowledge에 최소 1개 항목 추가/갱신됨. `REPORT.md`가 그림/수치 링크 포함해 자기완결적.
+**Gate** the sanity checks passing + a cause hypothesis present for every FAIL
 
 ---
 
-## 3. 데이터 모델
+### S8. Conclude — summarizing the conclusion + committing the knowledge
 
-**구현 완료** (2026-07-28). dataclass 기반, pydantic 없음. 설계와 달라진 곳은 ★ 로 표시.
+**Input** the outputs of every earlier stage
+
+**Processing**
+1. **Question → answer** — answer S1's `question` directly. One paragraph.
+2. **3 lines of grounds** — which measurements support that answer.
+3. **Confidence and limits** — ignoring HI, finite N/t, the dt convergence, the influence of the assumptions.
+4. **Proposing the next experiment** — 1~2 minimum-cost experiments that would firm up or refute this conclusion.
+5. **Updating knowledge/ (mandatory, cannot be omitted)**
+   - `systems/`: a summary of this system archetype (or an update of the existing entry)
+   - `parameters/`: the grounds for a newly settled parameter
+   - `models/`: the grounds for a modelling decision (why this potential/approximation)
+   - `failures/`: every failure that occurred (the trivial ones too)
+   - `validation/`: the benchmark values confirmed this time → candidates for promotion to a pytest regression test
+
+**Output** `08_conclusion.md`, `REPORT.md`, N knowledge entries
+
+**Gate** at least 1 knowledge entry added or updated. `REPORT.md` self-contained, including links to the figures and numbers.
+
+---
+
+## 3. The data model
+
+**Implementation complete** (2026-07-28). Dataclass-based, no pydantic. Where it diverged from the design is marked ★.
 
 ```python
 # simbot/spec.py
 Quantity:        value, unit, provenance, basis, confidence, ambiguity,
                  sensitivity, affects[], written_by
-                 ★ Provenance 를 별도 dataclass 로 두지 않았다 — 필드가 5개뿐이라
-                   래퍼를 한 겹 더 두면 YAML 이 두 단 깊어지고 손으로 못 쓴다
+                 ★ Provenance was not put in a separate dataclass — with only 5 fields,
+                   another wrapper layer makes the YAML two levels deeper and unwritable by hand
 Species:         name, n_simulated, radius_si, density_si, n_physical, charge, active
 Geometry:        dim, boundary, box_si | box_over_ref
-                 ★ box_over_ref 추가 — 트랩 계는 박스를 ℓ_trap 배수로 준다
+                 ★ box_over_ref added — a trap system gives the box as a multiple of ℓ_trap
 Medium:          T_si, eta_si, rho_fluid_si, species
 Friction:        model, gamma_si, wall_correction, note
 PairInteraction: type_a, type_b, potential, params, r_cut_si
 ExternalField:   kind, params{Quantity}, implementation, note
-                 ★ traps/gravity/shear/active 를 개별 필드로 두지 않고 하나로 합쳤다 —
-                   외장 종류마다 필드를 늘리면 스키마가 계마다 달라진다
+                 ★ traps/gravity/shear/active were merged into one rather than kept as separate fields —
+                   adding a field per kind of external makes the schema differ per system
 Timing:          equil_in_tau, prod_in_tau, sample_interval_in_tau, target_precision
 Numerics:        dt_star, seed_base, n_seeds, integrator, scheme, noise_distribution
 Gate:            status(required|pass|fail|off|applicable|unknown), reason
-                 ★ 신규 — 게이트를 카드가 켜고 끈다. off 에는 이유가 필수
+                 ★ new — the card switches the gates on and off. off requires a reason
 SystemSpec:      card, question, geometry, species[], medium, friction, pair[],
                  external[], timing, numerics, gates{}, tier, notes[]
 PredictionItem:  quantity, value, tolerance, basis, discriminates, unit,
-                 competing_value, note        ★ competing_value 추가 — 검정력 계산
+                 competing_value, note        ★ competing_value added — for the power calculation
 Prediction:      items[], regimes, alternatives[]
-                 ★ sealed_hash 를 여기 두지 않았다 — 봉인은 파일 해시이므로
-                   문서 안에 자기 해시를 넣을 수 없다. io.write_seal 이 소유
+                 ★ sealed_hash was not put here — the seal is a file hash, so
+                   a document cannot contain its own hash. io.write_seal owns it
 
 # simbot/nondim.py
 Scales:          length_si, energy_si, time_si, origin     (units.py)
-DtConstraint:    name, dt_si_max, active, basis, off_reason     ★ 신규
-DtChoice:        dt_si, dt_star, dominant, constraints[], logged{}   ★ 신규
+DtConstraint:    name, dt_si_max, active, basis, off_reason     ★ new
+DtChoice:        dt_si, dt_star, dominant, constraints[], logged{}   ★ new
 ReducedSpec:     card, scales, dim, n_particles, box_star, kT_star, gamma_star,
                  D_star, sigma_star, dt_star, dt_dominant, k_star,
                  equil_steps, prod_steps, sample_interval_steps, groups{}, logged{}
-                 ★ sigma_star 는 1 이 아니다 — 트랩 카드에서 491.358 이다
+                 ★ sigma_star is not 1 — in the trap card it is 491.358
 
 # simbot/validate.py
 Tolerance:       kind(relative|absolute|lower_bound|upper_bound), magnitude, text
@@ -669,227 +670,227 @@ Measurement:     quantity, value, stat_err, method, n_samples, spread, unit
 ValidationRow:   quantity, predicted, measured, tolerance, verdict, stat_err,
                  deviation, deviation_rel, sigma, design_power,
                  samples_needed_for_3sigma, cause_class, reason, note, flags[]
-                 ★ design_power·samples_needed_for_3sigma·flags 추가
+                 ★ design_power·samples_needed_for_3sigma·flags added
 
 # simbot/io.py
-RunDir:          path + RUN_LAYOUT 키로 접근
-SealVerdict:     ok, changed[], missing[], unsealed[], entries{}   ★ 신규
-RunManifest:     ★ dataclass 로 두지 않고 build_manifest() → dict.
-                 필드가 env 버전표를 포함해 가변이라 고정 스키마가 방해된다
+RunDir:          path + RUN_LAYOUT key access
+SealVerdict:     ok, changed[], missing[], unsealed[], entries{}   ★ new
+RunManifest:     ★ dataclass not used; build_manifest() → dict instead.
+                 The fields include an env version table and so are variable; a fixed schema gets in the way
 ```
 
-**불변식** (테스트로 강제)
-- `*_si` 필드는 항상 `Quantity`(단위 있음). `*_star` 필드는 항상 순수 float.
-  → `Quantity.si` 가 문자열·bool 을 거부한다 (`test_s3_spec.py`)
-- `SystemSpec` → YAML → `SystemSpec` 왕복 오차 **0** (파생값 비트 일치)
-- `SystemSpec` → `ReducedSpec` → SI 왕복 오차 **< 1e-12** (실측 `1.6e-16`)
-- 모든 `Quantity`에 `provenance` 존재. **기본값이어도 파일에 적힌다** —
-  `assumed` 를 생략하면 "가정했다"와 "적기를 잊었다"가 구별되지 않는다
-- `provenance ∈ {inference, assumed}` 인 필드는 저가 모델이 쓸 수 없다 (§12.2)
+**Invariants** (enforced by tests)
+- a `*_si` field is always a `Quantity` (with a unit). A `*_star` field is always a pure float.
+  → `Quantity.si` rejects strings and bools (`test_s3_spec.py`)
+- the `SystemSpec` → YAML → `SystemSpec` round-trip error is **0** (the derived values bit-identical)
+- the `SystemSpec` → `ReducedSpec` → SI round-trip error is **< 1e-12** (measured `1.6e-16`)
+- every `Quantity` has a `provenance`. **It is written in the file even when it is the default** —
+  omit `assumed` and "I assumed it" becomes indistinguishable from "I forgot to write it"
+- a field with `provenance ∈ {inference, assumed}` cannot be written by a cheap model (§12.2)
 
 ---
 
-## 4. 물리 도메인 커버리지
+## 4. Physics domain coverage
 
-| # | 도메인 | 모델 | HOOMD 구성 | 핵심 무차원수 | 검증 기준 (해석해/문헌) |
+| # | Domain | Model | The HOOMD construction | Key dimensionless numbers | The verification criterion (analytic/literature) |
 |---|---|---|---|---|---|
-| **A** | 자유·구속 BD | 점입자/구형, WCA 배제부피 | `Brownian` + `pair.LJ`(WCA 모드) + `external.wall` | φ, `kσ²/kT`, `σ/ℓ_g` | `D*=1` 자유확산 · 등분배 `⟨x²⟩=kT/k` · 침강 지수분포 `ℓ_g` · 슬릿 plateau MSD |
-| **B** | 미세유변학 | 프로브 + 배경 매질/네트워크; 수동(열요동) & 능동(집게 견인) | `Brownian` + `force.Custom`(트랩) + 배경 pair | `Pe = Fσ/kT`, `kσ²/kT`, `ωτ_B` | 뉴턴유체 극한: `G'=0, G''=ηω` · GSER 왕복 일관성 · 트랩 코너주파수 `f_c = k/2πγ` |
-| **C** | 활성물질 | ABP: 자기추진 + 회전확산 | `Brownian`(`moment_inertia=0`) + `force.Active` + `update.ActiveRotationalDiffusion` | `Pe = v₀/(σD_r)` 또는 `v₀τ_r/σ`, φ | 단일입자 ABP MSD 해석식 · `D_eff = D_t + v₀²/[d(d−1)D_r]` · MIPS 상경계 (2D: Pe≳40–60, φ≳0.4) |
-| **D** | 응집 콜로이드 | Yukawa(DLVO) / Morse 인력 + WCA | `pair.{Yukawa,Morse,DLVO,ExpandedLJ}` | `T*=kT/ε`, `κσ`, `βU_min`, φ | 2체 결합확률 vs `βU_min` · 낮은 φ에서 2차 비리얼 계수 `B₂` · Smoluchowski 응집속도 초기기울기 · RDF 접촉피크 |
-| **E** ★ | **2D 소프트 반발** | 점입자 `U/kT = A/r³` (경질 코어 **없음**) | `Brownian` + `pair.Table` (멱함수 표) | **`Γ = π^{3/2}A`** · `n* ≡ 1` · `βU(r_cut)` · **`η₆ = 4p`** | 완벽격자 `ψ₆ = 1`·결함 `0` · 액체 지수 `p = 1/2` · Zahn 상도 `[출처, 미재현]` |
+| **A** | free and confined BD | point/spherical particles, WCA excluded volume | `Brownian` + `pair.LJ` (WCA mode) + `external.wall` | φ, `kσ²/kT`, `σ/ℓ_g` | free diffusion `D*=1` · equipartition `⟨x²⟩=kT/k` · the sedimentation exponential `ℓ_g` · the slit plateau MSD |
+| **B** | microrheology | a probe + a background medium/network; passive (thermal fluctuation) and active (tweezer towing) | `Brownian` + `force.Custom` (the trap) + the background pair | `Pe = Fσ/kT`, `kσ²/kT`, `ωτ_B` | the Newtonian-fluid limit: `G'=0, G''=ηω` · GSER round-trip consistency · the trap corner frequency `f_c = k/2πγ` |
+| **C** | active matter | ABP: self-propulsion + rotational diffusion | `Brownian` (`moment_inertia=0`) + `force.Active` + `update.ActiveRotationalDiffusion` | `Pe = v₀/(σD_r)` or `v₀τ_r/σ`, φ | the single-particle ABP MSD analytic expression · `D_eff = D_t + v₀²/[d(d−1)D_r]` · the MIPS phase boundary (2D: Pe≳40–60, φ≳0.4) |
+| **D** | aggregating colloids | Yukawa (DLVO) / Morse attraction + WCA | `pair.{Yukawa,Morse,DLVO,ExpandedLJ}` | `T*=kT/ε`, `κσ`, `βU_min`, φ | the two-body binding probability vs `βU_min` · the second virial coefficient `B₂` at low φ · the initial slope of the Smoluchowski aggregation rate · the RDF contact peak |
+| **E** ★ | **2D soft repulsion** | point particles `U/kT = A/r³` (**no** hard core) | `Brownian` + `pair.Table` (a power-law table) | **`Γ = π^{3/2}A`** · `n* ≡ 1` · `βU(r_cut)` · **`η₆ = 4p`** | a perfect lattice `ψ₆ = 1` · defects `0` · the liquid exponent `p = 1/2` · the Zahn phase diagram `[source, unreproduced]` |
 
-각 도메인은 `examples/`에 **검증된 참조 케이스 1개**를 두고, 그 수치를 `tests/`에 회귀 테스트로 고정한다.
+Each domain keeps **1 verified reference case** in `examples/`, and its numbers are fixed in `tests/` as a regression test.
 
-### 4.1 ★ 첫 물리 캠페인 — 2D 소프트 반발계 (2026-07-29~30)
+### 4.1 ★ The first physics campaign — the 2D soft-repulsive system (2026-07-29~30)
 
-손그림 `soft-r3-2d-A-sweep` 한 장에서 시작해 **6개 런 · 3,856 프로덕션 런**.
-카드 [`soft-repulsive-2d--equilibrium-structure`](../../knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md)
-가 `draft` 에서 벤치마크 31개(S1–S31)를 가진 이 저장소 최대 지식체가 됐다.
+Starting from one hand drawing, `soft-r3-2d-A-sweep`, **6 runs · 3,856 production runs**.
+The card [`soft-repulsive-2d--equilibrium-structure`](../../knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md)
+went from `draft` to this repository's largest body of knowledge, with 31 benchmarks (S1–S31).
 
-| 런 | 무엇을 물었나 | 런 수 | 결과 |
+| Run | What was asked | Runs | Result |
 |---|---|---|---|
-| `soft-r3-2d-A-sweep` | `A` 스윕, 시드 4 | 40 | 상자 모양이 초기조건 비교를 교란함을 발견 |
-| `soft-r3-time-resolved` | **언제** 구조가 생기나 | 60 | `τ_relax = 0.03–0.10 τ_d` · 물리 척도(`σ=5 µm`) 최초 부착 |
-| `soft-r3-relax-seeds` (2단계) | `τ(A=1)` vs `τ(A=0.1)` | 3,584 | **INCONCLUSIVE** (사전등록 `3σ` 미달) |
-| `soft-r3-nconv` | `N` 수렴 + `ψ₆` 유한크기 | 12 | **`A=10` 은 hexatic 이 아니다** (16/16 PASS) |
-| `soft-r3-fss` | 멱함수 **형태** 검증 | 48 | `A=0.1`·`A=10` 형태 확인 (`χ²/dof` `0.55`·`0.58`) |
-| `soft-r3-hexwin` | Zahn hexatic 창 | 72 | 창 안 3점 전부 **등방 액체** · 절단오차가 지수를 `2.9σ` 편향 |
+| `soft-r3-2d-A-sweep` | an `A` sweep, 4 seeds | 40 | discovered that the box shape perturbs the initial-condition comparison |
+| `soft-r3-time-resolved` | **when** does the structure form | 60 | `τ_relax = 0.03–0.10 τ_d` · the physical scale (`σ=5 µm`) attached for the first time |
+| `soft-r3-relax-seeds` (2 stages) | `τ(A=1)` vs `τ(A=0.1)` | 3,584 | **INCONCLUSIVE** (short of the pre-registered `3σ`) |
+| `soft-r3-nconv` | `N` convergence + the `ψ₆` finite size | 12 | **`A=10` is not hexatic** (16/16 PASS) |
+| `soft-r3-fss` | verifying the **form** of the power law | 48 | the form confirmed for `A=0.1` and `A=10` (`χ²/dof` `0.55` and `0.58`) |
+| `soft-r3-hexwin` | the Zahn hexatic window | 72 | all 3 points inside the window are **isotropic liquid** · the truncation error biases the exponent by `2.9σ` |
 
-**물리 결론 (현재 최선값)**
+**The physical conclusion (the current best values)**
 
-| `A` | `Γ` | `η₆` | 상 | 근거 |
+| `A` | `Γ` | `η₆` | Phase | Grounds |
 |---|---|---|---|---|
-| 0.1 | 0.56 | `2.03 ± 0.08` | 등방 액체 | `p = 0.508 ± 0.020` (액체값 `0.5` 에서 `0.4σ`) |
-| 1 | 5.57 | `1.86 ± 0.05` | 등방 액체 | 형태 검증은 SE-제한으로 미결 |
-| 10 | 55.68 | **`2.06 ± 0.23`** | 등방 액체 | `r_cut=7.80` 최선값. hexatic 기각 `7.9σ` |
-| 10.2–10.8 | 56.8–60.1 | `1.5–2.2` | 등방 액체 | **Zahn 창 안인데 hexatic 이 없다** |
-| 31.6 | 176.0 | `0.27 ± 0.25` | 결정 | 결함 `0.020` |
+| 0.1 | 0.56 | `2.03 ± 0.08` | isotropic liquid | `p = 0.508 ± 0.020` (`0.4σ` from the liquid value `0.5`) |
+| 1 | 5.57 | `1.86 ± 0.05` | isotropic liquid | the form verification is unresolved, SE-limited |
+| 10 | 55.68 | **`2.06 ± 0.23`** | isotropic liquid | the best value at `r_cut=7.80`. Hexatic rejected at `7.9σ` |
+| 10.2–10.8 | 56.8–60.1 | `1.5–2.2` | isotropic liquid | **inside the Zahn window and yet there is no hexatic** |
+| 31.6 | 176.0 | `0.27 ± 0.25` | crystal | defects `0.020` |
 
-⇒ **액체→결정 브래킷 `A = 10.8–31.6`. hexatic 은 관측되지 않았다.**
-⚠ 단, **무작위 시작으로는 경계를 찾을 수 없다** (과냉각). 위에서만 묶은 값이다.
+⇒ **the liquid→crystal bracket is `A = 10.8–31.6`. No hexatic was observed.**
+⚠ But **the boundary cannot be found from a random start** (supercooling). It is a value bracketed from above only.
 
-### ★ 이 캠페인이 만든 **방법론** finding 6개 — 다른 카드에도 적용된다
+### ★ The 6 **methodology** findings this campaign produced — they apply to other cards too
 
-| finding | 규칙 |
+| finding | Rule |
 |---|---|
-| [[coarse-sampling-hides-the-whole-transient]] | `stride ≲ τ_relax/5`. 완화시간을 **먼저** 추정한다 |
-| [[fraction-threshold-flips-meaning-between-per-frame-and-aggregate]] | 분율 문턱이 `1/N` 보다 작으면 문턱이 없는 것이다 |
-| [[tolerance-from-a-4-seed-se-is-not-a-3-sigma-test]] | 시드 4개 SE 로 `3σ` 를 세우려면 `t(3)=5.84` |
-| [[low-seed-pilots-give-optimistic-design-power]] | 표본 수를 **미리** 계산한다. 편향 지표는 **폭/잡음 ≳ 20** |
-| [[order-parameter-magnitude-cannot-identify-a-phase]] | 크기도 기울기도 각각으로는 부족하다 — 둘 다 본다 |
-| [[provenance-must-have-one-definition-and-three-capture-points]] | 봉인·궤적·분석 세 시점에서 잡는다 |
+| [[coarse-sampling-hides-the-whole-transient]] | `stride ≲ τ_relax/5`. Estimate the relaxation time **first** |
+| [[fraction-threshold-flips-meaning-between-per-frame-and-aggregate]] | if the fraction threshold is below `1/N` there is no threshold |
+| [[tolerance-from-a-4-seed-se-is-not-a-3-sigma-test]] | to erect a `3σ` from a 4-seed SE you need `t(3)=5.84` |
+| [[low-seed-pilots-give-optimistic-design-power]] | compute the sample count **in advance**. The bias indicator is **width/noise ≳ 20** |
+| [[order-parameter-magnitude-cannot-identify-a-phase]] | neither the magnitude nor the slope is enough on its own — look at both |
+| [[provenance-must-have-one-definition-and-three-capture-points]] | capture it at three points: the seal, the trajectory and the analysis |
 
-**이 여섯이 `master_plan` 의 §11(감도)·§S2(예측)를 실질적으로 개정한다** — §8.1 참조.
+**These six substantively revise `master_plan`'s §11 (sensitivity) and §S2 (prediction)** — see §8.1.
 
 ---
 
-## 5. 무차원화 규약 (§S4 상세)
+## 5. The non-dimensionalization convention (§S4 in detail)
 
-### 5.1 기준 척도
-| 기호 | 선택 | 이유 |
+### 5.1 The reference scales
+| Symbol | Choice | Reason |
 |---|---|---|
-| 길이 `L*` | `σ` = 대표 입자 **직경** | 상호작용 거리와 배제부피의 자연 척도. (반지름 아님 — 혼동이 가장 흔한 버그) |
-| 에너지 `E*` | `k_BT` | BD는 열요동이 주역. `T*=kT/ε` 를 자유 무차원수로 남김 |
-| 시간 `T*` | `τ_B = σ²/D₀` | 자기 직경만큼 확산하는 시간. `D₀ = k_BT/γ₀`, `γ₀ = 6πη(σ/2)` |
+| length `L*` | `σ` = the representative particle **diameter** | the natural scale of the interaction range and the excluded volume. (Not the radius — the most common bug is confusing them) |
+| energy `E*` | `k_BT` | BD is driven by thermal fluctuation. It leaves `T*=kT/ε` as a free dimensionless number |
+| time `T*` | `τ_B = σ²/D₀` | the time to diffuse its own diameter. `D₀ = k_BT/γ₀`, `γ₀ = 6πη(σ/2)` |
 
-이 선택 하에 HOOMD 입력은 **`σ*=1, kT*=1, γ*=1 ⟹ D₀*=1, τ_B*=1`** 로 고정된다.
-따라서 **HOOMD 시간 1단위 = 1 τ_B**. 물리 시간 환산은 `t_si = t_star · τ_B,si`.
+Under this choice the HOOMD input is fixed at **`σ*=1, kT*=1, γ*=1 ⟹ D₀*=1, τ_B*=1`**.
+So **1 HOOMD time unit = 1 τ_B**. The physical time conversion is `t_si = t_star · τ_B,si`.
 
-> ⚠ HOOMD 문서의 기본 시간단위 `τ_LJ = σ√(m/ε)`와 혼동 금지.
-> BD는 과감쇠라 질량이 동역학에 안 들어가므로, `m*=1`로 두고 시간척도는 `γ`가 정한다.
-> 이 규약을 어기면 모든 시간이 조용히 틀린다. `tests/test_nondim.py`가 이를 감시한다.
+> ⚠ Do not confuse this with the default time unit of the HOOMD documentation, `τ_LJ = σ√(m/ε)`.
+> BD being overdamped, the mass does not enter the dynamics, so `m*=1` is set and the timescale is fixed by `γ`.
+> This convention broken, every time is quietly wrong. `tests/test_nondim.py` watches it.
 
-### 5.2 주요 변환
+### 5.2 The main conversions
 ```
-σ_si   = 2 a_si                          대표 직경
-γ₀_si  = 6 π η_si a_si                   Stokes 항력 (구, 무한매질)
+σ_si   = 2 a_si                          the representative diameter
+γ₀_si  = 6 π η_si a_si                   Stokes drag (a sphere in an infinite medium)
 D₀_si  = k_B T_si / γ₀_si
 τ_B_si = σ_si² / D₀_si
-F* = F_si σ_si / k_BT_si                 힘
-k* = k_si σ_si² / k_BT_si                스프링 상수
-v* = v_si σ_si / D₀_si                   속도 (= Pe)
-D_r* = D_r,si · τ_B_si                   회전확산
-ω* = ω_si · τ_B_si                       각주파수
-G* = G_si σ_si³ / k_BT_si                탄성률
+F* = F_si σ_si / k_BT_si                 force
+k* = k_si σ_si² / k_BT_si                the spring constant
+v* = v_si σ_si / D₀_si                   velocity (= Pe)
+D_r* = D_r,si · τ_B_si                   rotational diffusion
+ω* = ω_si · τ_B_si                       angular frequency
+G* = G_si σ_si³ / k_BT_si                the modulus
 ```
 
-### 5.3 무차원수 목록 (`simbot.nondim.groups`)
-| 기호 | 정의 | 물리적 의미 | 레짐 경계 |
+### 5.3 The list of dimensionless numbers (`simbot.nondim.groups`)
+| Symbol | Definition | Physical meaning | The regime boundary |
 |---|---|---|---|
-| φ | `N v_p / V` | 부피(면적)분율 | 희박 <0.05, 농후 >0.3, RCP 0.64 |
-| `Pe_F` | `F σ / k_BT` | 구동력 vs 열운동 | ~1에서 전이 |
-| `Pe_a` | `v₀ / (σ D_r)` | 활성 지속성 | MIPS ≳ 40 (2D) |
-| `T*` | `k_BT / ε` | 열 vs 인력 | 응집 ≲ 0.3 |
-| `κσ` | 스크리닝 | 전기이중층 두께 | 장거리 <1, 단거리 >5 |
-| `k*` | `k σ²/k_BT` | 구속 강도 | 강구속 ≫1 |
-| `σ/ℓ_g` | 중력 Pe | 침강 vs 확산 | ~1에서 전이 |
-| `Re` | `ρ v a / η` | 관성 (BD 전제 검증) | 반드시 ≪1 |
-| `τ_i/τ_B` | `m/(γ τ_B)` | 과감쇠 타당성 | 반드시 ≪1 |
+| φ | `N v_p / V` | the volume (area) fraction | dilute <0.05, dense >0.3, RCP 0.64 |
+| `Pe_F` | `F σ / k_BT` | the driving force vs thermal motion | the transition is at ~1 |
+| `Pe_a` | `v₀ / (σ D_r)` | the active persistence | MIPS ≳ 40 (2D) |
+| `T*` | `k_BT / ε` | thermal vs the attraction | aggregation ≲ 0.3 |
+| `κσ` | screening | the electric double-layer thickness | long-range <1, short-range >5 |
+| `k*` | `k σ²/k_BT` | the confinement strength | strong confinement ≫1 |
+| `σ/ℓ_g` | the gravitational Pe | sedimentation vs diffusion | the transition is at ~1 |
+| `Re` | `ρ v a / η` | inertia (verifying the BD premise) | must be ≪1 |
+| `τ_i/τ_B` | `m/(γ τ_B)` | the validity of overdamped | must be ≪1 |
 
-### 5.4 dt 선택 규칙 (`simbot.nondim.choose_dt`) — 구현됨
+### 5.4 The dt selection rule (`simbot.nondim.choose_dt`) — implemented
 
-BD 업데이트: `Δr = (F/γ) Δt + √(2 D₀ Δt) ξ`
+The BD update: `Δr = (F/γ) Δt + √(2 D₀ Δt) ξ`
 
-**★ 제약은 SI 로 계산하고 마지막에 카드의 시간 척도로 나눈다.** 무차원 단위로 바로
-쓰면 "`Δt*` 의 `*` 가 어느 시간인가"를 매번 따져야 하고, `τ_D` 와 `τ_trap` 이 24만 배
-차이 나는 계에서는 그 실수가 조용히 통과한다.
+**★ The constraints are computed in SI and divided by the card's time scale at the end.** Written directly in
+dimensionless units, you would have to work out "which time is the `*` of `Δt*`" every time, and in a system where
+`τ_D` and `τ_trap` differ by 240 thousand times that mistake passes quietly.
 
-제약들의 **최소값**을 채택하고 어느 제약이 지배했는지 기록한다:
+The **minimum** of the constraints is adopted, and which constraint dominated is recorded:
 
-| # | 제약 | 식 (SI) | 기본 목표값 | 켜지는 조건 |
+| # | Constraint | Expression (SI) | The default target | When it turns on |
 |---|---|---|---|---|
-| 1 | 열 변위 | `√(2 D₀ Δt) ≤ δ_th σ` | `δ_th = 0.03` (성분별) | **겹칠 상대 ∪ 결합 상대** 있을 때 |
-| 2 | 힘 변위 | `max\|F\| Δt/γ ≤ δ_F σ` | `δ_F = 0.005` | 위와 같음 + `max\|F\|` 실측 |
-| 3 | **강성 안정성** | `Δt ≤ s · 2γ/λ_max` | `s = 0.2` | **결합·각 있을 때** |
-| 4 | 최단 완화시간 | `Δt ≤ ζ · min(τ_trap, 1/D_r, …)` | `ζ = 0.01` | 구속·활성 있을 때 |
-| 5 | 활성 변위 | `v₀ Δt ≤ δ_a σ` | `δ_a = 0.01` | 능동 구동 있을 때 |
-| 6 | **정확도 목표** | `Δt ≤ 2b/(1+b) · τ_trap` | 목표 편향 `b` | 조화 트랩 + `b` 명시 |
+| 1 | thermal displacement | `√(2 D₀ Δt) ≤ δ_th σ` | `δ_th = 0.03` (per component) | when there is **a partner to overlap with ∪ a partner to bond with** |
+| 2 | force displacement | `max\|F\| Δt/γ ≤ δ_F σ` | `δ_F = 0.005` | as above + `max\|F\|` measured |
+| 3 | **stiffness stability** | `Δt ≤ s · 2γ/λ_max` | `s = 0.2` | **when there are bonds or angles** |
+| 4 | the shortest relaxation time | `Δt ≤ ζ · min(τ_trap, 1/D_r, …)` | `ζ = 0.01` | when there is confinement or activity |
+| 5 | active displacement | `v₀ Δt ≤ δ_a σ` | `δ_a = 0.01` | when there is active driving |
+| 6 | **the accuracy target** | `Δt ≤ 2b/(1+b) · τ_trap` | the target bias `b` | a harmonic trap + `b` stated |
 
-`λ_max = 4 k_bond + 16 k_angle/b²` (`derive()` 가 파생). `1·2·5` 는 **정확도**, `3` 은
-**안정성**, `4·6` 은 **관측 가능성**이다 — 세 종류를 하나로 합칠 수 없다.
+`λ_max = 4 k_bond + 16 k_angle/b²` (derived by `derive()`). `1·2·5` are **accuracy**, `3` is
+**stability**, and `4·6` are **observability** — the three kinds cannot be merged into one.
 
-**활성 제약이 하나도 없으면 예외를 던진다.** 근거 없이 기본값으로 런이 나가는 것이
-가장 나쁘다.
+**If not a single constraint is active, an exception is thrown.** A run going out on the defaults with no grounds is the worst case.
 
-**게이트 식은 `nondim.dt_max_{thermal,force,active,stability}` 가 소유한다** — 단위 무관
-함수라 `choose_dt` 는 SI 로, 축약 단위로 도는 스크립트는 `σ=γ=D₀=1` 로 같은 함수를 부른다.
-문턱은 전부 `config/run_policy.yaml` §timestep 에서 온다. 스크립트가 숫자를 다시 쓰면
-정책을 고쳐도 따라오지 않는다 — 2026-07-28 에 `scripts/chain_bend.py` 가 실제로 그랬다.
+**The gate expressions are owned by `nondim.dt_max_{thermal,force,active,stability}`** — they are unit-independent
+functions, so `choose_dt` calls them in SI and a script running in reduced units calls the same functions with `σ=γ=D₀=1`.
+The thresholds all come from `config/run_policy.yaml` §timestep. If a script rewrites the numbers, fixing the policy
+does not follow through — on 2026-07-28 `scripts/chain_bend.py` actually did that.
 
-#### ★ 변위 게이트는 만능이 아니다 (2026-07-28 실측)
+#### ★ The displacement gate is not universal (measured 2026-07-28)
 
-첫 손그림 계에서 네 제약을 같은 축에 올린 결과:
+Putting the four constraints on the same axis for the first hand-drawing system:
 
-| 제약 | `Δt*` 상한 (`τ_trap` 단위) |
+| Constraint | The `Δt*` ceiling (in units of `τ_trap`) |
 |---|---|
-| 열 변위 | **`108.6`** |
-| 완화시간 | **`0.01`** ← 지배 |
+| thermal displacement | **`108.6`** |
+| the relaxation time | **`0.01`** ← dominant |
 
-**비 1086배.** 변위 게이트만 켜면 아무것도 막지 못한다 — 기준 길이가 `σ` 인데
-입자가 탐색하는 거리는 `ℓ_trap = σ/491` 이기 때문이다.
+**A ratio of 1086×.** Turn on the displacement gate alone and it blocks nothing — because the reference length is `σ`
+while the distance the particle explores is `ℓ_trap = σ/491`.
+The 3 measurements in
 [`dt-gate-should-be-displacement-based`](../../knowledge/wiki/findings/dt-gate-should-be-displacement-based.md)
-의 실측 3건은 **전부 쌍 상호작용 계**였고, 그 결론의 적용 범위가 그것이다.
-전문: [`displacement-gate-is-1000x-loose-for-traps`](../../knowledge/wiki/findings/displacement-gate-is-1000x-loose-for-traps.md)
+were **all pair-interaction systems**, and that is the range of applicability of that conclusion.
+The full text: [`displacement-gate-is-1000x-loose-for-traps`](../../knowledge/wiki/findings/displacement-gate-is-1000x-loose-for-traps.md)
 
-⇒ 두 게이트는 경쟁하지 않고 보완한다. **어느 것이 켜지는지는 카드가 정한다.**
+⇒ The two gates do not compete but complement. **Which one turns on is decided by the card.**
 
-#### ★ 변위 게이트는 정확도 게이트일 뿐이다 (2026-07-28 실측, 결합 계)
+#### ★ The displacement gate is only an accuracy gate (measured 2026-07-28, a bonded system)
 
-곧은 사슬에 변위 게이트를 그대로 걸었더니 `Δt* = 4.5×10⁻⁴` 가 선택되고 사슬이 터졌다.
-게이트가 **무력화**된 것이다 — 완전히 곧은 사슬은 `max|F*| = 0` 인 **정류점**이므로
-힘 게이트가 상한을 주지 못한다. `kT = 0` 에서도 터지므로 확률적 현상도 아니다.
+Applying the displacement gate as it stands to a straight chain selected `Δt* = 4.5×10⁻⁴` and the chain blew up.
+The gate had been **neutered** — a perfectly straight chain is a **stationary point** with `max|F*| = 0`, so
+the force gate gives no ceiling. It blows up at `kT = 0` too, so it is not a stochastic phenomenon either.
 
-| `k_bond*` | `k_angle*` | `Δt_crit` 실측 (이분법) | `2/λ_max*` 하한 | 실측/하한 |
+| `k_bond*` | `k_angle*` | `Δt_crit` measured (bisection) | the `2/λ_max*` lower bound | measured/bound |
 |---|---|---|---|---|
 | `10⁶` | `10⁴` | `1.00e-6` (N=5) · `5.87e-7` (N=9) | `4.81e-7` | `2.08` · **`1.22`** |
 | `10³` | `10³` | `1.84e-4` (N=5) · `1.48e-4` (N=9) | `1.00e-4` | `1.84` · `1.48` |
 
-10조합 전부에서 **하한이 실측보다 작다** (비율 `1.22–2.80`) → 게이트로 쓸 수 있다.
-`s = 0.2` 는 최악 `1.22` 대비 `6–14` 배 여유다.
-전문: [`dt-gate-needs-a-stability-term-for-stiff-bonds`](../../knowledge/wiki/findings/dt-gate-needs-a-stability-term-for-stiff-bonds.md)
+In all 10 combinations **the bound is below the measurement** (ratios `1.22–2.80`) → it can be used as a gate.
+`s = 0.2` is a `6–14`× margin against the worst case, `1.22`.
+The full text: [`dt-gate-needs-a-stability-term-for-stiff-bonds`](../../knowledge/wiki/findings/dt-gate-needs-a-stability-term-for-stiff-bonds.md)
 
-**`hard_floor` 는 정확도 제약에만 적용한다.** `k_bond* = 10⁶` 의 안정성 상한 `9.6×10⁻⁸` 은
-floor `10⁻⁷` 아래인데, 실측은 그 계가 `Δt* = 10⁻⁶` 까지 안정임을 보였다 — floor 쪽이 틀렸다.
-안정성 상한은 협상 대상이 아니므로(낮추라는 요구가 아니라 `k_bond` 를 낮추라는 요구다)
-기각하지 않고 `logged["dt_star_below_hard_floor"]` 에 남긴다.
-⇒ 미결: `hard_floor` 는 **카드 기준시간 단위**라 카드마다 뜻이 달라진다. `dt/τ_D` 게이트에서
-이미 폐기한 "보편 규약" 함정이고, 비용 검사라면 `Λ` 예산 추정이 할 일이다.
+**`hard_floor` applies to the accuracy constraints only.** The stability ceiling of `k_bond* = 10⁶`, `9.6×10⁻⁸`, is
+below the floor `10⁻⁷`, and yet the measurement showed that system stable out to `Δt* = 10⁻⁶` — the floor was the wrong one.
+A stability ceiling is not negotiable (it is not a demand to lower it but a demand to lower `k_bond`),
+so rather than rejecting, it is left in `logged["dt_star_below_hard_floor"]`.
+⇒ Unresolved: `hard_floor` is in **the card's reference time unit**, so its meaning differs per card. It is the
+"universal convention" trap already discarded for the `dt/τ_D` gate, and if it is a cost check then estimating the `Λ` budget is what should do it.
 
-`max|F|`는 초기배치에서 실제 힘을 계산해 얻는다(**추정 금지**). **"재봤더니 0"과 "아직 안
-재봤다"를 같은 문장으로 적지 않는다** — 앞은 물리(정류점), 뒤는 절차 위반이고,
-`DtChoice.table()` 이 둘을 다르게 표시한다.
-`Δt/τ_D` 는 `logged` 에 **기록만** 한다. 게이트로 쓰지 않는다.
+`max|F|` is obtained by computing the actual forces in the initial arrangement (**estimating is forbidden**). **"I measured
+and it was 0" and "I have not measured yet" are not written as the same sentence** — the former is physics (a stationary point),
+the latter a procedural violation, and `DtChoice.table()` displays them differently.
+`Δt/τ_D` is **recorded only** in `logged`. It is not used as a gate.
 
 ---
 
-## 6. `knowledge/` 지식 축적 스키마
+## 6. The `knowledge/` accumulation schema
 
-> ## ⚠️ 이 절은 폐기됐다 — §10 이 정본이다
+> ## ⚠️ This section is obsolete — §10 is authoritative
 >
-> 아래 §6.1~6.4 는 2026-07-28 오전에 설계한 스키마다. 같은 날 `BD_agent/knowledge/`
-> 를 이관하면서 **그쪽 계약이 더 낫다고 판정하고 정본으로 채택했다** (§10.2).
-> 실제 디렉터리는 `source/papers` + `wiki/{systems,findings,concepts,techniques,
-> benchmarks,questions}` 이고, 계약은
-> [`knowledge/wiki/CLAUDE.md`](../../knowledge/wiki/CLAUDE.md) 가 소유한다.
+> §6.1~6.4 below is the schema designed on the morning of 2026-07-28. On the same day, while porting
+> `BD_agent/knowledge/`, **that contract was judged better and adopted as authoritative** (§10.2).
+> The actual directories are `source/papers` + `wiki/{systems,findings,concepts,techniques,
+> benchmarks,questions}`, and the contract is owned by
+> [`knowledge/wiki/CLAUDE.md`](../../knowledge/wiki/CLAUDE.md).
 >
-> **지우지 않고 남기는 이유:** §10.4 가 "이관이 오늘 작성한 것을 반박한 사례"를
-> 인용하고 있어서, 반박당한 원문이 사라지면 그 기록이 읽히지 않는다.
-> 아래를 **구현 지침으로 읽지 말 것.**
+> **Why it is kept rather than deleted:** §10.4 cites "the case where the port refuted what had been written today",
+> and if the refuted original disappears that record becomes unreadable.
+> **Do not read the below as implementation guidance.**
 
-### 6.1 구조 (폐기 — §10 참조)
+### 6.1 The structure (obsolete — see §10)
 ```
 knowledge/
-├── INDEX.md              전체 목록 + 한 줄 요약 (에이전트가 매번 먼저 읽음)
-├── systems/              시스템 아키타입: 무엇을 시뮬레이션했는가
-├── parameters/           파라미터 값의 출처와 근거 (η, T, ε, dt, r_cut…)
-├── models/               모델링 결정 근거 (왜 WCA인가, 왜 HI 무시인가)
-├── failures/             실패 사례: 증상 → 원인 → 처방
-├── validation/           검증 벤치마크 수치 (pytest 회귀 후보)
-└── env_log.md            패키지 적립 이력
+├── INDEX.md              the whole list + a one-line summary (the agent reads it first every time)
+├── systems/              system archetypes: what was simulated
+├── parameters/           the source and grounds of parameter values (η, T, ε, dt, r_cut…)
+├── models/               the grounds for modelling decisions (why WCA, why ignore HI)
+├── failures/             failure cases: symptom → cause → prescription
+├── validation/           verification benchmark values (regression candidates for pytest)
+└── env_log.md            the package accumulation history
 ```
 
-### 6.2 항목 포맷 (모든 파일 공통)
+### 6.2 The entry format (common to every file)
 ```markdown
 ---
 id: dense-diffusion-hardsphere
@@ -897,93 +898,92 @@ kind: validation            # systems | parameters | models | failures | validat
 tags: [diffusion, hard-sphere, dense, phi]
 created: 2026-07-28
 updated: 2026-07-28
-runs: [2026-07-28T14-30_free-diff_a1b2c3]   # 이 지식을 만든 run
+runs: [2026-07-28T14-30_free-diff_a1b2c3]   # the run that produced this knowledge
 confidence: medium          # high | medium | low
-supersedes: []              # 대체한 이전 항목 id
+supersedes: []              # the id of the earlier entry this replaced
 ---
 
-## 요약
-한 문단. 이 항목이 주장하는 것.
+## Summary
+One paragraph. What this entry claims.
 
-## 근거
-데이터/문헌/식. 수치는 오차와 함께.
+## Grounds
+Data/literature/expressions. Numbers with their errors.
 
-## 적용 범위 / 한계
-언제 이 지식을 믿어도 되고 언제 안 되는가.
+## Range of applicability / limits
+When this knowledge may be trusted and when not.
 
-## 참고
-문헌, run 링크, 관련 항목 [[다른-id]]
+## References
+Literature, run links, related entries [[another-id]]
 ```
 
-### 6.3 `failures/` 특화 포맷 (가장 중요)
+### 6.3 The `failures/`-specific format (the most important)
 ```markdown
-## 증상
-관측된 것. 에러 메시지, 그래프 모양, 이상한 숫자.
+## Symptom
+What was observed. The error message, the shape of the graph, the strange number.
 
-## 진단 경로
-무엇을 의심하고 어떻게 배제했는가. (다음에 같은 증상 만나면 이 순서로 따라간다)
+## The diagnostic path
+What was suspected and how it was excluded. (Meet the same symptom next time and follow this order)
 
-## 근본 원인
-분류: numerical | modeling | interpretation | analysis | environment
+## The root cause
+The class: numerical | modeling | interpretation | analysis | environment
 
-## 처방
-구체적 수정. 코드/설정 diff.
+## The prescription
+The concrete fix. A code/configuration diff.
 
-## 재발 방지
-추가한 테스트 / 가드 / 문서. 없으면 "없음"이라고 적을 것.
+## Preventing recurrence
+The test / guard / documentation added. If none, write "none".
 ```
 
-### 6.4 지식 축적 규칙
-- **S8에서 knowledge 업데이트 없이 파이프라인을 종료할 수 없다.** (게이트)
-- 기존 항목과 모순되는 결과가 나오면 새 항목을 만들고 `supersedes`로 연결. **기존 항목을 조용히 덮어쓰지 않는다.**
-- `validation/` 항목 중 재현 가능한 수치는 `tests/test_knowledge_regression.py`로 승격 → 코드 변경 시 지식이 깨지는지 자동 감시.
-- `INDEX.md`는 항목 추가 시 자동 갱신 (`simbot.io.reindex_knowledge`).
+### 6.4 The knowledge accumulation rules
+- **The pipeline cannot terminate at S8 without a knowledge update.** (a gate)
+- If a result contradicts an existing entry, make a new entry and link it with `supersedes`. **Do not quietly overwrite the existing entry.**
+- Among the `validation/` entries, the reproducible numbers get promoted into `tests/test_knowledge_regression.py` → so that a code change automatically shows whether the knowledge breaks.
+- `INDEX.md` is updated automatically when an entry is added (`simbot.io.reindex_knowledge`).
 
 ---
 
-## 7. 환경 및 패키지 적립
+## 7. The environment and package accumulation
 
-### 7.1 env: `simulation_bot` (신규 생성)
-기존 `hoomd_slit`은 건드리지 않는다. 새 env로 시작해 필요한 것만 단계적으로 추가하고,
-**추가할 때마다 `knowledge/env_log.md`에 "왜 필요했는가"를 기록**한다.
+### 7.1 env: `simulation_bot` (newly created)
+The existing `hoomd_slit` is not touched. It starts as a new env, adds only what is needed in stages, and
+**records "why it was needed" in `knowledge/env_log.md` at every addition**.
 
-| 단계 | 패키지 | 목적 | 시점 |
+| Stage | Packages | Purpose | When |
 |---|---|---|---|
-| **1. 코어** | `python=3.12`, `hoomd`, `gsd`, `numpy`, `scipy` | BD 실행, 궤적 I/O, 수치 | 지금 |
-| **2. 분석·플롯** | `matplotlib`, `freud`, `pandas`, `h5py` | RDF/S(q)/클러스터, 플롯, 로그 | S6/S7 착수 시 |
-| **3. 인풋 처리** | `pillow` | 손그림 이미지 메타/전처리 | S1 착수 시 |
-| **4. 개발** | `pytest`, `pyyaml` | 테스트, spec 직렬화 | 코어 구현 시 |
-| **5. 3D 렌더** | `fresnel` | 3D 스냅샷 레이트레이싱 | 3D 케이스 등장 시 |
-| **6. 동영상** | `ffmpeg` | MP4 애니메이션 | GIF로 부족할 때 |
+| **1. the core** | `python=3.12`, `hoomd`, `gsd`, `numpy`, `scipy` | BD execution, trajectory I/O, numerics | now |
+| **2. analysis and plots** | `matplotlib`, `freud`, `pandas`, `h5py` | RDF/S(q)/clusters, plots, logs | at the start of S6/S7 |
+| **3. input handling** | `pillow` | hand-drawing image metadata and preprocessing | at the start of S1 |
+| **4. development** | `pytest`, `pyyaml` | tests, spec serialization | when the core is implemented |
+| **5. 3D rendering** | `fresnel` | ray tracing 3D snapshots | when a 3D case appears |
+| **6. video** | `ffmpeg` | MP4 animation | when GIF is not enough |
 
-`environment.yml`은 단계가 올라갈 때마다 갱신하고, `conda env export --from-history`로 고정한다.
-
-### 7.2 실행 규약
-- 모든 Python 실행은 `simulation_bot` env의 인터프리터 절대경로 사용
-  (`conda activate`는 non-interactive shell에서 불안정)
-- `CLAUDE.md`에 인터프리터 경로를 기록해 에이전트가 매번 참조
+`environment.yml` is updated as the stages rise, and pinned with `conda env export --from-history`.
+### 7.2 The execution convention
+- Every Python execution uses the absolute path of the `simulation_bot` env's interpreter
+  (`conda activate` is unreliable in a non-interactive shell)
+- The interpreter path is recorded in `CLAUDE.md` so the agent can refer to it every time
 
 ---
 
-### 7.3 로컬 CPU 병렬 컴퓨팅 — 실측 검토
+### 7.3 Local CPU parallel computing — a measured review
 
-> 측정일 2026-07-28 · 기기 Apple M4 (`Mac16,12`), **4 P-core + 6 E-core = 10코어**, 16 GB
-> 벤치마크 커널: 3D WCA + `md.methods.Brownian`, φ=0.30, `dt=1e-4`, Cell nlist(buffer 0.3)
-> 원자료: `knowledge/parameters/local_cpu_parallelism.md`
+> Measured 2026-07-28 · machine Apple M4 (`Mac16,12`), **4 P-cores + 6 E-cores = 10 cores**, 16 GB
+> The benchmark kernel: 3D WCA + `md.methods.Brownian`, φ=0.30, `dt=1e-4`, a Cell nlist (buffer 0.3)
+> The raw data: `knowledge/parameters/local_cpu_parallelism.md`
 
-#### 7.3.1 결론 요약 (먼저 읽을 것)
+#### 7.3.1 The summary of conclusions (read this first)
 
-| 발견 | 근거 |
+| Finding | Grounds |
 |---|---|
-| **HOOMD 7.1은 이 환경에서 완전 단일스레드다.** | 측정 `CPU util = 1.00x` (N=500~32000 전부) |
-| **CPU 병렬화 경로가 아예 없다.** HOOMD v3+는 TBB를 제거했고, 남은 경로는 MPI 도메인 분할뿐인데 — | `hoomd.version.mpi_enabled = False` |
-| **conda-forge에 MPI 빌드가 osx-arm64·linux-64 **양쪽 모두** 존재하지 않는다.** | 전체 빌드 문자열 검색 결과 `mpi` 매치 0건. 모두 `cpu*`/`gpu*` |
-| ⇒ **강한 스케일링(한 시뮬레이션을 여러 코어로)은 불가능.** MPI가 필요하면 소스 빌드 필수. | |
-| ⇒ **처리량 병렬화(독립 런 동시 실행)가 유일하고, 이 프로젝트에는 오히려 더 적합하다.** | §7.4 |
+| **HOOMD 7.1 is completely single-threaded in this environment.** | measured `CPU util = 1.00x` (for all of N=500~32000) |
+| **There is no CPU parallelization route at all.** HOOMD v3+ removed TBB, and the remaining route is MPI domain decomposition, but — | `hoomd.version.mpi_enabled = False` |
+| **conda-forge has no MPI build for **either** osx-arm64 or linux-64.** | searching the whole build string gives 0 `mpi` matches. All are `cpu*`/`gpu*` |
+| ⇒ **Strong scaling (one simulation across several cores) is impossible.** If MPI is needed, a source build is mandatory. | |
+| ⇒ **Throughput parallelization (running independent runs at once) is the only route, and it actually suits this project better.** | §7.4 |
 
-#### 7.3.2 단일 프로세스 처리량 — N에 거의 무관
+#### 7.3.2 Single-process throughput — almost independent of N
 
-| N | TPS (steps/s) | 입자·스텝/s | CPU util |
+| N | TPS (steps/s) | particle-steps/s | CPU util |
 |---|---|---|---|
 | 500 | 13 313 | 6.66e6 | 1.00x |
 | 2 000 | 3 210 | 6.42e6 | 1.00x |
@@ -991,642 +991,641 @@ supersedes: []              # 대체한 이전 항목 id
 | 8 000 | 785 | 6.28e6 | 1.00x |
 | 32 000 | 189 | 6.05e6 | 1.00x |
 
-**처리량 상수 `Λ ≈ 6.3 × 10⁶ 입자·스텝/s` (P-코어 1개).**
-N을 64배 늘려도 9 %만 저하 → Cell 리스트가 잘 동작하고 작업집합이 캐시에 들어간다.
-이 상수 하나로 모든 런의 wall time을 예측할 수 있다: `wall ≈ N × steps / Λ`.
+**The throughput constant `Λ ≈ 6.3 × 10⁶ particle-steps/s` (1 P-core).**
+Raising N by 64× degrades it by only 9 % → the Cell list works well and the working set fits in cache.
+With this one constant the wall time of every run can be predicted: `wall ≈ N × steps / Λ`.
 
-#### 7.3.3 동시 실행 스케일링 (N=4000, 12 000스텝, 동기화 시작)
+#### 7.3.3 Concurrent-execution scaling (N=4000, 12 000 steps, synchronized start)
 
-| k | 총 TPS | 스피드업 | 코어당 효율 | 프로세스당 TPS | 추가 1개당 이득 |
+| k | total TPS | speedup | efficiency per core | TPS per process | the gain per additional one |
 |---:|---:|---:|---:|---:|---:|
 | 1 | 1 629 | 1.00x | 100 % | 1 629 | — |
 | 2 | 3 090 | 1.90x | 95 % | 1 545 | +1 461 |
 | 3 | 4 524 | 2.78x | 93 % | 1 508 | +1 434 |
 | **4** | **6 027** | **3.70x** | **93 %** | 1 507 | +1 503 |
-| 5 | 6 304 | 3.87x | 77 % | 1 261 | +277 ← **절벽** |
+| 5 | 6 304 | 3.87x | 77 % | 1 261 | +277 ← **the cliff** |
 | 6 | 6 804 | 4.18x | 70 % | 1 134 | +500 |
-| **8** | **8 041** | **4.94x** | 62 % | 1 005 | +309/개 |
-| **10** | **8 906** | **5.47x** | 55 % | 891 | +432/개 |
-| 12 | 8 663 | 5.32x | 44 % | 722 | **−243 (회귀)** |
+| **8** | **8 041** | **4.94x** | 62 % | 1 005 | +309 each |
+| **10** | **8 906** | **5.47x** | 55 % | 891 | +432 each |
+| 12 | 8 663 | 5.32x | 44 % | 722 | **−243 (a regression)** |
 
-**읽는 법**
-1. **k ≤ 4는 거의 선형(93 %).** 4개의 P-코어에 하나씩 얹히는 구간.
-2. **k=5에서 절벽** — 5번째부터 P-코어를 공유하기 시작한다. 프로세스별 TPS 산포가
-   `1.02x`에 불과한 것으로 보아, macOS는 프로세스를 P/E에 **고정하지 않고 시분할 이동**시킨다.
-   따라서 "느린 런 하나가 배치를 지연시키는" 문제는 없다 — 배치 스케줄링에 유리한 성질.
-3. **E-코어의 실효 성능은 P-코어의 약 1/3이다.**
-   4 P × 1 507 = 6 027, k=10 총 8 906 ⇒ 6 E가 2 879 기여 ⇒ E당 480 TPS ⇒ `480/1507 = 32 %`.
-4. **k=12는 k=10보다 느리다(−2.7 %).** 오버서브스크립션은 순손실. **상한은 코어 수 10.**
+**How to read it**
+1. **k ≤ 4 is nearly linear (93 %).** The stretch where one lands on each of the 4 P-cores.
+2. **The cliff at k=5** — from the fifth it starts sharing P-cores. Given that the per-process TPS scatter is
+   only `1.02x`, macOS does **not pin** processes to P/E but **time-shares and migrates** them.
+   So there is no "one slow run delaying the batch" problem — a property favourable to batch scheduling.
+3. **An E-core's effective performance is about 1/3 of a P-core's.**
+   4 P × 1 507 = 6 027, and k=10 totals 8 906 ⇒ the 6 E contribute 2 879 ⇒ 480 TPS each ⇒ `480/1507 = 32 %`.
+4. **k=12 is slower than k=10 (−2.7 %).** Oversubscription is a net loss. **The ceiling is the core count, 10.**
 
-#### 7.3.4 권장 동시 실행 수
+#### 7.3.4 The recommended concurrency
 
-| 시나리오 | **k** | 총 TPS | 최대치 대비 | 코어당 효율 | 채택 이유 |
+| Scenario | **k** | total TPS | vs the maximum | efficiency per core | Why adopted |
 |---|:---:|---:|---:|---:|---|
-| 대화형 (사용자가 동시에 작업 중) | **4** | 6 027 | 68 % | 93 % | P-코어만 사용. 머신 반응성 유지, 코어당 효율 최고 |
-| **기본값 (권장)** | **8** | 8 041 | **90 %** | 62 % | 최대 처리량의 90 %를 얻으면서 **2코어를 여유로 남긴다** — 에이전트 자신, freud/numpy 분석(Accelerate BLAS는 멀티스레드), 플로팅, OS |
-| 배치 (무인 실행) | **10** | 8 906 | 100 % | 55 % | 절대 최대. 다른 작업이 없을 때만 |
-| — | 12+ | 8 663 | 97 % | 44 % | **측정상 회귀. 금지** |
+| interactive (the user is working at the same time) | **4** | 6 027 | 68 % | 93 % | P-cores only. Keeps the machine responsive, the highest per-core efficiency |
+| **the default (recommended)** | **8** | 8 041 | **90 %** | 62 % | gets 90 % of the maximum throughput while **leaving 2 cores spare** — the agent itself, freud/numpy analysis (Accelerate BLAS is multithreaded), plotting, the OS |
+| batch (unattended) | **10** | 8 906 | 100 % | 55 % | the absolute maximum. Only when there is nothing else |
+| — | 12+ | 8 663 | 97 % | 44 % | **a measured regression. Forbidden** |
 
-**기본값을 10이 아니라 8로 두는 이유**: 10을 써서 얻는 추가 이득은 +11 %인데, 그 대가로
-분석·플로팅·에이전트 자신이 실행될 코어가 사라진다. 파이프라인은 시뮬레이션만 돌리는 게
-아니라 S6·S7 분석을 계속 병행하므로, 8이 실효 처리량이 더 높다.
+**Why the default is 8 and not 10**: the extra gain from using 10 is +11 %, and the price is that the cores on which
+the analysis, the plotting and the agent itself would run disappear. The pipeline does not only run simulations but
+keeps the S6 and S7 analysis going alongside, so 8 has the higher effective throughput.
 
 ---
 
-### 7.4 최적 시뮬레이션 조건 (제안) — 사람이 덮어쓸 수 있음
+### 7.4 The optimal simulation conditions (a proposal) — a human may override
 
-> 아래는 §7.3 실측에서 **유도된 제안값**이다. 확정값이 아니다.
-> 사람이 바꿀 곳: **`config/run_policy.yaml`의 `overrides:` 블록 한 곳.**
-> 에이전트는 매 런 시작 시 조건표를 제시하고 승인을 받되, `overrides`가 있으면 그것을 우선한다.
+> The below are **values derived from** the §7.3 measurements. They are not settled values.
+> Where a human changes them: **one place, the `overrides:` block of `config/run_policy.yaml`.**
+> The agent presents the condition table at the start of every run and gets approval, but if there are `overrides` it takes those first.
 
-#### 7.4.1 핵심 정책: **오차 막대는 공짜다**
+#### 7.4.1 The core policy: **error bars are free**
 
-HOOMD가 단일스레드이고 코어가 10개이므로, **독립 시드 4개를 동시에 돌리는 비용은 1개와 같다**
-(k≤4는 93 % 효율). 따라서:
+Since HOOMD is single-threaded and there are 10 cores, **the cost of running 4 independent seeds at once is the same as 1**
+(k≤4 is 93 % efficient). Therefore:
 
-> **기본 정책: 모든 프로덕션 런은 시드 ≥ 4개를 동시 실행한다.**
-> 단일 런 + 시드 1개는 금지 (오차 막대 없는 결과가 되기 때문).
+> **The default policy: every production run executes ≥ 4 seeds concurrently.**
+> A single run with 1 seed is forbidden (because it becomes a result with no error bar).
 
-이것이 이 하드웨어에서 가장 중요한 설계 결론이다. 긴 런 1개보다 짧은 런 4개가 거의 항상 낫다.
+This is the most important design conclusion on this hardware. Four short runs are almost always better than one long run.
 
-#### 7.4.2 실행 티어
+#### 7.4.2 The execution tiers
 
-`Λ = 6.3e6 입자·스텝/s`, `η_k` = 프로세스당 효율(§7.3.3), `dt* = 5e-5 τ_B` 기준.
+`Λ = 6.3e6 particle-steps/s`, `η_k` = the efficiency per process (§7.3.3), referenced to `dt* = 5e-5 τ_B`.
 `wall ≈ N × steps / (Λ · η_k)` , `t_total = steps × dt*`
 
-| 티어 | 목적 | N | steps | `t_total` | 동시 k | 프로세스당 wall | 배치 총 wall |
+| Tier | Purpose | N | steps | `t_total` | concurrent k | wall per process | total batch wall |
 |---|---|---:|---:|---:|:---:|---:|---:|
-| **T0** `smoke` | 코드가 도는지만 확인 | 200 | 2e3 | 0.1 τ_B | 1 | **0.06 s** | 즉시 |
-| **T1** `pilot` | 가드·dt 검증 + wall 예측 (S5-2 **필수**) | 프로덕션과 동일 | 프로덕션의 0.5 % | — | 1 | **≤30 s** | ≤30 s |
-| **T2** `explore` | 레짐 탐색 / 파라미터 스윕 | 1 000 | 4e5 | 20 τ_B | **8** | 103 s | **8점 스윕 1.7분** |
-| **T3** `production` | 본 측정 (기본 티어) | 4 000 | 1e6 | 50 τ_B | **4** | 11.4 분 | **4시드 11.4분** |
-| **T4** `long` | GSER · MIPS · 농후 장시간 | 4 000 | 1e7 | 500 τ_B | 2–4 | 1.9 h | **사용자 승인 필수** |
+| **T0** `smoke` | confirm only that the code runs | 200 | 2e3 | 0.1 τ_B | 1 | **0.06 s** | instant |
+| **T1** `pilot` | verify the guards and dt + predict the wall (S5-2 **mandatory**) | the same as production | 0.5 % of production | — | 1 | **≤30 s** | ≤30 s |
+| **T2** `explore` | regime exploration / a parameter sweep | 1 000 | 4e5 | 20 τ_B | **8** | 103 s | **an 8-point sweep in 1.7 min** |
+| **T3** `production` | the main measurement (the default tier) | 4 000 | 1e6 | 50 τ_B | **4** | 11.4 min | **4 seeds in 11.4 min** |
+| **T4** `long` | GSER · MIPS · a dense system at long times | 4 000 | 1e7 | 500 τ_B | 2–4 | 1.9 h | **user approval mandatory** |
 
-**티어 선택 규칙 (에이전트가 자동 적용)**
-- 처음 보는 시스템 → 반드시 `T0 → T1 → T2` 순서. T2 결과로 레짐을 확인한 뒤 T3.
-- `t_total` 요구는 측정하려는 양이 정한다:
-  - 확산계수 `D` → `t_total ≳ 10 τ_B` (T2도 충분)
-  - 농후계 장시간 `D_L` → `t_total ≳ 100 τ_B` (T3 하한)
-  - **GSER `G'(ω), G''(ω)` → MSD가 3~4 decade 필요 → `t_total ≳ 100 τ_B` (T3는 marginal, T4 권장)**
-  - **MIPS 조대화 → `t_total ~ 10³ τ_B` + `N ≳ 10⁴` → T4 전용**
-- `wall_time_budget_s = 600` (기본). 초과 예상 시 **실행하지 않고 사용자에게 보고**한다.
+**The tier selection rule (applied automatically by the agent)**
+- A system seen for the first time → always the order `T0 → T1 → T2`. T3 after confirming the regime from the T2 result.
+- The `t_total` requirement is set by the quantity being measured:
+  - the diffusion coefficient `D` → `t_total ≳ 10 τ_B` (T2 is sufficient too)
+  - a dense system's long-time `D_L` → `t_total ≳ 100 τ_B` (the T3 floor)
+  - **GSER `G'(ω), G''(ω)` → the MSD needs 3~4 decades → `t_total ≳ 100 τ_B` (T3 is marginal, T4 recommended)**
+  - **MIPS coarsening → `t_total ~ 10³ τ_B` + `N ≳ 10⁴` → T4 only**
+- `wall_time_budget_s = 600` (default). If it is expected to be exceeded, **do not run and report to the user**.
 
-#### 7.4.3 N 선택 논리 (제안)
-- 통계 오차는 `1/√(N × 독립 시간원점 수)`. **희박계에서 입자는 서로 독립**이므로,
-  N을 키우는 것과 시간을 늘리는 것이 통계적으로 등가 → **wall time이 `N × steps`에 비례하니 무차별.**
-  → 이 경우 **시드 수를 늘리는 것이 유일한 진짜 이득** (계통오차까지 드러남).
-- 구조·상거동은 다르다: `L > 2 × 상관길이`가 강제 조건.
-  `L = (N v_p/φ)^{1/3}`이므로 φ가 낮으면 같은 L에 N이 적게 든다.
-- 활성계는 `L > 2 × v₀τ_r` (persistence length) 필수.
+#### 7.4.3 The N selection logic (a proposal)
+- The statistical error is `1/√(N × the number of independent time origins)`. **In a dilute system the particles are independent of each other**,
+  so raising N and lengthening the time are statistically equivalent → **and since the wall time is proportional to `N × steps`, it is indifferent.**
+  → In that case **raising the number of seeds is the only real gain** (it also exposes systematic error).
+- Structure and phase behaviour are different: `L > 2 × the correlation length` is a hard condition.
+  Since `L = (N v_p/φ)^{1/3}`, a lower φ needs fewer N for the same L.
+- An active system requires `L > 2 × v₀τ_r` (the persistence length).
 
-#### 7.4.4 사람 개입 지점 (3곳뿐)
+#### 7.4.4 The points of human intervention (only 3)
 
-| 언제 | 어디서 | 무엇을 |
+| When | Where | What |
 |---|---|---|
-| 영구 변경 | `config/run_policy.yaml` → `overrides:` | 티어 기본값, k, wall 예산. 이유를 함께 적으면 S8이 `knowledge/`에 반영 |
-| 런 1회 한정 | 에이전트가 S4 종료 시 제시하는 조건표에 답 | "T3 대신 T2로", "N=8000으로" |
-| 실행 중 | 예산 초과 보고를 받았을 때 | 승인 / 축소 / 중단 |
+| a permanent change | `config/run_policy.yaml` → `overrides:` | the tier defaults, k, the wall budget. Write the reason alongside and S8 reflects it in `knowledge/` |
+| for one run only | answer the condition table the agent presents at the end of S4 | "T2 instead of T3", "make it N=8000" |
+| during execution | when a budget-exceeded report arrives | approve / reduce / halt |
 
-그 외에는 에이전트가 위 규칙으로 **스스로 결정하고 근거를 기록한다** (질문 예산, §9-5).
+Otherwise the agent **decides for itself by the rules above and records the grounds** (the question budget, §9-5).
 
 ---
 
-## 8. 개발 로드맵
+## 8. The development roadmap
 
-| | 마일스톤 | 내용 | 완료 기준 (DoD) | 실제 |
+| | Milestone | Content | Definition of done (DoD) | Actual |
 |---|---|---|---|---|
-| `[O]` | **M0** 골격 | env, 디렉터리, 문서 3종, knowledge 스키마 | `pytest` 초기 통과, 문서 존재 | ✅ |
-| `[O]` | **M1+M2** 수직 슬라이스 | S1→S8 **전체** 관통 | `REPORT.md` 생성 + 해석해 검증 | ✅ **손그림으로 직행.** 자유확산 대신 조화 트랩 — 그림이 트랩이었다. 7 PASS / 2 INCONCLUSIVE / 0 FAIL |
-| `[O]` | **M2.5** 결정론 코어 | 관통을 **코드로** 재현 가능하게 | `cli.py run <spec>` 한 줄로 완주 | ✅ **2.3 s, 첫 런과 비트 일치.** 373 테스트 |
-| `[O]` | **M2.7** L1 에이전트 층 | `.claude/skills/` + `agents/` (§12.3–12.4) | 새 손그림 → 스킬이 S1→S8 위임 | ✅ 스킬 3 · 참조문서 5 · 서브에이전트 9. **위임은 아직 시험되지 않았다** (두 번째 그림 필요) |
-| `[~]` | **M3** 도메인 확장 | A→D 순차, 각각 `examples/` 참조 케이스 | 도메인별 검증 기준 PASS | A(트랩)만. **트랩+WCA 는 사용자 보류** |
-| `[~]` | **M4** 검증 강화 | dt 래더, 유한크기, bootstrap, 회귀 승격 | `INCONCLUSIVE` 판정 로직 동작 | ✅ INCONCLUSIVE·검정력·`converge` 동작. 남음: bootstrap, 유한크기 |
-| `[X]` | **M5** 인풋 확장 | 실험영상 → 논문 PDF → 음성 → 텍스트 | 각 모달리티로 M1 재현 | 손그림만 |
+| `[O]` | **M0** the skeleton | env, directories, the 3 documents, the knowledge schema | the initial `pytest` passing, the documents existing | ✅ |
+| `[O]` | **M1+M2** the vertical slice | S1→S8 **all the way** through | `REPORT.md` generated + verified against an analytic solution | ✅ **straight to the hand drawing.** A harmonic trap instead of free diffusion — the drawing was a trap. 7 PASS / 2 INCONCLUSIVE / 0 FAIL |
+| `[O]` | **M2.5** the deterministic core | making the run reproducible **in code** | the full run with one line, `cli.py run <spec>` | ✅ **2.3 s, bit-identical to the first run.** 373 tests |
+| `[O]` | **M2.7** the L1 agent layer | `.claude/skills/` + `agents/` (§12.3–12.4) | a new hand drawing → the skill delegates S1→S8 | ✅ 3 skills · 5 reference documents · 9 subagents. **The delegation has not been tested yet** (a second drawing is needed) |
+| `[~]` | **M3** domain extension | A→D in sequence, each with an `examples/` reference case | the per-domain verification criterion PASSing | A (the trap) only. **Trap+WCA is on hold at the user's request** |
+| `[~]` | **M4** strengthening verification | the dt ladder, finite size, bootstrap, promotion to regression | the `INCONCLUSIVE` verdict logic working | ✅ INCONCLUSIVE, the power and `converge` work. Remaining: bootstrap, finite size |
+| `[X]` | **M5** input extension | experimental video → paper PDFs → voice → text | reproducing M1 with each modality | hand drawings only |
 
-**지금 진행: M2.7 완료 → 다음은 §8.1.**
+**Currently: M2.7 done → next is §8.1.**
 
-### M1 이 설계와 다르게 진행된 이유 (기록)
+### Why M1 went differently from this design (a record)
 
-DoD 는 "자유확산으로 먼저 관통, `D* = 1.00 ± 0.03`" 이었다. 실제로는 **사용자 그림이
-광집게였고, 그 계에서는 자유확산이 관측되지 않는다** (`τ_D/τ_trap = 2.4e5` 이므로
-자유확산 구간이 `10⁻⁵ τ_trap` 아래에 있다).
+The DoD was "run through with free diffusion first, `D* = 1.00 ± 0.03`". In reality **the user's drawing was
+optical tweezers, and free diffusion is not observed in that system** (with `τ_D/τ_trap = 2.4e5`, the
+free-diffusion stretch is below `10⁻⁵ τ_trap`).
 
-자유확산 케이스를 먼저 만들고 손그림으로 넘어가면 M1 이 **버려지는 작업**이 됐을 것이다.
-대신 트랩 카드로 직행했고, 그 결과 `(계 × 목적동역학)` 카드 체계가 실측으로
-정당화됐다 — 보편 `τ_D` 규약이 이 계에서 `Δt = 12 τ_trap` 을 만든다는 것을 확인했다.
+Building a free-diffusion case first and then moving to the hand drawing would have made M1 **work that gets thrown away**.
+Instead it went straight to the trap card, and as a result the `(system × target dynamics)` card system was
+justified by measurement — it confirmed that a universal `τ_D` convention produces `Δt = 12 τ_trap` in this system.
 
-⇒ **자유확산 회귀 케이스(`D* = 1.00 ± 0.03`)는 아직 없다.** §8.1-①.
+⇒ **The free-diffusion regression case (`D* = 1.00 ± 0.03`) does not exist yet.** §8.1-①.
 
 ---
 
-## 8.1 다음 할 일 — **2026-07-30 갱신**
+## 8.1 What to do next — **updated 2026-07-30**
 
-> 판단 기준: **무엇이 다른 것을 막고 있는가**, 그리고 **무엇이 조용히 틀릴 수 있는가.**
+> The criterion for judging: **what is blocking something else**, and **what could be quietly wrong.**
 
-### ① 결정에서 녹여 상 경계 묶기 (S30) — **물리 쪽 최우선** (~1시간)
+### ① Bracketing the phase boundary by melting from the crystal (S30) — **the physics top priority** (~1 hour)
 
-`soft-r3-hexwin` 이 Zahn 창 안 세 점을 전부 등방 액체로 읽었지만, **무작위 시작으로는
-경계를 찾을 수 없다** — 1차 전이 근처의 핵생성 장벽 때문에 임의로 오래 과냉각으로
-남는다. 정상상태처럼 보이는 것도 구별에 도움이 안 된다.
+`soft-r3-hexwin` read all three points inside the Zahn window as isotropic liquid, but **the boundary cannot be
+found from a random start** — because of the nucleation barrier near a first-order transition it stays
+arbitrarily long supercooled. Looking like a steady state does not help the distinction either.
 
-⇒ **육방 결정에서 출발해 녹는지** 본다. 무작위는 위에서, 결정은 아래에서 묶어
-그 사이가 참 경계다. 육방정합 상자를 써야 하고, `ψ₆` 는 상자 모양에 무관하므로
-비교가 유효하다 ([[box-shape-confounds-initial-condition-comparison]]).
-**이것 없이는 "hexatic 이 없다" 를 주장할 수 없다.**
+⇒ **Start from a hexagonal crystal and see whether it melts.** Random brackets from above and the crystal from below,
+and the truth is between. A hexagonally commensurate box has to be used, and since `ψ₆` is independent of the box
+shape the comparison is valid ([[box-shape-confounds-initial-condition-comparison]]).
+**Without this, "there is no hexatic" cannot be claimed.**
 
-### ② `A = 13.3` 재측정 (S31) — 브래킷 하한 (~15분)
+### ② Re-measuring `A = 13.3` (S31) — the bracket's lower bound (~15 min)
 
-§8.7 의 `A=13.3` 결정 판정은 `βU(r_cut) = 0.24 kT` 로 쟀다. 절단오차가 지수를
-`2.9σ` 움직였으므로(§8.8) **결정화 여부도 영향받을 수 있다.** `r_cut = 7.80` 으로
-다시 재면 브래킷이 `10.8–31.6` (193 %) 에서 크게 좁아진다.
+The `A=13.3` crystal verdict in §8.7 was measured at `βU(r_cut) = 0.24 kT`. Since the truncation error moved the
+exponent by `2.9σ` (§8.8), **whether it crystallizes may be affected too.** Re-measuring at `r_cut = 7.80`
+narrows the bracket considerably from `10.8–31.6` (193 %).
 
-### ③ 비용 모델 수정 — **정책이 거짓을 말한다** (30분)
+### ③ Fixing the cost model — **the policy tells a falsehood** (30 min)
 
-`hexwin` 이 예상 22분 vs **실측 54분**이었다. 오버헤드 계수 `3.4` 를 `N=400` 에서
-얻었는데 프레임 추출 비용이 `N` 과 함께 커진다. `estimate_wall_time_s` 가
-큰 `N` 배치에서 **2.5배 낙관적**이다 — 예산 게이트가 통과시키면 안 될 런을 통과시킨다.
+`hexwin` was estimated at 22 minutes vs **54 minutes measured**. The overhead factor `3.4` was obtained at `N=400`,
+and the frame-extraction cost grows with `N`. `estimate_wall_time_s` is **2.5× optimistic** for
+large-`N` batches — the budget gate then passes a run it should not pass.
 
-### ④ §11 감도 분석을 캠페인 결과로 개정 (1시간)
+### ④ Revising the §11 sensitivity analysis with the campaign results (1 hour)
 
-§4.1 의 방법론 finding 6개가 §11 을 실질적으로 개정한다. 특히:
-- §11.5 판정 규칙에 **설계 검정력 사전계산**(`seeds_for_target_sigma`)을 넣는다
-- 허용오차 유도에 **`t(ν)` 보정**을 강제한다 (현재는 정규 분위수)
-- **순차 설계 사전등록** 규약을 §S2 에 추가한다 (`no_stage_N` 을 미리 박는다)
+The 6 methodology findings of §4.1 substantively revise §11. In particular:
+- put **the pre-computed design power** (`seeds_for_target_sigma`) into the §11.5 verdict rules
+- enforce **the `t(ν)` correction** in the tolerance derivation (currently it is the normal quantile)
+- add **the sequential-design pre-registration** convention to §S2 (nail `no_stage_N` down in advance)
 
-### ⑤ 자유확산 회귀 케이스 (Q9) — **아직도 비어 있다** (반나절)
+### ⑤ The free-diffusion regression case (Q9) — **still empty** (half a day)
 
-`brownian` 척도 경로가 여전히 end-to-end 로 실행된 적 없다. 소프트 반발계는
-`Soft2DRunConfig` 라는 별도 경로를 썼으므로 **이 부채를 갚지 않았다.**
+The `brownian` scale route has still never been executed end to end. The soft-repulsive system used a
+separate route, `Soft2DRunConfig`, so **this debt has not been paid.**
 
-### ⑥ 보류 — 사용자 판단 대기
+### ⑥ On hold — awaiting the user's judgment
 
-| | 왜 보류인가 |
+| | Why it is on hold |
 |---|---|
-| `τ_relax` 3단계 (`k = 2145`) | 사전등록에 `no_stage_3: true` 를 박았다. 돌리려면 **사람이 결정**해야 한다 |
-| `A = 100` 유한크기 사다리 | **이 기계에서 불가능** — `N=1024` 런 하나가 예산의 3.5배 |
-| 트랩 + WCA (M3) | 사용자 보류 (2026-07-28). 큐의 `trap-drag-2d-hex300` 이 요구한다 |
-| 큐의 남은 손그림 2장 | `abp-rod-2d-run-flip` · `trap-drag-2d-hex300` |
+| the `τ_relax` stage 3 (`k = 2145`) | `no_stage_3: true` was nailed into the pre-registration. Running it requires **a human decision** |
+| the `A = 100` finite-size ladder | **impossible on this machine** — a single `N=1024` run is 3.5× the budget |
+| trap + WCA (M3) | on hold at the user's request (2026-07-28). The queue's `trap-drag-2d-hex300` requires it |
+| the 2 remaining hand drawings in the queue | `abp-rod-2d-run-flip` · `trap-drag-2d-hex300` |
 
 ---
 
-## 8.2 ⚠️ 폐기 — 2026-07-28 시점의 큐 판독 (기록으로 남긴다)
+## 8.2 ⚠️ Obsolete — the queue reading as of 2026-07-28 (kept as a record)
 
-> 아래는 손그림 4장이 큐에 들어왔을 때의 triage 다. **`soft-r3-2d-A-sweep` 은 완주했고
-> `chain-bend-2d-oscill` 도 닫혔다** (커밋 `fefd5c9` 이전). 남은 것은 2장이다.
-> 원문을 지우지 않는 이유는 "무엇이 병목이라고 판단했고 그것이 맞았는가" 가
-> 읽혀야 하기 때문이다 — **쌍 러너가 병목이라는 판단은 맞았다.**
+> The below is the triage from when 4 hand drawings came into the queue. **`soft-r3-2d-A-sweep` was run to the end and
+> `chain-bend-2d-oscill` is closed too** (before commit `fefd5c9`). Two remain.
+> The reason the original is not deleted is that "what was judged to be the bottleneck, and was that right" has to
+> be readable — **the judgment that the pair runner was the bottleneck was right.**
 
-### (구) 다음 할 일 — 우선순위와 근거 (2026-07-28 기준)
+### (old) What to do next — the priorities and the grounds (as of 2026-07-28)
+> The criterion for judging: **what is blocking something else**, and **what could be quietly wrong.**
 
-> 판단 기준: **무엇이 다른 것을 막고 있는가**, 그리고 **무엇이 조용히 틀릴 수 있는가.**
+### ★ The 4 hand drawings that came into the queue (2026-07-28, added by the user)
 
-### ★ 큐에 들어온 손그림 4장 (2026-07-28, 사용자 추가)
+4 new hand drawings and 2 papers came into `inputs/`. **None of the four runs with the current code.**
+What each requires (a reading triage — the formal S1 is done at the start):
 
-`inputs/` 에 새 손그림 4장과 논문 2편이 들어왔다. **네 장 중 어느 것도 현재 코드로
-돌아가지 않는다.** 각각 무엇을 요구하는지 (판독 triage — 정식 S1 은 착수 시 수행):
-
-| 그림 | 계 | 도메인 | 명시된 값 | 필요한 것 | 막힌 이유 |
+| Drawing | System | Domain | The stated values | What is needed | Why it is blocked |
 |---|---|---|---|---|---|
-| **`soft-r3-2d-A-sweep`** | `U/kT = A/r³` 소프트 반발, 2D 정사각 | **A/D** 구조 | `A = 0.1, 1, 10, 100` · `N=100` · `Lx=Ly` | `r⁻³` 쌍 포텐셜 · **sweep** · RDF · Voronoi | 쌍 러너 없음 · `sweep:` 미지원 · `analysis/structure.py` 없음 |
-| **`trap-drag-2d-hex300`** | 2D 육방 평형에서 프로브 1개를 끌기 | **B** 능동 미세유변학 | `N≈300` · `R=5 μm` · `k_t=10 pN/μm` · `v=0.5 μm/s` | 쌍 상호작용 · **움직이는 트랩** `r_trap(t)=r₀+vt` · 항력 측정 | 위 + `HarmonicTrap` 중심이 고정 |
-| **`chain-bend-2d-oscill`** | 광집게로 잡은 사슬을 `y=a sin(ωt)` 로 굽힘 | **B** 능동 미세유변학 | `k_t=10 pN/μm` · `R=5 μm` | **결합 포텐셜** · 진동 트랩 · GSER → `G'(ω)`, `G''(ω)` | ★ **`U_ij` 가 그림에 공백** ("Eric Furst 논문 참고") · `analysis/microrheo.py` 없음 |
-| **`abp-rod-2d-run-flip`** | 단일 활성 타원체, run-and-flip | **C** 활성 | `τ_R=0.5 s` · `v ≤ 5 μm/s` | 이방성 입자 · 방향 자유도 · 180° 뒤집기 · **MSAD** | `abp` 카드 `draft` · `active_run_length` 척도 `NotImplementedError` · 이방성 항력 |
+| **`soft-r3-2d-A-sweep`** | `U/kT = A/r³` soft repulsion, a 2D square | **A/D** structure | `A = 0.1, 1, 10, 100` · `N=100` · `Lx=Ly` | an `r⁻³` pair potential · a **sweep** · RDF · Voronoi | no pair runner · `sweep:` unsupported · no `analysis/structure.py` |
+| **`trap-drag-2d-hex300`** | dragging 1 probe through a 2D hexagonal equilibrium | **B** active microrheology | `N≈300` · `R=5 μm` · `k_t=10 pN/μm` · `v=0.5 μm/s` | pair interactions · **a moving trap** `r_trap(t)=r₀+vt` · a drag measurement | the above + `HarmonicTrap`'s centre is fixed |
+| **`chain-bend-2d-oscill`** | bending a chain held by optical tweezers as `y=a sin(ωt)` | **B** active microrheology | `k_t=10 pN/μm` · `R=5 μm` | **a bond potential** · an oscillating trap · GSER → `G'(ω)`, `G''(ω)` | ★ **`U_ij` is blank in the drawing** ("see the Eric Furst paper") · no `analysis/microrheo.py` |
+| **`abp-rod-2d-run-flip`** | a single active ellipsoid, run-and-flip | **C** active | `τ_R=0.5 s` · `v ≤ 5 μm/s` | an anisotropic particle · the orientational degree of freedom · a 180° flip · **MSAD** | the `abp` card is `draft` · the `active_run_length` scale is `NotImplementedError` · anisotropic drag |
 
-**공통분모가 답을 정한다:**
-- **4장 중 3장이 쌍 상호작용을 요구한다** → 쌍 러너가 최우선 병목
-- **4장 중 2장이 시간의존 트랩을 요구한다** (끌기·진동) → `HarmonicTrap` 에 `center(t)`
-- 논문 2편(`PhysRevLett.94.138301`, `la7023617`)은 `chain-bend` 의 공백 `U_ij` 를
-  메우려고 추가된 것으로 보인다. `pypdf` 설치도 같은 이유다 (env-log 3단계)
+**The common denominator settles the answer:**
+- **3 of the 4 require pair interactions** → the pair runner is the top-priority bottleneck
+- **2 of the 4 require a time-dependent trap** (dragging, oscillation) → `center(t)` on `HarmonicTrap`
+- The 2 papers (`PhysRevLett.94.138301`, `la7023617`) appear to have been added to fill in `chain-bend`'s
+  blank `U_ij`. Installing `pypdf` is for the same reason (env-log stage 3)
 
-⇒ 사용자가 보류했던 **트랩+WCA 가 이제 큐의 임계 경로에 있다** (`trap-drag-2d-hex300`).
+⇒ **The trap+WCA the user had put on hold is now on the queue's critical path** (`trap-drag-2d-hex300`).
 
-### ⓪ 쌍 상호작용 러너 + `soft-r3-2d-A-sweep` — **큐의 병목** (1일)
+### ⓪ The pair-interaction runner + `soft-r3-2d-A-sweep` — **the queue's bottleneck** (1 day)
 
-★ **큐를 읽고 나서 최우선으로 올렸다.** 4장 중 3장이 막혀 있는 지점이고,
-`soft-r3` 이 그중 **가장 깨끗한 입구**다 — 트랩도 구동도 없는 순수 쌍 상호작용이다.
+★ **Raised to top priority after reading the queue.** It is the point where 3 of the 4 are blocked, and
+`soft-r3` is **the cleanest entrance** among them — pure pair interactions with no trap and no driving.
 
-이 하나가 동시에 해결하는 것:
+What this one thing solves at once:
 
-| | 어떻게 |
+| | How |
 |---|---|
-| 쌍 러너 (3장 공통 병목) | `run.py` 에 `RUNNERS["...equilibrium-structure"]` 추가 → **디스패치 설계가 처음 시험된다** |
-| `dt` **변위 게이트** | 쌍 상호작용이 생기면 게이트가 켜진다 → **처음으로 `dt` 를 구속한다** (①의 관심사 절반이 여기서 해결) |
-| `brownian` 척도 경로 (`σ`, `τ_D`) | 이 계의 카드가 그것을 쓴다 → **end-to-end 로 처음 실행** (①의 나머지 절반) |
-| `sweep:` 지원 (§9-7) | `A = 0.1, 1, 10, 100` 이 그림에 **명시**돼 있다. 넷 다 돌려야 답이 나온다 |
-| `analysis/structure.py` | RDF · Voronoi · ψ₆. **검증 대상이 처음 생긴다** (`freud` 설치돼 있음) |
-| `max\|F\|` 실측 경로 | 힘 변위 제약이 `n/a` 에서 벗어난다 (§5.4 "추정 금지") |
+| the pair runner (the bottleneck common to 3 drawings) | add `RUNNERS["...equilibrium-structure"]` to `run.py` → **the dispatch design gets tested for the first time** |
+| the `dt` **displacement gate** | once there are pair interactions the gate turns on → **it constrains `dt` for the first time** (half of ①'s concern is solved here) |
+| the `brownian` scale route (`σ`, `τ_D`) | this system's card uses it → **executed end to end for the first time** (the other half of ①) |
+| `sweep:` support (§9-7) | `A = 0.1, 1, 10, 100` is **stated** in the drawing. All four have to be run for an answer |
+| `analysis/structure.py` | RDF · Voronoi · ψ₆. **A verification target exists for the first time** (`freud` is installed) |
+| the `max\|F\|` measurement route | the force-displacement constraint escapes `n/a` (§5.4 "estimating is forbidden") |
 
-**검증 가능하다:** `A=100` 이면 육방 결정화, `A=0.1` 이면 거의 이상기체.
-2D 융해는 `knowledge/source/papers/1999-zahn-two-stage-melting-2d.md` 에 증류가 있다.
-`N=100` 이라 비용도 낮다.
+**It is verifiable:** at `A=100` it should crystallize hexagonally, and at `A=0.1` it is nearly an ideal gas.
+2D melting has a distillation in `knowledge/source/papers/1999-zahn-two-stage-melting-2d.md`.
+With `N=100` the cost is low too.
 
-⚠ `r⁻³` 는 HOOMD 내장 포텐셜이 아니다 → `md.pair.Mie(n=3, m=0)` 또는 `pair.Table`
-중 어느 것이 맞는지 확인이 먼저다.
+⚠ `r⁻³` is not a built-in HOOMD potential → confirming first which of `md.pair.Mie(n=3, m=0)` or `pair.Table`
+is correct comes first.
 
-### ① 자유확산 회귀 케이스 — **검증 부채** (반나절)
+### ① The free-diffusion regression case — **a verification debt** (half a day)
 
-> ⓪ 이 이 항목의 상당 부분을 흡수한다 (`brownian` 척도 · 변위 게이트 · 러너 분기).
-> 그래도 `D* = 1.00 ± 0.03` **정확해 대조 자체**는 따로 남는다 — 쌍 상호작용이 있으면
-> `D` 가 1 이 아니게 되므로 순수 자유확산 케이스가 별도로 필요하다. ⓪ 의 smoke 로 붙인다.
+> ⓪ absorbs a substantial part of this item (the `brownian` scales · the displacement gate · the runner branch).
+> Even so, **the exact-solution comparison itself**, `D* = 1.00 ± 0.03`, remains separate — with pair interactions
+> `D` is no longer 1 and so a pure free-diffusion case is needed separately. It gets attached as ⓪'s smoke run.
 
-`D* = 1.00 ± 0.03`. M1 의 원래 DoD 이고 아직 없다. 이것이 없어서 **세 가지가 미검증
-상태로 남아 있다:**
+`D* = 1.00 ± 0.03`. It was M1's original DoD and it does not exist yet. Because it does not, **three things
+remain unverified:**
 
-| 미검증 | 왜 위험한가 |
+| Unverified | Why it is dangerous |
 |---|---|
-| `CARD_SCALE_RULES` 의 `brownian` 경로 (`σ`, `τ_D`) | **end-to-end 로 한 번도 실행된 적 없다.** 카드 체계의 중심 주장("계마다 척도가 다르다")이 절반만 시험됐다 |
-| `dt` **변위 게이트** | 트랩 계에서는 꺼진다 → **실제로 `dt` 를 구속한 런이 0건.** 단위 테스트만 있다 |
-| `RUNNERS` 분기 | 항목이 1개뿐이라 러너 디스패치 설계가 시험되지 않았다 |
+| the `brownian` route of `CARD_SCALE_RULES` (`σ`, `τ_D`) | **it has never once been executed end to end.** The card system's central claim ("the scales differ per system") is only half tested |
+| the `dt` **displacement gate** | it is off in a trap system → **0 runs where it actually constrained `dt`.** There are unit tests only |
+| the `RUNNERS` branch | with only 1 entry, the runner dispatch design is untested |
 
-필요한 것: `run.py` 에 자유 BD 러너 (트랩 포스 없음) + `passive-sphere--transport`
-카드 등록 + `analysis/msd.py` (여기서 처음 **검증 대상**이 생긴다).
+What is needed: a free-BD runner in `run.py` (no trap force) + registering the `passive-sphere--transport`
+card + `analysis/msd.py` (a **verification target** exists here for the first time).
 
-**해석해가 정확하고(`D* = 1`) 비용이 낮다.** 틀리면 즉시 드러난다.
+**The analytic solution is exact (`D* = 1`) and the cost is low.** If it is wrong it shows up immediately.
 
-### ② 손그림 작성 가이드 — **가장 싼 레버리지** (30분)
+### ② A hand-drawing guide — **the cheapest leverage** (30 min)
 
-`docs/drawing_guide.md`. 첫 그림에서 모호성 2건이 나왔고 **둘 다 이 가이드로 없앨 수
-있었다:**
+`docs/drawing_guide.md`. The first drawing produced 2 ambiguities and **both could have been eliminated by this guide:**
 
-| 모호성 | 가이드가 요구할 것 |
+| Ambiguity | What the guide would require |
 |---|---|
-| A1 (2D vs 3D 단면) | "축과 차원을 적어주세요" |
-| A2 (`a` vs `R` — 반지름인가 지름인가) | "숫자에 단위와 **무엇의 크기인지**를" |
+| A1 (2D vs a 3D cross-section) | "please write the axes and the dimensionality" |
+| A2 (`a` vs `R` — is it the radius or the diameter) | "on a number, the unit and **what size it is**" |
 
-A2 는 **실험 `f_c` 가 없어서 측정으로 닫지 못했다** — 간결성으로 닫고 반증 조건만
-기록했다. 그림에 한 글자만 더 있었으면 애초에 생기지 않았을 모호성이다.
+A2 **could not be closed by measurement because there is no experimental `f_c`** — it was closed by parsimony
+with only the refutation condition recorded. One more character on the drawing and the ambiguity would never have arisen.
 
-③ 의 성공률을 직접 올린다.
+It raises ③'s success rate directly.
 
-### ③ 큐의 나머지 3장 — 순서와 이유
+### ③ The remaining 3 drawings in the queue — the order and the reasons
 
-⓪ 이 끝나면 쌍 러너가 있으므로 다음 순서가 자연스럽다:
+Once ⓪ is done the pair runner exists, so the following order is natural:
 
-| 순 | 그림 | ⓪ 에서 재사용 | 새로 필요한 것 |
+| Order | Drawing | Reused from ⓪ | What is newly needed |
 |---|---|---|---|
-| 1 | **`trap-drag-2d-hex300`** | 쌍 러너 · RDF | 시간의존 트랩 중심 · 항력 측정. **사용자가 보류했던 트랩+WCA 가 여기서 목적을 갖는다** |
-| 2 | **`chain-bend-2d-oscill`** | 트랩 (⇧ 에서) | 결합 포텐셜 · GSER. **논문 2편을 먼저 읽어 `U_ij` 공백을 메워야 한다** (`bd-lit-distill`) |
-| 3 | **`abp-rod-2d-run-flip`** | — | 이방성 입자 · 방향 자유도 · MSAD. **가장 큰 새 물리** |
+| 1 | **`trap-drag-2d-hex300`** | the pair runner · RDF | a time-dependent trap centre · a drag measurement. **The trap+WCA the user had put on hold acquires a purpose here** |
+| 2 | **`chain-bend-2d-oscill`** | the trap (from ⇧) | a bond potential · GSER. **The 2 papers have to be read first to fill in the `U_ij` blank** (`bd-lit-distill`) |
+| 3 | **`abp-rod-2d-run-flip`** | — | an anisotropic particle · the orientational degree of freedom · MSAD. **The largest new physics** |
 
-각 그림이 시험하는 것 (물리와 별도로):
-- **S1 판독 프로토콜** — 첫 그림에서 귀납한 규칙이 새 그림에도 통하는가
-- **스킬 위임** — `.claude/` 가 실제로 작동하는가 (Q10, 지금은 **시험되지 않았다**)
-- **카드 없는 쌍의 처리** — `nondim` 이 예외를 던지고 카드를 먼저 만들게 하는가
-  (4장 전부 카드가 없다 → 이 경로가 4번 발동한다)
+What each drawing tests (apart from the physics):
+- **the S1 reading protocol** — do the rules induced from the first drawing hold for a new drawing
+- **skill delegation** — does `.claude/` actually work (Q10; right now it is **untested**)
+- **handling a pair with no card** — does `nondim` throw and make you create the card first
+  (all 4 have no card → this route fires 4 times)
 
-### ④ 파일럿 런 — **정책과 코드의 불일치** (1시간)
+### ④ The pilot run — **a mismatch between the policy and the code** (1 hour)
 
-`run_policy.yaml` 이 `pilot: {mandatory: true}` 로 선언하는데 `cli.py` 가 실행하지
-않는다. **지금 정책 파일이 거짓을 말한다.** 트랩 계는 wall 이 2 s 라 필요가 없었고
-그래서 미루어졌지만, 런이 분 단위가 되는 순간(트랩+WCA, `N=8000`) 의미를 갖는다.
+`run_policy.yaml` declares `pilot: {mandatory: true}` and `cli.py` does not run it. **Right now the policy file
+tells a falsehood.** The trap system had a wall of 2 s so there was no need, and so it was deferred, but the
+moment runs become minutes long (trap+WCA, `N=8000`) it acquires meaning.
 
-최소 조치: 구현하거나, 정책에서 `mandatory: false` + 이유를 적는다.
+The minimum action: implement it, or set `mandatory: false` in the policy and write the reason.
 
-### 보류 중 — 사용자 판단 대기
+### On hold — awaiting the user's judgment
 
-| | 왜 보류인가 |
+| | Why it is on hold |
 |---|---|
-| 트랩 + WCA (M3) | **사용자 보류** (2026-07-28). `kT_conf` 가 독립 검사가 되고 `r_cut` 이 의미를 갖는 지점 |
-| `analysis/` 5개 | 호출자도 검증 런도 없다. ① 이 `msd.py` 를 열어준다 |
-| 실험 데이터 대조 | A2 를 측정으로 닫으려면 필요. 측정값이 없다 |
+| trap + WCA (M3) | **on hold at the user's request** (2026-07-28). The point at which `kT_conf` becomes an independent check and `r_cut` acquires meaning |
+| the 5 `analysis/` modules | there is neither a caller nor a verification run. ① opens `msd.py` |
+| comparison against experimental data | needed to close A2 by measurement. There are no measured values |
 
 ---
 
-## 9. 추가 제안 (기타 사항)
+## 9. Additional proposals (miscellaneous)
 
-사용자 요청에 따라 제안하는 항목. 채택 여부는 별도 확인.
+Items proposed at the user's request. Whether they are adopted is confirmed separately.
 
-### 강력 권장
-1. `[O]` **git 초기화** — ✅ 완료. 커밋 28개, `4ac2a53` 이후. BD_agent 와 독립 repo.
-2. `[O]` **예측 봉인 (prediction sealing)** — ✅ `simbot/io.py`.
-   `SEALED.sha256` 은 표준 `sha256sum` 형식이라 **우리 코드 없이 `shasum -c` 로 검증된다** —
-   봉인의 신뢰성이 우리 코드에 의존하면 안 되기 때문이다.
-   봉인이 깨지면 `validate_run` 이 **대조표를 만들지 않는다.**
-   ★ 설계에 없던 것: 봉인 **후에** 만든 문서를 `unsealed` 로 따로 보고한다.
-   "봉인 파일이 통과했다"가 "예측이 봉인됐다"를 뜻하지 않기 때문이다.
-3. `[X]` **파일럿 런 (pilot run)** — 미구현. `run_policy.yaml` 에 `mandatory: true` 로
-   선언돼 있지만 `cli.py` 가 아직 실행하지 않는다. **트랩 계에서는 wall 이 2 s 라
-   필요가 없었고, 그래서 미루어졌다.** 트랩+WCA 에서 처음 필요해진다.
-4. `[O]` **단위 접미사 강제** (`_si` / `_star`) — ✅ `Quantity.si` 가 문자열·bool 을
-   거부하고, 왕복 테스트가 척도 혼동을 잡는다 (`test_s4_nondim.py`).
-5. `[~]` **질문 예산** — 규약은 `CLAUDE.md` 에 있고 **사람이 지킨다.** 코드에 강제 장치는
-   없다 (에이전트 층이 없으므로 강제할 지점도 아직 없다). M2.7 에서 스킬이 소유한다.
+### Strongly recommended
+1. `[O]` **git init** — ✅ done. 28 commits, since `4ac2a53`. A repo independent of BD_agent.
+2. `[O]` **prediction sealing** — ✅ `simbot/io.py`.
+   `SEALED.sha256` is in the standard `sha256sum` format, so **it verifies with `shasum -c` without our code** —
+   because the trustworthiness of the seal must not depend on our code.
+   If the seal breaks, `validate_run` **does not make the comparison table.**
+   ★ Not in the design: documents made **after** the seal are reported separately as `unsealed`.
+   Because "the sealed files passed" does not mean "the prediction was sealed".
+3. `[X]` **the pilot run** — unimplemented. It is declared in `run_policy.yaml` as `mandatory: true`
+   but `cli.py` does not run it yet. **In a trap system the wall was 2 s so there was
+   no need, and so it was deferred.** It becomes necessary for the first time with trap+WCA.
+4. `[O]` **enforcing the unit suffix** (`_si` / `_star`) — ✅ `Quantity.si` rejects strings
+   and bools, and the round-trip test catches scale confusion (`test_s4_nondim.py`).
+5. `[~]` **the question budget** — the convention is in `CLAUDE.md` and **a human keeps it.** There is no
+   enforcement device in the code (with no agent layer there is not yet a point at which to enforce it either). In M2.7 the skill owns it.
 
-### 권장
-6. `[O]` **`bd-diagnose` 스킬** — ✅ `.claude/skills/bd-diagnose/SKILL.md`.
-   배제 순서(통계량 요동 → 자기일관성 → 표본 독립성 → 단위 → 수치 → **그 다음 물리**)를
-   담았다. 첫 완주 4건 중 물리 문제가 0건이었던 실측이 근거다.
-7. `[X]` **파라미터 스윕 지원** — `spec` 에 `sweep: [...]` 미지원.
-   `cli.py converge` 가 dt·N·시드를 흔드는 것은 **수렴 확인**이고 레짐 지도가 아니다.
-8. `[~]` **캐시** — 재료는 있다 (`spec.hash()`, `RunDir.completed_stages()`,
-   `cli.py resume` 가 완주한 런을 재사용). **`spec_hash` 로 기존 run 을 찾아오는
-   조회는 없다** — `resume` 은 디렉터리를 직접 받아야 한다.
-9. `[X]` **`REPORT.md` → HTML** — 미구현. **그림 5장이 생겼으므로 이제 이득이 있다**
-   (현재는 `figs/*.png` 상대 링크라 리포트만 옮기면 그림이 깨진다).
-10. `[X]` **손그림 작성 가이드** (`docs/drawing_guide.md`) — 미작성.
-    **첫 그림 판독에서 모호성 2개(A1 차원, A2 `a` vs `R`)가 나왔고 둘 다 이 가이드가
-    있었으면 없었을 것이다.** 비용 대비 이득이 가장 큰 미결 항목.
+### Recommended
+6. `[O]` **the `bd-diagnose` skill** — ✅ `.claude/skills/bd-diagnose/SKILL.md`.
+   It holds the exclusion order (statistic fluctuation → self-consistency → sample independence → units → numerics → **then physics**).
+   The grounds are the measurement that 0 of the first full run's 4 problems were physics problems.
+7. `[X]` **parameter sweep support** — `sweep: [...]` is unsupported in the `spec`.
+   `cli.py converge` shaking dt, N and the seed is **a convergence check** and not a regime map.
+8. `[~]` **a cache** — the material exists (`spec.hash()`, `RunDir.completed_stages()`,
+   `cli.py resume` reusing a completed run). **There is no lookup that finds an existing run
+   by `spec_hash`** — `resume` has to be handed the directory directly.
+9. `[X]` **`REPORT.md` → HTML** — unimplemented. **Now that there are 5 figures there is a benefit**
+   (currently the `figs/*.png` links are relative, so moving the report alone breaks the figures).
+10. `[X]` **a hand-drawing guide** (`docs/drawing_guide.md`) — unwritten.
+    **The first drawing's reading produced 2 ambiguities (A1 the dimensionality, A2 `a` vs `R`) and both would
+    have been absent had this guide existed.** The unresolved item with the largest benefit per cost.
 
-### 검토 후 결정
-11. **Langevin 폴백** — `τ_i/τ_B ≪ 1`이 깨지는 계(작은 입자, 저점도)에서는 BD가 부적절.
-    자동 감지 후 `md.methods.Langevin`으로 전환할지, 경고만 하고 중단할지.
-12. **HI 근사 도입** — v1 비범위지만, 농후계 결과가 문헌과 체계적으로 안 맞으면 필요해진다.
-    최소 도입안: Rotne–Prager 이동도 행렬 + Cholesky (N ≲ 10³ 한정, HOOMD 외부 구현).
-13. **실험 데이터 직접 대조** — 사용자가 실험 MSD/영상을 주면 시뮬레이션과 같은 파이프라인으로
-    분석해 나란히 비교. S7의 확장.
+### To be decided after review
+11. **A Langevin fallback** — BD is unsuitable for a system where `τ_i/τ_B ≪ 1` breaks (small particles, low viscosity).
+    Whether to detect it automatically and switch to `md.methods.Langevin`, or only warn and halt.
+12. **Introducing an HI approximation** — out of scope for v1, but it becomes necessary if dense-system results
+    systematically fail to match the literature.
+    The minimal introduction: the Rotne–Prager mobility matrix + Cholesky (limited to N ≲ 10³, implemented outside HOOMD).
+13. **Direct comparison against experimental data** — if the user gives an experimental MSD or video, analyse it
+    through the same pipeline as the simulation and compare side by side. An extension of S7.
 
 ---
 
-## 10. 지식 계층 이관 — `BD_agent/knowledge/` 흡수
+## 10. Porting the knowledge layer — absorbing `BD_agent/knowledge/`
 
-`/Users/kyuhwan/Desktop/BD_agent/knowledge/`에 이미 상당히 성숙한 지식 계약이 있다.
-**§6에서 내가 새로 설계한 스키마보다 이쪽이 낫다. 이쪽을 정본으로 채택하고 §6을 폐기한다.**
+`/Users/kyuhwan/Desktop/BD_agent/knowledge/` already has a considerably mature knowledge contract.
+**It is better than the schema I newly designed in §6. It is adopted as authoritative and §6 is obsoleted.**
 
-### 10.1 거기에 있는 것
+### 10.1 What is there
 ```
 BD_agent/knowledge/
-├── raw/lab/          원본 PDF + LaTeX 소스 tarball (~20편, gitignored)
+├── raw/lab/          the original PDFs + LaTeX source tarballs (~20 papers, gitignored)
 ├── source/
-│   ├── papers/       ★ 논문별 증류 .md 42편 + INDEX.md  ← 즉시 자산
-│   └── lab/          미발표 랩 자산
+│   ├── papers/       ★ 42 per-paper distillation .md files + INDEX.md  ← an immediate asset
+│   └── lab/          unpublished lab assets
 └── wiki/
-    ├── CLAUDE.md     ★ 지식 계약 (frontmatter가 기계 계약, 산문이 근거)
-    ├── systems/      ★ (계 × 목적동역학) 카드 + _TEMPLATE.md + _index.md
+    ├── CLAUDE.md     ★ the knowledge contract (the frontmatter is the machine contract, the prose is the grounds)
+    ├── systems/      ★ (system × target dynamics) cards + _TEMPLATE.md + _index.md
     ├── concepts/  techniques/  benchmarks/  findings/  questions/
 ```
-42편 증류본은 Choi·Gubbala·Arnold·Kim·Xu·Cheon·Takatori·Barakat·Quah·Modica 등
-**사용자 랩의 실제 논문 코퍼스**다. 새로 만들 수 없는 자산이다.
+The 42 distillations are Choi, Gubbala, Arnold, Kim, Xu, Cheon, Takatori, Barakat, Quah, Modica and others —
+**the user's lab's actual paper corpus.** An asset that cannot be created from scratch.
 
-### 10.2 채택하는 설계 (내 §6보다 우수한 점)
+### 10.2 The design being adopted (where it beats my §6)
 
-| 그들의 설계 | 왜 우수한가 |
+| Their design | Why it is better |
 |---|---|
-| **3계층 `raw / source / wiki`** | 저작권(원본)·정본(증류)·해석(합성)이 분리된다. 내 flat 구조는 이걸 못 한다 |
-| **`(계, 목적동역학)` 쌍 카드** ★ | **§5를 반박한다** — 아래 10.3 |
-| **`reproduced: yes/no/partial`** | 내 `verified`보다 강하다. "논문에 실렸다 ≠ 우리 코드에서 돈다" |
-| **`[출처]` vs `[출처, 미재현]` 표기** | 검증 근거와 사실 기록을 리포트에서 구분 강제 |
-| **발표여부로 폴더 분할** (`papers/` vs `lab/`) | 공개 경계가 폴더 단위이므로. 랩 논문을 미발표물과 섞으면 공개 시 함께 빠진다 |
-| **`precedence L0–L3`** | "낮은 L이 무엇이 사실인가를 이기고, 높은 L이 그래서 무엇을 할까를 이긴다" |
-| **`questions/`** 를 삭제하지 않고 `status`로 닫음 | 미해결 문제의 목록이 남는다 |
-| `dead-end-<slug>.md` | 막힌 길도 자산 |
+| **the 3 layers `raw / source / wiki`** | copyright (the original), the authoritative record (the distillation) and interpretation (the synthesis) are separated. My flat structure cannot do this |
+| **the `(system, target dynamics)` pair card** ★ | **it refutes §5** — see 10.3 below |
+| **`reproduced: yes/no/partial`** | stronger than my `verified`. "It was published in a paper ≠ it runs in our code" |
+| **the `[source]` vs `[source, unreproduced]` notation** | it forces verification grounds and factual records to be distinguished in the report |
+| **splitting the folders by publication status** (`papers/` vs `lab/`) | because the publication boundary is at folder granularity. Mix lab papers in with unpublished material and they drop out together at publication |
+| **`precedence L0–L3`** | "a lower L wins on what is true, and a higher L wins on what to do about it" |
+| closing `questions/` with a `status` rather than deleting them | the list of unresolved problems remains |
+| `dead-end-<slug>.md` | a blocked path is an asset too |
 
-### 10.3 ★ 이 이관이 **§5를 수정한다** — 무차원화는 계 하나로 정해지지 않는다
+### 10.3 ★ This port **amends §5** — the non-dimensionalization is not fixed by the system alone
 
-그들의 `wiki/CLAUDE.md`가 실측으로 보여주는 것:
+What their `wiki/CLAUDE.md` shows by measurement:
 
-| 계 × 목적동역학 | 기준 길이 | 기준 시간 | `kT` |
+| System × target dynamics | Reference length | Reference time | `kT` |
 |---|---|---|---|
-| ABP × 제어 | **런 길이 `ℓ`** | **`τ_r = 1/D_r`** | **유도량** |
-| 브러시 콜로이드 × 비평형 접촉 | `σ` | `τ_D = σ²/D` | 입력값 |
-| 수동 tracer × 수송 | `σ` | `τ_D` | 입력값 |
+| ABP × control | **the run length `ℓ`** | **`τ_r = 1/D_r`** | **a derived quantity** |
+| brush colloids × non-equilibrium contact | `σ` | `τ_D = σ²/D` | an input |
+| a passive tracer × transport | `σ` | `τ_D` | an input |
 
-> **§5는 `(σ, k_BT, τ_B)`를 보편 규약으로 못박았다. 이는 도메인 C(활성물질)에 틀리다.**
-> ABP에서 자연 단위는 런 길이와 회전완화시간이고, `kT`는 유도량이 된다.
+> **§5 nailed `(σ, k_BT, τ_B)` down as a universal convention. That is wrong for domain C (active matter).**
+> In an ABP the natural units are the run length and the rotational relaxation time, and `kT` becomes a derived quantity.
 >
-> **수정:** §5는 **도메인 A·B·D의 기본 규약**으로 격하한다.
-> 무차원화 규약의 소유자는 `wiki/systems/<계>--<동역학>.md` 카드다.
-> **카드가 없는 쌍을 만나면 즉흥 무차원화 금지** — `_TEMPLATE.md`로 `status: draft` 카드를 먼저 만든다.
+> **The amendment:** §5 is demoted to **the default convention of domains A, B and D.**
+> The owner of the non-dimensionalization convention is the `wiki/systems/<system>--<dynamics>.md` card.
+> **On meeting a pair with no card, ad hoc non-dimensionalization is forbidden** — create a `status: draft` card from `_TEMPLATE.md` first.
 
-게이트도 쌍마다 다르다 (그들의 표):
+The gates also differ per pair (their table):
 
-| 게이트 | 수동 구형 × 평형구조 | ABP × 조밀집단 |
+| Gate | passive spheres × equilibrium structure | ABP × a dense collective |
 |---|---|---|
-| 평형화 판정 | ✅ 유효 | ❌ **무의미** — 능동계는 열평형에 안 간다 |
-| `D_msd = kT/γ` | ✅ 성립 | ⚠️ 성립 안 함 — `D_eff = D_t + v₀²τ_r/2` |
-| 이류 변위 `v₀Δt/σ` | 해당 없음 | ✅ 필수 |
+| the equilibration verdict | ✅ valid | ❌ **meaningless** — an active system never reaches thermal equilibrium |
+| `D_msd = kT/γ` | ✅ holds | ⚠️ does not hold — `D_eff = D_t + v₀²τ_r/2` |
+| the advective displacement `v₀Δt/σ` | not applicable | ✅ mandatory |
 
-### 10.4 이관이 **오늘 작성한 것을 반박한 사례** (이미 수정 완료)
+### 10.4 The case where the port **refuted what had been written today** (already amended)
 
 `wiki/findings/dt-gate-should-be-displacement-based.md`:
 
-| | 내가 오늘 쓴 값 | 그들의 실측 근거 | 조치 |
+| | The value I wrote today | Their measured grounds | Action |
 |---|---|---|---|
-| `dt` 상한 | `hard_ceiling: 1e-4` | 실제 돌아간 런 3건 중 **2건을 기각**한다 (선행 slit 1e-3, Quah 코드 1.67e-4) | ✅ `4.5e-4`로 수정 (`config/run_policy.yaml`) |
-| 변위 규약 | `√(2d·Δt)` (d차원 총변위) | 랩 관행은 `√(2Δt)` (성분별) | ✅ `per_component`로 명시 + 환산 `×√d` 기록 |
-| 변위 문턱 | `0.02σ` | 실측 0.006 / 0.018 / 0.045σ → 권장 `0.03σ` | ✅ `0.03σ`로 수정, 기본 dt는 0.010σ 유지 |
+| the `dt` ceiling | `hard_ceiling: 1e-4` | it **rejects 2** of 3 runs that actually ran (the preceding slit 1e-3, the Quah code 1.67e-4) | ✅ amended to `4.5e-4` (`config/run_policy.yaml`) |
+| the displacement convention | `√(2d·Δt)` (the total displacement in d dimensions) | the lab practice is `√(2Δt)` (per component) | ✅ stated as `per_component` + the conversion `×√d` recorded |
+| the displacement threshold | `0.02σ` | measured 0.006 / 0.018 / 0.045σ → `0.03σ` recommended | ✅ amended to `0.03σ`, the default dt kept at 0.010σ |
 
-**교훈:** 게이트를 문헌·실측 없이 정하면 실제로 작동하는 설정을 기각한다.
-이관해야 할 이유가 이것 하나로 충분하다.
+**The lesson:** set a gate without the literature or a measurement and it rejects configurations that actually work.
+That alone is sufficient reason to do the port.
 
-### 10.5 추가로 얻는 실측 사전 (`findings/lab-bd-conventions.md`)
+### 10.5 The measured prior additionally gained (`findings/lab-bd-conventions.md`)
 
-| 항목 | 랩 실측값 | 우리 정책에 대한 함의 |
+| Item | The lab's measured value | The implication for our policy |
 |---|---|---|
-| 엔진 | BD 논문 **전부 HOOMD-blue** (Quah: 3.8.1) | 우리는 7.1.0 → **API 이식 필요** |
-| 실행 하드웨어 | **GPU 가속** 다수. Xu 2024는 `8×10⁸` 스텝 | M4 CPU로 재현 불가 (`N=1000`이면 ~35시간). §7.4 예산 게이트가 반드시 걸러야 함 |
-| 배제부피 | WCA 표준. Quah는 **`ε/kT = 500`** 으로도 안정 | 강한 WCA 자체는 위험하지 않다. 위험은 **변위와의 결합** |
-| 결정화 억제 | Takatori: 지름비 **1.4**, 몰분율 **2/3:1/3** (`φ`≤0.83) | 고 `φ`에서 **이분산 강제 게이트** 필요. 안 하면 결정을 "유리"로 오판 |
-| 통계 | Xu 2023: **20 realization 평균** | 우리 T3 기본 4시드는 랩 관행보다 약하다 → §10.6 미해결 |
-| `φ` 정의 | `nπσ²`(지름) vs `n̄πa²/4` — **논문마다 다름** | **조용히 4배 틀릴 수 있다.** `simbot`은 φ 계산 시 지름/반지름 규약을 항상 기록 |
+| the engine | the BD papers are **all HOOMD-blue** (Quah: 3.8.1) | we are on 7.1.0 → **an API port is needed** |
+| the execution hardware | **GPU-accelerated** in many cases. Xu 2024 does `8×10⁸` steps | not reproducible on the M4 CPU (~35 hours at `N=1000`). The §7.4 budget gate must filter it |
+| excluded volume | WCA is standard. Quah is stable even at **`ε/kT = 500`** | a strong WCA is not itself dangerous. The danger is **its coupling with the displacement** |
+| suppressing crystallization | Takatori: a diameter ratio of **1.4**, a mole fraction of **2/3:1/3** (`φ`≤0.83) | at high `φ` a **forced-bidispersity gate** is needed. Without it a crystal gets misjudged as a "glass" |
+| statistics | Xu 2023: **an average over 20 realizations** | our T3 default of 4 seeds is weaker than the lab practice → §10.6 unresolved |
+| the definition of `φ` | `nπσ²` (the diameter) vs `n̄πa²/4` — **it differs per paper** | **it can be quietly 4× wrong.** `simbot` always records the diameter/radius convention when computing φ |
 
-### 10.6 이관 계획 및 미해결
+### 10.6 The porting plan and what is unresolved
 
-| | 단계 | 비고 |
+| | Step | Notes |
 |---|---|---|
-| `[O]` | `wiki/CLAUDE.md` 계약 이식 | ✅ `knowledge/wiki/CLAUDE.md` 로 그대로 |
-| `[O]` | `source/papers/` 42편 + `INDEX.md` | ✅ 복사 완료. 즉시 자산 |
-| `[X]` | `wiki/systems/` 카드 + `_TEMPLATE.md` + `_index.md` 복사 | §5 수정의 근거 |
-| `[X]` | `wiki/findings/`, `benchmarks/` 복사 | `benchmarks.yaml`은 pytest 회귀의 근거 |
-| `[X]` | 오늘 만든 항목 3개를 새 스키마로 재작성 | `water_298k` → `wiki/concepts/`, `no_hydrodynamics` → `wiki/concepts/`, `local_cpu_parallelism` → `wiki/techniques/` |
-| `[X]` | `raw/` 는 복사 여부 결정 필요 | 2.3 MB. gitignore 대상이므로 원본 위치 참조만으로도 충분할 수 있음 |
-| `[X]` | **미해결:** 기본 시드 수 4 vs 랩 관행 20 | k=8이면 8시드가 1.7분(T2). T3에서 몇 개로? → 사용자 판단 필요 |
-| `[X]` | **미해결:** HOOMD 3.8.1 → 7.1.0 API 이식 표 작성 | `gamma.default` 문법 등 |
+| `[O]` | port the `wiki/CLAUDE.md` contract | ✅ carried over as `knowledge/wiki/CLAUDE.md` |
+| `[O]` | the 42 `source/papers/` + `INDEX.md` | ✅ copied. An immediate asset |
+| `[X]` | copy the `wiki/systems/` cards + `_TEMPLATE.md` + `_index.md` | the grounds for the §5 amendment |
+| `[X]` | copy `wiki/findings/` and `benchmarks/` | `benchmarks.yaml` is the grounds for the pytest regression |
+| `[X]` | rewrite the 3 entries made today into the new schema | `water_298k` → `wiki/concepts/`, `no_hydrodynamics` → `wiki/concepts/`, `local_cpu_parallelism` → `wiki/techniques/` |
+| `[X]` | whether to copy `raw/` needs deciding | 2.3 MB. Being a gitignore target, a reference to the original location may be sufficient |
+| `[X]` | **unresolved:** the default seed count, 4 vs the lab practice of 20 | at k=8 it is 8 seeds in 1.7 min (T2). How many at T3? → needs the user's judgment |
+| `[X]` | **unresolved:** write the HOOMD 3.8.1 → 7.1.0 API port table | the `gamma.default` syntax and so on |
 
-> ⚠️ 이관은 **복사가 아니라 채택**이다. 그들의 `master_plan.md`·`docs/00_decision_log.md`도
-> 읽고 결정 이력(D1–D16 등)을 승계해야 한다. 아직 읽지 않았다.
+> ⚠️ The port is **an adoption, not a copy.** Their `master_plan.md` and `docs/00_decision_log.md` also have to be
+> read and the decision history (D1–D16 and so on) inherited. They have not been read yet.
 
 ---
 
-## 11. 감도 분석 (Sensitivity Analysis) — S7b
+## 11. Sensitivity analysis — S7b
 
-> 파이프라인의 어느 단계에도 없었던 것. **S7 검증 직후, S8 결론 직전에 삽입한다.**
+> Something that was in none of the pipeline's stages. **Inserted right after the S7 verification and right before the S8 conclusion.**
 
-### 11.1 왜 필요한가 — provenance와 직결된다
-S1·S3은 그림에 없는 값을 `provenance: assumed`로 채운다. 결론이 그 가정에 의존하면
-**결론이 아니라 추측이다.** 감도 분석은 이 질문에 답한다:
+### 11.1 Why it is needed — it connects directly to provenance
+S1 and S3 fill values absent from the drawing with `provenance: assumed`. If the conclusion depends on those assumptions,
+**it is not a conclusion but a guess.** The sensitivity analysis answers this question:
 
-> "내가 임의로 채운 값이 틀렸다면 결론이 바뀌는가?"
+> "If a value I filled in arbitrarily were wrong, would the conclusion change?"
 
-**자동 연결 규칙:** `provenance: assumed` 인 모든 필드가 감도 분석 후보다.
-사람이 후보를 고르지 않는다 — 스펙이 스스로 후보를 지정한다.
+**The automatic connection rule:** every field with `provenance: assumed` is a sensitivity-analysis candidate.
+A human does not pick the candidates — the spec designates them itself.
 
-### 11.2 ★ 감도는 **무차원수 공간에서** 계산한다
-원시 SI 파라미터로 감도를 재면 낭비다. `η, T, a`는 오직 `D₀`와 `τ_B`를 통해서만 들어가므로
-셋을 따로 흔드는 것은 **같은 방향을 세 번 흔드는 것**이다.
+### 11.2 ★ The sensitivity is computed **in the space of dimensionless numbers**
+Measuring the sensitivity in raw SI parameters is a waste. `η, T, a` enter only through `D₀` and `τ_B`, so
+shaking the three separately is **shaking the same direction three times**.
 
-> **규칙:** 감도는 §5(또는 해당 systems 카드)의 무차원수 원장에 대해 계산한다.
-> `m`개 SI 파라미터가 `n`개 무차원수로 줄면 런 수가 `2m → 2n`으로 줄고, 보통 `n ≪ m`이다.
+> **The rule:** the sensitivity is computed against the dimensionless-number ledger of §5 (or the relevant systems card).
+> When `m` SI parameters reduce to `n` dimensionless numbers, the number of runs drops `2m → 2n`, and usually `n ≪ m`.
 
-### 11.3 4단계 (싼 것부터)
+### 11.3 The 4 stages (cheapest first)
 
-| 단계 | 방법 | 비용 | 언제 |
+| Stage | Method | Cost | When |
 |---|---|---|---|
-| **A. 레짐 근접도** | 각 무차원수가 레짐 경계에서 얼마나 떨어졌나. `d = \|log(X/X_c)\|` | **런 0회** | **S4에서** 항상 |
-| **B. 국소 1차 (OAT)** | 무차원수 하나씩 `×2, ÷2` → 무차원 감도지수 `S_i = ∂lnQ/∂lnX_i` | `2n` 런 (T2) | 기본. 항상 |
-| **C. 2차 상호작용** | 강한 `S_i` 상위 2~3개만 격자로 조합 | `~9` 런 (T2) | B에서 비선형 징후 시 |
-| **D. 글로벌 (Sobol/LHS)** | 가정 상자 전체 표본 | `≥64` 런 | C가 강한 상호작용을 보일 때만. 사용자 승인 |
+| **A. regime proximity** | how far each dimensionless number is from a regime boundary. `d = \|log(X/X_c)\|` | **0 runs** | always, **at S4** |
+| **B. local first order (OAT)** | one dimensionless number at a time `×2, ÷2` → the dimensionless sensitivity index `S_i = ∂lnQ/∂lnX_i` | `2n` runs (T2) | the default. Always |
+| **C. second-order interactions** | only the top 2~3 with a strong `S_i`, combined on a grid | `~9` runs (T2) | when B shows a sign of nonlinearity |
+| **D. global (Sobol/LHS)** | sampling the whole assumption box | `≥64` runs | only when C shows a strong interaction. User approval |
 
-**A는 런이 필요 없는데 가장 중요할 수 있다.** `Pe = 45`이고 MIPS 경계가 `Pe_c ≈ 40–60`이면,
-그 계는 정의상 감도가 극대다 — 돌려보기 전에 알 수 있다.
+**A needs no runs and may be the most important.** If `Pe = 45` and the MIPS boundary is `Pe_c ≈ 40–60`, then
+that system is by definition maximally sensitive — and you can know it before running.
 
-### 11.4 우리 하드웨어에서의 비용 — 사실상 공짜
-§7.3 실측 기준, T2(`N=1000`, 4e5스텝) 1런 = 103 s, 동시 8개 가능:
+### 11.4 The cost on our hardware — effectively free
+On the §7.3 measurements, 1 T2 run (`N=1000`, 4e5 steps) = 103 s, with 8 concurrent possible:
 
-| 무차원수 개수 `n` | OAT 런 수 | 배치 수 (k=8) | **총 wall** |
+| The number of dimensionless numbers `n` | OAT runs | Batches (k=8) | **total wall** |
 |---|---|---|---|
-| 2 | 4 | 1 | **1.7분** |
-| 4 | 8 | 1 | **1.7분** |
-| 8 | 16 | 2 | **3.4분** |
+| 2 | 4 | 1 | **1.7 min** |
+| 4 | 8 | 1 | **1.7 min** |
+| 8 | 16 | 2 | **3.4 min** |
 
-> **결론: 감도 분석을 생략할 이유가 없다.** 무차원수 4개까지는 프로덕션 런 1회의
-> 1/7 비용으로 끝난다. **기본 활성화한다.**
+> **Conclusion: there is no reason to omit the sensitivity analysis.** Up to 4 dimensionless numbers it finishes at
+> 1/7 the cost of a single production run. **It is enabled by default.**
 
-### 11.5 판정 규칙
+### 11.5 The verdict rules
 
-| `\|S_i\|` | 해석 | 조치 |
+| `\|S_i\|` | Interpretation | Action |
 |---|---|---|
-| `> 1` | 결론이 이 가정에 **강하게 의존** | 리포트 상단에 경고. 가정을 좁혀야 함 (문헌 조회 / 사용자 질문 / 조건부 결론) |
-| `0.2 – 1` | 보통 의존 | 리포트에 명시 |
-| `< 0.2` | **무관** | "이 가정은 결론을 바꾸지 않는다"를 **명시적으로 보고** — 이것도 결과다 |
+| `> 1` | the conclusion **depends strongly** on this assumption | a warning at the top of the report. The assumption has to be narrowed (a literature lookup / a question to the user / a conditional conclusion) |
+| `0.2 – 1` | a moderate dependence | stated in the report |
+| `< 0.2` | **irrelevant** | **report explicitly** that "this assumption does not change the conclusion" — that is a result too |
 
-`S_i`의 부호와 크기가 **예측(S2)과 일치하는지도 검사한다.** 불일치는 모델 이해의 결함 신호.
+**Whether the sign and magnitude of `S_i` agree with the prediction (S2) is also checked.** A disagreement is a signal of a defect in the model understanding.
 
-### 11.6 산출물
-- `07b_sensitivity.md` — 감도표 + 레짐 근접도 + 판정
-- `figs/tornado.png` — 토네이도 플롯 (`|S_i|` 내림차순 수평 막대)
-- `08_conclusion.md`의 "신뢰도와 한계"가 이 결과를 **인용해야 한다** (게이트)
+### 11.6 The outputs
+- `07b_sensitivity.md` — the sensitivity table + the regime proximity + the verdict
+- `figs/tornado.png` — a tornado plot (horizontal bars in descending `|S_i|`)
+- The "confidence and limits" of `08_conclusion.md` **has to cite** this result (a gate)
 
-### 11.7 실패모드
-- 감도를 SI 파라미터로 계산해 중복 방향에 런을 낭비
-- `×2, ÷2` 섭동이 레짐 경계를 넘어가서 `S_i`가 의미를 잃음 (→ 섭동 폭을 `±20%`로 축소 후 재시도)
-- T2의 통계오차가 `S_i`보다 커서 전부 `INCONCLUSIVE` (→ 시드 늘리거나 T3로 승격)
+### 11.7 Failure modes
+- computing the sensitivity in SI parameters and wasting runs on duplicate directions
+- a `×2, ÷2` perturbation crossing a regime boundary so `S_i` loses meaning (→ shrink the perturbation to `±20%` and retry)
+- T2's statistical error being larger than `S_i` so everything is `INCONCLUSIVE` (→ raise the seeds or promote to T3)
 
 ---
 
-## 12. 모델 티어링 — 어디에 비싼 리즈닝을 쓸까
+## 12. Model tiering — where to spend expensive reasoning
 
-> 원칙: **추출은 저가, 해석은 고가.** 그리고 **계산은 LLM이 아니라 코드.**
+> The principle: **extraction is cheap, interpretation is expensive.** And **computation is code, not the LLM.**
 
-### 12.1 배분
+### 12.1 The allocation
 
-| 단계 / 작업 | 모델 | 근거 |
+| Stage / task | Model | Grounds |
 |---|---|---|
-| **S1 손그림 해석** — 기하·경계·차원 판정, 화살표 의미, 모호성 후보 생성 | **Opus 5** | 멀티모달 + 물리 리즈닝. **여기서 틀리면 뒤의 전부가 틀린다.** 가장 비싼 오류 지점 |
-| S1 추출 — 텍스트·숫자·라벨 판독, EXIF·해상도·파일 인덱싱 | **Haiku 4.5** | 정형 추출. 리즈닝 불필요 |
-| **S2 예측 리즈닝** | **Opus 5** | 봉인되는 과학적 주장 |
-| S3 스펙 채우기 (knowledge 조회 + 규칙 적용) | **Sonnet 5** | 판단 여지 적음 |
-| S3 YAML 직렬화·provenance 정리 | **Haiku 4.5** | 정형 |
-| S4 무차원화 | **코드**(`simbot.nondim`) + Sonnet 5 검토 | 숫자는 LLM이 만들지 않는다 |
-| S5 실행 | **코드만** | LLM 없음 |
-| S6 그림 생성 / 캡션 | 코드 / **Sonnet 5** | |
-| **S7 판정 + 원인 가설** | **Opus 5** | 인과 추론. FAIL 원인 오판이 가장 비싸다 |
-| S7b 감도 해석 | **Sonnet 5** | 수치는 코드, 해석만 |
-| **S8 결론** | **Opus 5** | 최종 과학적 주장 |
-| S8 knowledge 항목 초안 | **Sonnet 5** | 템플릿 채우기 |
-| **실패 진단** (`bd-diagnose`) | **Opus 5** | 가설 생성·배제 추론 |
-| 문헌 증류 (`source/` 항목 작성) | **Sonnet 5** | 대량. 단 **식 변환은 Opus 검토** |
-| 문헌 대량 스캔·서지 추출·`INDEX` 갱신 | **Haiku 4.5** | 정형 대량 |
+| **S1 hand-drawing interpretation** — judging the geometry, boundaries and dimensionality, the meaning of arrows, generating ambiguity candidates | **Opus 5** | multimodal + physics reasoning. **Get this wrong and everything after it is wrong.** The most expensive error point |
+| S1 extraction — reading text, numbers and labels, indexing EXIF, resolution and files | **Haiku 4.5** | structured extraction. No reasoning needed |
+| **S2 prediction reasoning** | **Opus 5** | a scientific claim that gets sealed |
+| S3 filling in the spec (a knowledge lookup + applying rules) | **Sonnet 5** | little room for judgment |
+| S3 YAML serialization and provenance tidying | **Haiku 4.5** | structured |
+| S4 non-dimensionalization | **code** (`simbot.nondim`) + a Sonnet 5 review | the LLM does not make the numbers |
+| S5 execution | **code only** | no LLM |
+| S6 figure generation / captions | code / **Sonnet 5** | |
+| **S7 the verdict + the cause hypothesis** | **Opus 5** | causal inference. Misjudging a FAIL's cause is the most expensive |
+| S7b sensitivity interpretation | **Sonnet 5** | the numbers are code, the interpretation only |
+| **S8 the conclusion** | **Opus 5** | the final scientific claim |
+| S8 drafting the knowledge entries | **Sonnet 5** | filling in a template |
+| **failure diagnosis** (`bd-diagnose`) | **Opus 5** | hypothesis generation and elimination reasoning |
+| literature distillation (writing a `source/` entry) | **Sonnet 5** | in bulk. But **an equation transformation gets an Opus review** |
+| bulk literature scanning, bibliographic extraction, updating the `INDEX` | **Haiku 4.5** | structured and in bulk |
 
-### 12.2 안전장치 — 저가 모델이 물리 판단을 하지 못하게
+### 12.2 The safeguard — keeping a cheap model from making a physics judgment
 
-> **규칙: `provenance`가 `inference` 또는 `assumed`인 필드는 Opus만 쓸 수 있다.**
-> `observation`·`derived`는 저가 모델이 채워도 된다.
+> **The rule: a field whose `provenance` is `inference` or `assumed` may only be written by Opus.**
+> `observation` and `derived` may be filled by a cheap model.
 
-이 규칙이 좋은 이유: 기존 provenance 스키마에 그대로 얹히고, **기계적으로 검사 가능**하다.
-`simbot.spec.validate`가 각 필드에 `written_by` 필드를 요구하고 위반을 잡는다.
+Why this rule is good: it sits directly on top of the existing provenance schema, and it is **mechanically checkable**.
+`simbot.spec.validate` requires a `written_by` field on each field and catches violations.
 
-### 12.3 구현 — ✅ 완료 (2026-07-28)
-`.claude/agents/*.md` 의 `model:` frontmatter 로 정의했고, `bd-pipeline` 스킬이 단계별로 위임한다.
-**배분표와 실제 `model:` 이 일치하는지 `tests/test_agent_layer.py` 가 검사한다.**
+### 12.3 Implementation — ✅ done (2026-07-28)
+Defined by the `model:` frontmatter of `.claude/agents/*.md`, and the `bd-pipeline` skill delegates per stage.
+**Whether the allocation table and the actual `model:` agree is checked by `tests/test_agent_layer.py`.**
 
-| 서브에이전트 | model | 담당 |
+| Subagent | model | Responsibility |
 |---|---|---|
-| `bd-intake-extract` | haiku | S1 추출 |
-| `bd-intake-interpret` | opus | S1 해석 |
+| `bd-intake-extract` | haiku | S1 extraction |
+| `bd-intake-interpret` | opus | S1 interpretation |
 | `bd-predict` | opus | S2 |
 | `bd-spec` | sonnet | S3 |
-| `bd-validate` | opus | S7 판정 |
+| `bd-validate` | opus | the S7 verdict |
 | `bd-conclude` | opus | S8 |
-| `bd-lit-distill` | sonnet | 문헌 증류 |
-| `bd-lit-scan` | haiku | 문헌 스캔·인덱싱 |
-| `bd-diagnose` | opus | 실패 진단 |
+| `bd-lit-distill` | sonnet | literature distillation |
+| `bd-lit-scan` | haiku | literature scanning and indexing |
+| `bd-diagnose` | opus | failure diagnosis |
 
-> 비용 절감이 목적이 아니라 **속도와 품질의 배분**이 목적이다.
-> 인풋 스캔을 Haiku로 돌리면 손그림 10장 목록화가 몇 초에 끝나고, 그 절약분을
-> S1 해석과 S7 판정에 쓸 수 있다.
+> The purpose is not cost saving but **the allocation of speed and quality**.
+> Running the input scan on Haiku finishes listing 10 hand drawings in a few seconds, and that saving
+> can be spent on the S1 interpretation and the S7 verdict.
 
-### 12.4 구현 결과 (2026-07-28) — 참조문서는 8개가 아니라 5개다
+### 12.4 The implementation result (2026-07-28) — the reference documents number 5 and not 8
 
-**Q6 결정.** 설계는 단계별 참조문서 8개였다. 그런데 결정론 코어가 완성된 뒤
-**S3·S4·S5 는 `cli.py run` 한 줄**이 되었고, 각각에 별도 문서를 두면 "이 함수를
-호출한다"만 적힌 얇은 파일 3개가 생긴다.
+**A Q6 decision.** The design had 8 per-stage reference documents. But after the deterministic core was completed,
+**S3, S4 and S5 became one line, `cli.py run`**, and putting a separate document on each would create 3 thin files
+saying only "call this function".
 
-**내용이 있는 곳에 문서를 둔다:**
+**The documents go where the content is:**
 
-| 문서 | 왜 독립인가 | 크기 |
+| Document | Why it is independent | Size |
 |---|---|---|
-| `s1_intake_drawing.md` | **코드로 표현할 수 없는 유일한 단계.** 가장 비싼 오류 지점 | 가장 두껍다 |
-| `s2_prediction.md` | 봉인·tolerance·검정력 규율. 허술하면 검증이 무력화된다 | |
-| `s3_s5_execute.md` | 셋 다 `cli.py` 호출 + 게이트 읽기 → **합쳐야 흐름이 보인다** | |
-| `s6_s7_validate.md` | 그림과 판정은 같은 판단(무엇이 이상한가)에 쓰인다 | |
-| `s8_knowledge.md` | 결론 서술 + knowledge 계약 | |
+| `s1_intake_drawing.md` | **the only stage that cannot be expressed in code.** The most expensive error point | the thickest |
+| `s2_prediction.md` | the seal, tolerance and power discipline. Sloppy here and the verification is neutered | |
+| `s3_s5_execute.md` | all three are a `cli.py` call + reading the gate → **merged, the flow becomes visible** | |
+| `s6_s7_validate.md` | the figures and the verdict serve the same judgment (what is anomalous) | |
+| `s8_knowledge.md` | narrating the conclusion + the knowledge contract | |
 
-**스킬이 물리를 다시 적지 않는다.** `simbot` 함수와 `knowledge/wiki/` 카드를 인용한다.
-스킬 층의 유일한 고유 내용은 **S1 손그림 판독 프로토콜**이다.
+**The skill does not rewrite the physics.** It cites the `simbot` functions and the `knowledge/wiki/` cards.
+The skill layer's only unique content is **the S1 hand-drawing reading protocol**.
 
-구조를 [`tests/test_agent_layer.py`](../../tests/test_agent_layer.py) (64개)가 감시한다 —
-frontmatter 유효성, 링크 무결성, **§12.1 배분표와 `model:` 일치**, 저가 모델의
-권한 경계 명시, `settings.json` 의 봉인 문서 편집 거부.
+The structure is watched by [`tests/test_agent_layer.py`](../../tests/test_agent_layer.py) (64 tests) —
+frontmatter validity, link integrity, **agreement between the §12.1 allocation table and `model:`**, the cheap models'
+permission boundary being stated, and `settings.json`'s refusal to edit a sealed document.
 
-★ **`settings.json` 이 봉인 문서의 `Edit` 을 거부한다:**
+★ **`settings.json` refuses `Edit` on a sealed document:**
 
 ```json
 "deny": ["Edit(./runs/**/02_prediction.md)", "Edit(./runs/**/01_intake.md)",
          "Edit(./runs/**/SEALED.sha256)", "Bash(conda activate:*)"]
 ```
 
-예측은 `cli.py` 가 파이썬으로 **생성**하고, 그 뒤 에이전트가 텍스트 편집으로
-**고치는 것**을 막는다. 봉인 검증이 사후에 잡지만 **애초에 못 하게 하는 것이 낫다.**
+The prediction is **generated** by `cli.py` in Python, and what is blocked is the agent afterwards
+**fixing it** by editing the text. The seal verification catches it after the fact, but **it is better to make it impossible in the first place.**
 
-상세: [`.claude/README.md`](../../.claude/README.md)
-
----
-
-## 13. 열린 질문
-
-### 닫힌 것
-
-| # | 질문 | 답 (2026-07-28) |
-|---|---|---|
-| Q1 | git 초기화할까? | ✅ **했다.** 커밋 28개 (2026-07-30) |
-| Q2 | 첫 손그림의 주제는? | ✅ **2D 광집게** (`R=5 μm`, `k=10 pN/μm`, `T=300 K`). 텍스트 자유확산 단계를 건너뛰었다 (§8) |
-| Q3 | 리포트 언어? | ✅ **한국어 본문 + 영어 기술용어.** 단 **matplotlib 그림의 글자는 영문** (기본 폰트에 한글 글리프 없음) |
-| Q4 | 런 1회 허용 wall time 상한? | ✅ **10분.** `budget.wall_time_per_run_s: 600`. `cli.py` 가 초과 예상 시 **실행하지 않고 중단**한다 (테스트로 고정) |
-| Q5 | 2D를 1급으로 지원? | ✅ **예.** 첫 계가 2D 였고 `Lz=0` 경로가 검증됐다 (`plateau = 2d`, `⟨r²⟩` 비 `3/2` 를 0.3 % 로 확인) |
-
-### 새로 열린 것
-
-| # | 질문 | 상태 |
-|---|---|---|
-| Q6 | **`.claude/` 스킬을 어느 입도로 쪼갤까** | ✅ **닫힘 — 스킬 3 + 참조문서 5** (§12.4) |
-| Q7 | 트랩 커널 처리량이 기준선의 1.2–1.4배인 이유 | 열림 → [`questions/trap-kernel-throughput-vs-wca-baseline.md`](../../knowledge/wiki/questions/trap-kernel-throughput-vs-wca-baseline.md) |
-| Q8 | **`scripts/trap_batch.py` 를 지울까** — `run.run_trap_batch` 가 같은 일을 한다 | 미결. 첫 완주의 재현 경로라 남겨둠 |
-| **Q9** | **자유확산 회귀 케이스를 언제 만들까** | **아직 열림** → §8.1-⑤. 소프트 반발계는 `Soft2DRunConfig` 별도 경로를 썼으므로 이 부채를 **갚지 않았다** |
-| Q10 | 스킬 위임이 실제로 작동하는가 | ✅ **닫힘 (2026-07-29).** `bd-pipeline` 스킬로 `soft-r3` 캠페인 6런을 완주했다 |
-| Q11 | `pilot: {mandatory: true}` 를 구현할까, 정책을 고칠까 | 미결. **지금 정책 파일이 거짓을 말한다** |
-
-### 2026-07-30 에 새로 열린 것
-
-| # | 질문 | 상태 |
-|---|---|---|
-| **Q12** | **무작위 시작으로 상 경계를 찾을 수 있는가** | ❌ **아니다 — 닫힘.** 과냉각 때문에 상한만 준다. 결정에서 녹여야 한다 (§8.1-①) |
-| **Q13** | 절단오차 허용치를 **값 기준**으로 세워도 되는가 | ❌ **아니다 — 닫힘.** `βU(r_cut)` 이 값을 `3σ` 안에 두어도 **지수를 `2.9σ` 편향**시킨다. 지수 기준 허용치가 따로 필요하다 |
-| **Q14** | `estimate_wall_time_s` 의 오버헤드 계수 | 열림 → §8.1-③. 큰 `N` 에서 **2.5배 낙관적**이다 (`hexwin` 22분 예상 vs 54분 실측) |
-| **Q15** | `χ²` 형태 검정을 4시드로 할 수 있는가 | ❌ **아니다 — 닫힘.** `χ² ∝ 1/SE²` 라 4시드 SE 의 41 % 불확실성이 4배 증폭된다 |
-| **Q16** | `A = 13.3` 이 제대로 된 절단에서도 결정인가 | 열림 → §8.1-② (S31) |
-| **Q17** | `master_plan` §11(감도)·§S2(예측)를 캠페인 결과로 개정할까 | 열림 → §8.1-④. finding 6개가 실질적 개정을 요구한다 |
+The details: [`.claude/README.md`](../../.claude/README.md)
 
 ---
 
-*이 문서가 설계의 단일 진실 원천이다. 설계 변경 시 코드보다 먼저 이 문서를 고친다.*
-*폐기된 절은 지우지 않고 `⚠️ 폐기` 로 표시한다 — 반박당한 원문이 사라지면 그 반박이 읽히지 않는다.*
+## 13. Open questions
+
+### Closed
+
+| # | Question | The answer (2026-07-28) |
+|---|---|---|
+| Q1 | should git be initialized? | ✅ **done.** 28 commits (2026-07-30) |
+| Q2 | what is the subject of the first hand drawing? | ✅ **2D optical tweezers** (`R=5 μm`, `k=10 pN/μm`, `T=300 K`). The text free-diffusion stage was skipped (§8) |
+| Q3 | the report language? | ✅ **a Korean body + English technical terms.** But **the text in matplotlib figures is in English** (the default font has no Hangul glyphs) |
+| Q4 | the allowed wall-time ceiling per run? | ✅ **10 minutes.** `budget.wall_time_per_run_s: 600`. When `cli.py` expects it to be exceeded it **does not run and halts** (fixed by a test) |
+| Q5 | is 2D supported as first class? | ✅ **yes.** The first system was 2D and the `Lz=0` route is verified (`plateau = 2d`, the `⟨r²⟩` ratio `3/2` confirmed to 0.3 %) |
+
+### Newly opened
+
+| # | Question | Status |
+|---|---|---|
+| Q6 | **at what granularity should the `.claude/` skills be split** | ✅ **closed — 3 skills + 5 reference documents** (§12.4) |
+| Q7 | why the trap kernel's throughput is 1.2–1.4× the baseline | open → [`questions/trap-kernel-throughput-vs-wca-baseline.md`](../../knowledge/wiki/questions/trap-kernel-throughput-vs-wca-baseline.md) |
+| Q8 | **should `scripts/trap_batch.py` be deleted** — `run.run_trap_batch` does the same thing | unresolved. Kept because it is the reproduction route of the first full run |
+| **Q9** | **when should the free-diffusion regression case be made** | **still open** → §8.1-⑤. The soft-repulsive system used the separate `Soft2DRunConfig` route, so this debt was **not paid** |
+| Q10 | does skill delegation actually work | ✅ **closed (2026-07-29).** The `soft-r3` campaign's 6 runs were completed with the `bd-pipeline` skill |
+| Q11 | should `pilot: {mandatory: true}` be implemented, or the policy fixed | unresolved. **Right now the policy file tells a falsehood** |
+
+### Newly opened on 2026-07-30
+
+| # | Question | Status |
+|---|---|---|
+| **Q12** | **can a phase boundary be found from a random start** | ❌ **no — closed.** Because of supercooling it gives only an upper bound. It has to be melted from the crystal (§8.1-①) |
+| **Q13** | may the truncation-error tolerance be erected on a **value** criterion | ❌ **no — closed.** `βU(r_cut)` keeping the value within `3σ` still **biases the exponent by `2.9σ`**. A separate exponent-based tolerance is needed |
+| **Q14** | the overhead factor of `estimate_wall_time_s` | open → §8.1-③. At large `N` it is **2.5× optimistic** (`hexwin` 22 min expected vs 54 min measured) |
+| **Q15** | can a `χ²` form test be done with 4 seeds | ❌ **no — closed.** Since `χ² ∝ 1/SE²`, the 41 % uncertainty of a 4-seed SE is amplified 4× |
+| **Q16** | is `A = 13.3` a crystal under a proper truncation too | open → §8.1-② (S31) |
+| **Q17** | should `master_plan` §11 (sensitivity) and §S2 (prediction) be revised with the campaign results | open → §8.1-④. The 6 findings demand a substantive revision |
+
+---
+
+*This document is the single source of truth for the design. On a design change, fix this document before the code.*
+*An obsoleted section is not deleted but marked `⚠️ obsolete` — if the refuted original disappears, that refutation becomes unreadable.*

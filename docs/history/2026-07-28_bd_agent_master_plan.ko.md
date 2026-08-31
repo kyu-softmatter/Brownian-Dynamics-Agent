@@ -685,7 +685,7 @@ state `dt` or the number of equilibration steps, so as a parameter prior the lat
 **unverified practice comes along with it.**
 
 **No senior's code is currently obtained.** The frontmatter schema and the discipline are settled in `D20`, so when
-assets actually appear this section gets revived then. On obtaining them, add `source/lab/` to `.gitignore` immediately (§4, the publication boundary).
+assets actually appear this section gets revived then. On obtaining them, add `source/lab/` to `.gitignore` immediately (§4 the publication boundary).
 
 > Only one piece of discipline is left here: **do not cite a parameter marked `reproduced: no` as if it were literature grounds.**
 > Until reproduced it is a factual record that "this is what was done", not grounds that "this is right". Let that
@@ -799,7 +799,7 @@ The things that get expensive to fix later. Observed from v1 onwards.
 
 ## 9. The autonomy boundary
 
-### Human approval gates — 2, permanent
+### Human approval gates — 2 of them, permanent
 
 | Gate | Position | The failure it blocks |
 |---|---|---|

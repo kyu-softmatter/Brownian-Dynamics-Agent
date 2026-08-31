@@ -39,12 +39,16 @@ What a translation is allowed to change: **the words**. What it must not change:
                 account for. Calibrating on docs/hoomd_capabilities.md, 9 of the
                 11 number findings were exactly this and 2 were real bugs I had
                 introduced.
-                One further allowance, for the same reason: Korean writes
+                One case the census cannot settle by itself: Korean writes
                 magnitudes as `330만` (3.3 million) and `2,085만` (20.85 million),
-                where the VALUE survives translation but the digits cannot. Each
-                such occurrence in OLD buys NEW one otherwise-unexplained
-                numeral. On docs/history/2026-08_simulation_auto_CLAUDE.ko.md
-                that was exactly 3 of them, against 19 myriad forms available.
+                where the VALUE survives translation but the digits cannot. There
+                is no digit-preserving English form, so such a rescale has to be
+                accepted BY NAME with `--allow-gained 3.3,20.85`. It is not
+                absorbed automatically: an automatic budget would silently swallow
+                whichever unexplained numeral sorted first, which on
+                docs/history/2026-07-30_simulation_bot_master_plan.ko.md was two
+                real defects rather than the rescale. The count of myriad forms
+                available in OLD is reported so the claim can be checked.
   markers       the multiset of correction/emphasis markers the user asked to be
                 preserved explicitly -- ★ ⭐ ⚠️ ⛔ ✅ ❌ ⟹ → and the circled
                 digits, plus the number of `**` emphasis delimiters. The
@@ -218,7 +222,7 @@ def _fence_diff(name: str, a: list, b: list) -> list:
     return []
 
 
-def compare(old: str, new: str) -> list:
+def compare(old: str, new: str, allow_gained=(), allow_lost=()) -> list:
     A, B = parse(old), parse(new)
     p = []
     p += _seq_diff("heading levels", A["headings"], B["headings"])
@@ -241,14 +245,16 @@ def compare(old: str, new: str) -> list:
     new_all = B["numbers"] + B["_ko_numerals"]
     lost = A["numbers"] - new_all
     gained = new_all - A["numbers"] - A["_ko_numerals"]
-    # each Korean myriad form in OLD (`330만`) buys one rescaled numeral in NEW
-    for _ in range(A["_ko_scaled"]):
-        if not gained:
-            break
-        tok = sorted(gained)[0]
-        gained[tok] -= 1
-        if gained[tok] == 0:
-            del gained[tok]
+    for tok in allow_gained:
+        if gained.get(tok):
+            gained[tok] -= 1
+            if not gained[tok]:
+                del gained[tok]
+    for tok in allow_lost:
+        if lost.get(tok):
+            lost[tok] -= 1
+            if not lost[tok]:
+                del lost[tok]
     if lost or gained:
         p.append(f"numbers changed: lost {dict(lost)} gained {dict(gained)}")
     if A["markers"] != B["markers"]:
@@ -283,9 +289,8 @@ SELFTESTS = [
     ("and it is only exempt up to its count", "2차극소 하나\n", "2 and 2 minima\n", True),
     ("hangul-PREFIXED numeral may appear", "게이트1 통과\n", "gate 1 passed\n", False),
     ("mid-token digit is not a number", "hoomd 7.1.0\n", "hoomd 7.1.0 build\n", False),
-    ("a myriad form may be rescaled", "330만 스텝\n", "3.3 million steps\n", False),
-    ("but only as many times as there are myriad forms",
-     "330만 스텝\n", "3.3 million steps over 12 runs\n", True),
+    ("a myriad rescale is NOT absorbed automatically", "330만 스텝\n",
+     "3.3 million steps\n", True),
     ("but a version bump is", "hoomd 7.1.0\n", "hoomd 7.2.0\n", True),
     ("link target changed", "[x](a.md)\n", "[y](b.md)\n", True),
     ("link label only", "[한국어](a.md)\n", "[English](a.md)\n", False),
@@ -319,8 +324,26 @@ SELFTESTS = [
 ]
 
 
+ALLOW_TESTS = [
+    ("--allow-gained accepts by name", "330만 스텝\n", "3.3 million steps\n",
+     ("3.3",), (), False),
+    ("--allow-gained accepts only the named token", "330만 스텝\n",
+     "3.3 million steps over 12 runs\n", ("3.3",), (), True),
+    ("--allow-lost accepts by name", "42 runs\n", "many runs\n", (), ("42",), False),
+]
+
+
 def selftest() -> int:
     bad = 0
+    for label, old, new, ag, al, expect in ALLOW_TESTS:
+        got = compare(old, new, ag, al)
+        ok = bool(got) == expect
+        print(f"  {'PASS' if ok else 'FAIL'}  {label:28} "
+              f"expected={'problem' if expect else 'clean'} got={len(got)} finding(s)")
+        if not ok:
+            bad += 1
+            for line in got:
+                print(f"          {line}")
     for label, old, new, expect in SELFTESTS:
         got = compare(old, new)
         ok = bool(got) == expect
@@ -330,19 +353,34 @@ def selftest() -> int:
             bad += 1
             for line in got:
                 print(f"          {line}")
-    print(f"selftest: {len(SELFTESTS) - bad}/{len(SELFTESTS)} passed")
+    total = len(SELFTESTS) + len(ALLOW_TESTS)
+    print(f"selftest: {total - bad}/{total} passed")
     return 1 if bad else 0
 
 
 def main() -> int:
     if "--selftest" in sys.argv:
         return selftest()
-    if len(sys.argv) != 3:
+    def _csv(flag):
+        for i, a in enumerate(sys.argv):
+            if a == flag and i + 1 < len(sys.argv):
+                return tuple(t for t in sys.argv[i + 1].split(",") if t)
+        return ()
+    allow_gained, allow_lost = _csv("--allow-gained"), _csv("--allow-lost")
+    skip, positional = set(), []
+    for i, a in enumerate(sys.argv[1:], 1):
+        if a in ("--allow-gained", "--allow-lost"):
+            skip.add(i + 1)
+            continue
+        if i in skip or a.startswith("--"):
+            continue
+        positional.append(a)
+    if len(positional) != 2:
         print(__doc__)
         return 2
-    old_p, new_p = Path(sys.argv[1]), Path(sys.argv[2])
+    old_p, new_p = Path(positional[0]), Path(positional[1])
     old, new = old_p.read_text(encoding="utf-8"), new_p.read_text(encoding="utf-8")
-    problems = compare(old, new)
+    problems = compare(old, new, allow_gained, allow_lost)
     ko_left = sum(1 for ln in new.split("\n") if KO.search(ln))
     A = parse(old)
     fence_ko = A["_fence_ko"]
@@ -355,7 +393,9 @@ def main() -> int:
     print(f"OK   {new_p}: structure identical, only prose differs "
           f"(fenced lines with Hangul in OLD: {fence_ko}, "
           f"Hangul-attached numerals in OLD: {ko_num}, of them myriad forms: "
-          f"{A['_ko_scaled']}), Hangul lines left {ko_left}")
+          f"{A['_ko_scaled']}), Hangul lines left {ko_left}"
+          + (f", numerals accepted by name: gained={list(allow_gained)} "
+             f"lost={list(allow_lost)}" if (allow_gained or allow_lost) else ""))
     return 0
 
 
