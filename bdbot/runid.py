@@ -58,16 +58,16 @@ def spec_hash(spec: dict, nhex: int = 12) -> str:
     ⚠ **NOT interchangeable with `simbot.io.sha256_payload`,** which does the same
       job for the S2 sealing path. Measured 2026-08-29:
 
-          payload            spec_hash(12)   sha256_payload()[:12]   same
-          ASCII only         93a7e2f22fd8    93a7e2f22fd8            yes
-          non-ASCII value    5ef45ee9ed7c    062a55bdd263            NO
-          non-ASCII key      6b178a2bd90d    df013e47cf6b            NO
+          payload                                spec_hash(12)  ...payload()[:12]  same
+          {"d": 5e-6, "eta": 8.51e-4, "T": 300}  93a7e2f22fd8   93a7e2f22fd8      yes
+          {"d": 5e-6, "src": "η-table@300K"}     26ff21e5f3ff   15c8bea629ca      NO
+          {"η": 8.51e-4}                         d8a133eaf820   aaa89fe76c32      NO
 
       The single difference is `ensure_ascii`: this function takes json's default
       (`True`, so non-ASCII becomes `\\uXXXX`), `sha256_payload` passes `False`
       (raw UTF-8). They agree on every ASCII payload, which is why the divergence
-      never surfaced -- and this repository is full of Korean strings, so it was
-      one non-stripped field away from surfacing.
+      never surfaced -- and the archive is still full of non-ASCII strings, so it
+      was one non-stripped field away from surfacing.
       **Deliberately not unified**: 263 `runs/` directories and 279 `specs/` files
       are named by this function's output, so changing the serialization renames
       all of them. `tests/test_cross_package_equivalence.py` pins the difference so

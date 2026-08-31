@@ -52,7 +52,8 @@ project keeps finding in its own checkers:
     which would silently read 0 if the message were translated and the filter
     were not (verify_skill_snippets.py)
   - and the one that had already gone wrong in the tree: verify_bdbot.py asserted
-    `v == 'PASS (경고 1건)'` against a verdict that bdbot/checks.py had rendered in
+    `v == '<the Korean verdict string>'` against a verdict that bdbot/checks.py
+    had rendered in
     English since c0074a2, so it FAILed for a day unnoticed -- it is not in the
     pytest suite, so the suite stayed green. Fixed by asserting the proposition
     (no hard failure, exactly one soft failure) instead of the wording.

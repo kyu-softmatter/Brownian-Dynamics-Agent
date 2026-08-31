@@ -1,20 +1,23 @@
 #!/bin/zsh
-# chain-bend-2d-dlvo — 미완 런 재개 (2026-08-06 중단분)
+# chain-bend-2d-dlvo — resume the unfinished runs (the 2026-08-06 interruption)
 #
-# 중단 시점: kt100 10/12 · position 6/12 완료. 아래가 남은 6런이다.
-# 전부 **JKR 분기**라 느리다 — force.Custom 이 매 스텝 파이썬을 호출해서
-# ~5,900 steps/s (DLVO 의 1/17). 런당 13.9M 스텝 = **약 40분**.
+# Where it stopped: kt100 10/12 · position 6/12 done. The 6 below are what is left.
+# All of them are the **JKR branch**, so they are slow — force.Custom calls into
+# python every step, giving ~5,900 steps/s (1/17 of DLVO). 13.9M steps per run =
+# **about 40 minutes**.
 #
-#   $ zsh scratch/resume_dlvo_runs.sh          # 4병렬, 총 ~80분
-#   $ zsh scratch/resume_dlvo_runs.sh 2        # 2병렬 (CPU 여유 두기)
+#   $ zsh scratch/resume_dlvo_runs.sh          # 4-way parallel, ~80 min total
+#   $ zsh scratch/resume_dlvo_runs.sh 2        # 2-way (leave the CPU some room)
 #
-# ★ 이미 끝난 런은 run_id 가 콘텐츠 주소라 자동으로 건너뛴다 — 중복 실행 걱정 없다.
-#   단, `--force` 를 붙이면 덮어쓰므로 쓰지 말 것.
+# ★ Runs that already finished are skipped automatically, because run_id is a
+#   content address — no need to worry about running them twice. But `--force`
+#   overwrites, so do not pass it.
 #
-# 끝난 뒤 할 것:
-#   $PY scratch/backfill_bow.py                      # 굽음 소급 채움
-#   $PY scratch/analyze_correlations.py              # 위치 상관
-#   → 3조건(trap kt1 / trap kt100 / position) × 2분기(DLVO/JKR) 비교 그래프
+# When it finishes:
+#   $PY scratch/backfill_bow.py                      # backfill the bow
+#   $PY scratch/analyze_correlations.py              # position correlations
+#   → comparison plots over 3 conditions (trap kt1 / trap kt100 / position)
+#     × 2 branches (DLVO/JKR)
 
 set -e
 cd "$(dirname "$0")/.."
@@ -39,20 +42,22 @@ cat > "$RUNNER" << 'EOF'
 cd "$RESUME_ROOT"
 PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
 mode=$1; s=$2
-# ★ zsh 은 bash 와 달리 `$extra` 를 단어분할하지 않는다 — 배열로 두거나 `${=extra}` 를
-#   써야 한다. 처음에 문자열로 뒀다가 `--drive-mode position` 이 통짜 한 인자로 넘어가
-#   8런 전부 argparse 에서 죽었다 (unrecognized arguments).
+# ★ Unlike bash, zsh does **not** word-split `$extra` — it has to be an array, or
+#   written `${=extra}`. Holding it as a string the first time made
+#   `--drive-mode position` arrive as one single argument, and all 8 runs died in
+#   argparse (unrecognized arguments).
 case $mode in
   kt100)    extra=(--kt-scale 100) ;;
   position) extra=(--drive-mode position) ;;
-  *)        echo "FAILED $mode seed=$s (알 수 없는 모드)"; exit 1 ;;
+  *)        echo "FAILED $mode seed=$s (unknown mode)"; exit 1 ;;
 esac
 log=/tmp/resume_${mode}_s${s}.log
 $PY cases/chain_bend_dlvo_2d.py --n 9 --omega 3000 --amp 1470 --cycles 20 \
     "${extra[@]}" --jkr --seed $s --run > "$log" 2>&1
 rc=$?
-# ★ 종료코드를 **반드시** 본다. 예전엔 무조건 "done" 을 찍어서 크래시가 성공으로 보였다
-#   (같은 함정으로 배치 하나가 48/48 done 인데 metrics 는 37개였다 — KB tooling 참조).
+# ★ Look at the exit code, **always**. An earlier version printed "done"
+#   unconditionally, so a crash looked like a success (the same trap once left a
+#   batch reading 48/48 done with only 37 metrics — see KB tooling).
 if [ $rc -ne 0 ]; then
   echo "FAILED $mode seed=$s (rc=$rc) — $log"
 else
@@ -62,18 +67,18 @@ EOF
 chmod +x "$RUNNER"
 export RESUME_ROOT="$PWD"
 
-echo "재개: 남은 JKR 런 8개 (kt100 2 + position 6), ${NPAR}병렬"
-echo "로그: /tmp/resume_<mode>_s<seed>.log"
+echo "resume: 8 JKR runs left (kt100 2 + position 6), ${NPAR}-way parallel"
+echo "logs: /tmp/resume_<mode>_s<seed>.log"
 xargs -P "$NPAR" -L 1 "$RUNNER" < "$JOBS"
 echo "RESUME_DONE"
 rm -f "$JOBS" "$RUNNER"
 
-# ★ '완료 개수'가 아니라 **metrics.json 개수**로 검증한다 (KB tooling: xargs 는 자식이
-#   크래시해도 done 을 찍는다). 기대치와 다르면 여기서 드러난다.
+# ★ Verify by the **number of metrics.json**, not by the 'done' count (KB tooling:
+#   xargs prints done even when the child crashed). A mismatch shows up here.
 echo ""
-echo "검증 — 실제 산출물 개수:"
+echo "verification — the actual number of artefacts:"
 for pat in "jkr-kt100" "jkr-position"; do
   cnt=$(ls -d runs/chain-bend-2d-dlvo__n9-w3000-a1470-${pat}__*/metrics.json 2>/dev/null | wc -l | tr -d ' ')
-  echo "  ${pat}: ${cnt} 런"
+  echo "  ${pat}: ${cnt} runs"
 done
-echo "(기대: jkr-kt100 6 · jkr-position 6)"
+echo "(expected: jkr-kt100 6 · jkr-position 6)"

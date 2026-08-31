@@ -148,7 +148,8 @@ obs_blocked["missing_required"].append({
 s = P.load(t2)
 # ⚠ This filter must match what bdbot/physical.py ACTUALLY emits, not the `what`
 #   text injected above -- the message quotes the SYMBOL, not the description.
-#   It read "미해소 물리 결측" until 2026-08-29, which stopped matching the moment
+#   It read the Korean for "unresolved physical gaps" until 2026-08-29, which
+#   stopped matching the moment
 #   physical.py was translated to English, so this guard -- the one enforcing rule 3,
 #   "never invent a value" -- was failing and nothing surfaced it (this script is not
 #   part of the pytest suite). Anchored on the stable English phrase instead.
