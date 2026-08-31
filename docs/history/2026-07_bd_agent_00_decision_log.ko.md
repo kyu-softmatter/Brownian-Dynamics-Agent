@@ -1,470 +1,470 @@
-# 00 · 결정 로그 (Decision Log)
+# 00 · Decision Log
 
-> **이 문서의 목적**
-> 에이전트 설계에서 "정해야 하는데 아직 안 정한 것"을 한곳에 모아두고, 하나씩 채워나가는 곳이다.
-> 결정을 미룬 채로도 작업이 진행되도록, 모든 항목에 **추천 기본값(default)** 을 미리 넣어두었다.
-> 기본값은 언제든 뒤집을 수 있다 — 뒤집으면 `상태`를 `DECIDED`로 바꾸고 `영향` 칸의 문서를 갱신한다.
+> **What this document is for**
+> It is the one place where everything in the agent design that "has to be decided but has not been yet" is collected, and filled in one at a time.
+> So that work can proceed with decisions still deferred, every item has a **recommended default** entered in advance.
+> A default can be overturned at any time — when it is, change `status` to `DECIDED` and update the documents in the `impact` cell.
 
-**상태 범례**
+**Status legend**
 
-| 상태 | 의미 |
+| Status | Meaning |
 |---|---|
-| `OPEN` | 아직 사람이 결정하지 않음. **기본값이 적용된 채로 진행 중** |
-| `DECIDED` | 사람이 명시적으로 결정함. 날짜와 사유를 기록 |
-| `SUPERSEDED` | 이전 결정이 뒤집힘. 새 항목 번호를 남김 |
+| `OPEN` | Not yet decided by a human. **In progress with the default applied** |
+| `DECIDED` | Explicitly decided by a human. The date and the reason are recorded |
+| `SUPERSEDED` | An earlier decision was overturned. The new item's number is left behind |
 
-**갱신 규칙**
-1. 결정이 바뀌면 `근거`에 **왜 바꿨는지**를 남긴다. 결과만 남기면 6개월 뒤에 같은 논쟁을 반복한다.
-2. `영향` 칸의 문서를 같은 커밋에서 함께 고친다.
-3. 코드와 이 문서가 어긋나면 **이 문서가 의도(intent)** 다 — 코드를 고친다.
-   (선행 프로젝트 `~/Research/MD_particle/brownian_slit_sim/docs/model_assumptions.md`의 규칙 계승)
+**Update rules**
+1. When a decision changes, leave **why it changed** in `grounds`. Leave only the outcome and the same argument gets repeated in 6 months.
+2. Fix the documents in the `impact` cell in the same commit.
+3. When the code and this document disagree, **this document is the intent** — fix the code.
+   (inheriting the rule from the preceding project's `~/Research/MD_particle/brownian_slit_sim/docs/model_assumptions.md`)
 
 ---
 
-## A. 아키텍처
+## A. Architecture
 
-### D1 · 에이전트를 어떤 형태로 만드는가
+### D1 · What form to build the agent in
 | | |
 |---|---|
-| **상태** | **`DECIDED`** |
-| **결정** | **하이브리드 + 네 개 층** — 결정론 코어 `bdkit/` + 얇은 LLM 레이어 `agent/` + 행동 규칙 층 `.claude/rules/` + 지식 층 `knowledge/`<br>※ `master_plan.md` §4는 같은 구조를 **"세 층"** 으로 센다 — `bdkit/`과 `agent/`가 하나의 계약 문서(루트 `CLAUDE.md`)를 공유하므로. **계약 문서 단위로 세면 셋, 코드 경계로 세면 넷.** 불일치가 아니라 세는 기준의 차이다 |
-| **선택지** | (a) 하이브리드 (b) Claude Code 전용 (c) 독립 Python 패키지(Agent SDK) |
-| **근거** | 코어를 LLM 없이 `pytest`로 단독 검증 가능하게 유지하는 것이 최우선. 에이전트가 틀렸을 때 *물리가 틀렸는지 LLM이 틀렸는지* 구분할 수 없으면 디버깅이 불가능하다. 나중에 (c)로 갈 이음새(`Runner`, 스키마 기반 I/O)는 남겨둔다.<br>**2026-07-27 확정 사유:** 초기 설계(코어+LLM 두 층)에 **행동 규칙 층**과 **지식 컴파운딩 층**을 추가. 전자는 "왜 이렇게 하는가"를 코드 밖에 남기고, 후자는 세션이 끝나도 지식이 살아남게 한다. 두 층이 없으면 에이전트가 매번 처음부터 시작한다. |
-| **영향** | `master_plan.md` §4, `01_agent_architecture.md`, 저장소 구조 전체 |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** |
+| **Decision** | **Hybrid + four layers** — the deterministic core `bdkit/` + a thin LLM layer `agent/` + a behaviour-rule layer `.claude/rules/` + a knowledge layer `knowledge/`<br>※ `master_plan.md` §4 counts the same structure as **"three layers"** — because `bdkit/` and `agent/` share one contract document (the root `CLAUDE.md`). **Counted by contract document it is three; counted by code boundary it is four.** Not an inconsistency but a difference in what is being counted |
+| **Options** | (a) hybrid (b) Claude Code only (c) a standalone Python package (Agent SDK) |
+| **Grounds** | Keeping the core independently verifiable with `pytest`, without an LLM, is the top priority. If, when the agent is wrong, you cannot tell *whether the physics is wrong or the LLM is*, debugging is impossible. The seams for moving to (c) later (`Runner`, schema-based I/O) are left in place.<br>**Why it was settled 2026-07-27:** a **behaviour-rule layer** and a **knowledge-compounding layer** were added to the initial design (core + LLM, two layers). The former leaves "why is it done this way" outside the code, and the latter makes knowledge survive the end of a session. Without those two layers the agent starts from scratch every time. |
+| **Impact** | `master_plan.md` §4, `01_agent_architecture.md`, the whole repository structure |
+| **Decided** | **2026-07-27** |
 
-### D2 · 시뮬레이션 실행 위치
+### D2 · Where the simulation runs
 | | |
 |---|---|
-| **상태** | **`DECIDED`** |
-| **결정** | **로컬 실행 + `Runner` 추상화로 클러스터 확장 이음새 유지.** v1은 `LocalRunner`만 구현, `SlurmRunner`는 인터페이스만 정의 |
-| **선택지** | (a) 로컬 M4만 (b) 로컬+HPC (c) HPC 위주 |
-| **근거** | 사용자 확정 (2026-07-27): *"시뮬레이션과 시각화는 내 로컬 컴퓨터에서 돌릴거지만 추후에 클러스터로 확장 가능성이 있음."* 현재 유일한 계산 자원이 M4(10코어, 16GB, CUDA 없음). HOOMD 빌드도 `gpu_enabled=False`, `mpi_enabled=False`. |
-| **파생 제약** | 나중에 고치면 비싼 것들을 **v1부터 지킨다** — ① 절대경로 금지 ② `simulate.py`는 자기완결적 ③ 디바이스 하드코딩 금지(`make_device(spec)`) ④ 체크포인트 재개 가능 ⑤ 결과는 파일로만 소통(stdout 파싱 금지). 상세는 `master_plan.md` §8 |
-| **영향** | `master_plan.md` §8, `01`(S7 EXECUTE), `05`(비용 게이트), `10_roadmap.md` |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** |
+| **Decision** | **Local execution + a `Runner` abstraction to keep the seam for cluster extension.** v1 implements only `LocalRunner`; `SlurmRunner` is an interface definition only |
+| **Options** | (a) the local M4 only (b) local+HPC (c) HPC-centred |
+| **Grounds** | User-fixed (2026-07-27): *"the simulation and the visualization will run on my local computer, but there is a possibility of extending to a cluster later."* The only compute resource at present is the M4 (10 cores, 16GB, no CUDA). The HOOMD build is also `gpu_enabled=False`, `mpi_enabled=False`. |
+| **Derived constraints** | The things that are expensive to fix later are **observed from v1 onwards** — ① no absolute paths ② `simulate.py` is self-contained ③ no hardcoded device (`make_device(spec)`) ④ resumable from a checkpoint ⑤ results communicate through files only (no stdout parsing). Details in `master_plan.md` §8 |
+| **Impact** | `master_plan.md` §8, `01` (S7 EXECUTE), `05` (the cost gate), `10_roadmap.md` |
+| **Decided** | **2026-07-27** |
 
-### D3 · v1에서 다룰 물리 범위
+### D3 · The scope of physics v1 will cover
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **BD + 구형 콜로이드 3D**. 퍼텐셜: WCA / Yukawa / Morse / DLVO. **HPMC는 v2** |
-| **선택지** | (a) BD 구형 3D (b) BD + HPMC (c) 선행 slit 프로젝트 확장 |
-| **근거** | MC는 검증 로직(acceptance ratio 튜닝, detailed balance, 평형화 판정)이 BD와 완전히 달라 사실상 파이프라인이 둘이 된다. 좁게 시작해서 S1–S12를 한 번 완주하는 것이 우선. |
-| **영향** | `02`, `04`, `05`, `07`, `09` 전부 |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **BD + spherical colloids in 3D**. Potentials: WCA / Yukawa / Morse / DLVO. **HPMC is v2** |
+| **Options** | (a) BD spherical 3D (b) BD + HPMC (c) an extension of the preceding slit project |
+| **Grounds** | MC's verification logic (acceptance-ratio tuning, detailed balance, the equilibration verdict) is entirely different from BD's, so in practice there would be two pipelines. Starting narrow and completing S1–S12 once takes priority. |
+| **Impact** | `02`, `04`, `05`, `07`, `09`, all of them |
+| **Decided** | — |
 
-### D4 · 자동화 수준 / 사람 승인 게이트 위치
+### D4 · The level of automation / where the human approval gates go
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **게이트 2곳** — ① 스펙 확정(S2 후) ② production 시작 직전(S7 중). 그 사이는 규칙 기반 자동 |
-| **선택지** | (a) 게이트 2곳 (b) 스테이지마다 전부 (c) 완전 자동 |
-| **근거** | 게이트 ①은 "엉뚱한 시스템을 시뮬레이션하는" 실패를, 게이트 ②는 "며칠짜리 잡을 태연히 시작하는" 실패를 막는다. 나머지 자동화는 이득이 크고 위험이 작다. |
-| **영향** | `01`(상태기계), `06`(예산) |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **2 gates** — ① fixing the spec (after S2) ② immediately before production starts (during S7). Between them, rule-based and automatic |
+| **Options** | (a) 2 gates (b) one at every stage (c) fully automatic |
+| **Grounds** | Gate ① prevents the failure of "simulating the wrong system" and gate ② the failure of "casually starting a multi-day job". The rest of the automation has a large benefit and a small risk. |
+| **Impact** | `01` (the state machine), `06` (the budget) |
+| **Decided** | — |
 
-### D5 · 음성(녹음) 입력 지원
+### D5 · Support for voice (recorded) input
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **v1 선택사항**. 필요해지면 `faster-whisper` 로컬 전사 (API 불필요, M4에서 동작) |
-| **근거** | 텍스트·이미지·PDF만으로 S1이 성립한다. 음성은 전사 단계를 하나 더 붙이는 것뿐이라 나중에 추가해도 구조가 안 바뀐다. |
-| **영향** | `02_system_spec.md`(S1 입력 채널) |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **Optional in v1**. If it becomes necessary, local transcription with `faster-whisper` (no API needed, works on the M4) |
+| **Grounds** | S1 stands up with text, images and PDFs alone. Voice only adds one more transcription step, so adding it later does not change the structure. |
+| **Impact** | `02_system_spec.md` (S1 input channels) |
+| **Decided** | — |
 
-### D6 · 버전 관리 (git)
+### D6 · Version control (git)
 | | |
 |---|---|
-| **상태** | **`DECIDED`** |
-| **결정** | **`git init` — private 저장소.** `.gitignore`에 `outputs/`·`knowledge/raw/`. 커밋 해시를 `run_state.yaml` provenance에 기록. 공개는 나중에 정리해서 (`D27`) |
-| **선택지** | (a) git 안 씀 (b) private git (c) 처음부터 public git |
-| **근거** | `~/Desktop/BD_agent`는 현재 git 저장소가 아니다. 선행 프로젝트도 아니었다. **재현 가능성을 주장하려면 "이 결과를 낸 코드가 정확히 무엇이었나"를 답할 수 있어야 한다.** 자동수정 루프가 파라미터를 바꾸는 에이전트에서는 더욱 그렇다.<br>**2026-07-27 확정 사유:** 사용자 확정 — *"private으로 개발 → 나중에 정리해서 공개"*. (c)를 안 고른 이유는 `knowledge/source/lab/`(선배 시뮬레이션)과 연구 중간 결과가 미발표일 수 있어서. 다만 **최종 공개가 목표이므로 커밋 위생은 처음부터 public 기준으로 유지**한다 — 나중에 히스토리를 지우는 것보다 싸다. |
-| **영향** | `master_plan.md` §0·§4(공개 경계표), `01`(provenance 블록), `10_roadmap.md` |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** |
+| **Decision** | **`git init` — a private repository.** `outputs/` and `knowledge/raw/` in `.gitignore`. The commit hash is recorded in `run_state.yaml` provenance. Publication later, after tidying (`D27`) |
+| **Options** | (a) no git (b) private git (c) public git from the start |
+| **Grounds** | `~/Desktop/BD_agent` is not currently a git repository. Neither was the preceding project. **To claim reproducibility you have to be able to answer "exactly what code produced this result".** All the more so in an agent whose auto-repair loop changes parameters.<br>**Why it was settled 2026-07-27:** user-fixed — *"develop privately → tidy up and publish later"*. (c) was not chosen because `knowledge/source/lab/` (a senior's simulations) and intermediate research results may be unpublished. But **since eventual publication is the goal, commit hygiene is kept to public standards from the start** — cheaper than erasing history later. |
+| **Impact** | `master_plan.md` §0·§4 (the publication boundary table), `01` (the provenance block), `10_roadmap.md` |
+| **Decided** | **2026-07-27** |
 
 ---
 
-## B. 물리 · 수치
+## B. Physics · numerics
 
-### D7 · 기준 시간 단위
+### D7 · The reference time unit
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **`τ_D = σ²/D₀ = σ²γ/kT`** (한 지름을 확산해 지나가는 브라운 시간) |
-| **선택지** | (a) `τ_D` (b) MD 관례 `σ√(m/ε)` |
-| **근거** | 오버댐프 BD에는 질량이 사실상 등장하지 않는다. MD 관례를 쓰면 물리적으로 무의미한 수를 기준으로 삼게 된다. |
-| **2026-07-27 정정** | 원래 근거에 *"`Δt/τ_D`가 그대로 적분 안정성 지표가 된다"* 고 적었는데 **이 부분은 틀렸다.** 안정성 지표는 **스텝당 변위** `√(2DΔt)/σ` 다. 실측 3건에서 `Δt/τ_D`는 50배 폭인데 변위는 7배 폭 — 변위가 `Δt/τ_D`의 제곱근이기 때문. **기준 시간 단위로서 `τ_D`는 유지**하되 게이트에서는 뺀다. 근거: `knowledge/wiki/findings/dt-gate-should-be-displacement-based.md` |
-| **영향** | `03_units_nondim.md` 전체, `05`(dt 게이트) |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **`τ_D = σ²/D₀ = σ²γ/kT`** (the Brownian time to diffuse across one diameter) |
+| **Options** | (a) `τ_D` (b) the MD convention `σ√(m/ε)` |
+| **Grounds** | In overdamped BD the mass effectively never appears. Using the MD convention would make a physically meaningless number the reference. |
+| **Correction 2026-07-27** | The original grounds also said *"`Δt/τ_D` then serves directly as the integration stability indicator"*, and **that part was wrong.** The stability indicator is the **displacement per step**, `√(2DΔt)/σ`. Across 3 measurements `Δt/τ_D` spanned a factor of 50 while the displacement spanned 7 — because the displacement is the square root of `Δt/τ_D`. **`τ_D` is kept as the reference time unit** but taken out of the gate. Grounds: `knowledge/wiki/findings/dt-gate-should-be-displacement-based.md` |
+| **Impact** | all of `03_units_nondim.md`, `05` (the dt gate) |
+| **Decided** | — |
 
-### D8 · 배제부피(excluded volume) 기본 퍼텐셜
+### D8 · The default excluded-volume potential
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) — **WCA.** 실측으로 정했다 |
-| **결정** | **`WCA`** (`hoomd.md.pair.LJ` + `r_cut = 2^{1/6}σ` + `mode="shift"`). `system.interaction: wca` · 조정은 `core` 블록. **`ε` 기본값은 1 k_BT 로 두되 조밀계(`φ_eff ≳ 0.3`)에서는 10 을 쓴다** — 아래 표가 근거다 |
-| **어떻게 정했는가** | 카드 §8 이 미리 정한 방식대로 `Z(φ)` 를 재서 Carnahan–Starling 과 댔다. 증류는 [`wca-reproduces-carnahan-starling`](../../knowledge/wiki/findings/wca-reproduces-carnahan-starling.md), 스윕 14런은 `notes/simbot/eos_wca/`.<br>**순서를 지킨 것이 결론을 바꿨다** — 먼저 희박에서 `1+B₂ρ+B₃ρ²`(정확값)로 추정기를 검산했다. `B₂` 만으로는 `φ`=0.02 에서 +0.42%(4σ)가 남아 *"추정기가 틀렸다"* 로 읽을 수 있었는데, 3차항을 넣으니 **+0.01%** 로 잔차가 사라졌다. 측정 경로가 옳다는 것을 확인한 **뒤에** 문헌으로 갔다 (`SD12` 의 규율).<br>`φ_eff` 사상은 `B₂` 로 한다 (카드 §4 의 `B₂*` 축) — `σ` 로 잰 `φ` 를 CS 에 바로 넣으면 `φ`=0.45 에서 16% 틀린다 |
-| **실측 — CS 편차** | `ε`=1: −0.32%(`φ_eff`0.11) · −0.51%(0.21) · **−1.84%**(0.32) · −5.09%(0.42) · −8.43%(0.47)<br>`ε`=10: **+0.53%**(0.13) · **+0.56%**(0.38)<br>`ε`=0.5: −0.16%(0.10) · −1.99%(0.29) · −8.76%(0.44)<br>**`ε`=10 이 `φ`=0.3 에서 3배 정확하고 비용은 1.5배다** (벽시계 46.2 s vs 30.4 s, `dt` 1.25e-4 vs 1.5e-4). `ε`=1 의 편차가 **음수이고 단조 증가**하는 것이 물렁한 코어의 신호다 — 밀도가 오르면 입자가 더 파고들어 유효지름 하나로 담기지 않는다 |
-| **선행 경고는 어떻게 됐나** | 2026-07-27 가설(*"WCA 의 위험은 퍼텐셜이 아니라 스텝당 변위와의 결합"*)이 **맞았다.** `dt` 를 힘 변위 기준으로 고르니(`plan.wca_force_limited_dt`) `ε`=10 · `φ`=0.45 까지 박스 이탈 0 이다. 랩 코드의 `ε/kT`=500 이 안정적으로 도는 것과 같은 이유다. `D8` 은 결국 *"어떤 퍼텐셜이냐"* 가 아니라 *"변위 게이트를 지켰느냐"* 의 문제였다 |
-| **한계 — 정직하게** | **후보 셋 중 WCA 만 쟀다.** harmonic core · Wang–Frenkel 은 재지 않았으므로 이것은 *"가장 잘 맞는 것"* 이 아니라 **"충분히 맞는 첫째"** 다. WCA 가 하드스피어 문헌(CS · `φ_freeze`)과 이어지는 표준 사상을 가진 유일한 후보라 기준선으로 먼저 넣었고, 2% 안에 들어와 더 재야 할 이유가 약해졌다. 조밀계에서 5~8% 가 문제가 되면 그때 나머지 둘을 잰다 |
-| **부수 소득** | `φ_eff` 가 융해점을 넘은 런(`ε`=10 · `φ`=0.45 → `φ_eff`=0.565)에서 CS 편차가 −29% 였는데, **그것은 CS 를 유체 밖에서 외삽한 결과였다.** 같은 런의 `D_fit` 이 0.0073(이웃 0.3507)으로 두 자릿수 떨어져 **독립 관측량이 상 전이를 확인했다** (`A1`). `analyze_eos` 가 이제 `cs_valid: false` 와 이유를 붙인다 — 외삽과의 편차를 불일치로 보고하면 물리를 방법의 결함으로 오독한다 |
-| **기본값** | ~~미정 — 단계 C/D에서 확정.~~ 후보였던 것: bounded harmonic(Table) / WCA / Wang–Frenkel |
-| **근거** | 선행 프로젝트가 남긴 경고: *"WCA의 r⁻¹³ 코어는 오버댐프에서 위험하다. 한 스텝 변위가 `F·dt/γ`라서 작은 겹침도 입자를 박스 밖으로 날린다"* (`src/forces.py:117`). 반면 hard-sphere 상거동을 재현하려면 너무 물렁하면 안 된다. **문헌 벤치마크(Carnahan–Starling)로 실측해서 정한다.** |
-| **2026-07-27 가설** | 랩 공개 코드 `graybox_abp_mpc`가 **`ε/kT = 500`이라는 매우 강한 WCA로 안정적으로 돈다.** 선행 프로젝트보다 스텝당 변위가 0.018σ 대 0.045σ로 2.5배 작다.<br>→ **WCA의 위험성은 퍼텐셜 자체가 아니라 스텝당 변위와의 결합 문제**라는 가설. 변위를 0.02σ 이하로 두면 강한 WCA도 안정적일 수 있다. 사실이라면 `D8`은 "어떤 퍼텐셜이냐"가 아니라 "변위 게이트를 지켰느냐"의 문제로 바뀐다.<br>**재현 실험 필요** — `ε/kT` × 변위 2차원 스윕. 근거: `knowledge/source/papers/2024-quah-graybox-abp-mpc-repo.md` |
-| **영향** | `simbot/spec.py`(`INTERACTIONS`·`Core`) · `simbot/build.py`(`make_core`) · `simbot/plan.py`(`wca_force_limited_dt`) · `simbot/eos.py`(신규) · `simbot/analyze.py`(`analyze_eos`) · `tests/test_eos.py` 22건 · `benchmarks.yaml` 의 `carnahan_starling_hs_eos` **차단 해제 가능** |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) — **WCA.** Decided by measurement |
+| **Decision** | **`WCA`** (`hoomd.md.pair.LJ` + `r_cut = 2^{1/6}σ` + `mode="shift"`). `system.interaction: wca` · tuning in the `core` block. **The `ε` default is left at 1 k_BT, but 10 is used in dense systems (`φ_eff ≳ 0.3`)** — the table below is the grounds |
+| **How it was decided** | `Z(φ)` was measured the way card §8 prescribed in advance and compared against Carnahan–Starling. The distillation is [`wca-reproduces-carnahan-starling`](../../knowledge/wiki/findings/wca-reproduces-carnahan-starling.md), and the 14-run sweep is in `notes/simbot/eos_wca/`.<br>**Keeping to the order changed the conclusion** — first the estimator was checked in the dilute regime against `1+B₂ρ+B₃ρ²` (the exact value). With `B₂` alone, +0.42% (4σ) remained at `φ`=0.02, which could be read as *"the estimator is wrong"*; adding the third-order term made the residual vanish to **+0.01%**. Only **after** confirming the measurement path was right did it go to the literature (the discipline of `SD12`).<br>The `φ_eff` mapping uses `B₂` (the `B₂*` axis of card §4) — feeding a `φ` measured with `σ` straight into CS is 16% wrong at `φ`=0.45 |
+| **Measured — deviation from CS** | `ε`=1: −0.32% (`φ_eff`0.11) · −0.51% (0.21) · **−1.84%** (0.32) · −5.09% (0.42) · −8.43% (0.47)<br>`ε`=10: **+0.53%** (0.13) · **+0.56%** (0.38)<br>`ε`=0.5: −0.16% (0.10) · −1.99% (0.29) · −8.76% (0.44)<br>**`ε`=10 is 3× more accurate at `φ`=0.3 and costs 1.5×** (wall clock 46.2 s vs 30.4 s, `dt` 1.25e-4 vs 1.5e-4). That `ε`=1's deviation is **negative and monotonically increasing** is the signature of a soft core — as the density rises the particles dig in further and cannot be captured by a single effective diameter |
+| **What became of the earlier warning** | The 2026-07-27 hypothesis (*"WCA's danger is not the potential but its coupling with the displacement per step"*) **was right.** Choosing `dt` on a force-displacement criterion (`plan.wca_force_limited_dt`) gives 0 box escapes up to `ε`=10 · `φ`=0.45. It is the same reason the lab code's `ε/kT`=500 runs stably. `D8` turned out not to be a question of *"which potential"* but of *"was the displacement gate observed"* |
+| **The limits — honestly** | **Of the three candidates only WCA was measured.** The harmonic core and Wang–Frenkel were not, so this is not *"the best fit"* but **"the first one that fits well enough"**. WCA went in as the baseline first because it is the only candidate with a standard mapping that connects to the hard-sphere literature (CS, `φ_freeze`), and coming in within 2% weakened the reason to measure more. If the 5~8% in dense systems becomes a problem, the other two get measured then |
+| **A side benefit** | In the run whose `φ_eff` crossed the melting point (`ε`=10 · `φ`=0.45 → `φ_eff`=0.565) the CS deviation was −29%, and **that was the result of extrapolating CS outside the fluid.** In the same run `D_fit` dropped by two orders to 0.0073 (its neighbour: 0.3507), so **an independent observable confirmed the phase transition** (`A1`). `analyze_eos` now attaches `cs_valid: false` with a reason — reporting a deviation from an extrapolation as a mismatch misreads physics as a defect of the method |
+| **Default** | ~~undecided — to be fixed in stages C/D.~~ The candidates had been: bounded harmonic (Table) / WCA / Wang–Frenkel |
+| **Grounds** | The warning the preceding project left: *"WCA's r⁻¹³ core is dangerous in the overdamped case. The displacement in one step is `F·dt/γ`, so even a small overlap flings the particle out of the box"* (`src/forces.py:117`). On the other hand, reproducing hard-sphere phase behaviour means it must not be too soft. **Decided by measuring against a literature benchmark (Carnahan–Starling).** |
+| **Hypothesis 2026-07-27** | The lab's public code `graybox_abp_mpc` **runs stably with a very strong WCA, `ε/kT = 500`.** Its displacement per step is 0.018σ against the preceding project's 0.045σ, 2.5× smaller.<br>→ The hypothesis that **WCA's danger is not the potential itself but its coupling with the displacement per step**. Keep the displacement below 0.02σ and even a strong WCA may be stable. If true, `D8` turns from "which potential" into "was the displacement gate observed".<br>**A reproduction experiment is needed** — a 2D sweep of `ε/kT` × displacement. Grounds: `knowledge/source/papers/2024-quah-graybox-abp-mpc-repo.md` |
+| **Impact** | `simbot/spec.py` (`INTERACTIONS`, `Core`) · `simbot/build.py` (`make_core`) · `simbot/plan.py` (`wca_force_limited_dt`) · `simbot/eos.py` (new) · `simbot/analyze.py` (`analyze_eos`) · `tests/test_eos.py` 22 cases · `benchmarks.yaml`'s `carnahan_starling_hs_eos` **can be unblocked** |
+| **Decided** | **2026-07-28** |
 
-### D9 · 차원 (2D / 3D)
+### D9 · Dimensionality (2D / 3D)
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **3D 기본**, 2D는 스펙 플래그로 지원 (`hoomd.Box(Lx,Ly,Lz=0)`) |
-| **근거** | 선행 프로젝트가 2D였고 hexatic ψ₆·2D 융해 같은 흥미로운 물리가 2D에 있다. 코드가 차원을 하드코딩하지 않게만 하면 비용이 거의 없다. |
-| **영향** | `02`, `04`, `07` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **3D by default**, with 2D supported by a spec flag (`hoomd.Box(Lx,Ly,Lz=0)`) |
+| **Grounds** | The preceding project was 2D, and interesting physics like the hexatic ψ₆ and 2D melting is in 2D. As long as the code does not hardcode the dimensionality, the cost is almost nil. |
+| **Impact** | `02`, `04`, `07` |
+| **Decided** | — |
 
-### D10 · 다분산도(polydispersity)
+### D10 · Polydispersity
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **v1 미지원 (단분산)**. 단, 스펙 스키마에는 필드를 미리 뚫어둔다 |
-| **근거** | 실제 콜로이드는 항상 다분산이고, 조밀한 계에서 **결정화를 억제해 유리/겔 상태를 보려면 다분산이 필수**다. 하지만 v1 벤치마크(hard sphere 상거동)는 단분산 기준값이라 단분산으로 먼저 맞춰야 한다. |
-| **영향** | `02`, `09` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **Unsupported in v1 (monodisperse)**. But the fields are opened in the spec schema in advance |
+| **Grounds** | Real colloids are always polydisperse, and **polydispersity is essential in a dense system for suppressing crystallization to see glass and gel states**. But the v1 benchmark (hard-sphere phase behaviour) is a monodisperse reference value, so it has to be matched monodisperse first. |
+| **Impact** | `02`, `09` |
+| **Decided** | — |
 
-### D11 · 유체역학 상호작용(HI)
+### D11 · Hydrodynamic interactions (HI)
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **무시 (free-draining)**. 리포트에 이 근사를 명시적으로 기재 |
-| **근거** | HOOMD의 BD/Langevin은 HI를 포함하지 않는다. 침강·전단·조밀계에서는 정량적으로 틀릴 수 있으므로 **"안 했다"를 숨기지 않고 리포트에 적는 것**이 중요. (선행 프로젝트의 *"What this is NOT"* 관례 계승) |
-| **영향** | `03`, `12`(리포트 caveat 섹션) |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **Ignored (free-draining)**. The approximation is stated explicitly in the report |
+| **Grounds** | HOOMD's BD/Langevin does not include HI. It can be quantitatively wrong for sedimentation, shear and dense systems, so **writing "we did not do this" in the report rather than hiding it** matters. (inheriting the preceding project's *"What this is NOT"* convention) |
+| **Impact** | `03`, `12` (the report caveat section) |
+| **Decided** | — |
 
 ---
 
-## C. 소프트웨어
+## C. Software
 
-### D12 · 설정 파일 형식
+### D12 · The configuration file format
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **YAML → 섹션별 dataclass** (선행 프로젝트 `src/config.py` 패턴 계승). pydantic 미사용 |
-| **근거** | 이미 검증된 패턴이고 사용자에게 익숙하다. 핵심은 형식이 아니라 두 가지 습성: ① `validate() -> list[str]`로 **첫 에러에서 멈추지 않고 전부 수집** ② 모르는 키는 `extra` 버킷으로 흘려 미래 필드가 에러를 내지 않게 함. |
-| **영향** | `02`, `bdkit/config` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **YAML → a dataclass per section** (inheriting the preceding project's `src/config.py` pattern). No pydantic |
+| **Grounds** | It is an already-proven pattern and familiar to the user. What matters is not the format but two habits: ① `validate() -> list[str]` to **collect everything rather than stopping at the first error** ② unknown keys flow into an `extra` bucket so that future fields do not raise. |
+| **Impact** | `02`, `bdkit/config` |
+| **Decided** | — |
 
-### D13 · 파라미터 스윕 / provenance 관리
+### D13 · Parameter sweeps / provenance management
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **v1은 디렉터리 기반** (`outputs/<run_id>/`). **signac은 v2** |
-| **근거** | `signac`은 "파라미터 공간 + 재개 + 이력"에 정확히 맞는 도구(HOOMD와 같은 그룹)지만 개념 부담이 있다. v1에서 스윕이 실제로 아플 때 도입하는 편이 낫다. |
-| **영향** | `01`(아티팩트 레이아웃), `10_roadmap.md` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **v1 is directory-based** (`outputs/<run_id>/`). **signac is v2** |
+| **Grounds** | `signac` is exactly the right tool for "parameter space + resume + history" (the same group as HOOMD), but it has a conceptual overhead. Better to bring it in when sweeps actually start to hurt in v1. |
+| **Impact** | `01` (the artifact layout), `10_roadmap.md` |
+| **Decided** | — |
 
-### D14 · 입자 렌더러
+### D14 · The particle renderer
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | **`fresnel` + matplotlib. OVITO는 쓰지 않는다.** 역할이 갈린다 — **2D 계는 matplotlib, 3D 계만 fresnel.** 2D 단층에는 음영을 줄 깊이가 없어 레이트레이싱이 주는 것이 없고, matplotlib 이 정확한 반지름·스칼라 색인코딩·벡터 출력(PDF)에서 낫다 |
-| **확정 경위** | 기본값(OVITO 1순위)을 **뒤집었다.** 판정 기준은 *"macOS 헤드리스 렌더 1장"* 이었고 `fresnel 0.13.8` 이 `pathtrace` 로 통과했다 (320×320, 구 60개, embree CPU). OVITO 는 두 단계로 걸렸다: ① conda-forge 의 `ovito` 는 **GUI 앱 전용**이라 `bin/ovito` 만 넣고 `site-packages` 에 모듈이 없다 (빌드 문자열에 `py312` 가 없는 것이 신호였다) ② 진짜 Python 모듈(OVITO 자체 채널 `py312` 빌드)은 **`tbb` 를 2023.0.0 → 2022.3.0 으로 내리고 `fresnel` 을 떼었다 붙인다.** `hoomd 7.1.0` 은 unlink 되지 않으므로 바뀐 `tbb` 위에 남는다 — 재현성 기준선을 흔드는 부류라 멈췄다. `--freeze-installed` 는 전이 의존성을 막지 못했다 |
-| **대가** | OVITO 의 분석 모디파이어(CNA·클러스터)를 잃는다. **실질 손실은 없다** — `freud 3.5.0` 이 `Hexatic`·`Voronoi`·`StaticStructureFactorDirect`·`DiffractionPattern` 을 전부 갖고 있다 |
-| **폴백** | 없다. fresnel 이 실패하면 matplotlib 산점도로 내려간다 (지금도 그것이 기본) |
-| **재검토 조건** | 3D 조밀계에서 fresnel 의 구 렌더가 부족해질 때. 그때도 OVITO 는 **별 env** 에 두고 GSD 만 넘긴다 — `hoomd_slit` 을 건드리지 않는다 |
-| **영향** | `08_visualization.md`, `master_plan.md` §5(S7.5)·§13·§14-B, `simbot/viz.py`, `simbot/environment.yaml` |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | **`fresnel` + matplotlib. OVITO is not used.** The roles split — **matplotlib for 2D systems, fresnel only for 3D.** A 2D monolayer has no depth to shade, so ray tracing gives nothing, and matplotlib is better at exact radii, scalar colour encoding and vector output (PDF) |
+| **How it was settled** | The default (OVITO first) was **overturned.** The criterion was *"one headless render on macOS"* and `fresnel 0.13.8` passed it with `pathtrace` (320×320, 60 spheres, embree CPU). OVITO failed at two steps: ① conda-forge's `ovito` is **the GUI app only**, so it installs `bin/ovito` and no module in `site-packages` (the absence of `py312` in the build string was the tell) ② the real Python module (OVITO's own channel, the `py312` build) **downgrades `tbb` 2023.0.0 → 2022.3.0 and unlinks and relinks `fresnel`.** `hoomd 7.1.0` is not unlinked, so it is left sitting on a changed `tbb` — the kind of thing that shakes the reproducibility baseline, so it was stopped. `--freeze-installed` does not prevent transitive dependencies |
+| **The price** | OVITO's analysis modifiers (CNA, clustering) are lost. **There is no substantive loss** — `freud 3.5.0` has `Hexatic`, `Voronoi`, `StaticStructureFactorDirect` and `DiffractionPattern`, all of them |
+| **Fallback** | None. If fresnel fails it drops to a matplotlib scatter plot (which is the default even now) |
+| **Conditions for revisiting** | When fresnel's sphere rendering becomes insufficient for dense 3D systems. Even then OVITO goes in a **separate env** and is handed only the GSD — `hoomd_slit` is not touched |
+| **Impact** | `08_visualization.md`, `master_plan.md` §5(S7.5)·§13·§14-B, `simbot/viz.py`, `simbot/environment.yaml` |
+| **Decided** | **2026-07-28** |
 
-### D15 · 궤적 저장 전략
+### D15 · The trajectory storage strategy
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **구조 관측량은 GSD 필요 → GSD 저장. 단 `dynamic` 필드를 최소화**하고 스칼라는 `HDF5Log`로 분리 |
-| **근거** | 선행 프로젝트는 in-memory 누적으로 138MB→<1MB를 얻었지만, 그건 관측량이 `(x,y)`뿐이어서 가능했다. `g(r)`·`S(k)`·`ψ₆`·Voronoi는 프레임별 전체 좌표가 필요하다. 대신 저장 빈도와 필드를 줄인다. |
-| **영향** | `05`(디스크 예산), `07` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **Structural observables need GSD → store GSD. But minimize the `dynamic` fields** and split the scalars off into `HDF5Log` |
+| **Grounds** | The preceding project got 138MB→<1MB by accumulating in memory, but that was possible because the observable was only `(x,y)`. `g(r)`, `S(k)`, `ψ₆` and Voronoi need the full coordinates per frame. Instead, the storage frequency and the fields are reduced. |
+| **Impact** | `05` (the disk budget), `07` |
+| **Decided** | — |
 
-### D16 · 오차막대 산출 방법
+### D16 · How error bars are produced
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **block averaging** (Flyvbjerg–Petersen 1989) 기본, 자기상관시간 `τ_ac` 병기 |
-| **선택지** | (a) block averaging (b) bootstrap (c) 독립 시드 앙상블의 표준오차 |
-| **근거** | 시계열 상관을 무시한 표준오차는 **오차를 몇 배씩 과소평가**한다. 이게 시뮬레이션 결과 보고에서 가장 흔한 오류다. 규칙: **오차막대 없는 숫자는 산출하지 않는다.** |
-| **영향** | `07_observables.md`, `05`(N_eff 게이트) |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **block averaging** (Flyvbjerg–Petersen 1989) by default, with the autocorrelation time `τ_ac` alongside |
+| **Options** | (a) block averaging (b) bootstrap (c) the standard error of an independent-seed ensemble |
+| **Grounds** | A standard error that ignores the time-series correlation **underestimates the error by factors**. This is the most common error in reporting simulation results. The rule: **do not produce a number without an error bar.** |
+| **Impact** | `07_observables.md`, `05` (the N_eff gate) |
+| **Decided** | — |
 
-### D17 · conda 환경
+### D17 · The conda environment
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | 새 env **`bd_agent`**, Python 3.12 (설치된 HOOMD 7.1.0이 `cpu_py312` 빌드) |
-| **근거** | 기존 `hoomd_slit`(py3.12.13)을 오염시키지 않는다. `environment.yml`을 커밋해 재현 가능하게. |
-| **영향** | `README.md`, 태스크 #8 |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | A new env **`bd_agent`**, Python 3.12 (the installed HOOMD 7.1.0 is a `cpu_py312` build) |
+| **Grounds** | Do not contaminate the existing `hoomd_slit` (py3.12.13). Commit `environment.yml` to make it reproducible. |
+| **Impact** | `README.md`, task #8 |
+| **Decided** | — |
 
 ---
 
-## D. 운영 · 안전
+## D. Operations · safety
 
-### D18 · 예산 기본값 (자동수정 루프 상한)
+### D18 · The default budgets (the ceiling on the auto-repair loop)
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | `max_total_walltime = 6h` · `max_repair_iterations = 8` · `max_disk_gb = 20` · `max_llm_calls_per_run = 100` |
-| **근거** | 자동수정 루프에 상한이 없으면 에이전트는 조용히 며칠을 태운다. **숫자는 임의여도 좋으니 반드시 존재해야 한다.** 소진 시 사람에게 escalate. |
-| **영향** | `01`(run_state.budget), `06_repair_policy.md` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | `max_total_walltime = 6h` · `max_repair_iterations = 8` · `max_disk_gb = 20` · `max_llm_calls_per_run = 100` |
+| **Grounds** | Without a ceiling on the auto-repair loop the agent quietly burns days. **The numbers may be arbitrary but they must exist.** On exhaustion, escalate to a human. |
+| **Impact** | `01` (run_state.budget), `06_repair_policy.md` |
+| **Decided** | — |
 
-### D19 · LLM이 결정을 내려도 되는 범위
+### D19 · The range within which the LLM may make decisions
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | LLM은 **제안·진단·서술만**. 수치 계산·PASS/FAIL 판정·파라미터 최종 확정은 결정론 코드 |
-| **근거** | `decision_journal.jsonl`의 `actor` 필드로 `rule` / `llm` / `human`을 구분 기록한다. 그래야 "이 결과에 LLM 판단이 몇 번 개입했나"를 사후에 셀 수 있다. **이 항목을 뒤집으면 아키텍처 전체가 바뀐다.** |
-| **영향** | `01` 전체 |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | The LLM **proposes, diagnoses and narrates only**. Numerical computation, the PASS/FAIL verdict and the final fixing of parameters are deterministic code |
+| **Grounds** | `decision_journal.jsonl`'s `actor` field records `rule` / `llm` / `human` separately. Only then can "how many times did an LLM judgment enter this result" be counted after the fact. **Overturn this item and the whole architecture changes.** |
+| **Impact** | all of `01` |
+| **Decided** | — |
 
 ---
 
-## E. 지식 층 · 규칙 층 (2026-07-27 추가)
+## E. The knowledge layer · the rule layer (added 2026-07-27)
 
-### D20 · 연구실 선배 시뮬레이션을 지식 층에 어떻게 넣는가
+### D20 · How a senior's lab simulations go into the knowledge layer
 | | |
 |---|---|
-| **상태** | **`DECIDED`** · **활성: 아니오** (2026-07-27 — 확보된 선배 코드 없음) |
-| **결정** | 출처 종류에 **`kind: lab`** 추가. `knowledge/source/lab/<year>-<author>-<slug>.md`. 필수 필드에 **`reproduced: yes\|no\|partial`** 포함 |
-| **활성화 조건** | 선배 코드를 **실제로 확보했을 때**. 그전까지 `master_plan.md` §7은 이 절을 3~4줄로 축소해 둔다 — 없는 자산에 지면을 쓰면 뭘 먼저 할지가 흐려진다. 확보 즉시 `source/lab/`을 `.gitignore`에 선제 추가 (`D27` 경계표) |
-| **근거** | 사용자 확정 (2026-07-27): *"위키에는 연구실 선배들이 작성했던 시뮬레이션도 추가할 예정임."*<br>**논문은 "발표된 결과"고 선배 코드는 "실제로 돌아간 파라미터 세트"다.** 논문에는 `dt`나 평형화 스텝 수가 안 적혀 있는 경우가 많아서, 파라미터 사전(prior)으로서는 후자가 훨씬 값지다. 대신 **검증되지 않은 관행도 함께 딸려온다.** |
-| **규율** | **`reproduced: no`인 파라미터를 문헌 근거처럼 인용하지 않는다.** 재현 전까지는 "이렇게 했었다"는 사실 기록이지 "이게 맞다"는 근거가 아니다. 이 구분이 무너지면 위키가 검증 인프라가 아니라 소문 저장소가 된다. |
-| **영향** | `knowledge/wiki/CLAUDE.md`, `master_plan.md` §7, `09_literature.md` |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** · **active: no** (2026-07-27 — no senior's code obtained) |
+| **Decision** | Add **`kind: lab`** to the source kinds. `knowledge/source/lab/<year>-<author>-<slug>.md`. The required fields include **`reproduced: yes\|no\|partial`** |
+| **Activation condition** | When a senior's code is **actually obtained**. Until then `master_plan.md` §7 keeps this section shrunk to 3~4 lines — spending page space on an asset you do not have blurs what to do first. On obtaining it, add `source/lab/` to `.gitignore` pre-emptively (the `D27` boundary table) |
+| **Grounds** | User-fixed (2026-07-27): *"the wiki will also include simulations written by seniors in the lab."*<br>**A paper is "a published result" and a senior's code is "a parameter set that actually ran."** Papers often do not state `dt` or the number of equilibration steps, so as a parameter prior the latter is far more valuable. In exchange, **unverified practice comes along with it.** |
+| **Discipline** | **Do not cite a parameter marked `reproduced: no` as if it were literature grounds.** Until reproduced it is a factual record that "this is what was done", not grounds that "this is right". Let that distinction collapse and the wiki becomes a rumour store rather than verification infrastructure. |
+| **Impact** | `knowledge/wiki/CLAUDE.md`, `master_plan.md` §7, `09_literature.md` |
+| **Decided** | **2026-07-27** |
 
-### D21 · 행동 규칙을 몇 개부터 쓰는가
+### D21 · How many behaviour rules to write to begin with
 | | |
 |---|---|
-| **상태** | **`DECIDED`** |
-| **결정** | **v1은 4개** — `axioms` · `deterministic-core` · `overdamped-stability` · `verify-against-literature`. 나머지는 **실제로 그 실패를 겪은 뒤** 그 사고를 인용해서 쓴다 |
-| **근거** | **규칙은 미리 쓰지 않는다. 실제로 데인 뒤에, 그 사고를 인용해서 쓴다.** "왜 이 규칙이 있는가"에 날짜·경로·비용이 적힌 실제 사고가 붙어 있지 않으면, 규칙은 곧 아무도 이유를 모른 채 지키는 의례가 된다. 그러면 상황이 바뀌었을 때 폐기해야 할 규칙인지 판단할 근거가 사라진다. |
-| **예외** | `overdamped-stability`는 이미 실제 사고가 있다 — `~/Research/MD_particle/brownian_slit_sim/src/forces.py:117`: WCA의 `r⁻¹³` 코어가 오버댐프에서 입자를 박스 밖으로 날림 |
-| **규칙 후보** | `wall-hit-escalation` · `cycle-discipline` · `failure-is-a-finding` · `wiki-first-lookup` · `cost-gate` · `ask-the-question-first` · `error-bars-or-silence` · `compute-router` |
-| **hooks** | 같은 원칙. **규칙이 실제로 안 지켜진 것을 확인한 뒤** `warn` 모드로 붙이고, 그래도 안 되면 `block`으로 올린다 (v2) |
-| **영향** | `.claude/rules/`, `.claude/CLAUDE.md`, `master_plan.md` §9 |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** |
+| **Decision** | **4 in v1** — `axioms` · `deterministic-core` · `overdamped-stability` · `verify-against-literature`. The rest are written **after actually experiencing that failure**, citing the incident |
+| **Grounds** | **Rules are not written in advance. They are written after being burned, citing the incident.** If "why does this rule exist" does not have a real incident with a date, a path and a cost attached, the rule soon becomes a ritual observed by people who do not know the reason. And then the grounds for judging whether a rule should be retired when circumstances change are gone. |
+| **Exception** | `overdamped-stability` already has a real incident — `~/Research/MD_particle/brownian_slit_sim/src/forces.py:117`: WCA's `r⁻¹³` core flung a particle out of the box in the overdamped case |
+| **Rule candidates** | `wall-hit-escalation` · `cycle-discipline` · `failure-is-a-finding` · `wiki-first-lookup` · `cost-gate` · `ask-the-question-first` · `error-bars-or-silence` · `compute-router` |
+| **hooks** | The same principle. **After confirming a rule actually was not observed**, attach it in `warn` mode, and if that still does not work raise it to `block` (v2) |
+| **Impact** | `.claude/rules/`, `.claude/CLAUDE.md`, `master_plan.md` §9 |
+| **Decided** | **2026-07-27** |
 
-### D22 · 다중 관점 정찰 패널 채택 여부
+### D22 · Whether to adopt a multi-perspective reconnaissance panel
 | | |
 |---|---|
-| **상태** | **`DECIDED`** — v1 **미채택**, v3 후보로 보류 |
-| **검토한 방식** | 과제마다 서로 다른 관점의 페르소나 3–5명을 병렬 파견해, **답이 아니라 질문을 쓰게** 하는 정찰 패턴 |
-| **근거** | 이건 **미해결 난제의 발산적(divergent) 정찰**에 맞는 장치다. 어디를 봐야 할지 모를 때 여러 각도에서 질문을 뽑아내는 것이 값지다.<br>우리 v1 과제 — "주어진 계를 올바르게 시뮬레이션한다" — 는 **수렴적(convergent)** 이라 정답 경로가 대체로 정해져 있다. 패널의 이득이 불분명하고, 비용과 복잡도만 늘 가능성이 크다. |
-| **재검토 조건** | 새로운 계의 상거동을 탐색하거나, 어떤 관측량을 봐야 할지 자체가 불분명한 과제로 범위가 넓어질 때 |
-| **영향** | `master_plan.md` §11 (v3) |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** — **not adopted** in v1, held as a v3 candidate |
+| **What was considered** | A reconnaissance pattern that dispatches 3–5 personas of differing perspectives in parallel per task, having them **write questions rather than answers** |
+| **Grounds** | This is a device suited to **divergent reconnaissance of an unsolved problem**. When you do not know where to look, extracting questions from several angles is valuable.<br>Our v1 task — "simulate a given system correctly" — is **convergent**, so the correct path is largely fixed. The panel's benefit is unclear and it would likely only add cost and complexity. |
+| **Conditions for revisiting** | When the scope widens to exploring the phase behaviour of a new system, or to tasks where which observable to look at is itself unclear |
+| **Impact** | `master_plan.md` §11 (v3) |
+| **Decided** | **2026-07-27** |
 
 ---
 
 ---
 
-## F. 사용자 상황 반영 (2026-07-27 2차)
+## F. Reflecting the user's situation (2026-07-27, second pass)
 
-`master_plan.md`가 einstein의 구조를 차용해 작성되었으나 **그 구조를 정당화했던 전제(외부 채점자,
-문제 23개, 380+ 사이클 축적)가 BD_agent에는 없다**는 점을 확인하고, 사용자 상황에 맞춰 재조정한
-결과다. 아래 5개는 전부 `master_plan.md` 본문에 `> ❓ 미결정 · Dnn` 마커로 심어져 있다.
+`master_plan.md` was written borrowing einstein's structure, but on confirming that **the premises that justified
+that structure (an external grader, 23 problems, 380+ accumulated cycles) do not exist for BD_agent**, this is the
+result of readjusting to the user's situation. All 5 below are planted in `master_plan.md`'s body as `> ❓ undecided · Dnn` markers.
 
-### D23 · `agent/` 층이 LLM을 부르는 방식
+### D23 · How the `agent/` layer calls the LLM
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-27) |
-| **결정** | **(a) Anthropic SDK 직접 호출.** tool-use로 출력 스키마 강제. 대화 왕복이 필요한 S2 ELICIT만 나중에 (b)로 뺄 여지를 남긴다. 호출은 `agent/llm.py` 한 곳에서만 (`tests/test_invariants.py`가 강제) |
-| **확정 경위** | **한 번 (b)로 뒤집었다가 되돌아왔다.** 환경에 `anthropic`도 API 키도 없고 `claude` CLI만 있어서 *"(b)는 오늘 당장 돈다"* 고 판단했으나, 실제로 불러보니 `Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead`. **어차피 키가 필요하므로 (b)의 유일한 장점이 사라졌다.**<br>교훈: **환경 조사만으로 결정하면 안 된다. 한 번 불러봐야 한다.** "설치되어 있다"와 "동작한다"는 다른 명제였고, 구분 비용은 호출 한 번이었다. `D23`을 "S1을 실제로 구현할 때" 결정하기로 미뤄둔 것이 맞았다.<br>근거: [`knowledge/wiki/findings/d23-sdk-backend.md`](../../knowledge/wiki/findings/d23-sdk-backend.md) |
-| **선택지** | (a) `client.messages.create()` + tool-use로 JSON Schema 강제 (b) Claude Code 스킬 + `claude -p` 서브프로세스 (c) Claude Agent SDK |
-| **근거** | LLM 개입 스테이지 6곳(S1·S2·S4·S5·S9·S12) 중 **5곳이 "스키마 고정 단발 호출"** 이라 (a)의 pytest 용이성이 그대로 이득이 된다. 대화 왕복이 필요한 S2만 (b)로 뺀다. 비교표 전문은 `master_plan.md` §4.5.<br>(b) 전면 채택은 einstein의 방식이지만, 그쪽은 LLM이 위키를 알아서 grep해야 하는 발산적 탐색이 본질이었다. 우리는 스테이지마다 필요한 컨텍스트가 결정론적으로 정해진다. |
-| **뒤집는 비용** | **중.** 프롬프트·출력 스키마·검증기는 방식과 무관하게 재사용되고, 호출 래퍼(`agent/llm.py`) 하나만 교체된다. 그래서 미루고 시작해도 된다 |
-| **결정일** | **2026-07-27** — S1 INTAKE 스케치 경로 구현 중 확정 |
-| **영향** | `master_plan.md` §4.5, `01`(§1 레이어 그림), `agent/` 전체 |
-| **결정일** | — |
+| **Status** | **`DECIDED`** (2026-07-27) |
+| **Decision** | **(a) Call the Anthropic SDK directly.** Enforce the output schema with tool-use. Only S2 ELICIT, which needs conversational round trips, is left room to be moved out to (b) later. Calls happen from the single place `agent/llm.py` (enforced by `tests/test_invariants.py`) |
+| **How it was settled** | **It was overturned to (b) once and came back.** The environment had neither `anthropic` nor an API key, only the `claude` CLI, so *"(b) works today"* was the judgment — but on actually calling it: `Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead`. **A key is needed either way, so (b)'s only advantage disappeared.**<br>The lesson: **do not decide from an environment survey alone. You have to call it once.** "It is installed" and "it works" were different propositions, and the cost of distinguishing them was one call. Deferring `D23` to "when S1 is actually implemented" was right.<br>Grounds: [`knowledge/wiki/findings/d23-sdk-backend.md`](../../knowledge/wiki/findings/d23-sdk-backend.md) |
+| **Options** | (a) `client.messages.create()` + tool-use to enforce a JSON Schema (b) a Claude Code skill + a `claude -p` subprocess (c) the Claude Agent SDK |
+| **Grounds** | Of the 6 stages an LLM touches (S1·S2·S4·S5·S9·S12), **5 are "a single call with a fixed schema"**, so (a)'s ease of pytest is a direct benefit. Only S2, which needs conversational round trips, is moved out to (b). The full comparison table is in `master_plan.md` §4.5.<br>Adopting (b) wholesale is einstein's way, but there the essence was divergent exploration in which the LLM had to grep the wiki for itself. For us the context each stage needs is deterministically fixed. |
+| **Cost of overturning** | **Medium.** The prompt, the output schema and the validator are reused independently of the method, and only the call wrapper (`agent/llm.py`) is replaced. That is why it is fine to defer and start |
+| **Decided** | **2026-07-27** — settled while implementing the S1 INTAKE sketch path |
+| **Impact** | `master_plan.md` §4.5, `01` (the §1 layer diagram), all of `agent/` |
+| **Decided** | — |
 
-### D24 · 실험 데이터를 5번째 증거 층으로 편입할 것인가
+### D24 · Whether to admit experimental data as a fifth evidence layer
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **v1 미편입.** 단 `benchmarks.yaml` 스키마에 `evidence_layer: 5`를 예약해 둔다 |
-| **근거** | 연구 주제에 미세유변학/트래킹이 포함되므로 실측 궤적(trackpy)이 있을 수 있다. 이건 §6의 네 층 어디에도 속하지 않는 **독립 실측 오라클**이고, 채점자 없는 도메인에서 가장 값진 증거다.<br>**그럼에도 미루는 이유:** 실험-시뮬 불일치는 원인 후보가 너무 많다 — HI 무시(`D11`) · 다분산도(`D10`) · 트래킹 오차 · 계 자체가 다름. 증거 층이 되려면 **불일치를 해석하는 규칙**이 먼저 있어야 한다. 없으면 "안 맞네" 이상을 못 한다 |
-| **결정 시점** | 미세유변학 계를 처음 다룰 때 (M2 이후) |
-| **영향** | `master_plan.md` §6, `07_observables.md`, `09_literature.md` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **Not admitted in v1.** But `evidence_layer: 5` is reserved in the `benchmarks.yaml` schema |
+| **Grounds** | The research topic includes microrheology and tracking, so measured trajectories (trackpy) may exist. This belongs to none of §6's four layers and is **an independent measured oracle**, the most valuable evidence there is in a domain with no grader.<br>**Why it is deferred anyway:** an experiment-simulation mismatch has too many candidate causes — ignoring HI (`D11`) · polydispersity (`D10`) · tracking error · the system simply being different. To become an evidence layer there first has to be **a rule for interpreting a mismatch**. Without one, nothing beyond "it does not match" is possible |
+| **When it gets decided** | When a microrheology system is first handled (after M2) |
+| **Impact** | `master_plan.md` §6, `07_observables.md`, `09_literature.md` |
+| **Decided** | — |
 
-### D25 · "사이클"의 단위 + 바깥 자율 루프
+### D25 · The unit of a "cycle" + the outer autonomous loop
 | | |
 |---|---|
-| **상태** | `OPEN` (단위) · **`DECIDED`** (루프 — v1 미채택) |
-| **결정 (루프)** | **v1에 바깥 자율 루프를 만들지 않는다.** 파이프라인은 항상 사람이 `bd-agent new`로 시작한다. 큐도, 스케줄러도, "다음에 뭘 할지 스스로 정하는" 층도 없다 |
-| **기본값 (단위)** | **사람이 시작한 런 하나 = 1 사이클.** `run_id` ↔ `cycle-log.md` 1행이 1:1 |
-| **근거 (루프)** | 사용자 확정 (2026-07-27). 검증 오라클이 약한 도메인에서 자율 루프는 **잘못된 방향으로 밤새 달릴 위험**이 크다 — 채점자가 없으니 스스로 틀렸다는 걸 알 방법도 없다. einstein이 자율 루프를 감당할 수 있었던 건 arena라는 외부 채점자가 있었기 때문이다.<br>**파생:** 에스컬레이션 사다리의 ⑤(사람)는 대기 상태가 아니라 **런 종료(`ESCALATED`)** 다 |
-| **왜 단위가 아직 걸리는가** | 한 계를 두고 파라미터만 바꿔 세 번 돌리면 1 사이클인가 3 사이클인가. §10의 "첫시도 통과율"이 여기서 완전히 달라진다 |
-| **재검토 조건 (루프)** | 게이트 2곳이 실제로 지루해지고, `benchmarks.yaml`이 충분히 촘촘해져 자동 판정이 믿을 만해질 때 |
-| **결정 시점 (단위)** | 첫 `cycle-log.md` 행을 실제로 쓸 때 (M1 종료 시) |
-| **영향** | `master_plan.md` §5·§9·§10·§11·§12, `01`(§2 진입점) |
-| **결정일** | **2026-07-27** (루프 부분) |
+| **Status** | `OPEN` (the unit) · **`DECIDED`** (the loop — not adopted in v1) |
+| **Decision (the loop)** | **No outer autonomous loop is built in v1.** The pipeline is always started by a human with `bd-agent new`. There is no queue, no scheduler and no layer that "decides for itself what to do next" |
+| **Default (the unit)** | **One human-started run = 1 cycle.** `run_id` ↔ one row of `cycle-log.md`, 1:1 |
+| **Grounds (the loop)** | User-fixed (2026-07-27). In a domain with a weak verification oracle an autonomous loop carries a large risk of **running all night in the wrong direction** — with no grader there is also no way for it to learn it was wrong. einstein could bear an autonomous loop because it had an external grader, the arena.<br>**Derived:** step ⑤ (the human) of the escalation ladder is not a waiting state but **the end of the run (`ESCALATED`)** |
+| **Why the unit still catches** | If one system is run three times changing only a parameter, is that 1 cycle or 3? §10's "first-try pass rate" changes completely on this |
+| **Conditions for revisiting (the loop)** | When the 2 gates actually become tedious, and `benchmarks.yaml` becomes dense enough that the automatic verdict is trustworthy |
+| **When it gets decided (the unit)** | When the first row of `cycle-log.md` is actually written (at the end of M1) |
+| **Impact** | `master_plan.md` §5·§9·§10·§11·§12, `01` (the §2 entry point) |
+| **Decided** | **2026-07-27** (the loop part) |
 
-### D26 · 논문 증류를 몇 편부터, 어떤 순서로
+### D26 · How many papers to distil to begin with, and in what order
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | **M1 이전에는 자유 BD / Stokes–Einstein 관련 2~3편만.** 나머지는 해당 계를 다룰 때 그때그때 |
-| **근거** | 현재 확보된 지식 자산은 **연구 주제 논문 PDF 묶음뿐**이다(선배 코드 미확보 → `D20`). 주제는 넷 — 제플리션 겔 · 하전/DLVO · 미세유변학 · 조밀계/유리전이 — 이고 이게 `knowledge/wiki/systems/` 4개 인덱스가 된다.<br>**미리 다 증류하지 않는 이유:** 위키를 미리 채우는 것은 규칙을 미리 쓰는 것과 같은 실패 모드다(`D21`). **쓰이지 않은 증류는 검증되지 않는다** — 틀린 채로 위키에 앉아 다음 런을 오염시킨다.<br>1단계의 목표는 "충분한 위키"가 아니라 **`wiki-first`를 한 번이라도 실제로 적중시키는 것**이다 |
-| **결정 시점** | M1 착수 시 |
-| **영향** | `master_plan.md` §7, `09_literature.md` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | **Before M1, only 2~3 on free BD / Stokes–Einstein.** The rest as and when the relevant system comes up |
+| **Grounds** | The knowledge assets currently in hand are **a bundle of research-topic paper PDFs and nothing else** (no senior's code obtained → `D20`). There are four topics — depletion gels · charged/DLVO · microrheology · dense systems/the glass transition — and these become the 4 indices of `knowledge/wiki/systems/`.<br>**Why not distil everything in advance:** filling the wiki in advance is the same failure mode as writing rules in advance (`D21`). **A distillation that is never used is never verified** — it sits in the wiki wrong and contaminates the next run.<br>Stage 1's goal is not "a sufficient wiki" but **getting `wiki-first` to hit for real, even once** |
+| **When it gets decided** | At the start of M1 |
+| **Impact** | `master_plan.md` §7, `09_literature.md` |
+| **Decided** | — |
 
-### D27 · 공개 시점의 분리 절차
+### D27 · The separation procedure at publication time
 | | |
 |---|---|
-| **상태** | `OPEN` |
-| **기본값** | `master_plan.md` §4 **공개 경계표**를 개발 내내 유지 → **공개 직전 1회 감사**: `source/papers/` 저작권 확인 + 전체 히스토리에서 민감 경로 검색 + 필요 시 새 저장소로 재초기화 |
-| **근거** | `D6`이 private을 택했지만 **최종 공개가 목표**다. 무엇이 나갈지를 공개 시점에 판단하면 히스토리를 뒤져야 한다. 폴더 단위로 지금 못박아두면 그 작업이 사라진다.<br>가장 위험한 경로는 `knowledge/source/lab/` — 확보 즉시 `.gitignore`에 선제 추가한다 |
-| **뒤집는 비용** | **지금은 낮고 나중은 높다.** 경계표를 지금 지키는 이유가 이것이다 |
-| **결정 시점** | 공개를 실제로 결심할 때 (M4 이후로 예상) |
-| **영향** | `master_plan.md` §4, `.gitignore` |
-| **결정일** | — |
+| **Status** | `OPEN` |
+| **Default** | Maintain `master_plan.md` §4's **publication boundary table** throughout development → **one audit immediately before publication**: check the copyright of `source/papers/` + search the whole history for sensitive paths + re-initialize into a new repository if necessary |
+| **Grounds** | `D6` chose private, but **eventual publication is the goal**. Judging what goes out at publication time means digging through history. Nailing it down now at folder granularity makes that work disappear.<br>The most dangerous path is `knowledge/source/lab/` — added to `.gitignore` pre-emptively the moment it is obtained |
+| **Cost of overturning** | **Low now and high later.** That is the reason for keeping the boundary table now |
+| **When it gets decided** | When publication is actually resolved on (expected after M4) |
+| **Impact** | `master_plan.md` §4, `.gitignore` |
+| **Decided** | — |
 
-### D28 · 파이프라인 스테이지 추가 (S2.5 PREREGISTER · S7.5 EYEBALL) + 검사의 횡단화
+### D28 · Adding pipeline stages (S2.5 PREREGISTER · S7.5 EYEBALL) + making the checks cross-cutting
 | | |
 |---|---|
-| **상태** | **`DECIDED`** |
-| **결정** | 12 → **14 스테이지.** ① **S2.5 PREREGISTER** — 사전등록을 S1의 부속물에서 독립 스테이지로 격상, **정성 v0(게이트1 직후) → 정량 v1(S4 직후)** 2회 작성 ② **S7.5 EYEBALL** — 저해상도 스냅샷 3장의 육안 검사를 **S8 앞**에 배치 ③ 수치 불안정·물리 넌센스 검사를 별도 스테이지가 아니라 **모든 스테이지의 exit check**로 정의 (`master_plan.md` §14-E) |
-| **근거** | 사용자가 자기 작업 흐름을 9단계로 기술한 것(2026-07-27)을 기존 12스테이지에 매핑하는 과정에서 **세 곳이 어긋났고, 어긋난 쪽이 옳았다.**<br>**① 사전등록:** 사용자가 "예상결과 그리기 + 물리적 근거 제시"를 독립 단계로 꼽았다. 실제로 이건 파이프라인이 사후해석을 막는 **유일한** 장치라 부속물일 수 없다. 2회 작성은 딜레마 해소 — 무차원화 전에 쓰면 근거가 약하고, 후에 쓰면 이미 계를 들여다본 뒤라 사전등록이 아니다. 둘 다 보관하면 **v0→v1의 변화 자체가 데이터**가 된다 (무차원화·문헌이 직관을 교정했다는 증거).<br>**② 육안 검사:** 사용자가 시각화(6)를 분석(7) **앞**에 뒀다. 원안은 `S10 ANALYZE → S11 VISUALIZE`였다. 결정화됐는데 유리로 분석 / 박스를 가로지르는 클러스터 / 입자 겹침 / 진행 중인 상분리 — 전부 **눈으로 1초, 숫자로는 어려운** 실패다. S11(리포트용 최종 렌더)은 그대로 두고 싼 검사를 앞에 하나 더 둔다.<br>**③ 횡단화:** 사용자가 "**각 단계별** 검토"라고 했다. 원안의 S8 DIAGNOSE는 실행 *후* 한 번만 돈다. 물리적 넌센스는 실행 전에 잡히는 것이 훨씬 많고 훨씬 싸다 (`φ>0.64` · `τ_B/τ_D` 위반 · `r_cut > L/2` · 초기 배치 겹침). |
-| **비용** | 스테이지 2개 추가 = 구현 항목 9개(`14-B`). S7.5는 렌더 몇 초로 끝나므로 런타임 부담은 무시할 수준 |
-| **영향** | `master_plan.md` §5·§14, `01`(§2 상태기계·§3 아티팩트·§5 레이아웃) |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** |
+| **Decision** | 12 → **14 stages.** ① **S2.5 PREREGISTER** — promote pre-registration from an appendage of S1 to an independent stage, written **twice: qualitative v0 (right after gate 1) → quantitative v1 (right after S4)** ② **S7.5 EYEBALL** — place the eyeball check of 3 low-resolution snapshots **before S8** ③ define the numerical-instability and physical-nonsense checks not as a separate stage but as **the exit check of every stage** (`master_plan.md` §14-E) |
+| **Grounds** | While mapping the user's own description of their workflow in 9 steps (2026-07-27) onto the existing 12 stages, **three places disagreed, and the disagreeing side was right.**<br>**① Pre-registration:** the user picked out "drawing the expected result + presenting the physical grounds" as an independent step. In fact this is the **only** device by which the pipeline prevents post-hoc interpretation, so it cannot be an appendage. Writing it twice resolves a dilemma — written before non-dimensionalization the grounds are weak, written after it is no longer a pre-registration because the system has already been examined. Keeping both makes **the v0→v1 change itself data** (evidence that non-dimensionalization and the literature corrected the intuition).<br>**② The eyeball check:** the user put visualization (6) **before** analysis (7). The original plan was `S10 ANALYZE → S11 VISUALIZE`. Analysing a crystallized system as a glass / a cluster spanning the box / overlapping particles / an ongoing phase separation — all of these are failures that take **1 second by eye and are hard by number**. S11 (the final render for the report) stays as it is and one cheap check is added before it.<br>**③ Cross-cutting:** the user said "review **at each step**". The original S8 DIAGNOSE runs only once, *after* execution. Far more physical nonsense is caught before execution, and far more cheaply (`φ>0.64` · a `τ_B/τ_D` violation · `r_cut > L/2` · overlap in the initial arrangement). |
+| **Cost** | 2 stages added = 9 implementation items (`14-B`). S7.5 finishes in a few seconds of rendering, so the runtime burden is negligible |
+| **Impact** | `master_plan.md` §5·§14, `01` (§2 the state machine·§3 artifacts·§5 the layout) |
+| **Decided** | **2026-07-27** |
 
-### D29 · 검증을 두 축으로 분리 (과정 V1~V7 / 결과 4층) + 3분 판정
+### D29 · Splitting verification into two axes (process V1~V7 / results, 4 layers) + a 3-way verdict
 | | |
 |---|---|
-| **상태** | **`DECIDED`** |
-| **결정** | ① §6을 **과정 검증(§6-A, V1~V7)** 과 **결과 검증(§6-B, 네 층의 증거)** 두 축으로 재편<br>② 원안에 없던 세 층 신설 — **V1 충실성**(역번역), **V4 단계 간 일관성**(S6 교차검사), **V6 Outlier**(4종)<br>③ 판정을 2분(`PASS`/`FAIL`)에서 **3분**(`PASS` / **`PASS-with-doubt`** / `FAIL`)으로<br>④ **doubt가 증거 등급의 천장을 낮춘다** (§6-C 표)<br>⑤ 게이트1의 정체를 "스펙 승인" → **"역번역 대조 승인"** 으로 구체화<br>⑥ S8 진단 5범주 → **6범주** (outlier 추가) |
-| **근거** | 사용자가 검증 7단계를 기술(2026-07-27)한 것을 문서에 매핑하니 **§6이 결과 검증만 다루고 있었다.** 과정 검증은 §14-E에 flat한 exit check로 흩어져 있었을 뿐 체계가 없었다.<br>**둘은 실패하는 방식이 다르다.** 과정은 *조용히* 틀리고(엉뚱한 계를 완벽하게 시뮬레이션), 결과는 *그럴듯하게* 틀린다. **전자는 결과 검증을 아무리 잘해도 잡히지 않는다** — 네 층의 증거가 전부 일치해도 애초에 다른 계였다면 전부 일치하는 오답이다.<br>**V1이 특히 큰 구멍이었다.** 원안 S1의 검사는 "임의 생성값 0건"뿐인데, 그건 *환각* 방지이지 *충실성* 검사가 아니다. `"500 nm 실리카"` → `material: polystyrene, confidence: 0.9, unknowns: []`는 지어낸 값이 아니라서 **모든 검사를 통과한다.** 역번역 대조는 이 부류를 잡는 표준 기법이고, 사람이 YAML을 훑는 것보다 훨씬 잘하는 일이다.<br>**V4:** 다른 검사는 전부 스테이지 내부다. 각 스테이지가 개별 PASS인데 조합이 틀린 경우(S5가 `dt`를 바꿔 S3 게이트를 무효화 등)를 잡을 곳이 없었다.<br>**V6:** S8의 5범주는 전부 집계값이라 **outlier는 집계하면 사라진다.** 특히 앙상블 outlier(시드 하나만 튐)는 재현 가능성에 직결되는데, 평균만 보면 사고를 평균낸 값을 물리로 착각한다. |
-| **3분 판정의 이유** | `PASS`/`FAIL` 둘만 있으면 **미심쩍은 것은 갈 곳이 없어 사라진다** — 통과했으니 아무도 다시 안 보고, 나중에 결과가 이상할 때 "어디가 걸렸었지"를 되짚을 수 없다. `PASS-with-doubt`를 등급 상한과 연결한 것은 **기록할 유인을 만들기 위해서**다. 다만 낮은 등급이 *벌*이 아니라 *상태의 정확한 기술*로 취급되어야 작동한다 |
-| **비용** | 검사 44항목(`14-E`) — 기존 19에서 +25. 대부분 임계값 비교라 구현은 가볍고, **V1 역번역과 V6 앙상블 둘만 실질 작업** |
-| **영향** | `master_plan.md` §5·§6·§6-A·§6-B·§6-C·§9·§14, `01`(게이트1 정의) |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** |
+| **Decision** | ① Reorganize §6 into two axes, **process verification (§6-A, V1~V7)** and **result verification (§6-B, the four layers of evidence)**<br>② Create three layers the original plan did not have — **V1 fidelity** (back-translation), **V4 inter-stage consistency** (an S6 cross-check), **V6 Outlier** (4 kinds)<br>③ Move the verdict from 2-way (`PASS`/`FAIL`) to **3-way** (`PASS` / **`PASS-with-doubt`** / `FAIL`)<br>④ **A doubt lowers the ceiling of the evidence grade** (the §6-C table)<br>⑤ Make gate 1's identity concrete: "spec approval" → **"back-translation comparison approval"**<br>⑥ S8 diagnosis, 5 categories → **6 categories** (outlier added) |
+| **Grounds** | Mapping the user's description of verification in 7 steps (2026-07-27) onto the document showed that **§6 covered result verification only.** Process verification was merely scattered across §14-E as flat exit checks, with no system to it.<br>**The two fail in different ways.** The process fails *quietly* (simulating the wrong system perfectly) and the result fails *plausibly*. **The former is not caught however well the results are verified** — even if all four layers of evidence agree, if it was a different system to begin with then it is a wrong answer on which everything agrees.<br>**V1 was an especially large hole.** The original S1's check was only "0 arbitrarily generated values", and that prevents *hallucination*, not *fidelity*. `"500 nm silica"` → `material: polystyrene, confidence: 0.9, unknowns: []` is not an invented value, so **it passes every check.** Back-translation comparison is the standard technique for catching this class, and it is something far better done than a human skimming YAML.<br>**V4:** every other check is internal to a stage. There was nowhere to catch the case where each stage passes individually but the combination is wrong (S5 changing `dt` and thereby invalidating the S3 gate, and so on).<br>**V6:** S8's 5 categories are all aggregates, so **an outlier disappears on aggregation.** In particular an ensemble outlier (one seed jumping) bears directly on reproducibility, and looking only at the mean mistakes an averaged accident for physics. |
+| **Why a 3-way verdict** | With only `PASS`/`FAIL`, **anything doubtful has nowhere to go and disappears** — it passed, so nobody looks again, and when the result later seems odd there is no way to retrace "what was it that caught". Tying `PASS-with-doubt` to a grade ceiling is **to create an incentive to record it.** But it only works if a low grade is treated not as a *punishment* but as *an accurate description of the state* |
+| **Cost** | 44 check items (`14-E`) — +25 from the existing 19. Most are threshold comparisons so the implementation is light, and **only V1 back-translation and V6 ensemble are substantive work** |
+| **Impact** | `master_plan.md` §5·§6·§6-A·§6-B·§6-C·§9·§14, `01`(the gate 1 definition) |
+| **Decided** | **2026-07-27** |
 
-### D30 · S1 판독 모델 — 강한 리즈닝이 필요한가
+### D30 · The S1 reading model — is strong reasoning needed
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (잠정 — 실측 전) |
-| **결정** | **`claude-opus-5`**. 환경변수 `BD_AGENT_LLM_MODEL` 로 재정의 가능 |
-| **근거** | 처음엔 `claude-sonnet-5`를 "제한된 추출 작업"이라는 이유로 뒀으나, **그 틀 자체가 틀렸다.** 실제 스케치(`tests/test_image*.jpeg`)를 보니 필요한 일이 이렇다.<br>① 손글씨 수식 판독 — 아래첨자 `k_t`, 분수 `½`, 그리스 `µ`, 루트<br>② **그림-라벨 충돌 판단** — 원 13개 vs `100 particles`. 어느 쪽이 정본인지 아는 것<br>③ `A/r³ ≫ k_BT` 가 값이 아니라 **레짐 선언**이라는 인식<br>④ `find final configuration by minimizing U_tot` 가 계 기술이 아니라 **목적**이고, 이 과제가 BD 동역학이 아니라 에너지 최소화라는 판단<br>⑤ **빈칸을 안 채우는 절제** — V1 층 전체가 이 실패를 막으려 존재한다<br>전부 강한 리즈닝이다. 게다가 **파이프라인 맨 앞의 1회 호출**이라 여기서 틀리면 아래가 전부 오염되고, 비용은 건당 몇 센트다. 여기서 아끼는 것은 잘못된 절약이다. |
-| **미결** | **아직 논증이지 실측이 아니다.** `D8`·`D14`가 세운 "추측하지 말고 실측한다" 원칙에 미달한다. 정답표가 있는 합성 스케치(`tests/fixtures/sketch_walls.truth.json`)로 모델별 채점을 붙여 확정한다. API 키 확보 후. |
-| **영향** | `agent/llm.py`, `cli.py`, `master_plan.md` §4.5 |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** (provisional — before measurement) |
+| **Decision** | **`claude-opus-5`**. Overridable with the environment variable `BD_AGENT_LLM_MODEL` |
+| **Grounds** | At first `claude-sonnet-5` was set on the grounds of "a limited extraction task", but **that framing itself was wrong.** Looking at a real sketch (`tests/test_image*.jpeg`), the work needed is this.<br>① reading handwritten formulas — the subscript `k_t`, the fraction `½`, the Greek `µ`, roots<br>② **judging a drawing-label conflict** — 13 circles vs `100 particles`. Knowing which side is authoritative<br>③ recognizing that `A/r³ ≫ k_BT` is not a value but **a regime declaration**<br>④ judging that `find final configuration by minimizing U_tot` is not a description of the system but **the objective**, and that this task is energy minimization rather than BD dynamics<br>⑤ **the restraint not to fill in a blank** — the whole V1 layer exists to prevent this failure<br>All of it is strong reasoning. And it is **a single call at the very front of the pipeline**, so being wrong here contaminates everything below, and the cost is a few cents a call. Economizing here is a false economy. |
+| **Unresolved** | **This is still an argument, not a measurement.** It falls short of the "do not guess, measure" principle that `D8` and `D14` established. It gets settled by attaching a per-model score on synthetic sketches with an answer key (`tests/fixtures/sketch_walls.truth.json`). After an API key is obtained. |
+| **Impact** | `agent/llm.py`, `cli.py`, `master_plan.md` §4.5 |
+| **Decided** | **2026-07-27** |
 
-### D31 · 판독 스키마의 범위 — 수식을 담는가
+### D31 · The scope of the reading schema — does it hold formulas
 | | |
 |---|---|
-| **상태** | **`DECIDED`** |
-| **결정** | **담는다.** 스키마 v2 — `medium` · `interactions[]` · `external_potential[]` · `objective` · `relations[]` 신설. 퍼텐셜은 `raw`(원문) / `form`(정규화) / `params`(기호별 값·단위)로 **분리**해서 담는다. 그림-라벨 충돌은 `count`(정본) + `drawn_count`(진단) + `F11`(기록만) |
-| **근거** | v1은 스케치를 "계의 위상을 그린 개념도"로 가정했는데, **실제 그림은 손으로 쓴 문제 정의서였다** — 절반이 수식이다. `F8` 누락 검사가 이 설계 결함을 스스로 검출했다 (`T = 300 K`의 `300`이 갈 곳이 없었다).<br>**`objective`가 가장 큰 구멍이었다.** 목적을 못 담으면 S5 PLAN이 에너지 최소화 과제에 시간적분·평형화 판정·MSD를 계획한다. 전부 통과하면서 전부 무의미한 — §6-A가 말하는 "과정이 조용히 틀리는" 실패다.<br>`raw`/`form` 분리 이유: 손글씨 수식은 오독이 잦아(`k_t`↔`k_B`, `r³`↔`r⁵`) 원문 없이는 되짚을 수 없다. `F12`가 강제한다.<br>근거: [`knowledge/wiki/findings/sketch-schema-v2-equations.md`](../../knowledge/wiki/findings/sketch-schema-v2-equations.md) |
-| **유지된 것** | `F2`는 그대로다 — 이 값들을 `sketch:visual`로 채우면 여전히 FAIL. **"적혀 있으면 읽고, 없으면 비운다."** 필드를 만든 것이 추측을 허용한다는 뜻은 아니다 |
-| **영향** | `bdkit/reading/sketch.py`, `fidelity.py`(F11·F12·F13 신설), `backtranslate.py`, `agent/s1_intake/` |
-| **결정일** | **2026-07-27** |
+| **Status** | **`DECIDED`** |
+| **Decision** | **It does.** Schema v2 — `medium` · `interactions[]` · `external_potential[]` · `objective` · `relations[]` created. A potential is held **split** into `raw` (the original text) / `form` (normalized) / `params` (a value and unit per symbol). A drawing-label conflict is `count` (authoritative) + `drawn_count` (diagnostic) + `F11` (recorded only) |
+| **Grounds** | v1 assumed the sketch was "a concept diagram of the system's topology", but **the actual drawing was a hand-written problem statement** — half of it is formulas. The `F8` omission check detected this design defect by itself (the `300` of `T = 300 K` had nowhere to go).<br>**`objective` was the biggest hole.** Unable to hold the objective, S5 PLAN plans time integration, an equilibration verdict and an MSD for an energy-minimization task. Everything passes and everything is meaningless — the "the process fails quietly" failure §6-A speaks of.<br>Why `raw`/`form` are split: handwritten formulas are frequently misread (`k_t`↔`k_B`, `r³`↔`r⁵`), so without the original text there is no retracing. `F12` enforces it.<br>Grounds: [`knowledge/wiki/findings/sketch-schema-v2-equations.md`](../../knowledge/wiki/findings/sketch-schema-v2-equations.md) |
+| **What was kept** | `F2` stands — fill these values with `sketch:visual` and it still FAILs. **"If it is written, read it; if it is not, leave it empty."** Creating a field does not mean guessing is permitted |
+| **Impact** | `bdkit/reading/sketch.py`, `fidelity.py` (F11, F12, F13 created), `backtranslate.py`, `agent/s1_intake/` |
+| **Decided** | **2026-07-27** |
 
-### D32 · `Simulation_bot` 을 흡수한다 + `spec` 이름 충돌 해소
+### D32 · Absorb `Simulation_bot` + resolve the `spec` name collision
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | ① `Simulation_bot/simbot/` → **`BD_agent/simbot/`**. 진입점은 `cli.py` 하나 (`intake`·`check`·`elicit`·`compose`·`run`·`batch`)<br>② **`bdkit/spec/` → `bdkit/reading/`** — 내용이 전부 그림 판독(`SketchReading`·`fidelity`·`gaps`·`elicit`)이라 이름이 실제와 맞지 않았고, `simbot/spec.py`(시뮬 설정)와 충돌했다. 이제 저장소에 `spec` 은 하나뿐이다<br>③ **빈칸 판정 일원화** — `simbot/intake.blanks()` 의 `_ELICIT_TABLE` 을 지우고 `bdkit/reading/gaps.detect_gaps()` 로 위임. `blanks()` 는 형태 변환만 한다<br>④ `simbot/intake.py` 의 낮은 confidence 확인 검사를 `gaps.py` 로 **끌어올렸다** — 위임하면서 잃을 뻔한 기능이다 |
-| **근거** | 사용자 확정 (2026-07-28): *"봇이 잘 작동하는 것 같은데 기존 시스템에 인테그레이션 하면 좋을듯."* `SQ5` 의 답이고 `Simulation_bot/PLAN.md` §6 의 *"BD_agent 를 수정하지 않는다"* 를 여는 결정이다.<br>**두 절반은 이미 같은 언어를 쓰고 있었다** — `readings/*.reading.json` 이 정확히 `SketchReading` v2 형식이라 통합이 얕았다. 실제 중복은 **빈칸 판정 하나**뿐이었고 그게 ③ 이다. |
-| **검증 층 충돌의 해소** | `PLAN.md` §2 는 V1~V7 과 증거 등급을 의도적으로 지웠고 `master_plan.md` §6 은 그게 핵심이다. **`simbot` 은 주장하지 않으므로 V-사다리의 대상이 아니다** — V 층은 *주장*에 걸리고 엔진은 숫자와 그림만 낸다. 검증이 필요한 순간에 사다리가 그 위를 감싼다. 둘 다 그대로 산다 |
-| **새 불변조건** | `SD2` 를 테스트로 — `simbot/` 은 `agent`·`anthropic` 을 임포트하지 않고, `intake.py` 를 제외하면 `bdkit` 도 임포트하지 않는다 (엔진은 판독 층을 모른다. 그래야 그림 없이 YAML 로 돌리는 경로가 살아 있다) |
-| **영향** | `simbot/` `bdkit/reading/` `cli.py` `tests/test_invariants.py` `docs/11_simbot.md`, 임포트 17개 파일 |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | ① `Simulation_bot/simbot/` → **`BD_agent/simbot/`**. One entry point, `cli.py` (`intake`, `check`, `elicit`, `compose`, `run`, `batch`)<br>② **`bdkit/spec/` → `bdkit/reading/`** — the contents are all sketch reading (`SketchReading`, `fidelity`, `gaps`, `elicit`), so the name did not match reality, and it collided with `simbot/spec.py` (the simulation configuration). There is now only one `spec` in the repository<br>③ **Unify the blank verdict** — delete `_ELICIT_TABLE` from `simbot/intake.blanks()` and delegate to `bdkit/reading/gaps.detect_gaps()`. `blanks()` only transforms the shape<br>④ **Lifted** the low-confidence confirmation check from `simbot/intake.py` up into `gaps.py` — a feature that was nearly lost in the delegation |
+| **Grounds** | User-fixed (2026-07-28): *"the bot seems to work well; it would be good to integrate it into the existing system."* It is the answer to `SQ5` and the decision that opens `Simulation_bot/PLAN.md` §6's *"do not modify BD_agent"*.<br>**The two halves were already speaking the same language** — `readings/*.reading.json` is exactly the `SketchReading` v2 format, so the integration was shallow. The only real duplication was **the blank verdict**, and that is ③. |
+| **How the verification-layer collision was resolved** | `PLAN.md` §2 deliberately deleted V1~V7 and the evidence grades, and `master_plan.md` §6 has them as its core. **`simbot` does not make claims, so it is not a subject of the V-ladder** — the V layers attach to *claims*, and the engine only produces numbers and pictures. At the moment verification is needed, the ladder wraps around it. Both live as they are |
+| **A new invariant** | `SD2` as a test — `simbot/` does not import `agent` or `anthropic`, and apart from `intake.py` does not import `bdkit` either (the engine does not know the reading layer. That is what keeps alive the path of running from YAML with no drawing) |
+| **Impact** | `simbot/` `bdkit/reading/` `cli.py` `tests/test_invariants.py` `docs/11_simbot.md`, 17 files of imports |
+| **Decided** | **2026-07-28** |
 
-### D33 · 시뮬레이션 인터프리터를 어떻게 정하는가
+### D33 · How the simulation interpreter is determined
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | **탐색한다. 경로를 코드에 박지 않는다.** 순서: `--python` → `$BD_AGENT_SIM_PYTHON` → `simbot/environment.local.yaml`(gitignored) → conda env 이름 탐색 → 현재 인터프리터. 전부 실패하면 **네 가지 해결 방법을 적어서** 던진다.<br>필요하면 `cli.py` 가 **스스로 재실행**한다 (`os.execv`) — `--python` 은 P5 자식만 정하는데 P6·P7 은 부모에서 돌아 `gsd`·`numpy` 가 부모에도 필요하기 때문이다 |
-| **근거** | 사용자 요청 (2026-07-28): *"기본 시스템을 hoomd_slit 으로 설정할 수 있나? 나중에 배포할 때에는 별개로."*<br>`/opt/homebrew/.../envs/hoomd_slit/bin/python` 을 코드에 적으면 **이 기계에서만 도는 저장소**가 된다. `D2` 가 `make_device(spec)` 로 디바이스 하드코딩을 막은 것과 같은 논리다.<br>**챗봇에서 "어느 명령은 어느 python 으로"를 기억해야 하면 그건 도구의 결함이다.** 그래서 자동 전환까지 붙였다 |
-| **배포 경계** | `simbot/environment.yaml` (**커밋**) 은 *무엇이 필요한가* 만 적는다 — `env_name` · `required` · `optional`. `simbot/environment.local.yaml` (**gitignored**) 은 *이 기계에서 그게 어디 있나*. 배포되는 것은 앞의 것뿐이고, 받는 쪽은 탐색이나 단일 env 로 대개 그냥 돈다 |
-| **부트스트랩 규율** | `simbot/env.py` 는 **표준 라이브러리만 쓴다.** 처음엔 `pyyaml` 을 임포트했다가 `ModuleNotFoundError: yaml` 로 죽었다 — 정작 pyyaml 이 없는 인터프리터에서 도는 것이 이 모듈의 존재 이유인데. **부트스트랩은 자기가 찾아주려는 것에 의존할 수 없다.** `tests/test_sim_env.py` 가 AST 로 강제한다 |
-| **영향** | `simbot/env.py`(신규) · `simbot/environment.yaml`(신규) · `cli.py`(`env` 명령 + 자동 전환) · `simbot/commands.py` · `.gitignore` |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | **Search for it. Do not put the path in the code.** In order: `--python` → `$BD_AGENT_SIM_PYTHON` → `simbot/environment.local.yaml` (gitignored) → a search by conda env name → the current interpreter. If all of it fails, throw **with four ways to fix it** written out.<br>If necessary `cli.py` **re-executes itself** (`os.execv`) — because `--python` only sets the P5 child, while P6 and P7 run in the parent, so `gsd` and `numpy` are needed in the parent too |
+| **Grounds** | User request (2026-07-28): *"can the default system be set to hoomd_slit? Separately for when it is distributed later."*<br>Writing `/opt/homebrew/.../envs/hoomd_slit/bin/python` into the code makes it **a repository that only runs on this machine**. The same logic by which `D2` prevented a hardcoded device with `make_device(spec)`.<br>**If, in a chatbot, you have to remember "which command with which python", that is a defect of the tool.** So the automatic switch was attached too |
+| **The distribution boundary** | `simbot/environment.yaml` (**committed**) writes down only *what is needed* — `env_name` · `required` · `optional`. `simbot/environment.local.yaml` (**gitignored**) is *where that is on this machine*. Only the former is distributed, and the receiving side mostly just runs, via the search or a single env |
+| **Bootstrap discipline** | `simbot/env.py` **uses the standard library only.** At first it imported `pyyaml` and died with `ModuleNotFoundError: yaml` — when running on an interpreter that lacks pyyaml is precisely this module's reason for existing. **A bootstrap cannot depend on the thing it is trying to find for you.** `tests/test_sim_env.py` enforces it by AST |
+| **Impact** | `simbot/env.py` (new) · `simbot/environment.yaml` (new) · `cli.py` (the `env` command + the automatic switch) · `simbot/commands.py` · `.gitignore` |
+| **Decided** | **2026-07-28** |
 
-### D34 · 기계 성능 프로파일 — 기계마다 재고, 커밋하지 않는다
+### D34 · The machine performance profile — measured per machine, not committed
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | `simbot/machine_profile.yaml` (**커밋**) 은 *어떻게 재는가* 와 보수적 폴백만. 실측은 `machine_profile.local.json` (**gitignored**). 새 컴퓨터에서 **첫 런 전에** `python cli.py calibrate` 를 한 번 돌린다 (빠르게 ~2분 / `--full` ~8분).<br>프로파일에 **기계 지문**(CPU 이름 · 코어 수)을 함께 적고, 안 맞으면 **무시한다** |
-| **근거** | `machine_profile.yaml` 이 M4 의 숫자(10.4 M p-steps/s)를 담은 채 커밋되어 있었다. 다른 기계에서 받으면 그 숫자로 비용을 추정한다 — `D33` 에서 인터프리터 경로를 커밋하지 않기로 한 것과 **같은 문제**다.<br>**없는 프로파일보다 남의 프로파일이 더 나쁘다.** 없으면 보수적 기본값으로 가고 경고가 뜨지만, 남의 것을 쓰면 그럴듯한 숫자가 나와서 아무도 안 본다. 그래서 지문 불일치는 폴백보다 앞선다 |
-| **병렬 실측 (2026-07-28)** | **한 런은 단일 스레드다** — CPU 사용률 0.99 코어. `mpi_enabled=False` · `gpu_enabled=False` · `device.CPU()` 에 스레드 인자 없음. **코드로 어쩔 수 있는 것이 아니다.**<br>독립 런 K개 동시 실행: K=2 효율 98% · **K=4 효율 81% (무릎)** · K=8 43% · K=10 38%. 최대 속도향상 3.8배.<br>**M4 는 성능 4 + 효율 6 코어**라 `os.cpu_count()`(10)를 믿으면 **2.6배 과대추정**한다 |
-| **파생** | 워커 수는 코어 수가 아니라 **효율 곡선의 무릎**에서 정한다 (`recommended_workers()`, 효율 ≥ 0.6 인 최대 `k`). 처리량은 전체 평균이 아니라 **가장 가까운 `N`** 의 측정점을 쓴다 — 처리량이 `N` 에 의존하기 때문. 외삽했으면 그 사실이 출처 문자열에 남는다 |
-| **영향** | `simbot/machine.py`(신규) · `simbot/calibrate.py`(신규) · `simbot/plan.py`(`load_profile` 위임) · `cli.py`(`calibrate`) · `.gitignore` · `tests/test_machine_profile.py` |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | `simbot/machine_profile.yaml` (**committed**) holds only *how it is measured* and a conservative fallback. The measurement is `machine_profile.local.json` (**gitignored**). On a new computer, run `python cli.py calibrate` once **before the first run** (quick ~2 min / `--full` ~8 min).<br>Write a **machine fingerprint** (the CPU name, the core count) into the profile alongside, and **ignore it** if it does not match |
+| **Grounds** | `machine_profile.yaml` was committed holding the M4's number (10.4 M p-steps/s). Get it on another machine and it estimates cost with that number — **the same problem** as `D33`'s decision not to commit the interpreter path.<br>**Somebody else's profile is worse than no profile.** With none, it goes to a conservative default and a warning appears; with somebody else's, a plausible number comes out and nobody looks. That is why a fingerprint mismatch takes precedence over the fallback |
+| **Parallel measurement (2026-07-28)** | **One run is single-threaded** — CPU utilization 0.99 cores. `mpi_enabled=False` · `gpu_enabled=False` · `device.CPU()` has no thread argument. **This is not something code can do anything about.**<br>K independent runs at once: K=2 efficiency 98% · **K=4 efficiency 81% (the knee)** · K=8 43% · K=10 38%. Maximum speedup 3.8×.<br>**The M4 has 4 performance + 6 efficiency cores**, so trusting `os.cpu_count()` (10) **overestimates by 2.6×** |
+| **Derived** | The worker count is set not from the core count but from **the knee of the efficiency curve** (`recommended_workers()`, the largest `k` with efficiency ≥ 0.6). The throughput uses the measurement point at **the nearest `N`** rather than the overall mean — because the throughput depends on `N`. If it was extrapolated, that fact is left in the provenance string |
+| **Impact** | `simbot/machine.py` (new) · `simbot/calibrate.py` (new) · `simbot/plan.py` (`load_profile` delegation) · `cli.py` (`calibrate`) · `.gitignore` · `tests/test_machine_profile.py` |
+| **Decided** | **2026-07-28** |
 
 ---
 
-### D35 · 판정 임계값은 사람 검수에서 태어난다 — `D4` 의 부분 답
+### D35 · Verdict thresholds are born from human review — a partial answer to `D4`
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | **초기에는 사람이 검수하고, 실측이 쌓이면 그 분포에서 임계값을 뽑아 자동화한다.** 도구는 **임계값이 등재된 관측량만** 판정하고, 없는 것은 계속 사람에게 넘긴다. 등재소는 `knowledge/wiki/benchmarks/benchmarks.yaml` |
-| **선택지** | (a) 판정 안 함 (지금까지) (b) 임계값 몇 개만 붙여 부분 자동 (c) 검증 사다리 전체를 자동화 |
-| **근거** | 사용자 결정: *"실험의 특성상 항상 오차가 있을건데, 시스템에 따라 임계값의 범위가 항상 바뀔듯. 초창기에는 사람이 검수를 하다가 경험이 쌓이면 자동화하는건 어때"*.<br>**이것이 (b)→(c) 로 가는 경로를 정한다.** 지금까지 도구가 판정을 안 한 이유는 임계값이 없어서였고 (`CLAUDE.md`: *"임계값이 있어야 할 수 있는 말이고, 그 임계값은 이 저장소에 아직 없다"*), 임계값을 지어내면 **그럴듯하고 틀린 합격 도장**이 찍힌다 — 검증 오라클이 약한 도메인에서 제일 비싼 실패다 (`master_plan` §6).<br>**핵심 요건 하나:** 검수 기록이 임계값이 되려면 **관측량 단위로, 본 수와 함께** 남아야 한다. 런 하나에 "OK" 를 붙이는 것으로는 문턱을 못 만든다 — `D_fit` 을 세 번 재서 0.9911 이 세 번 나왔다는 기록이 있어야 "1% 이내" 라고 쓸 수 있다.<br>이미 그 방향으로 재료가 있다: 자유 BD `D_fit` 3회 6자리 일치(§7 #4·#16·#21) · 트랩 5량 0.6σ 이내(Step 1.5) · `A`=100 앙상블 산포(§7 #31). **자동화의 첫 후보는 이 셋이다** — 분포를 아는 것부터 문턱을 붙인다 |
-| **영향** | `knowledge/wiki/benchmarks/benchmarks.yaml`(등재소) · `docs/11_simbot.md` §2 의 *"판정하지 않는다"* 가 **"등재된 것만 판정한다"** 로 바뀐다 · `D4`(자동화 수준)의 게이트 논의와 이어진다 |
-| ~~**미결로 남는 것**~~ | ~~검수 기록의 형식과 위치~~ · ~~몇 건이 쌓이면 등재하는가~~ → **둘 다 정했다** (아래) |
-| **① 위치 — 위키의 원장 하나** | `knowledge/wiki/benchmarks/reviews.jsonl` (**커밋됨**). 런 폴더가 아닌 이유가 결정적이다: **`runs/` 는 gitignored 다.** 검수 판정은 *지식*이라 거기 두면 정리 한 번에 사라지고 커밋된 적이 없다. 임계값 등재소(`benchmarks.yaml`)와 같은 폴더에 둔다.<br>**JSONL 인 이유는 동시 추가**다 — `cli.py batch` 가 워커 여러 개로 돌고 각자 다른 프로세스라, 읽고-고쳐-쓰는 YAML 은 갱신을 잃는다. 한 줄 추가는 `O_APPEND` 로 원자적이다 (`machine_measurements.local.jsonl` 과 같은 이유).<br>**append-only** — 판정을 뒤집으면 새 줄을 넣고 집계가 최신을 정본으로 쓴다. 지우면 *"임계값이 어떻게 태어났나"* 의 증거가 사라진다 |
-| **② 몇 건 — 런 수가 아니라 독립 설정 수 3개** | `A1` 의 금지 항목(*"시드·박스크기만 다른 런들을 서로 다른 증거로 세는 것"*)을 **코드가 강제한다**: `run.seed` 를 뺀 스펙의 sha256 을 지문으로 삼고 같은 지문은 하나로 센다. 그래서 시드 5개를 돌려도 `n_independent`=1 이고 제안이 안 나온다 (`tests/test_review.py::test_five_seed_runs_do_not_make_three_independent_evidence`).<br>3 은 관례이고 근거는 하나다 — 산포를 추정하려면 최소 셋이 필요하다. 제안 허용오차는 **관측된 최대 편차 × 1.5** 다: 최대값을 그대로 쓰면 다음 런의 절반이 떨어진다 (표본의 상한은 분포의 상한이 아니다).<br>**자동 등재하지 않는다.** `--propose` 는 `benchmarks.yaml` 에 붙일 YAML 조각까지 만들어 주지만 붙이는 것은 사람이다 |
-| **③ 세션은 자기 판정으로 문턱을 만들 수 없다** | 구현하면서 드러난 셋째 문제다. 세션(대화 중인 LLM)이 수를 읽고 판정을 **제안**하는 것은 도움이지만, 그것을 세면 *사람이 한 번도 보지 않은 합격 도장*이 찍힌다. 그래서 `reviewer` 를 기록하고 **집계에서 가른다** — `propose()` 는 기본으로 `human` 만 세고, `--as-session` 으로 남긴 것은 미리보기에만 나온다. 사람이 같은 `(run_id, observable)` 에 판정을 넣으면 그것이 정본으로 덮는다 |
-| **첫 소득 — 첫 런에서 결함이 잡혔다** | `free_bd` 의 `D_fit` 을 `D_theory`=1 과 대조하도록 표에 적었는데, **배제부피가 있으면 1 은 기대값이 아니다** (상호작용 없는 극한이다). 게이트가 없으면 원장이 `φ`=0.3 에서 **−52% 를 불일치로 쌓고**, 그 재료로 임계값을 뽑으면 78% 허용오차가 나온다. `invalid_if="core_kind"` 로 막았고 시험 2건으로 못박았다 — **이 층이 막으려던 실패가 이 층을 만들다가 나왔다** |
-| **영향** | `simbot/review.py`(신규) · `simbot/commands.py`(`cmd_review`) · `cli.py`(`review`) · `tests/test_review.py` 24건 · `knowledge/wiki/benchmarks/reviews.jsonl`(신규, 커밋) |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | **Early on a human reviews, and once measurements accumulate the threshold is drawn from that distribution and automated.** The tool judges **only observables with a registered threshold**, and passes the rest to a human as before. The registry is `knowledge/wiki/benchmarks/benchmarks.yaml` |
+| **Options** | (a) do not judge (as until now) (b) attach a few thresholds for partial automation (c) automate the whole verification ladder |
+| **Grounds** | User decision: *"given the nature of experiments there will always be error, and the threshold range will probably keep changing with the system. How about a human reviewing early on and automating once experience accumulates"*.<br>**This sets the path (b)→(c).** The reason the tool has not judged until now is that there were no thresholds (`CLAUDE.md`: *"it is a statement you can only make if you have a threshold, and that threshold is not yet in this repository"*), and inventing a threshold stamps **a plausible and wrong pass** — the most expensive failure there is in a domain with a weak verification oracle (`master_plan` §6).<br>**One key requirement:** for a review record to become a threshold it has to be left **per observable, together with the number of times it was seen**. Attaching "OK" to one run cannot make a threshold — you need a record that `D_fit` was measured three times and came out 0.9911 three times before you can write "within 1%".<br>There is already material in that direction: free BD `D_fit`, 3 runs agreeing to 6 digits (§7 #4·#16·#21) · the trap pentamer within 0.6σ (Step 1.5) · the `A`=100 ensemble scatter (§7 #31). **The first candidates for automation are these three** — attach a threshold starting from what you know the distribution of |
+| **Impact** | `knowledge/wiki/benchmarks/benchmarks.yaml` (the registry) · `docs/11_simbot.md` §2's *"does not judge"* becomes **"judges only what is registered"** · connects to the gate discussion of `D4` (the level of automation) |
+| ~~**What stays unresolved**~~ | ~~the format and location of the review record~~ · ~~how many entries before registering~~ → **both settled** (below) |
+| **① Location — one ledger in the wiki** | `knowledge/wiki/benchmarks/reviews.jsonl` (**committed**). The reason it is not the run folder is decisive: **`runs/` is gitignored.** A review verdict is *knowledge*, so put it there and one cleanup destroys it, and it was never committed. It goes in the same folder as the threshold registry (`benchmarks.yaml`).<br>**The reason it is JSONL is concurrent appends** — `cli.py batch` runs with several workers, each a different process, and a read-modify-write YAML loses updates. Appending one line is atomic via `O_APPEND` (the same reason as `machine_measurements.local.jsonl`).<br>**Append-only** — to overturn a verdict, insert a new line and let the aggregation take the latest as authoritative. Delete and the evidence of *"how the threshold was born"* is gone |
+| **② How many — not runs but 3 independent configurations** | The prohibition in `A1` (*"counting runs that differ only in seed or box size as different evidence"*) is **enforced by code**: the sha256 of the spec with `run.seed` removed is the fingerprint, and the same fingerprint counts as one. So running 5 seeds gives `n_independent`=1 and no proposal comes out (`tests/test_review.py::test_five_seed_runs_do_not_make_three_independent_evidence`).<br>3 is a convention and there is one ground for it — estimating a scatter needs at least three. The proposed tolerance is **the largest observed deviation × 1.5**: use the maximum as it stands and half of the next runs fall out (the maximum of a sample is not the maximum of the distribution).<br>**It does not register automatically.** `--propose` even produces the YAML fragment to attach to `benchmarks.yaml`, but attaching it is the human's job |
+| **③ A session cannot make a threshold out of its own verdict** | This is the third problem, which surfaced during implementation. A session (the LLM in the conversation) reading the numbers and **proposing** a verdict is helpful, but counting that stamps *a pass no human ever looked at*. So `reviewer` is recorded and **the aggregation separates them** — `propose()` counts only `human` by default, and what was left with `--as-session` appears only in the preview. If a human enters a verdict on the same `(run_id, observable)`, that overwrites as authoritative |
+| **The first return — a defect was caught in the first run** | The table said to compare `free_bd`'s `D_fit` against `D_theory`=1 but **with excluded volume 1 is not the expected value** (it is the non-interacting limit). Without a gate the ledger **accumulates −52% as a mismatch** at `φ`=0.3, and drawing a threshold from that material gives a 78% tolerance. It was blocked with `invalid_if="core_kind"` and nailed down with 2 tests — **the failure this layer was built to prevent came out while building this layer** |
+| **Impact** | `simbot/review.py` (new) · `simbot/commands.py` (`cmd_review`) · `cli.py` (`review`) · `tests/test_review.py` 24 cases · `knowledge/wiki/benchmarks/reviews.jsonl` (new, committed) |
+| **Decided** | **2026-07-28** |
 
-### D36 · 무대는 Claude Code 안 — 배포도 그 전제로
+### D36 · The stage is inside Claude Code — and distribution assumes the same
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | **Claude Code 안에서만 쓴다.** 별도 UI·헤드리스 진입점을 만들지 않는다. Park 랩 배포도 같은 전제이므로, 준비물은 **설치 절차 + 예제 config 몇 개**이고 새 인터페이스가 아니다 |
-| **선택지** | (a) Claude Code 안에서만 (b) 터미널 CLI 만 쓰는 사용자도 지원 |
-| **근거** | 사용자 결정: *"클로드 코드 안에서 만 사용하는걸로 생각중"*. `SD11`(무대는 Claude Code)·`SD22`(판독은 세션이 한다)를 배포까지 확장한 것이고, 그 둘이 이미 이 전제에 서 있었다 — **판독하는 LLM 이 세션 안에 있다**는 것이 설계의 기둥이다.<br>(b)를 안 고른 대가: 받는 쪽이 그림·자연어에서 시작하려면 Claude Code 가 필요하다. 다만 **완성된 config 로 시작하는 경로는 CLI 만으로도 열려 있으므로**(`run`·`batch`·`session set`) 대가가 크지 않다 |
-| **영향** | 배포 준비물이 *"예제 config + 설치 문서"* 로 좁아진다. `cli.py calibrate`(`D34`)를 첫 런 전에 한 번 돌리는 것이 절차에 들어간다 |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | **Used inside Claude Code only.** No separate UI or headless entry point is built. Distribution to the Park lab assumes the same, so what is needed is **an installation procedure + a few example configs**, not a new interface |
+| **Options** | (a) inside Claude Code only (b) support users who only use a terminal CLI |
+| **Grounds** | User decision: *"I am thinking of using it only inside Claude Code"*. It extends `SD11` (the stage is Claude Code) and `SD22` (the session does the reading) to distribution, and those two already stood on this premise — **that the LLM doing the reading is inside the session** is a pillar of the design.<br>The price of not choosing (b): the receiving side needs Claude Code to start from a drawing or natural language. But **since the path of starting from a finished config is open with the CLI alone** (`run`, `batch`, `session set`), the price is not large |
+| **Impact** | The distribution requirements narrow to *"example configs + installation documentation"*. Running `cli.py calibrate` (`D34`) once before the first run enters the procedure |
+| **Decided** | **2026-07-28** |
 
-### D37 · 진행 정본은 하나 — `master_plan` §14 의 체크리스트를 접었다
+### D37 · One authoritative record of progress — `master_plan` §14's checklist was folded
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | **엔진 진행의 정본은 [`docs/11_simbot.md`](11_simbot.md) §5·§7 하나다.** `master_plan` §14 의 `14-A`(기반 시설 11항목)·`14-B`(스테이지별 72항목)를 지우고 포인터로 대체했다. 남긴 것은 `14-C`(검증 인프라)·`14-D`(지식·규칙)·`14-E`(7층 검증 사다리 44항목) |
-| **선택지** | (a) 144항목을 현재 구조에 다시 대응시킨다 (b) **접고 §5 를 정본으로** (c) 그냥 둔다 |
-| **근거** | 사용자 결정. (a)를 안 고른 이유가 비용이다 — 144행 각각에 **세 가지 판단**이 필요하다: ① 끝났나(산출물 칸이 `bdkit/{spec,units,…}/` 라는 없는 경로를 가리켜 코드를 열어봐야 안다) ② 아직 원하는 건가(상당수가 챗봇 피벗에서 뺀 층이라 `X` 가 "할 일"이 아니라 *삭제*다) ③ 지금 어디 있나. 행마다 근거를 봐야 하므로 2~5시간이고 병렬화도 안 된다.<br>**얻는 것이 적다는 것이 더 중요하다.** 두 곳에 진행 기록이 있으면 반드시 갈라지고, 실제로 이번 세션도 §14 를 손대지 않고 §5 만 갱신했다. `2 / 144` 라는 분모는 **거짓이었다** — 기능적으로 끝난 것이 `X` 로 남아 있었다.<br>**뺀 층을 `X` 로 남겨 두는 것이 특히 나쁘다** — 없는 백로그가 수십 개 생기고, 그러면 목록 전체를 아무도 믿지 않게 된다 |
-| **남긴 이유** | `14-E` 는 **아직 착수 전이고 다른 곳에 없다.** 그리고 `D35`(사람 검수 → 임계값 등재 → 자동 판정)가 이 층의 진입 경로라 방금 살아났다. `14-C`·`14-D` 는 22행뿐이라 실제 상태로 다시 표시했다 (벤치마크 개별 항목은 `benchmarks.yaml` 이 `blocked_by` 와 함께 더 잘 추적한다) |
-| **영향** | `master_plan.md` 1417 → 1249줄. §14 헤더에 *"엔진 진행은 여기 없다"* 를 박았다 |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | **The authoritative record of engine progress is [`docs/11_simbot.md`](11_simbot.md) §5·§7 and nowhere else.** `master_plan` §14's `14-A` (11 infrastructure items) and `14-B` (72 per-stage items) were deleted and replaced with a pointer. What was kept: `14-C` (verification infrastructure), `14-D` (knowledge and rules), `14-E` (the 7-layer verification ladder, 44 items) |
+| **Options** | (a) re-map the 144 items onto the current structure (b) **fold them and make §5 authoritative** (c) leave them alone |
+| **Grounds** | User decision. The reason (a) was not chosen is cost — each of the 144 rows needs **three judgments**: ① is it done (the artifact cell points at a nonexistent path like `bdkit/{spec,units,…}/`, so you have to open the code to know) ② is it still wanted (a good many are layers removed in the chatbot pivot, so an `X` is a *deletion* rather than "to do") ③ where is it now. Every row needs its grounds looked at, so 2~5 hours, and it does not parallelize.<br>**That the return is small matters more.** With progress recorded in two places they will inevitably diverge, and in fact this session too updated only §5 without touching §14. The denominator `2 / 144` **was false** — things functionally finished were sitting there as `X`.<br>**Leaving a removed layer as an `X` is especially bad** — dozens of nonexistent backlog items appear, and then nobody trusts the list at all |
+| **Why the rest was kept** | `14-E` is **not yet started and exists nowhere else.** And `D35` (human review → threshold registration → automatic verdict) is the entry path to this layer, so it just came alive. `14-C` and `14-D` are only 22 rows, so they were re-marked with their actual state (individual benchmark items are better tracked by `benchmarks.yaml` together with `blocked_by`) |
+| **Impact** | `master_plan.md` 1417 → 1249 lines. *"Engine progress is not here"* was nailed into the §14 header |
+| **Decided** | **2026-07-28** |
 
-### D38 · 파라미터 근거 원장 — 값과 **이유**를 같은 줄에 남긴다
+### D38 · The parameter-grounds ledger — leave the value and **the reason** on the same line
 | | |
 |---|---|
-| **상태** | **`DECIDED`** (2026-07-28) |
-| **결정** | 런마다 `runs/<id>/parameters.yaml` 에 **모든 결정을 같은 모양으로** 남긴다 — `path` · `value` · `decided_by`(user/reading/rule/default) · `why` · `rule` · `source` · `alternatives` · `advice`. 가로 읽기는 `python cli.py params`. 구현은 `simbot/rationale.py` |
-| **근거** | 사용자 결정: *"시뮬레이션을 위한 모델링과 파라미터를 잘 선택하는 것이 시뮬레이션을 통한 검증에 중요한 일이니까. 이런 모델링과 파라미터 선택을 적절하게 잘 할 수 있도록, 시스템과 파라미터 모델링 이유와 값의 기록을 남기는 것이 중요. 사람이 경험의 축적으로 적절한 파라미터를 고르던 것을, 대량의 자료를 통해 학습해 효율적인 제안을 하고 수행하는."*<br>**근거가 없었던 것이 아니라 흩어져 있고 모양이 달랐다** — `spec.provenance`(판독에서 온 값만) · `run_plan.notes`(산문이라 집계 불가) · `dt_constraint`(문자열 하나) · `decision_log`(저장소 수준이라 이 런의 값이 아니다). 같은 모양이어야 **여러 런을 가로로** 읽을 수 있고, 가로로 읽을 수 있어야 *"비슷한 계에서 전에 무엇을 골랐나"* 에 답한다.<br>**`decided_by` 를 분리한 것이 이 원장의 핵심이다.** 기본값 0.35 와 사람이 적은 0.35 는 **값이 같아서 눈으로 구분되지 않는다.** 구분하지 못하면 코퍼스가 *"이 계에서는 0.35 를 쓴다"* 는 **거짓 관행**을 쌓는다. 그래서 `spec.specified_paths`(사용자가 실제로 적은 경로)를 새로 들고 다닌다.<br>`alternatives` 는 `SD9` 의 *"채택하지 않은 규칙이 줬을 값을 함께 적는다"* 를 모든 파라미터로 넓힌 것이다 |
-| **첫 소득** | 4개 런의 원장을 가로로 읽자마자 **아무도 고른 적 없는 파라미터 셋**이 드러났다 — `init.placement`(lattice) · `init.min_separation_over_d`(0.35) · **`core.epsilon_kT`(1.0)**. 셋째가 특히 무겁다: 코어가 얼마나 딱딱한지를 정하는 값인데 전 런에서 데이터클래스 기본값이었고, 그것이 `D8`(배제부피 퍼텐셜)이 열려 있는 이유와 같은 자리다 |
-| **경계** | **제안은 엔진이 하지 않는다.** 코퍼스를 쌓고 질의에 답하는 것까지가 엔진의 일이고, *"이 계에는 이 값이 좋겠다"* 는 세션(대화 중인 LLM)이 말한다 (`SD22` · `A4`). 엔진이 제안까지 하면 제안이 틀렸을 때 **기록이 틀렸는지 판단이 틀렸는지 갈리지 않는다** |
-| **소급하지 않는다** | 이전 런 29개에는 원장을 만들지 않는다. `specified_paths` 가 없어 *"무엇을 사람이 적었고 무엇이 기본값이었나"* 를 복원할 수 없고, 추측해서 채우면 코퍼스가 조용히 오염된다. **코퍼스는 지금부터 쌓인다** |
-| **영향** | `simbot/rationale.py`(신규) · `simbot/spec.py`(`specified_paths`) · `simbot/commands.py`(P3 뒤에 저장 · `cmd_params`) · `cli.py`(`params`) · `tests/test_rationale.py`(14건) |
-| **결정일** | **2026-07-28** |
+| **Status** | **`DECIDED`** (2026-07-28) |
+| **Decision** | Per run, leave **every decision in the same shape** in `runs/<id>/parameters.yaml` — `path` · `value` · `decided_by` (user/reading/rule/default) · `why` · `rule` · `source` · `alternatives` · `advice`. Reading across is `python cli.py params`. The implementation is `simbot/rationale.py` |
+| **Grounds** | User decision: *"choosing the modelling and the parameters for a simulation well is what matters for verification through simulation. So that this modelling and parameter selection can be done appropriately and well, it is important to leave a record of the system and of the reason and value of the parameter modelling. What a human used to do by accumulating experience — choosing appropriate parameters — learned from a large body of material to make and carry out efficient proposals."*<br>**It was not that the grounds were absent but that they were scattered and in different shapes** — `spec.provenance` (only values coming from the reading) · `run_plan.notes` (prose, so not aggregatable) · `dt_constraint` (a single string) · `decision_log` (repository-level, so not this run's values). They have to be in the same shape to read **across several runs**, and being able to read across is what answers *"what did we choose before in a similar system"*.<br>**Separating out `decided_by` is the crux of this ledger.** A default 0.35 and a human-entered 0.35 **have the same value and are indistinguishable by eye.** Unable to distinguish them, the corpus accumulates **the false practice** that *"in this system we use 0.35"*. So `spec.specified_paths` (the paths the user actually wrote) is newly carried around.<br>`alternatives` widens `SD9`'s *"also write down the value the rule you did not adopt would have given"* to every parameter |
+| **The first return** | Reading 4 runs' ledgers across immediately exposed **a parameter set nobody had ever chosen** — `init.placement` (lattice) · `init.min_separation_over_d` (0.35) · **`core.epsilon_kT` (1.0)**. The third is especially heavy: it is the value that sets how hard the core is, and in every run it was a dataclass default — the same spot as the reason `D8` (the excluded-volume potential) is open |
+| **The boundary** | **The engine does not make the proposal.** Accumulating the corpus and answering queries is the engine's job, and *"this value would be good for this system"* is said by the session (the LLM in the conversation) (`SD22` · `A4`). If the engine also proposed, then when a proposal is wrong **there is no telling whether the record was wrong or the judgment was** |
+| **No retroactive fill** | No ledger is made for the previous 29 runs. Without `specified_paths` there is no restoring *"what did a human write and what was a default"*, and guessing to fill it quietly contaminates the corpus. **The corpus accumulates from now on** |
+| **Impact** | `simbot/rationale.py` (new) · `simbot/spec.py` (`specified_paths`) · `simbot/commands.py` (save after P3 · `cmd_params`) · `cli.py` (`params`) · `tests/test_rationale.py` (14 cases) |
+| **Decided** | **2026-07-28** |
 
 ---
 
-## 아직 항목화되지 않은 것 (나중에 D32+로 승격)
+## Not yet itemized (to be promoted to D32+ later)
 
-- 스펙에 없는 값을 LLM이 문헌 기본값으로 채울 때, `assumed: true` 외에 사람 확인을 강제할 것인가
-- 실패한 런의 아티팩트 보존 기간 / 자동 정리 정책
-- 여러 런을 비교하는 메타 리포트 형식
-- HPMC 도입 시 BD와 파이프라인을 어떻게 공유할 것인가
-- **위키 승격 기준** — finding을 concept으로 올리는 문턱을 무엇으로 할 것인가 (인용 3회? 서로 다른 계 2곳에서 등장?). 승격은 사람 승인이라는 것만 정해져 있다
-- **`unverified` 결과의 리포트 표시 방식** — 배지? 경고 박스? 얼마나 눈에 띄게 할 것인가
-- **선배 코드 재현을 어느 수준까지 요구할 것인가** — `reproduced: partial`의 판정 기준 (관측량 1개 일치? 전부?)
-- **`bd-agent` CLI의 서브커맨드 집합** — `new` / `resume` 외에 무엇이 필요한가 (`status`? `ls`? `report`?)
+- When the LLM fills a value absent from the spec with a literature default, should human confirmation be forced beyond `assumed: true`
+- The retention period / automatic cleanup policy for the artifacts of a failed run
+- The format of a meta-report comparing several runs
+- How BD and the pipeline get shared when HPMC is introduced
+- **The wiki promotion criterion** — what should be the threshold for raising a finding to a concept (3 citations? appearing in 2 different systems?). Only that promotion is a human approval has been settled
+- **How an `unverified` result is displayed in the report** — a badge? A warning box? How conspicuous should it be
+- **To what level reproduction of a senior's code should be required** — the criterion for a verdict of `reproduced: partial` (1 observable matching? all of them?)
+- **The set of subcommands of the `bd-agent` CLI** — what is needed beyond `new` / `resume` (`status`? `ls`? `report`?)
 
-> **승격됨:** "실험 데이터와의 대조" → `D24` · "사이클의 단위" → `D25` (둘 다 2026-07-27)
+> **Promoted:** "comparison against experimental data" → `D24` · "the unit of a cycle" → `D25` (both 2026-07-27)
