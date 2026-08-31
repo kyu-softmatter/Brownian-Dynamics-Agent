@@ -2,7 +2,7 @@
 
 A system that reads a physical system out of a hand-drawn sketch, a note or the literature,
 non-dimensionalizes it, runs it in HOOMD-blue, and feeds the successes and failures back as knowledge.
-The full design is in [mater_plan.md](../../docs/history/2026-08_simulation_auto_master_plan.ko.md).
+The full design is in [mater_plan.md](../../docs/history/2026-08_simulation_auto_master_plan.md).
 
 ## Current status (2026-08-06)
 
@@ -130,7 +130,7 @@ So `bdbot.cli run network` refuses with "there is no end-to-end script" (registe
 This convention is the same one as tooling incident ① (§1-D below).
 
 `abp-rod`'s anisotropic translational friction was concluded to be **impossible in BD** (no HI — the isotropic
-average γ̄ is used, [mater_plan §20 question 10](../../docs/history/2026-08_simulation_auto_master_plan.ko.md)).
+average γ̄ is used, [mater_plan §20 question 10](../../docs/history/2026-08_simulation_auto_master_plan.md)).
 
 **`trap-drag` L4 results — corrected by re-running 7 velocities × 9 seeds = 63 runs (2026-08-06)** ⭐️
 `runs/trap-drag-2d-hex300__ENSEMBLE/vsweep_ensemble.{png,json}` ·
@@ -679,7 +679,7 @@ Defined in: [environment.yml](../../environment.yml)
 | **when you need a source for a property value or a non-dimensionalization method** | [docs/books/welty_transport.md](../../knowledge/source/books/welty_transport.md) — **the [W] Welty 5th ed. distillation**. The water η(T) table · Stokes/Re · Buckingham |
 | looking for past runs and lessons | `$PY tools/kb.py query --tags ... --origin ... --kind ...` |
 | **leaving behind what was learned at the front end** | `$PY tools/kb.py add --origin intake\|paper\|tooling\|method\|handbook ...` |
-| the full design and roadmap | [mater_plan.md](../../docs/history/2026-08_simulation_auto_master_plan.ko.md) |
+| the full design and roadmap | [mater_plan.md](../../docs/history/2026-08_simulation_auto_master_plan.md) |
 
 ## Working practice
 

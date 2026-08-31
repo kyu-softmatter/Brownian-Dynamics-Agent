@@ -46,7 +46,7 @@ What a translation is allowed to change: **the words**. What it must not change:
                 accepted BY NAME with `--allow-gained 3.3,20.85`. It is not
                 absorbed automatically: an automatic budget would silently swallow
                 whichever unexplained numeral sorted first, which on
-                docs/history/2026-07-30_simulation_bot_master_plan.ko.md was two
+                docs/history/2026-07-30_simulation_bot_master_plan.md was two
                 real defects rather than the rescale. The count of myriad forms
                 available in OLD is reported so the claim can be checked.
   markers       the multiset of correction/emphasis markers the user asked to be
@@ -54,7 +54,7 @@ What a translation is allowed to change: **the words**. What it must not change:
                 digits, plus the number of `**` emphasis delimiters. The
                 delimiters are counted rather than the runs because a bold span
                 may cross a line break, and a translation re-wraps lines -- on
-                docs/history/2026-08_simulation_auto_CLAUDE.ko.md that alone
+                docs/history/2026-08_simulation_auto_CLAUDE.md that alone
                 moved a run count from 356 to 362 with no emphasis added or lost.
 
 **The policy this checker assumes: preserve every non-alphabetic glyph exactly.**

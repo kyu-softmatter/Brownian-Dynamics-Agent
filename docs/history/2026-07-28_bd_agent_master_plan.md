@@ -73,7 +73,7 @@ person, or the next student, hits the same wall again. **Failures disappear and 
 | triaging the cause of a verification failure | fixing a parameter finally |
 | the report narrative | generating a physical conclusion |
 
-The 10 general principles for building an agent are in [`docs/01_agent_architecture.md`](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) §0.
+The 10 general principles for building an agent are in [`docs/01_agent_architecture.md`](../../docs/history/2026-07_bd_agent_01_agent_architecture.md) §0.
 Of those, the three that weigh most in this project:
 
 1. **Keep state in files** (`run_state.yaml`) — conversation context disappears and cannot be inspected
@@ -211,7 +211,7 @@ The LLM only touches six places (`docs/01` §1).
 ## 5. The pipeline — 14 stages
 
 A state machine on top of `run_state.yaml`. It is not free conversation. Details in
-[`docs/01_agent_architecture.md`](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) §2,
+[`docs/01_agent_architecture.md`](../../docs/history/2026-07_bd_agent_01_agent_architecture.md) §2,
 and the implementation checklist is **[§14](#14-the-implementation-checklist)**.
 
 ### Who starts it — a human
@@ -1017,7 +1017,7 @@ means of debugging (§4), and once contaminated it is hard to undo.
 
 ## 13. Open questions
 
-The full list and the current defaults are in **[`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md)**.
+The full list and the current defaults are in **[`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.md)**.
 In the document body they are planted inside the relevant section as `> ❓ undecided · Dnn` markers — so that they are
 visible right where a decision is needed. **Every marker has a `when it gets decided`.** An undecided item with no
 date stays undecided forever.
@@ -1051,7 +1051,7 @@ distillation order) and `D27` (the publication separation procedure) are markers
 |---|---|---|
 | **the engine (P1~P7 · 7 stages)** | [`docs/11_simbot.md`](docs/11_simbot.md) **§5 the stage table + §7 the progress record** | for each stage, *what it is trying to confirm, why this order, and the measured result* are together. It carries more information than a checkbox, and §7 being append-only it can be looked back over |
 | **benchmarks (literature comparison)** | [`knowledge/wiki/benchmarks/benchmarks.yaml`](../../knowledge/wiki/benchmarks/benchmarks.yaml) | each entry carries its expected value, tolerance and source, and **for what cannot be done the reason is written in `blocked_by`.** A checkbox cannot hold "why did it not work" |
-| **decisions** | [`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md) (`D`) · `docs/11_simbot.md` §7 (`SD`) | |
+| **decisions** | [`docs/00_decision_log.md`](../../docs/history/2026-07_bd_agent_00_decision_log.md) (`D`) · `docs/11_simbot.md` §7 (`SD`) | |
 | **the verification ladder (V1~V7)** | **`14-E` below** | not yet started and existing nowhere else. `D35` (human review → threshold registration → automatic verdict) is the entry path to this layer |
 
 ### What was deleted — `14-A` infrastructure · `14-B` per-stage implementation (83 items)
@@ -1248,8 +1248,8 @@ In M0, `02`~`10` are **made as stubs first** (§11). The statuses below get upda
 
 | | Document | Status |
 |---|---|---|
-| `00` | [the decision log](../../docs/history/2026-07_bd_agent_00_decision_log.ko.md) | **written** |
-| `01` | [the agent architecture](../../docs/history/2026-07_bd_agent_01_agent_architecture.ko.md) | **written** |
+| `00` | [the decision log](../../docs/history/2026-07_bd_agent_00_decision_log.md) | **written** |
+| `01` | [the agent architecture](../../docs/history/2026-07_bd_agent_01_agent_architecture.md) | **written** |
 | `02` | the system spec (the `SystemSpec` schema · the S1/S2 inputs) | stub planned |
 | `03` | units and non-dimensionalization (the `τ_D` reference, `UnitMap`) | stub planned |
 | `04` | potentials and HOOMD script generation | stub planned |

@@ -72,7 +72,7 @@ The stages an LLM touches are only these six: **S1, S2, S4, S5 (proposals only),
 
 **The calling method is `D23` — `DECIDED` (2026-07-27): the Anthropic SDK directly**, from the single place `agent/llm.py`.
 The output schema is **structurally enforced** with tool-use (principle 3). Only S2 ELICIT, which needs conversational
-round trips, is left room to be moved out to Claude Code later. The comparison table is in [`master_plan.md`](../../docs/history/2026-08_simulation_auto_master_plan.ko.md) §4.5,
+round trips, is left room to be moved out to Claude Code later. The comparison table is in [`master_plan.md`](../../docs/history/2026-08_simulation_auto_master_plan.md) §4.5,
 and how it was settled is in [`findings/d23-sdk-backend.md`](../../knowledge/wiki/findings/d23-sdk-backend.md).
 
 Of the three pieces, **the prompt, the output schema and the validator are reused independently of the calling method** — change
@@ -123,7 +123,7 @@ S1 INTAKE → S2 ELICIT →🚦gate 1→ S2.5 PREREGISTER(v0)
 **Why S2.5 and S7.5 were added (`D28`, 2026-07-27):** pre-registration is the only device that prevents post-hoc
 interpretation, so it has to be a stage rather than an appendage; and the eyeball check has to be *before* the analysis —
 because failures like crystallization, clustering and overlap are real, and they take **1 second by eye and are hard by
-number**. The details are in [`master_plan.md`](../../docs/history/2026-08_simulation_auto_master_plan.ko.md) §5.
+number**. The details are in [`master_plan.md`](../../docs/history/2026-08_simulation_auto_master_plan.md) §5.
 `S2.5′` is not a new state but **the second pass through S2.5** (qualitative v0 → quantitative v1).
 
 **Terminal states:** `DONE` · `ESCALATED` (needs human intervention) · `BLOCKED_INPUT` · `ABORTED` (stopped by the user)
