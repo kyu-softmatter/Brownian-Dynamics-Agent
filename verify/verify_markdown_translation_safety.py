@@ -33,9 +33,19 @@ What a translation is allowed to change: **the words**. What it must not change:
                 account for. Calibrating on docs/hoomd_capabilities.md, 9 of the
                 11 number findings were exactly this and 2 were real bugs I had
                 introduced.
+                One further allowance, for the same reason: Korean writes
+                magnitudes as `330만` (3.3 million) and `2,085만` (20.85 million),
+                where the VALUE survives translation but the digits cannot. Each
+                such occurrence in OLD buys NEW one otherwise-unexplained
+                numeral. On docs/history/2026-08_simulation_auto_CLAUDE.ko.md
+                that was exactly 3 of them, against 19 myriad forms available.
   markers       the multiset of correction/emphasis markers the user asked to be
                 preserved explicitly -- ★ ⭐ ⚠️ ⛔ ✅ ❌ ⟹ → and the circled
-                digits, plus the count of **bold** runs.
+                digits, plus the number of `**` emphasis delimiters. The
+                delimiters are counted rather than the runs because a bold span
+                may cross a line break, and a translation re-wraps lines -- on
+                docs/history/2026-08_simulation_auto_CLAUDE.ko.md that alone
+                moved a run count from 356 to 362 with no emphasis added or lost.
 
 **The policy this checker assumes: preserve every non-alphabetic glyph exactly.**
 Calibrating it against the four markdown files this repository already translated
@@ -60,6 +70,10 @@ from collections import Counter
 from pathlib import Path
 
 KO = re.compile(r"[ᄀ-ᇿ㄰-㆏가-힯]")
+# Korean magnitude words. `330만` is 3.3 million and `2,085만` is 20.85 million:
+# the DIGITS cannot survive translation, only the value. Each occurrence buys the
+# translation one otherwise-unexplained numeral (see _number_census).
+KO_SCALE = "만억조천백십"
 FENCE = re.compile(r"^(\s*)(```+|~~~+)(.*)$")
 HEADING = re.compile(r"^(#{1,6})\s")
 # a link or image target: [label](target) / ![label](target). Nested parens in the
@@ -125,7 +139,7 @@ def parse(text: str) -> dict:
         "links": LINK.findall(text),
         **_number_census(text),
         "markers": Counter(ch for ch in text if ch in MARKERS),
-        "bold": len(BOLD.findall(text)),
+        "bold": text.count("**"),
         "_fence_ko": fence_ko,
     }
 
@@ -138,15 +152,18 @@ def _number_census(text: str) -> dict:
     is exempt. A numeral in the middle of a longer token (the `0` of `7.1.0`) is
     neither -- it is not a separate number and is dropped from both.
     """
-    census, exempt = Counter(), Counter()
+    census, exempt, scaled = Counter(), Counter(), 0
     for m in NUM_ANY.finditer(text):
         before = text[m.start() - 1] if m.start() else ""
+        after = text[m.end():m.end() + 1]
         if (before and KO.match(before)) or KO.match(text, m.end()):
             exempt[m.group(0)] += 1
+            if after in KO_SCALE:
+                scaled += 1          # a myriad form: the value survives, the digits do not
         elif NUM.match(text, m.start()):
             census[m.group(0)] += 1
         # else: a digit run inside a longer token -- not a number of its own
-    return {"numbers": census, "_ko_numerals": exempt}
+    return {"numbers": census, "_ko_numerals": exempt, "_ko_scaled": scaled}
 
 
 def _seq_diff(name: str, a: list, b: list) -> list:
@@ -196,13 +213,21 @@ def compare(old: str, new: str) -> list:
     new_all = B["numbers"] + B["_ko_numerals"]
     lost = A["numbers"] - new_all
     gained = new_all - A["numbers"] - A["_ko_numerals"]
+    # each Korean myriad form in OLD (`330만`) buys one rescaled numeral in NEW
+    for _ in range(A["_ko_scaled"]):
+        if not gained:
+            break
+        tok = sorted(gained)[0]
+        gained[tok] -= 1
+        if gained[tok] == 0:
+            del gained[tok]
     if lost or gained:
         p.append(f"numbers changed: lost {dict(lost)} gained {dict(gained)}")
     if A["markers"] != B["markers"]:
         p.append(f"markers changed: lost {dict(A['markers'] - B['markers'])} "
                  f"gained {dict(B['markers'] - A['markers'])}")
     if A["bold"] != B["bold"]:
-        p.append(f"bold runs: {A['bold']} -> {B['bold']}")
+        p.append(f"** emphasis delimiters: {A['bold']} -> {B['bold']}")
     return p
 
 
@@ -230,6 +255,9 @@ SELFTESTS = [
     ("and it is only exempt up to its count", "2차극소 하나\n", "2 and 2 minima\n", True),
     ("hangul-PREFIXED numeral may appear", "게이트1 통과\n", "gate 1 passed\n", False),
     ("mid-token digit is not a number", "hoomd 7.1.0\n", "hoomd 7.1.0 build\n", False),
+    ("a myriad form may be rescaled", "330만 스텝\n", "3.3 million steps\n", False),
+    ("but only as many times as there are myriad forms",
+     "330만 스텝\n", "3.3 million steps over 12 runs\n", True),
     ("but a version bump is", "hoomd 7.1.0\n", "hoomd 7.2.0\n", True),
     ("link target changed", "[x](a.md)\n", "[y](b.md)\n", True),
     ("link label only", "[한국어](a.md)\n", "[English](a.md)\n", False),
@@ -250,6 +278,10 @@ SELFTESTS = [
     ("marker dropped", "★ important\n", "important\n", True),
     ("warning marker dropped", "⚠ careful\n", "careful\n", True),
     ("bold count changed", "**a** and **b**\n", "**a** and b\n", True),
+    ("bold across a line break is still counted", "**한국어\n둘째줄**\n",
+     "**English on one line**\n", False),
+    ("but losing that bold is a finding", "**한국어\n둘째줄**\n",
+     "English on one line\n", True),
 ]
 
 
@@ -288,7 +320,8 @@ def main() -> int:
         return 1
     print(f"OK   {new_p}: structure identical, only prose differs "
           f"(fenced lines with Hangul in OLD: {fence_ko}, "
-          f"Hangul-attached numerals in OLD: {ko_num}), Hangul lines left {ko_left}")
+          f"Hangul-attached numerals in OLD: {ko_num}, of them myriad forms: "
+          f"{A['_ko_scaled']}), Hangul lines left {ko_left}")
     return 0
 
 
