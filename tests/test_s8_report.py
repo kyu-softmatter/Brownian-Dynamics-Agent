@@ -123,7 +123,7 @@ def test_broken_seal_suppresses_the_comparison_table(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
     assert "⛔ seal violation" in text
     assert "The comparison table was **not generated**" in text
-    assert "| 양 | 예측 (봉인) |" not in text
+    assert "| quantity | predicted (sealed) |" not in text
 
 
 def test_broken_seal_warning_appears_before_results(rundir, full_inputs):
@@ -138,13 +138,13 @@ def test_broken_seal_warning_appears_before_results(rundir, full_inputs):
 def test_inconclusive_and_its_reason_are_reported(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
     assert "INCONCLUSIVE" in text
-    assert "설계 검정력" in text
-    assert "표본 28.5배 필요" in text or "28.5" in text
+    assert "design power" in text
+    assert "28.5x the samples needed" in text or "28.5" in text
 
 
 def test_inconclusive_is_framed_as_a_fact_not_a_failure(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
-    assert "실패가 아니다" in text
+    assert "not a failure" in text
 
 
 def test_counts_are_reported(rundir, full_inputs):
@@ -159,7 +159,7 @@ def test_validation_problems_are_surfaced(rundir, spec):
     rep = validate_run(_prediction(), meas, rundir=rundir)
     text = R.render(rundir, R.ReportInputs(spec=spec, validation=rep))
     assert "problems with the verification procedure" in text
-    assert "통계오차가 없다" in text
+    assert "no statistical error" in text
 
 
 # =============================================================================
