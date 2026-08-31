@@ -329,7 +329,7 @@ class SealVerdict:
     def summary(self) -> str:
         if self.ok:
             n = len(self.entries)
-            return f"seal verified — {n} documents unchanged after the run"
+            return f"seal verified — nothing changed after the run ({n} sealed)"
         parts = []
         if self.changed:
             parts.append(f"changed {self.changed}")

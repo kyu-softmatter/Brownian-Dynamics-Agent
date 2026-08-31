@@ -1,13 +1,13 @@
-"""S8 — `REPORT.md` 생성.
+"""S8 — generating `REPORT.md`.
 
-리포트는 요약이 아니라 **감사 기록**이다. 그래서 이 파일이 확인하는 것은
-"예쁘게 나오는가"가 아니라 **나쁜 소식이 빠지지 않는가**다:
+The report is an **audit record**, not a summary. So what this file checks is not
+"does it come out pretty" but **does any bad news go missing**:
 
-- 봉인이 깨졌으면 대조표를 싣지 않고 맨 위에 경고가 나오는가
-- `INCONCLUSIVE` 와 그 이유가 남는가
-- `git_dirty` 가 보고되는가
-- 캡션 없는 그림이 표시되는가
-- `confirmed_by: null` 이 있는가
+- when the seal is broken, is the comparison table withheld and a warning put on top
+- do the `INCONCLUSIVE` items and their reasons survive
+- is `git_dirty` reported
+- is an uncaptioned figure flagged
+- is `confirmed_by: null` present
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ EXAMPLE_SPEC = Path("examples/trap-2d-5um/spec.yaml")
 @pytest.fixture
 def spec() -> SystemSpec:
     if not EXAMPLE_SPEC.exists():
-        pytest.skip("examples/trap-2d-5um/spec.yaml 없음")
+        pytest.skip("examples/trap-2d-5um/spec.yaml is absent")
     return SystemSpec.load(EXAMPLE_SPEC)
 
 
@@ -43,9 +43,10 @@ def rundir(tmp_path, spec) -> RunDir:
 
 def _prediction() -> Prediction:
     return Prediction(items=[
-        PredictionItem("var_x_2d_nm2", 414.19, "±1.5%", "⟨x²⟩ = kT/k (정확해)"),
-        PredictionItem("em_bias_reproduced", 1.0025063, "±0.1%", "EM 편향 재현",
-                       competing_value=1.0, discriminates="적분기 스킴"),
+        PredictionItem("var_x_2d_nm2", 414.19, "±1.5%", "⟨x²⟩ = kT/k (exact)"),
+        PredictionItem("em_bias_reproduced", 1.0025063, "±0.1%",
+                       "EM bias reproduced",
+                       competing_value=1.0, discriminates="integrator scheme"),
     ])
 
 
@@ -68,7 +69,7 @@ def full_inputs(rundir, spec) -> R.ReportInputs:
 
 
 # =============================================================================
-# 전체 렌더
+# whole-report render
 # =============================================================================
 def test_report_renders_and_writes(rundir, full_inputs):
     p = R.write_report(rundir, full_inputs)
@@ -78,7 +79,7 @@ def test_report_renders_and_writes(rundir, full_inputs):
 
 
 def test_report_never_confirms(rundir, full_inputs):
-    """★ 리포트에 사람 확정 도장이 찍히면 안 된다."""
+    """★ A human confirmation stamp must never appear in the report."""
     text = R.render(rundir, full_inputs)
     assert "confirmed_by: null" in text
     assert "confirmed_by: agent" not in text
@@ -86,28 +87,29 @@ def test_report_never_confirms(rundir, full_inputs):
 
 def test_report_states_verdict_is_a_proposal(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
-    assert "판정은 **제안**이다" in text
+    assert "The verdict is a **proposal**" in text
 
 
 def test_report_is_self_contained_on_all_stages(rundir, full_inputs):
-    """§1~§6 이 전부 있어야 사람이 이 파일 하나로 판단할 수 있다."""
+    """§1-§6 must all be present for a person to judge from this file alone."""
     text = R.render(rundir, full_inputs)
-    for head in ("## 1. 판정 요약", "## 2. 시스템 명세와 게이트 (S3)",
-                 "## 3. 무차원화 (S4)", "## 4. 그림 (S6)",
-                 "## 5. 재현 가능성", "## 6. 에이전트가 쓴 문서"):
+    for head in ("## 1. Verdict summary",
+                 "## 2. System specification and gates (S3)",
+                 "## 3. Non-dimensionalization (S4)", "## 4. Figures (S6)",
+                 "## 5. Reproducibility", "## 6. Agent-written documents"):
         assert head in text, head
 
 
 def test_report_survives_missing_pieces(rundir):
-    """입력이 비어도 렌더는 되고, 없는 것은 '없음'으로 나온다."""
+    """Empty inputs still render, and what is absent comes out as 'none'."""
     text = R.render(rundir, R.ReportInputs())
-    assert "판정 없음" in text
-    assert "_S7 판정 없음._" in text
-    assert "_S3 검사 결과 없음._" in text
+    assert "no verdict" in text
+    assert "_no S7 verdict._" in text
+    assert "_no S3 check results._" in text
 
 
 # =============================================================================
-# 봉인 — 깨졌으면 대조표를 싣지 않는다
+# sealing — a broken seal withholds the comparison table
 # =============================================================================
 def test_intact_seal_shows_external_verification_command(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
@@ -115,22 +117,23 @@ def test_intact_seal_shows_external_verification_command(rundir, full_inputs):
 
 
 def test_broken_seal_suppresses_the_comparison_table(rundir, full_inputs):
-    """★ 봉인이 깨진 상태의 대조표는 검증처럼 보이지만 검증이 아니다."""
-    rundir.write("prediction", "# S2 (결과 보고 나서 고침)\n")
+    """★ A comparison table under a broken seal looks like a verification and is
+    not one."""
+    rundir.write("prediction", "# S2 (edited after seeing the result)\n")
     text = R.render(rundir, full_inputs)
     assert "⛔ seal violation" in text
-    assert "대조표는 **생성하지 않았다**" in text
+    assert "The comparison table was **not generated**" in text
     assert "| 양 | 예측 (봉인) |" not in text
 
 
 def test_broken_seal_warning_appears_before_results(rundir, full_inputs):
-    rundir.write("prediction", "# 고침\n")
+    rundir.write("prediction", "# edited\n")
     text = R.render(rundir, full_inputs)
-    assert text.index("⛔ seal violation") < text.index("## 1. 판정 요약")
+    assert text.index("⛔ seal violation") < text.index("## 1. Verdict summary")
 
 
 # =============================================================================
-# INCONCLUSIVE 가 사라지지 않는다
+# INCONCLUSIVE does not disappear
 # =============================================================================
 def test_inconclusive_and_its_reason_are_reported(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
@@ -145,27 +148,28 @@ def test_inconclusive_is_framed_as_a_fact_not_a_failure(rundir, full_inputs):
 
 
 def test_counts_are_reported(rundir, full_inputs):
-    assert "2개 중 1 PASS · 1 INCONCLUSIVE · 0 FAIL." in R.render(rundir, full_inputs)
+    assert "2 items: 1 PASS · 1 INCONCLUSIVE · 0 FAIL." in R.render(rundir,
+                                                                   full_inputs)
 
 
 def test_validation_problems_are_surfaced(rundir, spec):
-    """오차 막대 없는 측정이 리포트에서 드러나야 한다."""
-    meas = {"var_x_2d_nm2": Measurement("var_x_2d_nm2", 416.6),   # stat_err 없음
+    """A measurement with no error bar must surface in the report."""
+    meas = {"var_x_2d_nm2": Measurement("var_x_2d_nm2", 416.6),   # no stat_err
             "em_bias_reproduced": Measurement("em_bias_reproduced", 1.0057, stat_err=0.004)}
     rep = validate_run(_prediction(), meas, rundir=rundir)
     text = R.render(rundir, R.ReportInputs(spec=spec, validation=rep))
-    assert "검증 절차의 문제" in text
+    assert "problems with the verification procedure" in text
     assert "통계오차가 없다" in text
 
 
 # =============================================================================
-# 재현 가능성
+# reproducibility
 # =============================================================================
 def test_dirty_git_is_reported_as_a_reproducibility_limit(rundir, spec):
     man = {"run_id": "r", "git_rev": "abc1234", "git_dirty": True, "env": {}}
     text = R.reproducibility_section(man)
-    assert "커밋되지 않은 변경 있음" in text
-    assert "재현되지 않는다" in text
+    assert "uncommitted changes present" in text
+    assert "does not reproduce from `git_rev` alone" in text
 
 
 def test_clean_git_is_reported_as_clean():
@@ -174,14 +178,14 @@ def test_clean_git_is_reported_as_clean():
 
 
 def test_unknown_git_state_is_not_claimed_clean():
-    """판정 불가를 clean 으로 적으면 재현 가능성을 거짓 주장한다."""
+    """Writing 'undecidable' as clean falsely claims reproducibility."""
     text = R.reproducibility_section({"git_rev": "?", "git_dirty": None, "env": {}})
-    assert "판정 불가" in text
+    assert "undecidable" in text
     assert "clean" not in text
 
 
 def test_missing_manifest_refuses_to_claim_reproducibility():
-    assert "주장할 수 없다" in R.reproducibility_section(None)
+    assert "cannot be claimed" in R.reproducibility_section(None)
 
 
 def test_manifest_records_versions(rundir, full_inputs):
@@ -190,12 +194,12 @@ def test_manifest_records_versions(rundir, full_inputs):
 
 
 # =============================================================================
-# 게이트
+# gates
 # =============================================================================
 def test_deferred_gates_are_listed(rundir, full_inputs):
-    """S3 에서 판정할 수 없는 게이트가 몇 개인지 사람이 알아야 한다."""
+    """A person has to know how many gates S3 could not decide."""
     text = R.render(rundir, full_inputs)
-    assert "S7 이 판정해야 하는 게이트" in text
+    assert "gates S7 has to decide" in text
     assert "`equipartition`" in text
 
 
@@ -206,24 +210,25 @@ def test_off_gates_show_their_reason(rundir, full_inputs):
 
 def test_spec_problems_are_surfaced(rundir, spec):
     from simbot.spec import Q
-    spec.medium.rho_fluid_si = Q(996.5, "kg/m^3", "assumed", "근거는 있으나 신뢰도 없음")
+    spec.medium.rho_fluid_si = Q(996.5, "kg/m^3", "assumed",
+                                 "has a basis but no confidence")
     text = R.gates_section(R.validate_spec(spec))
-    assert "규약 위반" in text and "confidence" in text
+    assert "convention violation" in text and "confidence" in text
 
 
 # =============================================================================
-# 무차원화 절
+# the non-dimensionalization section
 # =============================================================================
 def test_nondim_section_reports_roundtrip_gate(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
-    assert "왕복 오차" in text
-    assert "✅ 통과" in text
+    assert "round-trip error" in text
+    assert "✅ pass" in text
 
 
 def test_nondim_section_separates_logged_from_gated(rundir, full_inputs):
-    """`dt/τ_D` 는 기록이지 게이트가 아니라는 것이 리포트에 드러나야 한다."""
+    """The report must show that `dt/τ_D` is a record, not a gate."""
     text = R.render(rundir, full_inputs)
-    assert "기록용 (게이트 아님" in text
+    assert "for the record (not a gate" in text
     assert "dt_over_tau_D" in text
 
 
@@ -233,57 +238,58 @@ def test_nondim_section_names_the_scale_origin(rundir, full_inputs):
 
 
 def test_nondim_section_empty_without_spec(rundir):
-    assert "없음" in R.nondim_section(None, None)
+    assert "no S4 non-dimensionalization results" in R.nondim_section(None, None)
 
 
 def test_unregistered_card_does_not_crash_the_report(rundir, spec):
-    """척도 규칙이 없는 카드여도 리포트는 나와야 한다 (그 절만 빈다)."""
+    """The report must still come out for a card with no scale rule (only that
+    section is empty)."""
     spec.card = "brand--new-pair"
     text = R.render(rundir, R.ReportInputs(spec=spec))
     assert "REPORT" in text
-    assert "_S4 무차원화 결과 없음._" in text
+    assert "_no S4 non-dimensionalization results._" in text
 
 
 # =============================================================================
-# 그림 — 캡션 없는 그림은 산출물이 아니다
+# figures — an uncaptioned figure is not an artefact
 # =============================================================================
 def test_figure_without_caption_is_flagged(rundir, full_inputs):
     (rundir.figs / "01_msd.png").write_bytes(b"\x89PNG\r\n")
     text = R.render(rundir, full_inputs)
-    assert "캡션 없음" in text
-    assert "§S6 게이트" in text
+    assert "no caption" in text
+    assert "§S6 gate" in text
 
 
 def test_figure_with_caption_is_embedded(rundir, full_inputs):
     (rundir.figs / "01_msd.png").write_bytes(b"\x89PNG\r\n")
-    full_inputs.figures = {"01_msd.png": "MSD 와 해석해 2d(1−e^{−t/τ})"}
+    full_inputs.figures = {"01_msd.png": "MSD and the solution 2d(1−e^{−t/τ})"}
     text = R.render(rundir, full_inputs)
-    assert "![MSD 와 해석해" in text
-    assert "캡션 없음" not in text
+    assert "![MSD and the solution" in text
+    assert "no caption" not in text
 
 
 def test_no_figures_says_so(rundir, full_inputs):
-    assert "_그림 없음._" in R.render(rundir, full_inputs)
+    assert "_no figures._" in R.render(rundir, full_inputs)
 
 
 # =============================================================================
-# 비용
+# cost
 # =============================================================================
 def test_cost_section_reports_per_run_average():
-    assert "런당 평균 `0.66 s`" in R.cost_section(10.6, 16)
+    assert "mean per run `0.66 s`" in R.cost_section(10.6, 16)
 
 
 def test_missing_cost_says_so():
-    assert "기록 없음" in R.cost_section(None, None)
+    assert "no compute-cost record" in R.cost_section(None, None)
 
 
 # =============================================================================
-# 에이전트 문서 인용 — 대신 쓰지 않는다
+# quoting the agent's documents — it does not write them instead
 # =============================================================================
 def test_missing_agent_document_is_named_not_invented(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
-    assert "`07_validation.md` 가 없다" in text
-    assert "에이전트가 써야 한다" in text
+    assert "`07_validation.md` is missing" in text
+    assert "has to be written by the agent" in text
 
 
 def test_existing_agent_documents_are_linked(rundir, full_inputs):
@@ -293,4 +299,4 @@ def test_existing_agent_documents_are_linked(rundir, full_inputs):
 
 def test_report_states_the_division_of_labour(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
-    assert "대신 쓰지 않는다" in text
+    assert "does not write them instead" in text
