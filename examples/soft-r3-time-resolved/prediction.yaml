@@ -1,134 +1,175 @@
-# S2 PREDICTION — 시뮬레이션 전에 답을 적는다  (자동 생성: scripts/soft2d_time_series_predict.py)
+# S2 PREDICTION — the answer is written before the simulation  (auto-generated: scripts/soft2d_time_series_predict.py)
 #
-# ⚠ 이 파일은 S5 실행 전에 봉인된다 (SEALED.sha256). 실행 후 수정 금지.
-# 허용오차는 선행 런의 시드 SE 에서 유도했다 (3√2·SE) — 관측값에 맞춰 재단하지 않았다.
+# ⚠ This file is sealed before S5 runs (SEALED.sha256). No editing after the run.
+# The tolerances were derived from the prior run's seed SE (3√2·SE) — never cut to
+# fit the observation.
 #
 items:
 - quantity: psi6_global__A0.1__t20_30
   value: 0.04861634311426315
   tolerance: ±0.0076358
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.0486163 ± 0.0018
-    (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A0.1_random_sqbox, second-half mean over 4 seeds 0.0486163 ± 0.0018
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
 - quantity: defect_fraction__A0.1__t20_30
   value: 0.647
   tolerance: ±0.0057
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.647 ± 0.001344 (SE).
-    허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A0.1_random_sqbox, second-half mean over 4 seeds 0.647 ± 0.001344
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
 - quantity: energy_per_particle__A0.1__t20_30
   value: 0.637609786474552
   tolerance: ±0.0113402
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A0.1_random_sqbox 후반 절반 시드 4개 평균 0.63761 ± 0.002673
-    (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A0.1_random_sqbox, second-half mean over 4 seeds 0.63761 ± 0.002673
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
   unit: kT
 - quantity: psi6_global__A1__t20_30
   value: 0.06256456768198404
   tolerance: ±0.00201462
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 0.0625646 ± 0.0004749
-    (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A1_random_sqbox, second-half mean over 4 seeds 0.0625646 ± 0.0004749
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
 - quantity: defect_fraction__A1__t20_30
   value: 0.556125
   tolerance: ±0.0130725
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 0.556125 ± 0.003081
-    (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A1_random_sqbox, second-half mean over 4 seeds 0.556125 ± 0.003081
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
 - quantity: energy_per_particle__A1__t20_30
   value: 4.1771790300484115
   tolerance: ±0.0194954
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A1_random_sqbox 후반 절반 시드 4개 평균 4.17718 ± 0.004595 (SE).
-    허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A1_random_sqbox, second-half mean over 4 seeds 4.17718 ± 0.004595
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
   unit: kT
 - quantity: psi6_global__A10__t60_80
   value: 0.2515028706868179
   tolerance: ±0.0354199
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 0.251503 ± 0.008349
-    (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A10_random_sqbox, second-half mean over 4 seeds 0.251503 ± 0.008349
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
 - quantity: defect_fraction__A10__t60_80
   value: 0.290675
   tolerance: ±0.0193505
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 0.290675 ± 0.004561
-    (SE). 허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A10_random_sqbox, second-half mean over 4 seeds 0.290675 ± 0.004561
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
 - quantity: energy_per_particle__A10__t60_80
   value: 35.9797301340512
   tolerance: ±0.0257525
-  basis: 선행 런 runs/2026-07-29_soft-r3-2d-A-sweep 의 A10_random_sqbox 후반 절반 시드 4개 평균 35.9797 ± 0.00607 (SE).
-    허용오차 = 3√2·SE (시드 4 평균끼리 차이의 3σ)
-  discriminates: t=0 부터 연속 표집하는 새 방식이 '평형화 버리고 후반만' 방식과 같은 답을 주는가. 다르면 과도구간이 후반 창을 오염시켰거나 분석 경로가 갈라진 것이다
+  basis: the prior run runs/2026-07-29_soft-r3-2d-A-sweep, A10_random_sqbox, second-half mean over 4 seeds 35.9797 ± 0.00607
+    (SE). Tolerance = 3√2·SE (3σ on the difference of two 4-seed means)
+  discriminates: does sampling continuously from t=0 give the same answer as the
+    'discard equilibration, keep the second half' method. A difference means either
+    the transient contaminated the late window or the analysis paths diverged
   competing_value: null
   unit: kT
 - quantity: coord_kinds__A0.1
   value: 6
   tolerance: ±0
-  basis: 선행 런 A0.1_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 6개. 정수량이므로 오차 0 을 요구한다
-  discriminates: 결함의 **성격**. 분율은 같아도 종류 수가 다르면 다른 물리다 — 액체(6종) vs 전위만(3종). 카드 §8.2
+  basis: 6 kinds have fraction > 0.5 % in the coordination histogram of the prior
+    run A0.1_random_sqbox. An integer quantity, so zero error is required
+  discriminates: the **character** of the defects. The same fraction with a different
+    number of kinds is different physics — a liquid (6 kinds) vs dislocations only
+    (3 kinds). Card §8.2
   competing_value: null
 - quantity: coord_kinds__A1
   value: 5
   tolerance: ±0
-  basis: 선행 런 A1_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 5개. 정수량이므로 오차 0 을 요구한다
-  discriminates: 결함의 **성격**. 분율은 같아도 종류 수가 다르면 다른 물리다 — 액체(6종) vs 전위만(3종). 카드 §8.2
+  basis: 5 kinds have fraction > 0.5 % in the coordination histogram of the prior
+    run A1_random_sqbox. An integer quantity, so zero error is required
+  discriminates: the **character** of the defects. The same fraction with a different
+    number of kinds is different physics — a liquid (6 kinds) vs dislocations only
+    (3 kinds). Card §8.2
   competing_value: null
 - quantity: coord_kinds__A10
   value: 3
   tolerance: ±0
-  basis: 선행 런 A10_random_sqbox 의 배위수 히스토그램에서 분율 > 0.5 % 인 종류가 3개. 정수량이므로 오차 0 을 요구한다
-  discriminates: 결함의 **성격**. 분율은 같아도 종류 수가 다르면 다른 물리다 — 액체(6종) vs 전위만(3종). 카드 §8.2
+  basis: 3 kinds have fraction > 0.5 % in the coordination histogram of the prior
+    run A10_random_sqbox. An integer quantity, so zero error is required
+  discriminates: the **character** of the defects. The same fraction with a different
+    number of kinds is different physics — a liquid (6 kinds) vs dislocations only
+    (3 kinds). Card §8.2
   competing_value: null
 - quantity: rdf_at_0.5d__A0.1__first_window
   value: '>0'
   tolerance: '>0'
-  basis: '초기배치는 기각표집으로 min_sep = 0.8 d 를 강제하므로 t=0 에서 g(r<0.8d) = 0 이 정확히 성립한다. 이것은 **초기조건 인공물**이고 자유확산이
-    메운다: MSD* = 4t* ⇒ 간극 0.3 d 는 t* ≈ 0.0225 τ_d. 첫 창(0–20 τ_d)은 그보다 889배 길다'
-  discriminates: 초기조건의 배제부피 껍질이 실제로 완화되는가. 남아 있으면 표집이 초기조건에 갇힌 것이다
+  basis: 'the initial placement enforces min_sep = 0.8 d by rejection sampling, so
+    g(r<0.8d) = 0 holds exactly at t=0. That is an **initial-condition artefact** and
+    free diffusion fills it: MSD* = 4t* ⇒ a 0.3 d gap takes t* ≈ 0.0225 τ_d. The
+    first window (0–20 τ_d) is 889x longer than that'
+  discriminates: does the initial condition's excluded-volume shell actually relax. If
+    it remains, the sampling is trapped in the initial condition
   competing_value: null
 - quantity: min_separation_over_sigma__A0.1
   value: <1
   tolerance: <1
-  basis: 선행 런 최소분리 0.2172 d = 0.6516 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 2.67배이므로 극값이 더 작아진다 → 겹침 판정은
-    유지되거나 강화된다
-  discriminates: '''5 µm 원판 100개'' 라는 그림이 이 A 에서 물리적으로 성립하는가. A/r³ 에는 경질 코어가 없으므로 모델은 겹침을 허용한다 — 성립하지
-    않는다면 그것이 결과다'
+  basis: the prior run's minimum separation 0.2172 d = 0.6516 σ
+    (σ/d = 0.333333). The new run has 2x the frames and 2.67x the length, so the extreme value gets smaller →
+    the overlap verdict is maintained or reinforced
+  discriminates: 'does the picture of ''100 discs of 5 µm'' hold physically at this
+    A. A/r³ has no hard core, so the model permits overlap — if it does not hold,
+    that is the result'
   competing_value: null
   unit: sigma
 - quantity: min_separation_over_sigma__A1
   value: '>1'
   tolerance: '>1'
-  basis: 선행 런 최소분리 0.4586 d = 1.376 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 2.67배이므로 극값이 더 작아진다 → 겹침 판정은
-    유지되거나 강화된다
-  discriminates: '''5 µm 원판 100개'' 라는 그림이 이 A 에서 물리적으로 성립하는가. A/r³ 에는 경질 코어가 없으므로 모델은 겹침을 허용한다 — 성립하지
-    않는다면 그것이 결과다'
+  basis: the prior run's minimum separation 0.4586 d = 1.376 σ
+    (σ/d = 0.333333). The new run has 2x the frames and 2.67x the length, so the extreme value gets smaller →
+    the overlap verdict is maintained or reinforced
+  discriminates: 'does the picture of ''100 discs of 5 µm'' hold physically at this
+    A. A/r³ has no hard core, so the model permits overlap — if it does not hold,
+    that is the result'
   competing_value: null
   unit: sigma
 - quantity: min_separation_over_sigma__A10
   value: '>1'
   tolerance: '>1'
-  basis: 선행 런 최소분리 0.7164 d = 2.149 σ (σ/d = 0.333333). 새 런은 프레임이 2배·길이가 1배이므로 극값이 더 작아진다 → 겹침 판정은 유지되거나
-    강화된다
-  discriminates: '''5 µm 원판 100개'' 라는 그림이 이 A 에서 물리적으로 성립하는가. A/r³ 에는 경질 코어가 없으므로 모델은 겹침을 허용한다 — 성립하지
-    않는다면 그것이 결과다'
+  basis: the prior run's minimum separation 0.7164 d = 2.149 σ
+    (σ/d = 0.333333). The new run has 2x the frames and the same length, so the extreme value gets smaller →
+    the overlap verdict is maintained or reinforced
+  discriminates: 'does the picture of ''100 discs of 5 µm'' hold physically at this
+    A. A/r³ has no hard core, so the model permits overlap — if it does not hold,
+    that is the result'
   competing_value: null
   unit: sigma
 - quantity: t90_ordering
-  value: t90(A=10) > t90(A=1) 이고 t90(A=10) > 1 tau_d
-  tolerance: 정성 (순서)
-  basis: A=10 은 Γ = π^{3/2}·10 = 55.68 로 Zahn 전이점 59.88 의 −7.0 % 다 [출처, 미재현] → 임계 완화가 예상된다. A ≤ 1 은 깊은
-    액체이고 무작위 초기배치가 이미 액체 배치에 가까우므로 ψ₆ 가 거의 평탄할 것이다
-  discriminates: 전이점 근처에서 구조 완화가 느려지는가 (임계 완화의 서명)
-  competing_value: 세 A 의 도달 시각이 모두 O(1) tau_d 로 구별되지 않는다
+  value: t90(A=10) > t90(A=1) and t90(A=10) > 1 tau_d
+  tolerance: qualitative (ordering)
+  basis: A=10 has Γ = π^{3/2}·10 = 55.68, which is −7.0 % from Zahn's transition point
+    59.88 [source, not reproduced] → critical slowing is expected. A ≤ 1 is a deep
+    liquid and a random initial placement is already close to a liquid arrangement, so
+    ψ₆ should be nearly flat
+  discriminates: does structural relaxation slow near the transition point (the
+    signature of critical slowing)
+  competing_value: the times to reach are all O(1) tau_d and indistinguishable across
+    the three A
 regimes:
   amplitudes:
   - 0.1
@@ -158,15 +199,23 @@ regimes:
   - 6
   - 7
   - 8
-  note: 무차원 물리는 A 하나로 결정된다 (n* = 1, 경질 코어 없음). 커버리지는 τ_d 의 초 값과 점입자 이상화의 타당성만 바꾼다 — ψ₆·g(r)·결함에 대한 감도는
-    정확히 0 이다
+  note: the dimensionless physics is set by A alone (n* = 1, no hard core). The
+    coverage changes only τ_d in seconds and the validity of the point-particle
+    idealization — its sensitivity on ψ₆, g(r) and the defects is exactly 0
 alternatives:
-- 선행 런과 시드를 갈랐다 (1–4 → 5–8). 같은 시드면 HOOMD Brownian 이 비트 단위로 재현되므로 후반 창 비교가 산술 항등식이 된다.
-- INCONCLUSIVE 예상 — '평형에 도달했다'는 이 런으로 판정할 수 없다. 선행 런에서 A=10 의 ψ₆ 표류가 −0.013 ± 0.008 (1.6σ) 로 0 과 구별되지
-  않았고, 구별 안 됨은 '평형'이 아니라 '이 길이로는 안 보인다'는 뜻이다.
-- INCONCLUSIVE 예상 — A=0.1 과 A=1 의 ψ₆ 차이(0.049 vs 0.063)는 유한크기 바닥(1/√N = 0.1) 아래다. 둘의 배향 질서는 '둘 다 없음' 으로만
-  말할 수 있다.
-- N=100 은 A=10 의 r_cut 요구(N ≥ 252)를 만족하지 않는다 (카드 §9). βU(r_cut) = 0.09 kT 가 A=10 결과에 남아 있다 — N 수렴 검사는
-  이 런의 범위 밖이다.
-- A=0.1 에서 기준 원판이 겹치는 것은 코드 오류가 아니라 모델의 성질이다. 겹침을 없애려면 커버리지를 3.71 % 아래로 내려야 하고, 그러면 무차원 결과는 그대로이고 τ_d
-  만 바뀐다.
+- The seeds were split off from the prior run (1–4 → 5–8). With the same seeds
+  HOOMD Brownian reproduces bit-for-bit, which would make the late-window comparison
+  an arithmetic identity.
+- INCONCLUSIVE expected — 'it reached equilibrium' cannot be decided by this run. In
+  the prior run the ψ₆ drift at A=10 was −0.013 ± 0.008 (1.6σ), indistinguishable
+  from 0, and indistinguishable means 'not visible at this length', not
+  'equilibrium'.
+- INCONCLUSIVE expected — the ψ₆ difference between A=0.1 and A=1 (0.049 vs 0.063) is
+  below the finite-size floor (1/√N = 0.1). Their orientational order can only be
+  called 'absent in both'.
+- N=100 does not satisfy A=10's r_cut requirement (N ≥ 252, card §9).
+  βU(r_cut) = 0.09 kT remains in the A=10 result — an N-convergence check is outside
+  this run's scope.
+- The reference discs overlapping at A=0.1 is a property of the model, not a code
+  error. Removing the overlap would require dropping the coverage below 3.71 %, and
+  then the dimensionless result is unchanged and only τ_d moves.
