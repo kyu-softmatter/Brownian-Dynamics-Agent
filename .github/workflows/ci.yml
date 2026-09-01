@@ -1,0 +1,133 @@
+# Three jobs, cheapest first, and each one answers a different question.
+#
+#   seals        did any sealed document change after it was sealed?
+#   tests-core   does the deterministic core hold without a simulation engine?
+#   tests-hoomd  does the whole suite hold, HOOMD included?
+#
+# `seals` needs nothing but coreutils, so it reports in seconds and is the one
+# to read first. `tests-core` skips every HOOMD and freud test by way of the
+# `importorskip` fixtures in tests/conftest.py, which is not a workaround --
+# it is what tells you whether a failure is physics or plumbing.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  seals:
+    name: prediction seals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # SEALED.sha256 is plain `sha256sum` format, so this check does not import
+      # a line of this repository's code -- which is the point. A seal verified
+      # by the same codebase that wrote it is not verified.
+      #
+      # Recorded paths are repo-relative. Where a run directory was renamed after
+      # sealing, the recorded path no longer resolves; that is reported as a
+      # warning and the document is then verified next to its own seal. Content
+      # integrity gates this job. A stale path does not.
+      - name: Every sealed document still hashes to its seal
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail=0
+          checked=0
+          drifted=0
+
+          while IFS= read -r seal; do
+            dir=$(dirname "$seal")
+            while read -r want rel || [ -n "${want:-}" ]; do
+              if [ -z "${want:-}" ]; then continue; fi
+              checked=$((checked + 1))
+
+              target="$rel"
+              if [ ! -f "$target" ]; then
+                target="$dir/$(basename "$rel")"
+                drifted=$((drifted + 1))
+                echo "::warning file=${seal}::recorded path '${rel}' does not resolve; verifying '${target}' instead"
+              fi
+
+              if [ ! -f "$target" ]; then
+                echo "::error file=${seal}::sealed document is missing: ${rel}"
+                fail=1
+                continue
+              fi
+
+              got=$(sha256sum "$target" | cut -d' ' -f1)
+              if [ "$got" != "$want" ]; then
+                echo "::error file=${target}::seal broken -- recorded ${want}, computed ${got}"
+                fail=1
+              fi
+            done < "$seal"
+          done < <(git ls-files '*SEALED.sha256')
+
+          echo "${checked} sealed documents checked, ${drifted} with a stale recorded path"
+          if [ "$checked" -eq 0 ]; then
+            echo "::error::no SEALED.sha256 found -- this job silently passed on nothing"
+            fail=1
+          fi
+          exit "$fail"
+
+  tests-core:
+    name: tests without HOOMD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      # environment.yml minus the engine. freud is left out on purpose and is
+      # covered by tests-hoomd, so this job stays a pip install with no compiler.
+      - name: Install the non-engine dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            numpy scipy pandas pyarrow h5py matplotlib \
+            pydantic pint typer rich pyyaml gsd pytest
+
+      # `python -m pytest`, not `pytest`: the repository has no pyproject.toml,
+      # so `bdbot` and `simbot` are importable only with the root on sys.path.
+      - name: python -m pytest
+        run: python -m pytest -q -rs
+
+  tests-hoomd:
+    name: tests with HOOMD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # environment.yml pins python=3.12 and hoomd=7.1; conda-forge has
+      # hoomd-7.1.0-cpu_py312 for linux-64. The development environment is
+      # macOS arm64 with the same CPU build -- see CLAUDE.md, "Run environment".
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: environment.yml
+          cache-environment: true
+          init-shell: bash
+
+      - name: Report what the engine actually is
+        shell: micromamba-shell {0}
+        run: |
+          python -c "import hoomd; print('hoomd', hoomd.version.version)"
+          python -c "import hoomd; print('gpu build:', hoomd.version.gpu_enabled)"
+          python -c "import freud; print('freud', freud.__version__)"
+
+      - name: python -m pytest
+        shell: micromamba-shell {0}
+        run: python -m pytest -q -rs
