@@ -1,5 +1,7 @@
 # Brownian-Dynamics Agent
 
+[![CI](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent/actions/workflows/ci.yml)
+
 An agent that turns a sketch, a note or a paper into a Brownian-dynamics result
 that is explicit about what was assumed, what was predicted, what was verified,
 and what is still unresolved.

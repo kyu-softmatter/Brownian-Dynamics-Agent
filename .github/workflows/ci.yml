@@ -1,3 +1,6 @@
+# The badge in README.md reports this workflow, so what it covers has to be
+# stated rather than implied.
+#
 # Two jobs, cheapest first, and each one answers a different question.
 #
 #   seals        did any sealed document change after it was sealed?
@@ -5,6 +8,17 @@
 #
 # `seals` needs nothing but coreutils, so it reports in seconds and is the one
 # to read first.
+#
+# Measured on 2af7536, ubuntu-latest, hoomd 7.1.0 CPU from conda-forge:
+# 1008 passed, 2 skipped in 100.7 s, and 18 sealed documents verified. `-rs`
+# prints every skip and its reason into each run's log, which is the only
+# reason those two counts can be trusted.
+#
+# Not covered: osx-arm64 -- the environment CLAUDE.md documents and the one the
+# work is actually done in. hoomd ships a separate build per platform, so a
+# green badge here says linux-64 holds and says nothing about the development
+# machine. Adding macos-latest to a matrix would close that, at roughly ten
+# times the per-minute cost.
 #
 # There is deliberately no engine-free job. The first attempt at one failed
 # during collection: `simbot/forces.py` imports hoomd at module scope, and
