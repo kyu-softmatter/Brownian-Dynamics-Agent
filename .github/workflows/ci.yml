@@ -87,10 +87,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `cache: pip` -- that option needs a requirements.txt or a
+      # pyproject.toml to hash, and this repository has neither. The dependency
+      # list below is the cache key it would have used, so it is written out.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
 
       # environment.yml minus the engine. freud is left out on purpose and is
       # covered by tests-hoomd, so this job stays a pip install with no compiler.

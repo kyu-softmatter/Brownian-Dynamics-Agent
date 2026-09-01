@@ -17,7 +17,11 @@ dependencies:
   # ── 시뮬레이션 엔진 ────────────────────────────────────────────────
   # 문서는 v7.1.1 기준이나 설치본은 7.1.0. 패치 차이이며 조사한 API는 전부 동일.
   # osx-arm64에는 CUDA 빌드가 없으므로 자동으로 CPU 빌드가 선택된다.
-  - hoomd=7.1
+  # Pinned at the patch level, not the minor line. CLAUDE.md and the note above
+  # both state 7.1.0, and tests/test_s8_report.py asserts that exact string is
+  # recorded in the run manifest. `hoomd=7.1` floated CI to 7.1.2 and broke that
+  # assertion -- the pin disagreeing with the documentation, not a wrong test.
+  - hoomd=7.1.0
   - gsd
 
   # ── 분석 ──────────────────────────────────────────────────────────
