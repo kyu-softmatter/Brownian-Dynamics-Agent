@@ -1,13 +1,18 @@
-# Three jobs, cheapest first, and each one answers a different question.
+# Two jobs, cheapest first, and each one answers a different question.
 #
 #   seals        did any sealed document change after it was sealed?
-#   tests-core   does the deterministic core hold without a simulation engine?
-#   tests-hoomd  does the whole suite hold, HOOMD included?
+#   tests-hoomd  does the suite hold, engine included?
 #
 # `seals` needs nothing but coreutils, so it reports in seconds and is the one
-# to read first. `tests-core` skips every HOOMD and freud test by way of the
-# `importorskip` fixtures in tests/conftest.py, which is not a workaround --
-# it is what tells you whether a failure is physics or plumbing.
+# to read first.
+#
+# There is deliberately no engine-free job. The first attempt at one failed
+# during collection: `simbot/forces.py` imports hoomd at module scope, and
+# `cli.py` plus three test modules reach it, so **no configuration of this
+# repository imports without the engine.** The `importorskip` fixtures in
+# tests/conftest.py protect the tests that use them, not the import graph above
+# them. A curated ignore-list would go green and would go stale the first time
+# anyone adds a test, which is worse than not having the job.
 
 name: CI
 
@@ -80,33 +85,6 @@ jobs:
             fail=1
           fi
           exit "$fail"
-
-  tests-core:
-    name: tests without HOOMD
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # No `cache: pip` -- that option needs a requirements.txt or a
-      # pyproject.toml to hash, and this repository has neither. The dependency
-      # list below is the cache key it would have used, so it is written out.
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      # environment.yml minus the engine. freud is left out on purpose and is
-      # covered by tests-hoomd, so this job stays a pip install with no compiler.
-      - name: Install the non-engine dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install \
-            numpy scipy pandas pyarrow h5py matplotlib \
-            pydantic pint typer rich pyyaml gsd pytest
-
-      # `python -m pytest`, not `pytest`: the repository has no pyproject.toml,
-      # so `bdbot` and `simbot` are importable only with the root on sys.path.
-      - name: python -m pytest
-        run: python -m pytest -q -rs
 
   tests-hoomd:
     name: tests with HOOMD
