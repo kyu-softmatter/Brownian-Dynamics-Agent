@@ -422,6 +422,23 @@ defensible on their numbers and *not* defensible against the charge of having
 been interpreted after the fact. Closing that is item 1 on the
 [roadmap](docs/06-roadmap.md#7--what-would-most-improve-the-science-in-order).
 
+**And one item on that list is not code at all.** A **parameter memo** is to be
+written — **Saksham Malik with Takuya Kobayashi**, agreed at their parameter
+meeting — giving, for each parameter: what it is, **its physical meaning**, **how
+its value is decided**, and **why it matters quantitatively**. The last two are
+the point; a list of symbols and units is a nomenclature table and this
+repository can generate one.
+
+**What makes it a science item rather than documentation** is that the failure it
+prevents has already happened here once. `T = 300 K` is labelled **tier 1** and
+is actually **a choice**, inherited from a sketch that never stated a
+temperature — worth **−4.4 % to −15.0 % on every `τ_B`** the project computes.
+**No gate catches that**: the value is present, the units are right, the
+arithmetic is correct, and the tier is a provenance claim only a human knows is
+false. The memo is expected to **demote** things, and the demotions are the
+deliverable.
+→ [roadmap §8](docs/06-roadmap.md#8--the-parameter-memo--to-write)
+
 ---
 
 ## Toward a model-to-experiment loop

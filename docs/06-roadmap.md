@@ -284,3 +284,45 @@ needs.
    −15 % worst case from every timescale.
 5. **Unify the two knowledge schemas**, before the count of misfiled lessons
    grows further.
+6. **Write the parameter memo** — §8.
+
+---
+
+## 8 · The parameter memo — to write
+
+**Owner: Saksham Malik, with Takuya Kobayashi.** Agreed at their parameter
+meeting; this section is the placeholder, not the memo. **Nothing below names a
+parameter, because which ones were discussed is theirs to say** — what is fixed
+here is the shape each entry has to have, so the memo lands in a form the rest of
+the repository can consume rather than as prose that has to be re-read every time.
+
+**Four things per parameter, and the fourth is the one that gets skipped:**
+
+| | | |
+|---|---|---|
+| **1** | **What it is** | The symbol, the SI unit, and the quantity — not the variable name. `simbot` already carries `tier` and `derived_from` on every number; this is the sentence those two fields abbreviate |
+| **2** | **Its physical meaning** | What in the actual system it corresponds to, and what changes if it moves. A parameter nobody can state this for is a fitting knob, and saying so is a result |
+| **3** | **How the value is decided** | The procedure, not the number. Measured from what · read out of which paper · derived from which other parameters · or chosen. **"Chosen" is a legitimate answer and the memo's most valuable one** |
+| **4** | **Why it matters, quantitatively** | The sensitivity: how far the conclusion moves per unit of it. Without this an entry cannot be ranked, and a memo that cannot be ranked does not change what gets measured next |
+
+**Why this is on the list at all**, rather than being documentation housekeeping.
+The repository already has one worked instance of the failure it prevents:
+`T = 300 K` is labelled **tier 1** and is in fact **a choice**, inherited from a
+sketch that never stated a temperature (§2). Water's viscosity is 2.06 %/K
+sensitive, so that one mislabelled parameter puts −4.4 % to −15.0 % into every
+`τ_B` the project computes. **It was not caught by a gate, because no gate can
+catch it** — the value is present, the units are right, the arithmetic is
+correct, and the tier is a claim about provenance that only a human knows is
+false. Item 4 above fixes that one parameter. **This item is what stops the next
+one**, by making the four questions something a parameter has to survive rather
+than something a reader has to think to ask.
+
+Two consequences worth stating up front:
+
+- **Entries 3 and 4 are what make it more than a glossary.** A list of symbols
+  and units is a nomenclature table and this repo can generate one. The decision
+  procedure and the sensitivity are the parts that live in people's heads today.
+- **It feeds the tier system directly.** Any parameter whose answer to 3 is
+  "chosen" cannot honestly hold tier 1, so the memo is expected to *demote*
+  things. That is the point, and the demotions are the deliverable — a memo that
+  confirms every existing tier has told us nothing we did not already assume.
