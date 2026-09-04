@@ -98,5 +98,20 @@ trusted to it.
 
 ## Licence
 
-**No licence is granted.** This repository is published for reading, and all
-rights are reserved. If you want to use any part of it, ask.
+**[LICENSE](LICENSE) is MIT**, settled 2026-09-04. It covers this repository's
+own work: `bdbot/`, `simbot/`, `cases/`, `verify/`, `tests/`, `tools/`, `docs/`,
+`specs/`, and the distillations under `knowledge/` — which are **our summaries**,
+written in this project's non-dimensional conventions, not the sources they were
+read from.
+
+**What the licence does not reach.** Everything in §1 above: the 21 Leal
+chapters, the Welty text, the two Pantina & Furst papers and the 32
+lab-collected PDFs belong to their publishers and authors, they are **in no
+commit here**, and MIT-licensing our reading of them grants no right over them.
+Likewise **HOOMD-blue** (BSD-3 — this repository drives it and does not vendor
+it), and the **physical results**, which are measurements rather than software.
+
+**What it does now cover, and did not before:** the six hand sketches in
+`intake/` (§4). They are the author's own photographs of the author's own
+notebook, so MIT is the right answer for them — holding the resolution down was
+about file size, never about rights.

@@ -1,6 +1,16 @@
 # Brownian-Dynamics Agent
 
 [![CI](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent/actions/workflows/ci.yml)
+[![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
+**What the badge covers**, because a green shield states nothing on its own:
+**1008 passed, 2 skipped in 100.7 s** on HOOMD-blue 7.1.0, plus **18 sealed
+documents verified**. `pytest -rs` prints every skip with its reason, which is
+the only thing that keeps that count from quietly shrinking. **What it does not
+cover:** CI runs `linux-64`, and [`CLAUDE.md`](CLAUDE.md) documents
+`osx-arm64` — which is where the work actually happens. HOOMD ships a separate
+build per platform, so a green badge here says `linux-64` holds and says nothing
+about the development machine.
 
 An agent that turns a sketch, a note or a paper into a Brownian-dynamics result
 that is explicit about what was assumed, what was predicted, what was verified,
@@ -24,8 +34,9 @@ judges where there is no closed form, and originates no physical value.
 > [`agentic-microscope`](https://github.com/kyu-softmatter/agentic-microscope)
 > applies the same reliability rules to physical experiments. This repository
 > asks what the physical system should do; that one asks whether an instrument
-> can measure the difference well enough to decide. A third, `research-topic`
-> (private), asks which question is worth asking at all, and is meant to hold
+> can measure the difference well enough to decide. A third,
+> [`research-topic`](https://github.com/kyu-softmatter/research-topic),
+> asks which question is worth asking at all, and is meant to hold
 > the knowledge base and the definitions of rigor that both of the others
 > enforce. **It is a sketch — nothing is built there yet**, and neither working
 > repository depends on it.
@@ -51,8 +62,8 @@ judges where there is no closed form, and originates no physical value.
 | **278 specifications · 256 run directories** | 254 carrying `metrics.json` |
 | **227 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **76 verification scripts** | every physics claim in the docs traces to one |
-| **572 tests** | 2 skipped, ~11 s, as recorded by the last full run |
-| **Knowledge base** | 46 wiki pages — 11 system cards · 23 findings · 5 benchmarks — plus 43 paper and 2 book distillations and 135 tool-written entries |
+| **1008 tests** | 2 skipped, ~101 s with the engine, as measured by CI on `linux-64` → [above](#brownian-dynamics-agent) |
+| **Knowledge base** | 46 wiki pages — 11 system cards · 23 findings · 5 benchmarks — plus 42 paper and 2 book distillations and 135 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
@@ -387,8 +398,8 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **278** specs · 256 run directories · **254** with `metrics.json` · 227 post-mortems |
 | Code | `bdbot/` 21 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 76 verification scripts |
-| Tests | **572 pass**, 2 skipped, ~11 s |
-| Knowledge | 46 wiki pages · 43 paper + 2 book distillations · 135 entries |
+| Tests | **1008 pass**, 2 skipped, ~101 s on CI with the engine |
+| Knowledge | 46 wiki pages · 42 paper + 2 book distillations · 135 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is
@@ -488,13 +499,15 @@ ask whether any real instrument could reach it.
 
 The box at the top of that diagram was drawn before anything owned it.
 `SCIENTIFIC QUESTION` arrives from a human today, and `evidence` at the bottom
-goes back to a human too. `research-topic` (private, sketch stage) is meant to
-be what sits in both places: it proposes the question, and it keeps what came
+goes back to a human too.
+[`research-topic`](https://github.com/kyu-softmatter/research-topic) (sketch
+stage) is meant to be what sits in both places: it proposes the question, and it
+keeps what came
 back — **including the failures, which is the part that gets skipped.**
 
 | Axis | Repository | Asks | Status |
 |---|---|---|---|
-| **Topic** | `research-topic` *(private)* | which question is worth asking, and what the other two should read | sketch only. **Nothing built** |
+| **Topic** | [`research-topic`](https://github.com/kyu-softmatter/research-topic) | which question is worth asking, and what the other two should read | sketch only. **Nothing built** |
 | **Simulation** | **this repository** | what the physical system should do | running |
 | **Experiment** | [`agentic-microscope`](https://github.com/kyu-softmatter/agentic-microscope) | what the instrument can actually record | running |
 
@@ -591,4 +604,12 @@ python -m bdbot.cli status
 | Trajectories (542 MB of `.gsd`/`.npz`) | **not published** — regenerate from `spec + seed` |
 | The experiment's actual temperature | **not obtained.** The one-number fix that would remove a −15 % worst case from every timescale |
 
-**No licence is granted.** Published for reading; all rights reserved.
+The code is [MIT](LICENSE). It covers this repository's own work — `bdbot/`,
+`simbot/`, `cases/`, `verify/`, `tests/`, `tools/`, `docs/` and the distillations
+in `knowledge/`, which are our summaries rather than the sources. **Three things
+it does not reach**, and none of them is the repository's to licence: the
+copyrighted papers and book chapters the distillations were read from, which are
+in no commit here (§1 of [NOTICE](NOTICE.md)); HOOMD-blue itself, which is BSD-3
+and separately obtained; and the physical results, which are measurements and not
+software. A licence is a claim of ownership, so what it cannot cover is worth
+stating as precisely as what it can.
