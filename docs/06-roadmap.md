@@ -13,10 +13,10 @@ a number here disagrees with a Korean design document in
 | **L1 agent layer** | ✅ 6 skills · 9 subagents (model-tiered) · 4 rules · `settings.json` that refuses to edit a sealed document. Structure guarded by 64 tests |
 | **L2 engine (`bdbot/`)** | ✅ 21 modules, L0→L7. All 8 cases on the `@RUN.builder` contract. The 5 pre-existing cases were re-run after migration and matched to 15 decimal places |
 | **L2 pipeline half (`simbot/`)** | ✅ 19 modules, S2/S6/S7/S8 + sealing + `INCONCLUSIVE`. ⚠️ **one runner only** (`passive-sphere--harmonic-trap`) |
-| **L3 knowledge** | 🔶 46 wiki pages · 44 distillations · 126 entries · 227 post-mortems — **but two unmerged schemas** |
-| **L4 artifacts** | ✅ 278 specs · 261 run directories · 254 with `metrics.json` |
-| **Tests** | ✅ **572 pass**, 2 skipped, 15 slow deselected, ~11 s |
-| **Verification scripts** | ✅ 74 in [`verify/`](../verify/) |
+| **L3 knowledge** | 🔶 46 wiki pages · 44 distillations · 135 entries · 227 post-mortems — **but two unmerged schemas** |
+| **L4 artifacts** | ✅ 278 specs · 256 run directories · 254 with `metrics.json` |
+| **Tests** | ✅ **1008 pass**, 2 skipped, ~101 s — the full suite with the engine, as CI runs it. `-m "not slow"` deselects 15 and is the fast local loop |
+| **Verification scripts** | ✅ 76 in [`verify/`](../verify/) |
 
 Physics conclusions are in [04 Cases](04-cases.md). The headline one:
 `chain-bend-2d-dlvo`, 145 runs across 3 driving protocols, concluding that a

@@ -266,3 +266,9 @@ $PY -m pytest -q -m "not slow"
 deselects 15 long ones. Measured in this merged tree on 2026-08-28 — the merge
 broke 6 of them (all in `test_agent_layer.py`, which guards the `.claude/`
 structure) and those were fixed rather than deleted.
+
+**Those are the 2026-08-28 numbers, and the suite has roughly doubled since.**
+The current figure is CI's, and it is a different command — `pytest -q -rs`, the
+whole suite with the engine and nothing deselected: **1008 passed, 2 skipped in
+100.7 s** on `linux-64`. The `-m "not slow"` form above is the fast local loop,
+not the number to quote.
