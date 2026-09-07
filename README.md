@@ -30,16 +30,18 @@ judges where there is no closed form, and originates no physical value.
 > and the git history begins 2026-08-28, when three predecessors were merged and
 > published. Not a supported product.
 >
-> **Companion projects — three axes of one system.**
+> **Companion projects — four axes of one system.**
 > [`agentic-microscope`](https://github.com/kyu-softmatter/agentic-microscope)
 > applies the same reliability rules to physical experiments. This repository
 > asks what the physical system should do; that one asks whether an instrument
-> can measure the difference well enough to decide. A third,
-> [`research-topic`](https://github.com/kyu-softmatter/research-topic),
-> asks which question is worth asking at all, and is meant to hold
-> the knowledge base and the definitions of rigor that both of the others
-> enforce. **It is a sketch — nothing is built there yet**, and neither working
-> repository depends on it.
+> can measure the difference well enough to decide.
+> [`research-topic`](https://github.com/kyu-softmatter/research-topic)
+> asks which question is worth asking at all, and holds the definitions of rigor
+> that the others enforce — **a sketch; nothing is built there yet**.
+> [`librarian-agent`](https://github.com/kyu-softmatter/librarian-agent) keeps
+> the knowledge findable across all of them and reports when it has gone stale;
+> it currently indexes the microscope only, and no knowledge has moved yet.
+> **No working repository depends on either of the two.**
 > → [below](#toward-a-model-to-experiment-loop)
 >
 > **Public repository.** No copyrighted PDF, trajectory binary or unpublished lab
@@ -480,7 +482,7 @@ Read [the pitfalls](docs/05-pitfalls.md) before implementing anything.
 ```text
                   +---------------------------+
                   |       research-topic      |  which question is worth asking
-                  |   private . sketch only   |  + the knowledge base both read
+                  |    public . sketch only   |
                   +-------------+-------------+
                                 |
                         SCIENTIFIC QUESTION
@@ -503,6 +505,9 @@ Read [the pitfalls](docs/05-pitfalls.md) before implementing anything.
                                 |
                                 +----> back to research-topic, as knowledge
                                        (including the dead ends)
+                                |
+                                +----> librarian-agent, which keeps it findable
+                                       and says when it has gone stale
 ```
 
 **Long-term direction, and none of it is automated.** The concrete form of the
@@ -512,31 +517,35 @@ This repository has produced exactly that number once — bow separates DLVO fro
 JKR at 22.3σ under a soft trap and at 1.4× under a stiff one — and had no way to
 ask whether any real instrument could reach it.
 
-### The third axis, and why the diagram already had a hole in it
+### The other two axes, and why the diagram already had a hole in it
 
 The box at the top of that diagram was drawn before anything owned it.
 `SCIENTIFIC QUESTION` arrives from a human today, and `evidence` at the bottom
-goes back to a human too.
-[`research-topic`](https://github.com/kyu-softmatter/research-topic) (sketch
-stage) is meant to be what sits in both places: it proposes the question, and it
-keeps what came
-back — **including the failures, which is the part that gets skipped.**
+goes back to a human too. Two repositories are meant to sit in those places —
+one to propose the question, and one to keep what came back **including the
+failures, which is the part that gets skipped.**
 
 | Axis | Repository | Asks | Status |
 |---|---|---|---|
-| **Topic** | [`research-topic`](https://github.com/kyu-softmatter/research-topic) | which question is worth asking, and what the other two should read | sketch only. **Nothing built** |
+| **Topic** | [`research-topic`](https://github.com/kyu-softmatter/research-topic) | which question is worth asking | sketch only. **Nothing built** |
 | **Simulation** | **this repository** | what the physical system should do | running |
 | **Experiment** | [`agentic-microscope`](https://github.com/kyu-softmatter/agentic-microscope) | what the instrument can actually record | running |
+| **Knowledge** | [`librarian-agent`](https://github.com/kyu-softmatter/librarian-agent) | where the answer already is, and whether it has gone stale | read tools running; indexes the microscope. **Nothing migrated** |
 
 The intended shape is a loop rather than a pipeline, and **that is exactly why it
-is worth stating the risk out loud**: three components that feed each other will
-amplify whatever bias they share. The third repository carries that objection as
+is worth stating the risk out loud**: components that feed each other will
+amplify whatever bias they share. `research-topic` carries that objection as
 a registered conflict, and its answer is that a topic may only enter the loop in
-a form the other two can falsify. Until that holds, this repository takes its
-questions from a person, as it does now.
+a form the working repositories can falsify. Until that holds, this repository
+takes its questions from a person, as it does now.
 
-**No dependency runs the other way.** Nothing in this repository imports,
-reads or waits on the third one, and if it is never built, nothing here breaks.
+**No dependency runs the other way.** Nothing in this repository imports, reads
+or waits on either of the two, and if neither is built, nothing here breaks.
+`librarian-agent` reads this repository and writes nothing to it; anything it
+proposes arrives as a pull request. **It has read this one once already** —
+`knowledge/source/papers/INDEX.md` is headed *do not edit by hand*, names a
+generator that is not in the repository, and states 40 entries where 42 files
+exist. Both were found by its drift report.
 
 ---
 
