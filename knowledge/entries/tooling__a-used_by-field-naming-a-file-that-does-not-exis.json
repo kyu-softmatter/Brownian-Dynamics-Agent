@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "microrheology",
+    "gser",
+    "knowledge-base",
+    "dangling-reference"
+  ],
+  "dimensionless": {},
+  "source": "knowledge/source/papers/1995-mason-weitz-gser-microrheology.md#used_by",
+  "lessons": [
+    {
+      "claim": "A used_by field naming a file that does not exist is an unwired checker in document form. The Mason-Weitz distillation declared used_by: simbot/analysis/microrheo.py and that file never existed (simbot/analysis holds only structure.py and trap.py). It could not exist there either - simbot imports bdbot in 4 modules, so a bdbot case calling an estimator under simbot/analysis would be an import cycle, and all 8 real cases run through bdbot. Written 2026-09-02 as bdbot/microrheo.py. Check used_by targets resolve when distilling.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

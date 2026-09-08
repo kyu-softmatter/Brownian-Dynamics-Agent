@@ -81,6 +81,70 @@ def make_sim(frame, seed: int, notice_level: int = 0):
     return sim
 
 
+def frame_3d(positions, L, types=("A",), typeid=None, bonds=None, angles=None):
+    """A 3D periodic frame. `positions` is (N,3), `L` a scalar or `(Lx,Ly,Lz)`.
+
+    * Promoted 2026-09-02 on its second appearance: `cases/network_3d.py:754`
+      inlines this, and `bead-water-3d` needs it. Promotion rule unchanged --
+      *"has it appeared twice?"*
+
+    ⚠ The 2D/3D difference is one number and it is trap 9 in skill `bd-hoomd`:
+      2D sets `box=[Lx,Ly,0,...]` **and** `dimensions=2`; 3D sets `Lz=L` and
+      `dimensions=3`. Setting `Lz=0` with `dimensions=3` gives a zero-volume box.
+    """
+    import gsd.hoomd
+
+    p = np.asarray(positions, dtype=float)
+    if p.ndim != 2 or p.shape[1] != 3:
+        raise ValueError(f"3D positions must be (N,3), got {p.shape}")
+    Ls = ([float(L)] * 3 if np.isscalar(L) else [float(x) for x in L])
+    if len(Ls) != 3 or any(x <= 0 for x in Ls):
+        raise ValueError(f"L must give three positive lengths, got {L}")
+
+    f = gsd.hoomd.Frame()
+    f.particles.N = int(p.shape[0])
+    f.particles.position = p
+    f.particles.types = list(types)
+    f.particles.typeid = (np.zeros(p.shape[0], dtype=int) if typeid is None
+                          else np.asarray(typeid, dtype=int))
+    f.particles.mass = np.ones(p.shape[0])
+    f.configuration.box = [Ls[0], Ls[1], Ls[2], 0, 0, 0]
+    f.configuration.dimensions = 3
+    if bonds is not None:
+        b = np.asarray(bonds, dtype=int)
+        f.bonds.N, f.bonds.types = int(b.shape[0]), ["A-A"]
+        f.bonds.typeid = np.zeros(b.shape[0], dtype=int)
+        f.bonds.group = b
+    if angles is not None:
+        a = np.asarray(angles, dtype=int)
+        f.angles.N, f.angles.types = int(a.shape[0]), ["A-A-A"]
+        f.angles.typeid = np.zeros(a.shape[0], dtype=int)
+        f.angles.group = a
+    return f
+
+
+def unwrap(positions, images, L, dims: int = 3):
+    """`r_unwrapped = r_wrapped + image * L`. **Required for any MSD under PBC.**
+
+    ⚠ This is the mirror image of the worst error in this project's history. A
+      *missing* minimum image gave **+1856 %** on a pair quantity; applying the
+      minimum image (or reading raw wrapped coordinates) to an MSD is the same
+      class of mistake in the other direction -- the MSD silently saturates at
+      `~L^2` instead of growing, which looks exactly like a plateau, i.e. exactly
+      like a real physical result.
+
+      A free probe run to 1500 tau_B wraps the box many times, so this is not an
+      edge case for `bead-water-3d`; it is the common path.
+    """
+    p = np.asarray(positions, dtype=float)
+    im = np.asarray(images, dtype=float)
+    if p.shape != im.shape:
+        raise ValueError(f"positions {p.shape} and images {im.shape} must match")
+    Ls = np.asarray([float(L)] * 3 if np.isscalar(L) else [float(x) for x in L],
+                    dtype=float)
+    return (p + im * Ls)[..., :int(dims)]
+
+
 def attach_brownian(sim, dt_star: float, forces, kT: float = 1.0, gamma: float = 1.0):
     """Attach the dimensionless BD integrator and return (integrator, method).
 
@@ -176,6 +240,7 @@ def progress(i, total, t_elapsed, extra: str = "") -> str:
     return f"    {i:>6}/{total}  ({pct:4.0f}%)  {t_elapsed:6.1f}s   {extra}"
 
 
-__all__ = ["resolve_seed", "frame_2d", "make_sim", "attach_brownian", "add_trajectory_writer",
+__all__ = ["resolve_seed", "frame_2d", "frame_3d", "unwrap", "make_sim", "attach_brownian",
+           "add_trajectory_writer",
            "flush_writers", "wca", "period_array", "wrap_minimum_image", "minimum_image",
            "progress", "HOOMD_SEED_MAX"]

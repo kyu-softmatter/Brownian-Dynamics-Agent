@@ -957,6 +957,8 @@ def build(spec, outdir=None) -> RUN.Build:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", action="store_true", help="report only")
+    ap.add_argument("--smoke", action="store_true",
+                    help="scaled-down run: does this path execute, and at what rate. Profile in bdbot/smoke.py -- NOT the production measurement")
     ap.add_argument("--spec", action="store_true", help="save the spec, do not run")
     ap.add_argument("--n", type=int, default=None, help="number of particles (default: the first value in system.yaml)")
     ap.add_argument("--stage-tau", type=float, default=1e-3,
@@ -981,6 +983,9 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=1, help="* must be <65536 (bd-hoomd trap 12)")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
+    if args.smoke:
+        from bdbot import smoke as _SMOKE
+        print(_SMOKE.banner('network', _SMOKE.apply('network', args)))
 
     sys_ = load_system(ROOT / "intake/network/system.yaml")
     n = args.n or sys_["n_list"][0]

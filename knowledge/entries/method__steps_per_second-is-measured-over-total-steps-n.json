@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "cost",
+    "A3",
+    "throughput",
+    "bookkeeping"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/cost.py#Estimate",
+  "lessons": [
+    {
+      "claim": "steps_per_second is measured over TOTAL steps, not production steps. Measured: trap-2d-5um recorded wall_seconds=3037.53 and steps_per_second=332.507375, and their product is 1,010,000 = n_eq + n_prod, not n_prod = 1,000,000. Estimating a cost from n_prod alone under-predicts by 0.99% there, and by ~50% for a relaxation case where n_eq ~ n_prod. Use cost.total_steps(n_eq, n_prod). Found 2026-09-02 by a test asserting the estimator reproduces its own archived wall time.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

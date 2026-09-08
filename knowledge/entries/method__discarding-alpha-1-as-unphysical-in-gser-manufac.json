@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "microrheology",
+    "gser",
+    "bias",
+    "newtonian",
+    "truncation"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/microrheo.py#ALPHA_POLICY_NOTE",
+  "lessons": [
+    {
+      "claim": "Discarding alpha>1 as unphysical in GSER manufactures a spurious storage modulus in a Newtonian fluid. The distillation says discard those frequencies, which is right for a viscoelastic medium where the true alpha is genuinely below 1. In the Newtonian limit alpha=1 exactly and sits ON the boundary, so noise scatters symmetrically and the mask keeps only the low side. Measured 2026-09-02 (100 probes, 60k steps): 5991 in-band points, mean alpha 0.99626, 2137 above 1 and 3854 below; after masking, 3854 points, mean 0.99140, zero above. Bias -0.0086 in alpha propagates via G'/G''=cot(pi*alpha/2)~=(pi/2)(1-alpha) to a predicted spurious G'/G''=0.01351 against a measured 0.01400. It did NOT shrink with run length (0.0152/0.0093/0.0103 at 30k/60k/120k steps), so it is a bias not noise. Fix: alpha_policy='clip' sets alpha>1 to 1 so those frequencies give cos(pi/2)=0, the correct physical answer; measured G'/G'' drops from +0.00931 to +0.00226. FOUND BY a sealed prediction of G'/G''<=0.01 that failed at 0.01308 - the seal is what prevented widening the tolerance instead.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

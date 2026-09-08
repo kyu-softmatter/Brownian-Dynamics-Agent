@@ -72,6 +72,33 @@ MUST_BE_EXPLICIT = ("ambiguities", "unread_regions", "missing_required")
 #             in the numerics section -> does not block
 MISSING_KINDS = ("physical", "choice")
 
+# -- the goal, and why it is NOT blocked from here -----------------------------
+# * History, because the first attempt was wrong in an instructive way.
+#
+#   2026-09-02 (morning). The rule "an empty `stated_goals` is a blocker" was
+#   written in TWO places -- .claude/skills/bd-intake/SKILL.md §2.1 and the
+#   TEMPLATE at the bottom of this file -- and enforced in NEITHER. Measured:
+#   `stated_goals: []` in 2 of 8 real intakes (trap-2d-5um, trap-drag-2d-hex300)
+#   and both had run anyway, 4 and 81 run directories. So it was promoted to code
+#   here, as `Observation.open_goal`, and it blocked those two cases.
+#
+#   2026-09-02 (later). ★ That was the wrong place. `stated_goals` records what
+#   the SKETCH says, and rule 5 requires that anything absent from the sketch stay
+#   null -- so `stated_goals: []` on a sketch with no goal written on it is a
+#   *correct transcription*. Blocking on it punishes rule 5. And trap-2d-5um is
+#   exactly that case: bd-intake §2.1 records its goal as "absent -- settled by
+#   asking the user", so the goal existed and had nowhere to live.
+#
+#   The fix is `bdbot/goal.py` (block A): the sketch may say nothing, and
+#   `goal.yaml` must then say something. `open_goal` below is now INFORMATIONAL --
+#   it reports that the sketch is silent, which is a real and useful fact about the
+#   sketch, and blocks nothing. `goal.status()` owns the verdict.
+GOAL_ABSENT_NOTE = (
+    "the sketch states no measurement goal. That is a correct transcription if the "
+    "sketch is silent (rule 5) -- it is not an error here. The goal itself belongs "
+    "in goal.yaml: `$PY -m bdbot.cli goal check <folder>` (skill bd-intake 2.1)."
+)
+
 
 @dataclass
 class Issue:
@@ -131,13 +158,43 @@ class Observation:
                 if isinstance(m, dict) and m.get("assumed_value") not in (None, "")]
 
     @property
+    def open_goal(self) -> bool:
+        """Does the SKETCH state no measurement goal. **Informational, not a
+        blocker** -- see GOAL_ABSENT_NOTE above for why this changed.
+
+        True when `stated_goals` is an empty list or null. A **missing key** is
+        already an `error` via REQUIRED_TOP, so this covers only the present-but-
+        empty case.
+
+        A silent sketch is a fact worth reporting: it means the goal came from
+        somewhere else and `goal.yaml` is the only record of it. The verdict on
+        whether the goal is *known* is `bdbot.goal.status()`, not this.
+        """
+        return not (self.raw.get("stated_goals") or [])
+
+    @property
     def errors(self) -> list:
         return [i for i in self.issues if i.level == "error"]
 
     @property
+    def blockers(self) -> list:
+        """Every reason L2 cannot be written **from L0 alone**, as display strings.
+
+        One place, so a new blocker cannot be added to `ready_for_system` while a
+        caller that builds its own list silently keeps reporting the old set --
+        which is how `ready_for_system` came to have zero call sites while four
+        consumers each re-derived it from `open_missing` alone.
+
+        The goal is NOT in here. It is a separate artefact with its own verdict
+        (`bdbot.goal.status`), and `bdbot.cli status` combines the two -- an L0
+        reader must not have to open goal.yaml to answer an L0 question.
+        """
+        return [str(m.get("symbol", "?")) for m in self.open_missing]
+
+    @property
     def ready_for_system(self) -> bool:
-        """Can `system.yaml` (L2) be written -- the schema must be intact and no
-        unresolved gap may remain.
+        """Can `system.yaml` (L2) be written -- the schema intact and no unresolved
+        physical gap. Says nothing about the goal; that is `bdbot.goal.blocks()`.
         """
         return not self.errors and not self.open_missing
 
@@ -249,6 +306,20 @@ def validate(obs: Observation) -> list:
     return out
 
 
+def _wrap(text: str, width: int) -> list:
+    """Greedy word wrap. Not textwrap, to keep this module's import cost at yaml."""
+    out, line = [], ""
+    for word in text.split():
+        if line and len(line) + 1 + len(word) > width:
+            out.append(line)
+            line = word
+        else:
+            line = f"{line} {word}".strip()
+    if line:
+        out.append(line)
+    return out
+
+
 def render_check(obs: Observation) -> str:
     """The human-readable check report."""
     L: list[str] = []
@@ -274,7 +345,8 @@ def render_check(obs: Observation) -> str:
     w(f"  transcription {len((obs.raw.get('raw_transcription') or '').splitlines())} line(s) . "
       f"entities {len(obs.raw.get('entities') or [])} . "
       f"stated quantities {len(obs.raw.get('stated_quantities') or [])} . "
-      f"goals {len(obs.raw.get('stated_goals') or [])}")
+      f"goals {len(obs.raw.get('stated_goals') or [])}"
+      f"{'  (none on the sketch -- see goal.yaml)' if obs.open_goal else ''}")
     w(f"  ambiguities {len(obs.raw.get('ambiguities') or [])} "
       f"({len(obs.open_ambiguities)} unresolved) . "
       f"unread {len(obs.raw.get('unread_regions') or [])} . "
@@ -288,6 +360,12 @@ def render_check(obs: Observation) -> str:
             unit = f" {m.get('assumed_unit')}" if m.get("assumed_unit") else ""
             w(f"  {m.get('symbol', '?'):<16} = {m.get('assumed_value')}{unit}"
               f"   [tier {m.get('confidence')}]  {(m.get('note') or '')[:44]}")
+
+    if obs.open_goal:
+        w("")
+        w("THE SKETCH STATES NO GOAL (not an error -- the goal lives in goal.yaml)")
+        for line in _wrap(GOAL_ABSENT_NOTE, 74):
+            w(f"  {line}")
 
     if obs.open_missing:
         w("")
@@ -314,8 +392,8 @@ def render_check(obs: Observation) -> str:
     if n_err:
         w(f"VERDICT: FAIL -- {n_err} schema error(s). Not advancing until they are fixed.")
     elif obs.open_missing:
-        w(f"VERDICT: BLOCKED -- the schema is intact but {len(obs.open_missing)} gap(s) "
-          f"are unresolved.")
+        w(f"VERDICT: BLOCKED -- the schema is intact but {len(obs.blockers)} item(s) "
+          f"are unresolved: {', '.join(obs.blockers)}")
         w("         L2 (system.yaml) cannot be written. A human must supply the value, "
           "or it must be found in the KB.")
     else:
@@ -411,4 +489,4 @@ def init_template(folder, case: str | None = None, force: bool = False) -> tuple
 
 __all__ = ["SCHEMA", "Observation", "Issue", "load", "validate", "render_check",
            "init_template", "REQUIRED_TOP", "OPTIONAL_TOP", "ITEM_KEYS", "MUST_BE_EXPLICIT",
-           "MISSING_KINDS"]
+           "MISSING_KINDS", "GOAL_ABSENT_NOTE", "blockers"]

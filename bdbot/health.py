@@ -573,9 +573,107 @@ def _ok(c) -> bool:
     return c.value <= c.limit if getattr(c, "op", "<=") == "<=" else c.value >= c.limit
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# Section 4 -- block J: the two statistical monitor checks. WARN ONLY.
+# ════════════════════════════════════════════════════════════════════════════
+# ⚠️ Neither of these may kill a run. Statistical checks have real variance early
+#    in a run, and the precedent is the gate that refused 80 of 83 specs with zero
+#    real hard failures. A jittery kill on a 51-minute job is expensive; a warning
+#    plus a checkpoint is not. Killing stays with the unambiguous class
+#    (non-finite, box escape, PE blow-up) in `Guard` and `run.StepGuard`.
+
+#: FDT residual above this is reported. Not a physics threshold -- a bug threshold.
+FDT_WARN_REL = 0.05
+
+#: How far the measured MSD log-slope may sit from the EXPECTED slope.
+MSD_SLOPE_WARN = 0.15
+
+
+def fdt_residual(msd, t, D_expected, dim):
+    """`(residual, D_measured)` for `MSD = 2 dim D t` over the supplied window.
+
+    ★ **This can only ever find a bug, never a result.** HOOMD's `Brownian`
+    integrator imposes `D = kT/gamma` by construction, so in overdamped BD the
+    fluctuation-dissipation relation is not a property of the system being
+    measured -- it is an identity the integrator enforces. By rule 7' that makes
+    this an `implementation_check`: a mismatch means the analysis or the geometry
+    is wrong (a missing unwrap, a wrong `dim`, minimum image applied where it must
+    not be), never that the physics is interesting.
+
+    It is worth having anyway: this is the class of check that would have caught
+    the missing minimum image, which was **+1856 %**.
+    """
+    msd = np.asarray(msd, dtype=float)
+    t = np.asarray(t, dtype=float)
+    if msd.shape != t.shape or msd.ndim != 1:
+        raise ValueError(f"msd and t must be 1-D and the same length, got "
+                         f"{msd.shape} and {t.shape}")
+    if msd.size < 4:
+        raise ValueError(f"need >= 4 points for an FDT residual, got {msd.size}")
+    if np.any(t <= 0):
+        raise ValueError("t must be > 0")
+    if D_expected <= 0:
+        raise ValueError(f"D_expected must be > 0, got {D_expected}")
+    # least squares through the origin: MSD = c t, c = 2 dim D
+    c = float(np.dot(t, msd) / np.dot(t, t))
+    d_meas = c / (2.0 * int(dim))
+    return abs(d_meas - D_expected) / D_expected, d_meas
+
+
+def check_fdt(msd, t, D_expected, dim, rep=None, *, warn_rel=FDT_WARN_REL):
+    """Add an `implementation_check`-flavoured FDT finding to `rep`. Never fatal."""
+    res, d_meas = fdt_residual(msd, t, D_expected, dim)
+    ok = res <= warn_rel
+    detail = (f"D_measured/D_expected = {d_meas / D_expected:.6f} "
+              f"(residual {res * 100:.3f} %, warn above {warn_rel * 100:g} %) "
+              f"-- implementation_check: a mismatch is a bug, not a result")
+    if rep is not None:
+        # add(ok, mode, name, detail). mode=None => recorded, never fatal.
+        rep.add(ok, None, "FDT residual", detail)
+    return ok, res, d_meas
+
+
+def msd_slope_vs_expected(msd, t, expected_slope, rep=None, *,
+                          warn=MSD_SLOPE_WARN, label="MSD slope"):
+    """Compare the measured log-log MSD slope against the **expected** one.
+
+    ⚠️ There is no generic "is it diffusive" test. In a trap the MSD *must*
+    plateau (slope -> 0); at short times it is steeper; on log-spaced lags an
+    index-based exponent exceeds any fixed bound. `judge_series` grew its
+    `cumulative` flag and its real `t` axis precisely because MSD was flagged
+    `NUM_DIVERGE` for being *"1010x larger in the second half"* -- which was
+    diffusion.
+
+    So `expected_slope` is **required** and must come from the design (blocks
+    D/E): 1 for free diffusion, ~0 for a trapped plateau, `alpha` for a
+    subdiffusive medium. A monitor that does not know what shape to expect cannot
+    judge the shape it sees.
+    """
+    msd = np.asarray(msd, dtype=float)
+    t = np.asarray(t, dtype=float)
+    if msd.size < 4 or msd.shape != t.shape:
+        raise ValueError("need >= 4 matching (t, msd) points")
+    m = (t > 0) & (msd > 0)
+    if m.sum() < 4:
+        raise ValueError("need >= 4 strictly positive (t, msd) points for a "
+                         "log-log slope")
+    slope = float(np.polyfit(np.log(t[m]), np.log(msd[m]), 1)[0])
+    dev = abs(slope - float(expected_slope))
+    ok = dev <= warn
+    detail = (f"measured {slope:.4f} vs expected {float(expected_slope):.4f} "
+              f"(|dev| {dev:.4f}, warn above {warn:g}) -- expected slope comes "
+              f"from the design, not from a default")
+    if rep is not None:
+        rep.add(ok, None, label, detail)          # mode=None => never fatal
+    return ok, slope, dev
+
+
 __all__ = ["Guard", "HealthReport", "judge_series", "step_health",
            "measure_step_displacement", "predicted_dt_over_tau", "gate", "gate_notes",
            "NUMERIC_MODES", "STEP_HARD", "LEDGER_TOL",
+           # section 4 -- block J, warn-only
+           "FDT_WARN_REL", "MSD_SLOPE_WARN", "fdt_residual", "check_fdt",
+           "msd_slope_vs_expected",
            # section 0 -- shared with simbot.guards
            "configurational_temperature", "DisplacementReport",
            "check_step_displacements", "check_finite", "check_inside_box",

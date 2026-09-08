@@ -1,0 +1,24 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "l0",
+    "intake",
+    "goal",
+    "block-a",
+    "rule5"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/goal.py#GOAL_ABSENT_NOTE",
+  "lessons": [
+    {
+      "claim": "Blocking on an empty stated_goals punishes rule 5. stated_goals records what the SKETCH says, and rule 5 requires anything absent from the sketch to stay null - so an empty list on a silent sketch is a correct transcription. trap-2d-5um is exactly that: bd-intake 2.1 records its goal as absent from the sketch and settled by asking the user. Reverted the same day and replaced with bdbot/goal.py (block A): the sketch may say nothing, and goal.yaml must then say something. Two artefacts, two verdicts.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

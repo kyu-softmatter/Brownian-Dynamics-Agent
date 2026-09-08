@@ -597,6 +597,8 @@ def main() -> int:
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--spec", action="store_true")
     ap.add_argument("--run", action="store_true")
+    ap.add_argument("--smoke", action="store_true",
+                    help="scaled-down run: does this path execute, and at what rate. Profile in bdbot/smoke.py -- NOT the production measurement")
     ap.add_argument("--n", type=int, default=None, help="bead count (default: the whole list in system.yaml)")
     ap.add_argument("--omega", type=float, default=None, help="rad/s (default: the lowest value in the range)")
     ap.add_argument("--amp", type=float, default=None, help="nm (default: the median of the range)")
@@ -623,6 +625,9 @@ def main() -> int:
                          "top of DLVO. Geometry, traps, DLVO and the seed stay identical and only "
                          "the bending term is switched on, for a direct comparison")
     args = ap.parse_args()
+    if args.smoke:
+        from bdbot import smoke as _SMOKE
+        print(_SMOKE.banner('chain-bend-2d-dlvo', _SMOKE.apply('chain-bend-2d-dlvo', args)))
 
     sys_ = load_system(ROOT / "intake/chain-bend-2d-dlvo/system.yaml")
     ns = [args.n] if args.n is not None else sys_["n_list"]

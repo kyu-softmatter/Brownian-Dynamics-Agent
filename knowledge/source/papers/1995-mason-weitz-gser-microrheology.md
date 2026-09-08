@@ -13,8 +13,22 @@ updated: 2026-07-28
 confidence: medium
 
 provides: [gser-formula, msd-to-moduli, newtonian-limit-check]
-used_by: [simbot/analysis/microrheo.py, s2_prediction.md, s7_validate.md]
+used_by: [bdbot/microrheo.py, tests/test_microrheo.py, s2_prediction.md, s7_validate.md]
 ---
+
+> ⚠️ **`used_by` corrected 2026-09-02.** It declared
+> `simbot/analysis/microrheo.py`, and that file **never existed** — `simbot/analysis/`
+> holds only `structure.py` and `trap.py`. It cannot exist there either: `simbot`
+> imports `bdbot` in four modules (`units`, `guards`, `nondim`, `estimators`), so a
+> `bdbot` case calling an estimator under `simbot/analysis/` would be an import
+> cycle, and all 8 real cases run through `bdbot`. The estimator is now
+> [`bdbot/microrheo.py`](../../../bdbot/microrheo.py), beside `lockin.py` and
+> `stats.py`.
+>
+> A `used_by` naming a file that does not exist is the same failure class as an
+> unwired checker: the document asserts a consumer, nothing enforces it, and the
+> claim reads as done. The Newtonian-limit value below (`G''* = w*/(3 pi)`) is now
+> an executing regression test rather than a number in a table.
 
 ## 우리에게 주는 것 (1줄)
 프로브 입자의 MSD 하나만으로 매질의 복소점탄성률 `G'(ω), G''(ω)`를 뽑는 관계식 (GSER).

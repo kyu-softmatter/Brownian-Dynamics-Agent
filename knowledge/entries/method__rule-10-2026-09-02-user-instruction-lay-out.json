@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "rule10",
+    "params",
+    "gate",
+    "approval"
+  ],
+  "dimensionless": {},
+  "source": "CLAUDE.md#rule-10",
+  "lessons": [
+    {
+      "claim": "Rule 10 (2026-09-02, user instruction): lay out every number a run will use, with value + unit + provenance, and get human approval before starting. Implemented as bdbot/params.py Manifest, blocking runcard.RunCard sealability and run.execute(require_approval=True). Three properties make it a gate not a habit: a bare float is rejected (unit='1' declares dimensionless, blank means forgotten); 'if applicable' means not_applicable(category, reason) which raises on an empty reason; an unknown number blocks via unknown(name, needed_from) rather than being invented. And diff_against_spec catches approving one set of numbers then running another. Written as a gate because this repo is three-for-three against practices-without-gates: bd-intake 2.1's empty-goal blocker (written twice, enforced zero times, 2 of 8 cases walked past it and produced 85 runs), A4's grep (7 false hits), health.gate() (reachable only from tools/health.py:138, absent from run.py).",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

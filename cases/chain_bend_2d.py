@@ -740,6 +740,8 @@ def emit(sys_, omega, args) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", action="store_true", help="the L3 report only")
+    ap.add_argument("--smoke", action="store_true",
+                    help="scaled-down run: does this path execute, and at what rate. Profile in bdbot/smoke.py -- NOT the production measurement")
     ap.add_argument("--spec", action="store_true", help="the L3 spec -> specs/<run_id>.json")
     ap.add_argument("--omega", type=float, default=None,
                     help="drive angular frequency [rad/s]. Default is the lowest sweep "
@@ -753,6 +755,9 @@ def main() -> int:
                     help="run L4. ★ Refused only if BENDING_IMPL is angle_harmonic "
                          "(see the module docstring ⑤)")
     args = ap.parse_args()
+    if args.smoke:
+        from bdbot import smoke as _SMOKE
+        print(_SMOKE.banner('chain-bend-2d-oscill', _SMOKE.apply('chain-bend-2d-oscill', args)))
 
     sys_ = load_system(ROOT / "intake/chain-bend-2d-oscill/system.yaml")
     lo, hi = sys_["omega_range"]

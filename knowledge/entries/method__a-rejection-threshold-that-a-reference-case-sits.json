@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "microrheology",
+    "gser",
+    "threshold",
+    "boundary"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/microrheo.py#ALPHA_TOL",
+  "lessons": [
+    {
+      "claim": "A rejection threshold that a reference case sits exactly on will reject the reference case. GSER masks frequencies where alpha is outside [0,1] as unphysical, but a purely viscous fluid has alpha = 1 EXACTLY, and np.polyfit returns 1.0000000000000002 for about half the points of an exact power law. With a strict <= the Newtonian validation case masked out 116 of 240 points and failed the test written to confirm it. Fixed with ALPHA_TOL = 1e-9. Same reason checks.CMP_RTOL exists. Measured 2026-09-02.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

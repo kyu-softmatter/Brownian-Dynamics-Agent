@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "l0",
+    "intake",
+    "gate",
+    "unwired-checker"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/intake.py#GOAL_BLOCKER",
+  "lessons": [
+    {
+      "claim": "A rule stated in prose twice and checked zero times is not a rule. The empty-stated_goals blocker was written in .claude/skills/bd-intake/SKILL.md 2.1 AND in intake.py's own TEMPLATE comment, and 2 of 8 real intakes (trap-2d-5um, trap-drag-2d-hex300) went through it and produced 85 runs. Promoted to code 2026-09-02 as Observation.open_goal.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

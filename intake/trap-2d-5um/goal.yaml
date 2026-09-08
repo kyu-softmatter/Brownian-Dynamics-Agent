@@ -1,0 +1,84 @@
+# Block A -- the goal. **DRAFT: awaiting human confirmation**
+#
+# ⚠️ Backfilled 2026-09-02, after the fact, for a case that has already run.
+#    Every field below is a TRANSCRIPTION of what
+#    `.claude/skills/bd-intake/SKILL.md` section 2.1 already records about this
+#    case -- nothing here was invented (rule 3). That section says the goal was
+#    "absent [from the sketch] -- settled by asking the user", and that only
+#    after deciding to look at the PSD did `T_obs = 2000 tau_k` and the
+#    `tau_k/10` sample interval get determined.
+#
+#    Confirm or correct it, then set `confirmed_by`. Until then this stays DRAFT,
+#    which does not block anything.
+
+schema: bdbot.goal/0.1
+case: trap-2d-5um
+asked_by: experimentalist
+
+# -- what do you want to know? ------------------------------------------------
+question: >-
+  For a 5 um bead held in this optical trap in water, does its thermal motion
+  match the analytic Ornstein-Uhlenbeck prediction -- and can the trap stiffness
+  be recovered from the measurement rather than assumed?
+
+# -- which single measured number answers it? ---------------------------------
+answering_quantity:
+  symbol: f_c
+  unit: Hz
+  why: >-
+    The corner frequency of the position power spectrum is k_t/(2 pi gamma), so it
+    recovers the trap stiffness from the trajectory alone. It is also the
+    observable that constrains the run plan hardest, which is why the goal has to
+    be fixed before T_obs and the sample interval.
+
+# -- how well would you have to measure it to decide? -------------------------
+decisive_precision:
+  value: 5.0
+  basis: >-
+    The tolerance carried by all five observables in this case's metrics.json is
+    5 %, and the archived production run reached +1.17 % on f_c. Stated as a
+    percentage of f_c.
+  what_would_change_my_mind: >-
+    f_c differing from k_t/(2 pi gamma) by more than 5 %, or a position histogram
+    that is not Gaussian, would mean the bead is not in a simple harmonic trap in
+    a Newtonian solvent -- the model would be wrong rather than the measurement.
+
+# -- which parameters does this goal make load-bearing? -----------------------
+physics_that_matters:
+  - symbol: k_t
+    why: "sets f_c directly -- f_c = k_t/(2 pi gamma). The quantity being recovered"
+  - symbol: eta
+    why: >-
+      enters gamma = 3 pi eta d, so it sets f_c and tau_k. Tier 0 handbook water
+      at 300 K, but T itself was never measured -- water's viscosity is ~2.1 %/K
+  - symbol: d
+    why: "sets gamma, and l_k/d decides whether the fluctuation is resolvable at all"
+  - symbol: T
+    why: >-
+      sets kT and, through eta(T), gamma. Recorded tier 0 from the sketch, but a
+      2 K error moves every timescale by ~4 %
+  - symbol: T_obs
+    why: >-
+      must satisfy 1/T_obs << f_c for the PSD plateau to exist. This is the field
+      that does not follow from the sketch -- it follows from THIS goal
+  - symbol: sample_interval
+    why: "must satisfy f_Nyquist >> f_c, hence tau_k/10. Also fixed by this goal"
+
+# -- what analysis does this imply? -------------------------------------------
+analysis_implied:
+  - "PSD of x(t) with a Lorentzian fit, f_c marked, and k_t/(2 pi gamma) overlaid"
+  - "position autocorrelation C(t) with an exponential fit, tau_k overlaid"
+  - "position histogram against the Boltzmann Gaussian of width sqrt(kT/k_t)"
+  - "<x^2> against the analytic kT/k_t"
+
+out_of_scope:
+  - "any many-body effect -- N = 1000 here is an independent-particle ensemble for statistics, not an interacting suspension"
+  - "hydrodynamic memory / the Basset term -- tau_p/tau_k = 8.1e-04, so inertia is negligible"
+
+provenance:
+  source: >-
+    .claude/skills/bd-intake/SKILL.md section 2.1 (records the goal as settled by
+    asking the user, and the T_obs / sample-interval consequences); observable
+    tolerances and the achieved f_c error from
+    runs/trap-2d-5um__a5ef4f45d589/metrics.json. Transcribed 2026-09-02.
+  confirmed_by: null

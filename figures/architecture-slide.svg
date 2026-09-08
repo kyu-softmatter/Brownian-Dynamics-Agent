@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 660" width="1120" height="660" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#222"/>
+    </marker>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c00"/>
+    </marker>
+  </defs>
+  <rect width="1120" height="660" fill="#ffffff"/>
+
+  <text x="24" y="42" font-size="30" font-weight="bold">Brownian-Dynamics Agent</text>
+
+  <!-- ============ spine: Claude -> LLM ============ -->
+  <rect x="440" y="62" width="112" height="46" rx="8" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="496" y="90" font-size="16" text-anchor="middle">Claude</text>
+
+  <rect x="440" y="148" width="112" height="54" rx="8" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="496" y="170" font-size="15" text-anchor="middle">LLM</text>
+  <text x="496" y="189" font-size="12" text-anchor="middle" fill="#444">(Reasoning)</text>
+  <line x1="496" y1="108" x2="496" y2="148" stroke="#222" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- ============ gate block ============ -->
+  <rect x="176" y="216" width="640" height="152" rx="10" fill="none" stroke="#222" stroke-width="1.6"/>
+  <line x1="496" y1="202" x2="496" y2="216" stroke="#222" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <text x="166" y="286" font-size="15" text-anchor="end" font-weight="bold">62 schema</text>
+  <text x="166" y="304" font-size="15" text-anchor="end" font-weight="bold">gates</text>
+
+  <!-- row 1 -->
+  <rect x="188" y="228" width="150" height="60" rx="7" fill="#d9ead3" stroke="#222" stroke-width="1.4"/>
+  <text x="263" y="252" font-size="14" text-anchor="middle" font-weight="bold">A · Goal</text>
+  <text x="263" y="271" font-size="11" text-anchor="middle" fill="#333">(question, falsifiable)</text>
+
+  <rect x="346" y="228" width="150" height="60" rx="7" fill="#d9ead3" stroke="#222" stroke-width="1.4"/>
+  <text x="421" y="252" font-size="14" text-anchor="middle" font-weight="bold">B · Physics</text>
+  <text x="421" y="271" font-size="11" text-anchor="middle" fill="#333">(SI + provenance)</text>
+
+  <rect x="504" y="228" width="150" height="60" rx="7" fill="#fff2cc" stroke="#222" stroke-width="1.4"/>
+  <text x="579" y="252" font-size="14" text-anchor="middle" font-weight="bold">C · Dimensionless</text>
+  <text x="579" y="271" font-size="11" text-anchor="middle" fill="#333">(Re · Pe · Wi/De · St)</text>
+
+  <rect x="662" y="228" width="142" height="60" rx="7" fill="#fff2cc" stroke="#222" stroke-width="1.4"/>
+  <text x="733" y="252" font-size="14" text-anchor="middle" font-weight="bold">D · Design</text>
+  <text x="733" y="271" font-size="11" text-anchor="middle" fill="#333">(match / abandon)</text>
+
+  <!-- row 2 -->
+  <rect x="188" y="296" width="150" height="60" rx="7" fill="#d9ead3" stroke="#222" stroke-width="1.4"/>
+  <text x="263" y="320" font-size="14" text-anchor="middle" font-weight="bold">E · Interactions</text>
+  <text x="263" y="339" font-size="11" text-anchor="middle" fill="#333">(U_ij, trap, k*)</text>
+
+  <rect x="346" y="296" width="150" height="60" rx="7" fill="#fff2cc" stroke="#222" stroke-width="1.4"/>
+  <text x="421" y="320" font-size="14" text-anchor="middle" font-weight="bold">F · Cost</text>
+  <text x="421" y="339" font-size="11" text-anchor="middle" fill="#333">(wall clock, urgency)</text>
+
+  <rect x="504" y="296" width="150" height="60" rx="7" fill="#d9ead3" stroke="#222" stroke-width="1.4"/>
+  <text x="579" y="320" font-size="14" text-anchor="middle" font-weight="bold">Numerics</text>
+  <text x="579" y="339" font-size="11" text-anchor="middle" fill="#333">(dt, box, steps)</text>
+
+  <rect x="662" y="296" width="142" height="60" rx="7" fill="#d9ead3" stroke="#222" stroke-width="1.4"/>
+  <text x="733" y="320" font-size="14" text-anchor="middle" font-weight="bold">Validity</text>
+  <text x="733" y="339" font-size="11" text-anchor="middle" fill="#333">(roles, design power)</text>
+
+  <!-- ============ run card (the decision) ============ -->
+  <rect x="404" y="396" width="184" height="56" rx="8" fill="#ffffff" stroke="#222" stroke-width="2.4"/>
+  <text x="496" y="419" font-size="15" text-anchor="middle" font-weight="bold">G · Run card</text>
+  <text x="496" y="438" font-size="11" text-anchor="middle" fill="#333">approve + SEAL prediction</text>
+  <line x1="496" y1="368" x2="496" y2="396" stroke="#222" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- ============ execution block ============ -->
+  <rect x="176" y="482" width="640" height="86" rx="10" fill="none" stroke="#222" stroke-width="1.6"/>
+  <line x1="496" y1="452" x2="496" y2="482" stroke="#222" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <text x="166" y="520" font-size="15" text-anchor="end" font-weight="bold">10 runtime</text>
+  <text x="166" y="538" font-size="15" text-anchor="end" font-weight="bold">guards</text>
+
+  <rect x="188" y="494" width="150" height="62" rx="7" fill="#fff2cc" stroke="#222" stroke-width="1.4"/>
+  <text x="263" y="518" font-size="14" text-anchor="middle" font-weight="bold">H · Smoke</text>
+  <text x="263" y="537" font-size="11" text-anchor="middle" fill="#333">(5 of 8 cases)</text>
+
+  <rect x="346" y="494" width="150" height="62" rx="7" fill="#d9ead3" stroke="#222" stroke-width="1.4"/>
+  <text x="421" y="518" font-size="14" text-anchor="middle" font-weight="bold">I · Run</text>
+  <text x="421" y="537" font-size="11" text-anchor="middle" fill="#333">(HOOMD 7.1.0, CPU)</text>
+
+  <rect x="504" y="494" width="150" height="62" rx="7" fill="#fff2cc" stroke="#222" stroke-width="1.4"/>
+  <text x="579" y="512" font-size="14" text-anchor="middle" font-weight="bold">J · Monitor</text>
+  <text x="579" y="529" font-size="11" text-anchor="middle" fill="#333">NaN · drift · escape</text>
+  <text x="579" y="545" font-size="11" text-anchor="middle" fill="#333">FDT · MSD slope</text>
+
+  <rect x="662" y="494" width="142" height="62" rx="7" fill="#d9ead3" stroke="#222" stroke-width="1.4"/>
+  <text x="733" y="518" font-size="14" text-anchor="middle" font-weight="bold">Storage</text>
+  <text x="733" y="537" font-size="11" text-anchor="middle" fill="#333">(spec, metrics.json)</text>
+
+  <!-- ============ analysis ============ -->
+  <rect x="404" y="596" width="184" height="50" rx="8" fill="#fff2cc" stroke="#222" stroke-width="1.6"/>
+  <text x="496" y="617" font-size="15" text-anchor="middle" font-weight="bold">K · Analysis</text>
+  <text x="496" y="635" font-size="11" text-anchor="middle" fill="#333">answers A's question</text>
+  <line x1="496" y1="568" x2="496" y2="596" stroke="#222" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- ============ knowledge base ============ -->
+  <rect x="852" y="148" width="164" height="56" rx="8" fill="#cfe2f3" stroke="#222" stroke-width="1.6"/>
+  <text x="934" y="172" font-size="15" text-anchor="middle" font-weight="bold">Knowledge</text>
+  <text x="934" y="191" font-size="15" text-anchor="middle" font-weight="bold">base</text>
+  <text x="1028" y="178" font-size="14">Keep</text>
+  <text x="1028" y="196" font-size="14">collect</text>
+
+  <!-- feedback KB -> Claude -->
+  <polyline points="934,148 934,128 552,128 552,85" fill="none" stroke="#222" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- writes into the KB -->
+  <polyline points="816,292 834,292 834,204 852,204" fill="none" stroke="#222" stroke-width="1.5" marker-end="url(#ar)"/>
+  <polyline points="588,424 834,424 834,206" fill="none" stroke="#222" stroke-width="1.5"/>
+  <polyline points="816,525 834,525" fill="none" stroke="#222" stroke-width="1.5"/>
+  <polyline points="588,621 834,621 834,206" fill="none" stroke="#222" stroke-width="1.5"/>
+
+  <!-- ============ KB contents (red column) ============ -->
+  <rect x="842" y="222" width="184" height="424" rx="6" fill="none" stroke="#ff0000" stroke-width="2.4"/>
+
+  <rect x="856" y="234" width="156" height="56" rx="6" fill="#fff" stroke="#222" stroke-width="1.3"/>
+  <text x="934" y="257" font-size="13" text-anchor="middle">System cards</text>
+  <text x="934" y="275" font-size="11" text-anchor="middle" fill="#555">11 · owns the scales</text>
+
+  <rect x="856" y="300" width="156" height="56" rx="6" fill="#fff" stroke="#222" stroke-width="1.3"/>
+  <text x="934" y="323" font-size="13" text-anchor="middle">Findings</text>
+  <text x="934" y="341" font-size="11" text-anchor="middle" fill="#555">23 · incl. dead ends</text>
+
+  <rect x="856" y="366" width="156" height="56" rx="6" fill="#fff" stroke="#222" stroke-width="1.3"/>
+  <text x="934" y="389" font-size="13" text-anchor="middle">Benchmarks</text>
+  <text x="934" y="407" font-size="11" text-anchor="middle" fill="#555">5 · run as regression</text>
+
+  <rect x="856" y="432" width="156" height="56" rx="6" fill="#fff" stroke="#222" stroke-width="1.3"/>
+  <text x="934" y="455" font-size="13" text-anchor="middle">Literature</text>
+  <text x="934" y="473" font-size="11" text-anchor="middle" fill="#555">43 papers · 2 books</text>
+
+  <rect x="856" y="498" width="156" height="56" rx="6" fill="#fff" stroke="#222" stroke-width="1.3"/>
+  <text x="934" y="521" font-size="13" text-anchor="middle">Entries</text>
+  <text x="934" y="539" font-size="11" text-anchor="middle" fill="#555">138 · 44 are tooling</text>
+
+  <rect x="856" y="564" width="156" height="70" rx="6" fill="#fff" stroke="#222" stroke-width="1.3"/>
+  <text x="934" y="586" font-size="13" text-anchor="middle">Post-mortems</text>
+  <text x="934" y="603" font-size="11" text-anchor="middle" fill="#555">227 · a run ends when</text>
+  <text x="934" y="619" font-size="11" text-anchor="middle" fill="#555">this exists</text>
+
+  <!-- ============ legend ============ -->
+  <rect x="24" y="596" width="16" height="14" rx="3" fill="#d9ead3" stroke="#222" stroke-width="1.2"/>
+  <text x="47" y="608" font-size="12">built · tested</text>
+  <rect x="24" y="618" width="16" height="14" rx="3" fill="#fff2cc" stroke="#222" stroke-width="1.2"/>
+  <text x="47" y="630" font-size="12">partial</text>
+  <rect x="145" y="596" width="16" height="14" rx="3" fill="#ffffff" stroke="#222" stroke-width="1.8"/>
+  <text x="168" y="608" font-size="12">designed, not built</text>
+
+  <!-- side note on the seam, beside the stage it describes -->
+  <text x="24" y="404" font-size="11.5" fill="#c00" font-weight="bold">Sealing exists in simbot/io.py</text>
+  <text x="24" y="420" font-size="11.5" fill="#c00" font-weight="bold">but bdbot cannot reach it —</text>
+  <text x="24" y="436" font-size="11.5" fill="#c00" font-weight="bold">0 of 254 runs are sealed.</text>
+  <polyline points="176,420 396,420" fill="none" stroke="#c00" stroke-width="1.3"
+            stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+  <!-- the per-case layer the shared gates do not cover -->
+  <text x="176" y="384" font-size="11" fill="#555">+ 72 per-case separation checks (S4), written per system — the shared gates above do not replace them</text>
+</svg>

@@ -85,6 +85,108 @@ o2 = I.load(tmp)
 report(len(o2.open_missing) == 1, "kind 없으면 physical 로 보수적 판정",
        f"차단 {len(o2.open_missing)}건")
 
+# ── 목표(블록 A) — 스케치 침묵은 차단하지 않고, goal.yaml 이 차단한다 ──
+# ★ 2026-09-02 정정. 처음엔 `stated_goals: []` 자체를 차단했는데, 그것은 규칙 5
+#   ("스케치에 없는 것은 null 로 둔다")를 정직하게 지킨 전사를 벌하는 것이었다.
+#   이제 침묵은 **정보**이고, 판정은 bdbot/goal.py 가 갖는다.
+from bdbot import goal as GL  # noqa: E402
+
+
+def sketch_silent_check(value, label):
+    d = copy.deepcopy(obs_base)
+    d["stated_goals"] = value
+    (tmp / "observation.yaml").write_text(yaml.safe_dump(d, allow_unicode=True))
+    o = I.load(tmp)
+    report(o.open_goal and o.ready_for_system and not o.blockers, label,
+           f"침묵={o.open_goal} · L0 READY={o.ready_for_system} · blockers={o.blockers}")
+    return o
+
+
+o_s = sketch_silent_check([], "빈 stated_goals → 보고하되 차단 안 함 ★")
+sketch_silent_check(None, "null stated_goals → 같음")
+report("STATES NO GOAL" in I.render_check(o_s) and "goal.yaml" in I.render_check(o_s),
+       "  → 리포트가 사실은 보고하고 goal.yaml 을 가리킴")
+
+# goal.yaml 쪽 차단기
+GOAL_OK = {
+    "schema": GL.SCHEMA, "case": "synthetic", "asked_by": "experimentalist",
+    "question": "Does the PSD corner frequency recover the trap stiffness?",
+    "answering_quantity": {"symbol": "f_c", "unit": "Hz", "why": "f_c = k/(2 pi gamma)"},
+    "decisive_precision": {"value": 5.0, "basis": "the 5 % tolerance in use",
+                           "what_would_change_my_mind": "f_c off by more than 5 %"},
+    "physics_that_matters": [{"symbol": "k_t", "why": "sets f_c"}],
+    "analysis_implied": ["PSD with a Lorentzian fit"],
+    "provenance": {"source": "conversation 2026-09-02", "confirmed_by": None},
+}
+tg = pathlib.Path(tempfile.mkdtemp())
+
+
+def goal_check(mutate, label, want_verdict):
+    d = copy.deepcopy(GOAL_OK)
+    drop = mutate(d)
+    if drop == "__NOFILE__":
+        (tg / "goal.yaml").unlink(missing_ok=True)
+    else:
+        (tg / "goal.yaml").write_text(yaml.safe_dump(d, allow_unicode=True))
+    try:
+        v, why = GL.status(tg)
+    except Exception as e:
+        report(False, label, f"크래시! {type(e).__name__}")
+        return
+    report(v == want_verdict, label, f"{v} · {why[:40]}")
+
+
+goal_check(lambda d: None, "원본 → DRAFT (confirmed_by 가 null)", "DRAFT")
+goal_check(lambda d: d["provenance"].__setitem__("confirmed_by", "사람 2026-09-02"),
+           "confirmed_by 채우면 → CONFIRMED", "CONFIRMED")
+goal_check(lambda d: "__NOFILE__", "파일 없음 → ABSENT (차단) ★", "ABSENT")
+goal_check(lambda d: d.__setitem__("question", ""), "question 비움 → FAIL ★", "FAIL")
+goal_check(lambda d: d.__setitem__("question", "MSD"), "question 이 라벨 수준 → FAIL", "FAIL")
+goal_check(lambda d: d["decisive_precision"].__setitem__("what_would_change_my_mind", ""),
+           "반증조건 비움 → FAIL ★ (S1 반증가능성 게이트)", "FAIL")
+goal_check(lambda d: d.__setitem__("physics_that_matters", []),
+           "physics_that_matters 비움 → FAIL", "FAIL")
+goal_check(lambda d: d.__setitem__("analysis_implied", []),
+           "analysis_implied 비움 → FAIL", "FAIL")
+goal_check(lambda d: d["decisive_precision"].update(value=None, basis=""),
+           "정밀도 null + 근거 없음 → FAIL", "FAIL")
+goal_check(lambda d: d["decisive_precision"].update(
+    value=None, basis="설계가 나오기 전엔 모른다"),
+    "정밀도 null + 근거 있음 → 허용(DRAFT)", "DRAFT")
+for f in GL.REQUIRED_TOP:
+    goal_check(lambda d, f=f: d.pop(f), f"필수 필드 {f} 삭제 → FAIL", "FAIL")
+
+# ★ 검사기를 일부러 망가뜨려 정말 발동하는지
+_real_v = GL.validate
+try:
+    d = copy.deepcopy(GOAL_OK); d["question"] = ""
+    (tg / "goal.yaml").write_text(yaml.safe_dump(d, allow_unicode=True))
+    report(GL.status(tg)[0] == "FAIL", "  (전제) 빈 question 은 FAIL")
+    GL.validate = lambda g: []
+    report(GL.status(tg)[0] == "DRAFT",
+           "validate 를 끄면 FAIL 이 사라진다 (검사기가 실제로 작동) ★")
+finally:
+    GL.validate = _real_v
+
+# 템플릿이 자기 스키마의 필수 키를 모두 갖는가 (내용은 비어 있어 FAIL 이 정답)
+tt = pathlib.Path(tempfile.mkdtemp())
+GL.init_template(tt, case="synthetic")
+gt = GL.load(tt)
+report(not [i for i in gt.errors if i.msg == "required field missing"],
+       "템플릿에 필수 키가 전부 있다", f"오류 {len(gt.errors)}건 (내용 미기입이므로 정상)")
+report(bool(gt.errors), "  → 손대지 않은 템플릿은 목표로 통과되지 않는다")
+
+# 목표 문제는 L2 를 무효화하지 **않아야** 한다 (의도적으로 좁은 범위)
+t_goal = pathlib.Path(tempfile.mkdtemp())
+(t_goal / "sketch_01.jpeg").write_bytes(b"")
+d = copy.deepcopy(obs_base)
+d["stated_goals"] = []
+(t_goal / "observation.yaml").write_text(yaml.safe_dump(d, allow_unicode=True))
+(t_goal / "system.yaml").write_text((CASE_OK / "system.yaml").read_text())
+s_goal = P.load(t_goal)
+report(not s_goal.errors, "목표 문제는 L2 를 무효화하지 않는다 ★",
+       f"L2 오류 {len(s_goal.errors)}건 (85개 기존 런 보존)")
+
 # ══════════════════════════════════════════════════════════════════════
 print()
 print("=" * 78)
@@ -133,9 +235,22 @@ obs_blocked["missing_required"].append({
 (t2 / "observation.yaml").write_text(yaml.safe_dump(obs_blocked, allow_unicode=True))
 (t2 / "system.yaml").write_text(yaml.safe_dump(sys_base, allow_unicode=True))
 s = P.load(t2)
-blk = [i for i in s.errors if "미해소 물리 결측" in i.msg]
+# ⚠️ 2026-09-02 수정. 이 단정은 `what` 의 한국어("미해소 물리 결측")를 msg 에서 찾고
+#    있었지만, physical.py 의 메시지는 영어이고 **`symbol` 을** 끼워넣는다. 그래서
+#    검사기가 실제로는 잡고 있는데도 "못 잡음!" 을 보고했다 — 이 저장소에서 가장 강한
+#    L2 불변식이 조용히 거짓 음성이었다. HEAD(4b4503a)에서 33/34 로 이미 실패 중이었고,
+#    커밋 f4a9a6a("한국어로 필터링하던 단정 3건 수정")가 놓친 네 번째 건이다.
+#    이제 심볼로 단정한다 — 메시지가 실제로 담고 있는 것이고 번역에 흔들리지 않는다.
+blk = [i for i in s.errors
+       if i.where == "derived_from" and "made_up_param" in i.msg]
 report(bool(blk), "L0 BLOCKED인데 L2 확정 (규칙 3) ★",
        blk[0].msg[:44] if blk else "못 잡음!")
+# 위 단정이 정말 무언가를 검사하는지 — 결측을 빼면 반드시 사라져야 한다
+(t2 / "observation.yaml").write_text(yaml.safe_dump(obs_base, allow_unicode=True))
+s_clean = P.load(t2)
+report(not [i for i in s_clean.errors
+            if i.where == "derived_from" and "made_up_param" in i.msg],
+       "  → 결측을 없애면 그 오류도 사라진다", f"L2 오류 {len(s_clean.errors)}건")
 
 # ══════════════════════════════════════════════════════════════════════
 print()
@@ -145,13 +260,27 @@ print("=" * 78)
 # 2026-08-04: 막혀 있던 3케이스가 해소됐다 — 사용자 확정(abp-rod 형상·텀블) ·
 # 논문 증류(chain-bend U_ij) · 사용자 확정 + ★제안(trap-drag 페어·밀도).
 # tier 3 제안이 섞여 있으므로 READY 는 "L3로 넘어갈 수 있다"는 뜻이고 승인 완료가 아니다.
+#
+# ★ 2026-09-02: 빈 stated_goals 차단기를 켜자 두 케이스가 BLOCKED 로 바뀌었다.
+#   trap-2d-5um · trap-drag-2d-hex300 을 BLOCKED 로 만들었다가 **같은 날 되돌렸다.**
+#   `stated_goals: []` 는 스케치가 침묵할 때 규칙 5 를 지킨 정직한 전사이므로,
+#   그것을 차단하는 것은 규칙 5 를 벌하는 것이었다. 목표는 goal.yaml 로 옮겼다
+#   (블록 A, bdbot/goal.py). 그래서 이 표는 8건 전부 READY 로 돌아왔다.
 expect = {"trap-2d-5um": "READY", "soft-r3-2d-A-sweep": "READY",
           "abp-rod-2d-run-flip": "READY", "chain-bend-2d-oscill": "READY",
           "trap-drag-2d-hex300": "READY"}
 for name, want in expect.items():
     o = I.load(ROOT / "intake" / name)
-    got = "FAIL" if o.errors else ("BLOCKED" if o.open_missing else "READY")
-    report(got == want, f"{name} → {got}", f"(기대 {want})")
+    got = "FAIL" if o.errors else ("READY" if o.ready_for_system else "BLOCKED")
+    why = f" [{', '.join(o.blockers)}]" if o.blockers else ""
+    report(got == want, f"{name} → {got}{why}", f"(기대 {want})")
+
+# 스케치가 침묵하는 두 건 — L0 는 READY 이고 목표 판정은 따로 난다
+for name in ("trap-2d-5um", "trap-drag-2d-hex300"):
+    o = I.load(ROOT / "intake" / name)
+    gv, _ = GL.status(ROOT / "intake" / name, o)
+    report(o.open_goal and o.ready_for_system,
+           f"  {name} 스케치 침묵 · L0 READY", f"목표 판정={gv}")
 
 # ══════════════════════════════════════════════════════════════════════
 print()

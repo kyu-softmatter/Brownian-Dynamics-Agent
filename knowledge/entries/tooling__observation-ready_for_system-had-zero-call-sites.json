@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "l0",
+    "intake",
+    "dead-code",
+    "unwired-checker"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/intake.py#ready_for_system",
+  "lessons": [
+    {
+      "claim": "Observation.ready_for_system had ZERO call sites while four consumers (cli.py 102/115/140/155, physical.py 223, interactions.py 296) each re-derived readiness from open_missing alone. Adding a blocker to the property alone would have changed nothing. Measured 2026-09-02. Fix: Observation.blockers is now the single source and ready_for_system is defined as 'not blockers'.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -7,6 +7,8 @@ are also what a hook would intercept.
     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
 
     $PY -m bdbot.cli status                     pipeline progress for every case
+    $PY -m bdbot.cli goal init    <folder>      block A -- a goal.yaml template
+    $PY -m bdbot.cli goal check   <folder>      the goal verdict: CONFIRMED/DRAFT/ABSENT
     $PY -m bdbot.cli intake init  <folder>      an observation.yaml template
     $PY -m bdbot.cli intake check <folder>      L0 schema plus readiness verdict
     $PY -m bdbot.cli system check <folder>      L2 schema, tiers, recomputed derived values
@@ -26,6 +28,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from . import goal as _goal
 from . import intake as _intake
 from . import interactions as _inter
 from . import physical as _physical
@@ -87,6 +90,26 @@ def cmd_intake_init(args) -> int:
     return EXIT_OK if ok else EXIT_USAGE
 
 
+def cmd_goal_init(args) -> int:
+    """Block A -- write the goal template. Deliberately the first command."""
+    folder = _resolve(args.folder)
+    made, msg = _goal.init_template(folder, case=Path(folder).name, force=args.force)
+    print(msg)
+    if made:
+        print("\nFill in `question` first. If you cannot write it, ask the "
+              "experimentalist rather than guess (rule 3).")
+    return EXIT_OK if made else EXIT_USAGE
+
+
+def cmd_goal_check(args) -> int:
+    g = _goal.load(_resolve(args.folder))
+    print(_goal.render_check(g))
+    verdict, _ = _goal.status(_resolve(args.folder))
+    if verdict == "FAIL":
+        return EXIT_FAIL
+    return EXIT_BLOCKED if verdict == "ABSENT" else EXIT_OK
+
+
 def cmd_intake_check(args) -> int:
     obs = _intake.load(_resolve(args.folder))
     print(_intake.render_check(obs))
@@ -99,7 +122,7 @@ def cmd_intake_check(args) -> int:
         print(f"\nthe interaction is unspecified ({syms}).")
         print(f"  -> to see the standard candidates:  "
               f"$PY -m bdbot.cli intake suggest {args.folder}")
-    return EXIT_BLOCKED if obs.open_missing else EXIT_OK
+    return EXIT_OK if obs.ready_for_system else EXIT_BLOCKED
 
 
 def cmd_intake_suggest(args) -> int:
@@ -112,7 +135,7 @@ def cmd_intake_suggest(args) -> int:
         print(_intake.render_check(obs))
         return EXIT_FAIL
     print(_inter.render_suggestion(obs))
-    return EXIT_BLOCKED if obs.open_missing else EXIT_OK
+    return EXIT_OK if obs.ready_for_system else EXIT_BLOCKED
 
 
 def cmd_interactions_list(args) -> int:
@@ -137,7 +160,11 @@ def cmd_status(args) -> int:
     rows = []
     for d in _cases():
         obs = _intake.load(d)
-        l0 = "FAIL" if obs.errors else ("BLOCKED" if obs.open_missing else "READY")
+        # Block A comes first, so it is the first column. ABSENT / FAIL block;
+        # DRAFT does not -- an unconfirmed goal still tells the analysis stage
+        # what to aim at (bdbot/goal.py, `known` vs `confirmed`).
+        goal_verdict, goal_reason = _goal.status(d, obs)
+        l0 = "FAIL" if obs.errors else ("READY" if obs.ready_for_system else "BLOCKED")
         has_sys = (d / "system.yaml").exists()
         if has_sys:
             s = _physical.load(d)
@@ -152,26 +179,38 @@ def cmd_status(args) -> int:
         # counted separately.
         specs = sorted((ROOT / "specs").glob(f"{d.name}__*.json")) \
             if (ROOT / "specs").exists() else []
-        blockers = ", ".join(m.get("symbol", "?") for m in obs.open_missing) or "—"
-        rows.append((d.name, l0, l2, mark, len(specs), len(runs), blockers))
+        blk = list(obs.blockers)
+        if goal_verdict in ("ABSENT", "FAIL"):
+            blk.insert(0, f"goal:{goal_verdict.lower()}")
+        blockers = ", ".join(blk) or "—"
+        rows.append((d.name, goal_verdict, l0, l2, mark, len(specs), len(runs), blockers))
 
     w = max([len(r[0]) for r in rows] + [8])
-    print("=" * (w + 62))
-    print("bdbot status -- from sketch to run")
-    print("=" * (w + 62))
-    print(f"{'case':<{w}}  {'L0':<8}{'L2':<8}{'script':<9}{'specs':>6}{'runs':>6}   blocking gaps")
-    print("-" * (w + 62))
-    for name, l0, l2, sc, ns, nr, blk in rows:
-        print(f"{name:<{w}}  {l0:<8}{l2:<8}{sc:<9}{ns:>5}{nr:>5}   {blk[:30]}")
-    print("-" * (w + 62))
-    n_ready = sum(1 for r in rows if r[1] == "READY")
-    n_spec = sum(1 for r in rows if r[4] > 0)
-    n_run = sum(1 for r in rows if r[5] > 0)
-    print(f"{len(rows)} cases . L0 READY {n_ready} . cases with an L3 spec {n_spec} . "
-          f"cases with runs {n_run}")
+    print("=" * (w + 72))
+    print("bdbot status -- from goal to run")
+    print("=" * (w + 72))
+    print(f"{'case':<{w}}  {'goal':<10}{'L0':<8}{'L2':<8}{'script':<9}"
+          f"{'specs':>6}{'runs':>6}   blocking")
+    print("-" * (w + 72))
+    for name, gv, l0, l2, sc, ns, nr, blk in rows:
+        print(f"{name:<{w}}  {gv:<10}{l0:<8}{l2:<8}{sc:<9}{ns:>5}{nr:>5}   {blk[:30]}")
+    print("-" * (w + 72))
+    n_goal = sum(1 for r in rows if r[1] in ("CONFIRMED", "DRAFT"))
+    n_ready = sum(1 for r in rows if r[2] == "READY")
+    n_spec = sum(1 for r in rows if r[5] > 0)
+    n_run = sum(1 for r in rows if r[6] > 0)
+    print(f"{len(rows)} cases . goal known {n_goal} . L0 READY {n_ready} . "
+          f"cases with an L3 spec {n_spec} . cases with runs {n_run}")
+    print("goal:  CONFIRMED = a human signed it off . DRAFT = written, not signed "
+          "(does not block) . ABSENT = block A not written")
     print("script: O = end-to-end (through L4) . L3 = non-dimensionalization only (--report/--spec)")
-    if any(r[1] == "FAIL" for r in rows):
+    if any(r[2] == "FAIL" for r in rows):
         print("\nFAIL cases: run `intake check <case>` to see the schema errors.")
+    n_absent = sum(1 for r in rows if r[1] == "ABSENT")
+    if n_absent:
+        print(f"\ngoal ABSENT: {n_absent} -- `goal init <case>` then fill in `question`.")
+        print("  The sketch may legitimately state no goal (rule 5); goal.yaml is "
+              "where the answer goes.")
     blocked = [r[0] for r in rows if r[1] == "BLOCKED"]
     if blocked:
         print(f"\nBLOCKED: {len(blocked)} -- stopped rather than inventing a value the "
@@ -299,6 +338,18 @@ def build_parser() -> argparse.ArgumentParser:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("status", help="progress for every case").set_defaults(fn=cmd_status)
+
+    # Block A. Registered before `intake` because it is written before the sketch
+    # is read, and the subcommand order is the pipeline order.
+    p_go = sub.add_parser("goal", help="block A -- what the experimentalist wants to know")
+    s_go = p_go.add_subparsers(dest="sub", required=True)
+    q = s_go.add_parser("init", help="create a goal.yaml template")
+    q.add_argument("folder")
+    q.add_argument("--force", action="store_true")
+    q.set_defaults(fn=cmd_goal_init)
+    q = s_go.add_parser("check", help="schema plus the CONFIRMED/DRAFT/ABSENT verdict")
+    q.add_argument("folder")
+    q.set_defaults(fn=cmd_goal_check)
 
     p_in = sub.add_parser("intake", help="L0 intake")
     s_in = p_in.add_subparsers(dest="sub", required=True)

@@ -82,9 +82,11 @@ skill `bd-physics`, and the HOOMD traps are in skill `bd-hoomd`.
 import importlib as _importlib
 
 _SUBMODULES = (
-    "checks", "cli", "constants", "dt", "health", "intake", "interactions",
-    "lockin", "materials", "metrics", "nondim", "pairpot", "physical",
-    "provenance", "report", "run", "runid", "scales", "sim", "stats", "traps",
+    "analysisplan", "checks", "cli", "constants", "cost", "design", "dt", "goal",
+    "groups", "health", "intake", "interactions", "lockin", "materials", "metrics",
+    "microrheo", "nondim", "pairpot", "params", "physical", "planrun", "provenance",
+    "refbd",
+    "report", "run", "runcard", "runid", "scales", "sim", "smoke", "stats", "traps",
     "units",
 )
 

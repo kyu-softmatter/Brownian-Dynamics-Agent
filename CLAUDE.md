@@ -126,6 +126,46 @@ running the inter-particle interactions**, not by inverting a formula.
 Worked example: `GSER  G* = K*/(6πa)` was **invalid** for `chain-bend`, because
 what the bead feels is not a continuous medium but **two neighbouring beads**.
 
+**10 · Lay out every number, then ask — before the run.** ⭐
+Every time a problem is formulated, write down **all** the numbers the run will
+use, and get a human's approval before starting. Not a summary; the list. At
+minimum:
+
+| Category | Numbers |
+|---|---|
+| geometry | particle radius/diameter, box size, dimensionality, `N` |
+| energy | `T`, `kT` |
+| medium | `η`, `ρ_fluid` |
+| interaction | trap stiffness `k`, pair-potential parameters, bond/angle — **or "not applicable", with a reason** |
+| numerics | `dt`, `n_eq`, `n_prod`, `sample_every`, `seed` |
+| derived | `γ`, `D_t`, `τ_B`, and **which timescale governs** |
+
+Three properties make this a gate rather than a habit:
+
+- **Every number carries `value`, `unit` and `provenance`.** A bare float is
+  rejected. `unit: "1"` is how a dimensionless quantity says so — blank must mean
+  *forgotten*, not *dimensionless*.
+- **"If applicable" means stated, not omitted.** A free probe has no trap
+  stiffness; `not_applicable("interaction", reason)` records that and raises on an
+  empty reason. Same rule as `scales.declare_absent`.
+- **A number that is not known blocks.** `unknown(name, needed_from)` names who
+  would supply it. `BLOCKED` is correct here; inventing the value is the failure
+  (rule 3).
+
+Implemented in [`bdbot/params.py`](bdbot/params.py); it blocks
+`runcard.RunCard` from being sealable and `run.execute(require_approval=True)`
+from running. And if a `params.json` exists it is **always** checked against the
+spec's `numerics` — approving one set of numbers and running another is worse
+than never writing them down.
+
+*Why this is a rule and not advice: the numbers were already being printed. What
+did not exist was anything that fails when one is missing. This repository's
+record on practices-without-gates is three for three against —
+`bd-intake` §2.1's empty-goal blocker (written twice, enforced zero times, walked
+past by 2 of 8 cases which then produced 85 runs), `A4`'s grep (7 false hits,
+never a real check), and `health.gate()` (reachable only from a sibling tool, so
+no run has ever gated itself).*
+
 ---
 
 ## Working practice

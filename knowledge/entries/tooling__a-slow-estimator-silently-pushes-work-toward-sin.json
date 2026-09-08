@@ -1,0 +1,23 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "msd",
+    "performance",
+    "A2",
+    "estimator"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/refbd.py#msd_fft",
+  "lessons": [
+    {
+      "claim": "A slow estimator silently pushes work toward single-seed results. The direct double-loop MSD took 1.0 s to integrate and 93 s to analyse a 300x200,001 run - 99% of the cost was analysis, which made a seed ensemble unaffordable and therefore made A2 (no number without an error bar) unaffordable. The FFT identity MSD(m)=S1(m)-2*S2(m) computes ALL lags faster than the direct method computed 148, and agrees to 9e-13. With the ensemble affordable, a single-run D of 0.98845 that looked 1.2% systematically low turned out to be 0.37 sigma from 1 across 8 seeds. Measured 2026-09-02.",
+      "kind": "method_note",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

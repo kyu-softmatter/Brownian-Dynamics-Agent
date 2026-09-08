@@ -272,15 +272,27 @@ def judge(pe_series, *, status: str = OK, expect_steady: bool = True,
 # execution -- one spec -> one run directory
 # ══════════════════════════════════════════════════════════════════════
 def execute(spec, build_fn, outdir, *, force: bool = False, progress: bool = True,
-            guard_every: int = GUARD_EVERY, extra_metrics=None) -> dict:
+            guard_every: int = GUARD_EVERY, extra_metrics=None,
+            require_seal: bool = False, require_approval: bool = False) -> dict:
     """Run one spec and leave a `metrics.json`. Returns the verdict dict.
 
     `spec` is a `bdbot.nondim.LoadedSpec` -- that is, a `specs/<run_id>.json` read
     back.
 
+    `require_seal` refuses to run without a sealed prediction (block G). It
+    defaults to **False** because the 254 archived runs predate sealing and must
+    stay re-runnable; a **broken** seal raises either way. Unsealed is a known
+    historical state, broken is tampering.
+
+    `require_approval` is rule 10: refuse without an approved `params.json`. Same
+    default and same reason -- but if a `params.json` is present it is ALWAYS
+    checked against the spec's numerics, because approving one set of numbers and
+    running another is worse than never writing them down.
+
     WARNING: this does not write `result.txt`. The case script does. A case that
     omits it has its runs counted as zero by `bdbot.cli status`.
     """
+    from . import runcard as RC   # hashlib only; no hoomd, no simbot
     from . import sim as SIM       # pull hoomd in only here
 
     outdir = Path(outdir)
@@ -295,6 +307,41 @@ def execute(spec, build_fn, outdir, *, force: bool = False, progress: bool = Tru
                          f"contents (expected {want}). Rule 2.")
     if spec.verdict.startswith("FAIL"):
         raise ValueError(f"a spec whose L3 verdict is FAIL is not run: {spec.verdict}")
+
+    # * The seal check lives HERE, inside the function that would otherwise
+    #   proceed -- not in a sibling tool. `health.gate()` is reachable only from
+    #   `tools/health.py:138` and `run.py` never mentions it, so a run has never
+    #   gated itself; its own docstring records why that matters ("an unwired
+    #   checker cannot be wrong out loud"). Raises SealBroken on a broken seal.
+    seal_notes = RC.verify_or_raise(outdir, require=require_seal)
+    for n in seal_notes:
+        print(n)
+
+    # * rule 10, enforced here for the same reason the seal check is here: a gate
+    #   on an optional path is not a gate. If a params.json exists it must be
+    #   approved and it must agree with the numerics about to run -- approving a
+    #   manifest and then running different numbers is the failure it guards.
+    if (outdir / "params.json").exists():
+        from . import params as PRM
+        man = PRM.load(outdir)
+        if require_approval and not man.approved_by:
+            raise ValueError(
+                f"{outdir.name}: params.json is not approved. Rule 10 -- lay out "
+                f"every number and ask before running. No code sets approved_by.")
+        drift = PRM.diff_against_spec(man, dict(spec.numerics))
+        if drift:
+            raise ValueError(
+                f"{outdir.name}: the approved manifest does not match the spec "
+                f"about to run: " + "; ".join(drift))
+        if man.approved_by:
+            print(f"params.json approved by {man.approved_by}")
+    elif require_approval:
+        raise ValueError(
+            f"{outdir.name}: no params.json. Rule 10 requires every number "
+            f"(radius, box, kT, trap stiffness if applicable, dt, total steps, "
+            f"...) written down and approved before the run. Build one with "
+            f"bdbot.params.Manifest, or pass require_approval=False for a "
+            f"deliberately unreviewed run and record that choice.")
 
     b = build_fn(spec, outdir)          # * pass outdir, so the GSD path never enters the spec
     dt_star = float(spec.numerics["dt_star"])
