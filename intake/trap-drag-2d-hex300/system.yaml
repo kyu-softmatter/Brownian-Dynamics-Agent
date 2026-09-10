@@ -155,3 +155,22 @@ not_verified:
   - "A=100·φ=0.35 는 1-B의 조합을 옮긴 것 — 이 계(트랩 포함)에서 육방 결정인지 미확인"
   - "측정 목표가 스케치에 없어서 ★제안으로 채웠다 (끌림힘·격자 변형장)"
   - "이동 트랩은 bd-hoomd 의 variant 스니펫으로 가능하나 이 케이스에서 미검증"
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 2
+    basis: required
+    alternatives: [3]
+    why_not: >-
+      The system IS a 2D hexagonal lattice: psi_6, the lattice strain field, and
+      the commensurability that fixes the box aspect ratio
+      (L_x = n_x a_NN, L_y = n_y (sqrt3/2) a_NN, 17x18 = 306) are all 2D constructs.
+    what_would_change: >-
+      The commensurate box has no 3D counterpart, so the initial condition would
+      have to be redesigned; psi_6 would be replaced by a different order
+      parameter, and the number of lattice periods per traverse (n_x = 17), which
+      sets this case's statistics, is defined by the 2D row spacing.

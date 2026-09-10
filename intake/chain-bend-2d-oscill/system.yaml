@@ -163,3 +163,29 @@ not_verified:
      탄성 상수는 옮겨오되 동역학은 새 영역"
   - "BD + 뉴턴 용매에서는 용매의 G'=0 이다. 여기서 나올 G'는 **사슬의 탄성**이고
      매질의 점탄성이 아니다"
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 2
+    basis: given
+    source: >-
+      user-specified 2026-09-10 — the chain is held and manipulated by optical
+      tweezers, in the tweezers' plane. The sketch itself is silent: it names y
+      ("oscillation in y-dir") and implies x, and never mentions z, which under
+      rule 5 is `null` rather than 2D.
+    alternatives: [3]
+    why_not: >-
+      Same three-point-bending geometry as the source experiments [P1][P2], which
+      assemble and bend chains in a plane.
+    what_would_change: >-
+      A second transverse direction appears, so the chain could buckle out of
+      plane. RESIDUAL, not verified: only 3 of ~9 beads are trapped (ambiguity C3);
+      the rest are held by bonds alone, so nothing directly suppresses their z. A
+      3D chain has two transverse directions sharing the same bonds and should be
+      softer. Whether that changes K' is a `hypothesis` (rule 7'), i.e. a result
+      rather than a bug — see Takatori 2020, which infers an out-of-plane
+      transition from a 2D run.

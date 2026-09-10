@@ -189,3 +189,22 @@ not_verified:
      같은 입자·같은 결합이므로 그 케이스가 검증하면 이 케이스도 같이 검증된다"
   - "Hamaker 상수(1.05e-20 J) 1차 출처 미확인(tier 2) — chain-bend-2d-dlvo 승계와 동일한
      불확실성. 결론이 A 값에 민감해지면(우물이 kT 근방을 오르내리면) 재확인 필요"
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 2
+    basis: inherited
+    compared_with: [chain-bend-2d-dlvo]
+    alternatives: [3]
+    why_not: >-
+      This is the rule-8 static control for chain-bend-2d-dlvo — the same chain
+      with traps, ghosts and driving removed. A 3D run would not be a control.
+      EXPIRES if that comparison is dropped.
+    what_would_change: >-
+      It would stop being a control. The free chain also rotates and translates
+      freely here, so a third dimension adds rigid-body modes that the shape
+      observables would have to be re-derived against.

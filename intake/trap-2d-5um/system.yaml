@@ -63,3 +63,26 @@ numerics:
   equilibration_tau: 20     # 지배 시간척도(τ_k)의 배수
   production_tau: 2000
   samples_per_tau: 10       # C(t)·PSD 시간 해상도
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 2
+    basis: given
+    source: >-
+      sketch_01.jpeg "U(r) = 1/2 k_t r^2,  r = sqrt(x^2+y^2)" — the formula fixes
+      the plane. observation.yaml `dimensionality` resolution, 2026-08-03.
+    alternatives: [3]
+    why_not: >-
+      A real optical trap is 3D and L0 says so ("실제 광집게는 3D이나 축방향을 따로
+      보는 관례가 있음"). `sufficient` ALSO holds here — no pair interactions and a
+      separable harmonic trap make x, y, z exactly independent — but `given` takes
+      precedence, so that is corroboration rather than the basis.
+    what_would_change: >-
+      Nothing for the observables this case measures: <x^2>, C(t), the PSD and
+      f_c = k_t/(2 pi gamma) are per-component and carry no `dim`. It WOULD change
+      <r^2> = dim*kT/k (x1.5) and the total MSD = 2*dim*D*t. Adding either of
+      those makes the dimension load-bearing again.

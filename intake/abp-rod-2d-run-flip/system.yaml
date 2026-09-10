@@ -142,3 +142,30 @@ not_verified:
   - "BD는 병진 이방성을 재현하지 못한다 → **단시간 MSD의 이방성은 나오지 않는다**. MSAD와 장시간 MSD는 정확"
   - "run-and-tumble updater는 HOOMD 내장이 없어 커스텀 Action 필요 (bd-hoomd 스니펫 있음, 이 케이스에서 미검증)"
   - "τ_r=1.096s 가 τ_tumble=0.5s 보다 느리다 → 텀블이 방향 상관을 지배. 열적 회전은 부차적"
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 2
+    basis: inherited
+    compared_with: [2024-quah-graybox-abp-mpc-repo]
+    alternatives: [3]
+    why_not: >-
+      Matched to the lab's ABP line: the Quah graybox repo sets
+      `box = [width, plate_gap, 0, 0, 0, 0]  # Lz=0 -> 2D` in published code, and
+      Modica 2022 states 2D with a physical reason (beads sediment to the chamber
+      floor). CAVEAT: both targets are spheres/discs and this case is a prolate
+      ellipsoid (aspect ratio 4), so comparability is PARTIAL. EXPIRES if the
+      comparison is dropped. Decided 2026-09-10.
+    what_would_change: >-
+      Measured, verify/verify_abp_rod_dimension_impact.py (4/4): gamma_bar
+      7.2122e-9 -> 7.5271e-9 (+4.4%), D_t 0.5743 -> 0.5503 um^2/s,
+      D_eff 4.866 -> 2.729 um^2/s (0.56x), MSD prefactor 2*d*D_eff 19.46 -> 16.37.
+      Rotation dominates, not friction: the (d-1) director factor (bd-hoomd trap
+      14) halves tau_eff. Under the weakest alternative assumption D_eff is still
+      0.70x, so it moves 30-44% either way. 3D would also require
+      rotational_diffusion = 2*D_r_phys, rewrite hard constraint H1 ("2D has one
+      rotation axis"), and would be the FIRST case to exercise trap 14.

@@ -35,6 +35,15 @@ DOC_KEYS = frozenset({
     "derived_scales", "dimensionless", "source", "note", "source_note",
     "interpretation", "deviates_from_sketch", "expr", "role", "meaning", "tier",
     "what", "proposed", "followup", "lean", "confirmed_by",
+    # `structure` (physical.STRUCTURE_SECTION) documents WHY the dimensionality
+    # is what it is. The choice itself stays hashed where it already was --
+    # top-level `dimensions` -- so 2 -> 3 still re-ids the run while writing
+    # down why it is 2 does not. Both directions of the warning above are
+    # therefore preserved, and `physical.check_dim` cross-checks the two so they
+    # cannot drift. Existing specs have no `structure` key, so adding this
+    # renames nothing: verified against all 278 specs in
+    # `verify/verify_dim_gate.py` section (1).
+    "structure",
 })
 
 

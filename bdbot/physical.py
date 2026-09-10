@@ -67,6 +67,56 @@ CORE_PROVENANCED = {
 TIER_MEANING = {0: "given / handbook", 1: "literature + verified, or a confirmed convention",
                 2: "literature, unverified", 3: "arbitrary assumption"}
 
+# ════════════════════════════════════════════════════════════════════════════
+# `structure.dim` -- teeth for D9
+# ════════════════════════════════════════════════════════════════════════════
+#  `knowledge/wiki/concepts/dimensionality-has-no-default.md` closes
+#  `D9 · 차원 (2D / 3D)`, which had stood `OPEN` with a 3D default that **7 of
+#  the 8 cases contradict**. The decision: there is no default; every case
+#  declares WHY its dimension is what it is.
+#
+#  This block is what stops that decision from being the fourth entry in rule
+#  10's list of practices that were written and never enforced (`bd-intake`
+#  §2.1's empty-goal blocker, `A4`'s grep, `health.gate()` -- three for three).
+#  Measured 2026-09-10, before this existed: `dimensions:` was a bare scalar in
+#  **8 of 8** `system.yaml`, with no `source` and no `tier` -- less provenance
+#  than `particle.density`, which only feeds the `tau_p` sanity check.
+#
+#  ⚠ Deliberately NOT hashed into `run_id` (`runid.DOC_KEYS`). The physics value
+#  stays where it was -- top-level `dimensions` -- so 2 -> 3 still re-ids every
+#  run, while writing down *why* it is 2 does not. Both directions of
+#  `runid.py`'s warning are preserved, and `_check_dim` cross-checks the two so
+#  they cannot drift.
+STRUCTURE_SECTION = "structure"
+
+#: `given` beats the other three. If the source -- sketch, paper, or a human
+#: asked directly -- states the dimension, it is an input and is not re-derived
+#: (rule 3: never invent; rule 5: transcribe before you interpret).
+DIM_BASES = ("given", "required", "inherited", "sufficient")
+
+DIM_BASIS_MEANING = {
+    "given":      "the input states it -- not a modelling choice",
+    "required":   "the question does not exist in another dimension",
+    "inherited":  "matched to an existing case so the two stay comparable",
+    "sufficient": "the DOFs separate and the observable is a separated component",
+}
+
+#: Each basis owes a different piece of evidence, and two of them **expire**:
+#: `inherited` when the comparison target changes, `sufficient` when an
+#: observable is added. The field is what makes the expiry detectable.
+DIM_BASIS_REQUIRES = {
+    "given":      ("source",),
+    "required":   (),
+    "inherited":  ("compared_with",),
+    "sufficient": ("checked_observables",),
+}
+
+#: Always required, whatever the basis. `what_would_change` is the load-bearing
+#: one: empty means "I do not know whether this choice is safe", which is a
+#: different state from "it is safe", and the whole point is that the two stop
+#: looking alike.
+DIM_ALWAYS = ("value", "basis", "alternatives", "what_would_change")
+
 
 @dataclass
 class PhysicalSystem:
@@ -120,7 +170,7 @@ class PhysicalSystem:
         out: dict[str, Provenanced] = {}
         for path, node in _walk_provenanced(self.raw):
             top = path.split(".")[0].split("[")[0]
-            if top in DERIVED_SECTIONS:
+            if top in DERIVED_SECTIONS or top == STRUCTURE_SECTION:
                 continue
             if path in {".".join(p) for p in CORE_PROVENANCED.values()}:
                 continue
@@ -230,7 +280,9 @@ def validate(s: PhysicalSystem) -> list:
     # 4. completeness of the Provenanced leaves, plus unit parsing
     for path, node in _walk_provenanced(raw):
         top = path.split(".")[0].split("[")[0]
-        if top in DERIVED_SECTIONS:
+        # `structure` holds Choices, not Provenanced numbers -- different schema,
+        # validated by `check_dim`.
+        if top in DERIVED_SECTIONS or top == STRUCTURE_SECTION:
             continue
         for need in ("source", "tier"):
             if need not in node:
@@ -247,11 +299,96 @@ def validate(s: PhysicalSystem) -> list:
     # 5. recomputation check on the derived values (when present)
     out += verify(s)
 
+    # 5b. the dimensionality basis (D9)
+    out += check_dim(s)
+
     # 6. the tier approval gate
     low = [n for n, p in {**s.core, **s._extra_provenanced()}.items() if p.tier >= 2]
     if low:
         out.append(I("warn", "tier", f"{len(low)} value(s) at tier >= 2 (unverified): {', '.join(low[:6])}"
                                      f"{' ...' if len(low) > 6 else ''} -- needs human approval"))
+    return out
+
+
+def check_dim(s: PhysicalSystem) -> list:
+    """`structure.dim` -- the basis for this case's dimensionality (D9).
+
+    Three kinds of failure, all errors:
+
+      absent        the historical state, 8 of 8 on 2026-09-10. The gate exists
+                    to turn that into 8 written answers
+      inconsistent  `structure.dim.value` disagrees with the hashed `dimensions`.
+                    Two numbers where there should be one -- the same invariant
+                    `params.json` carries against the spec's numerics
+      empty         a required field present but blank, above all
+                    `what_would_change`. "Not stated" and "no consequence" must
+                    not render the same
+
+    The only case script this can stop is `cases/abp_rod_2d.py:518`, the one that
+    gates on `s.errors`; every other case reads `system.yaml` directly, and
+    `run.execute()` never calls this at all. With all 8 bases filled in, none of
+    them is blocked -- measured 2026-09-10, `abp_rod_2d.py --smoke` runs.
+    """
+    I = _intake.Issue
+    raw = s.raw
+    if not raw:
+        return []
+
+    st = raw.get(STRUCTURE_SECTION) or {}
+    e = st.get("dim") if isinstance(st, dict) else None
+    if not isinstance(e, dict):
+        return [I("error", f"{STRUCTURE_SECTION}.dim",
+                  f"missing. `dimensions: {raw.get('dimensions')}` is a bare scalar "
+                  f"with no source and no tier -- less provenance than "
+                  f"`particle.density`. Declare a basis: "
+                  f"{', '.join(DIM_BASES)}. "
+                  f"See knowledge/wiki/concepts/dimensionality-has-no-default.md")]
+
+    out: list = []
+    where = f"{STRUCTURE_SECTION}.dim"
+    basis = e.get("basis")
+    if basis not in DIM_BASES:
+        out.append(I("error", f"{where}.basis",
+                     f"must be one of {DIM_BASES} (got {basis!r}). "
+                     + " . ".join(f"{k}={v}" for k, v in DIM_BASIS_MEANING.items())))
+
+    need = DIM_ALWAYS + DIM_BASIS_REQUIRES.get(basis, ())
+    for f in need:
+        if f not in e:
+            out.append(I("error", f"{where}.{f}",
+                         "missing" + (f" -- required when basis is {basis!r} "
+                                      f"({DIM_BASIS_MEANING[basis]})"
+                                      if basis in DIM_BASIS_REQUIRES
+                                      and f in DIM_BASIS_REQUIRES[basis] else "")))
+        elif e[f] is None or (isinstance(e[f], str) and not e[f].strip()) \
+                or (isinstance(e[f], (list, tuple)) and not e[f]):
+            out.append(I("error", f"{where}.{f}",
+                         "present but empty. Blank must mean *forgotten*, never "
+                         "*nothing to say*"
+                         + (" -- an empty `what_would_change` means you do not know "
+                            "whether this choice is safe, which is not the same as "
+                            "it being safe."
+                            if f == "what_would_change" else ".")))
+
+    # the choice and the hashed physics field must be one number
+    if "value" in e and "dimensions" in raw and e["value"] != raw["dimensions"]:
+        out.append(I("error", f"{where}.value",
+                     f"disagrees with `dimensions: {raw['dimensions']}` (structure "
+                     f"says {e['value']}). `run_id` is hashed on `dimensions`, so "
+                     f"this records one choice and runs another."))
+
+    # the two bases that expire say so, every time they are read
+    if basis == "inherited":
+        tgt = e.get("compared_with") or []
+        out.append(I("warn", where,
+                     f"basis `inherited` EXPIRES if the comparison is dropped "
+                     f"(target: {', '.join(map(str, tgt)) if tgt else '?'})"))
+    elif basis == "sufficient":
+        obs = e.get("checked_observables") or []
+        out.append(I("warn", where,
+                     f"basis `sufficient` EXPIRES when an observable is added -- "
+                     f"checked against {len(obs)}: "
+                     f"{', '.join(map(str, obs))[:60]}"))
     return out
 
 
@@ -362,6 +499,8 @@ def render_check(s: PhysicalSystem) -> str:
     return "\n".join(L)
 
 
-__all__ = ["SCHEMA", "PhysicalSystem", "load", "validate", "verify", "render_check",
+__all__ = ["SCHEMA", "PhysicalSystem", "load", "validate", "check_dim",
+           "verify", "render_check",
            "REQUIRED_TOP", "OPTIONAL_TOP", "CORE_PROVENANCED", "DERIVED_SECTIONS",
-           "TIER_MEANING"]
+           "TIER_MEANING", "STRUCTURE_SECTION", "DIM_BASES",
+           "DIM_BASIS_MEANING", "DIM_BASIS_REQUIRES", "DIM_ALWAYS"]

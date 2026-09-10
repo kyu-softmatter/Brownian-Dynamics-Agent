@@ -204,3 +204,22 @@ not_verified:
      구한 뒤 좁혀야 할 수 있음"
   - "이 계가 [P1][P2]와 다른 결론을 내도 실패가 아니다 (원칙 7) — 오히려 그게
      '중심력만으로는 빔거동이 안 나온다'는 논문 자체 주장의 시뮬레이션 증거가 된다"
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 2
+    basis: inherited
+    compared_with: [chain-bend-2d-oscill]
+    alternatives: [3]
+    why_not: >-
+      This case exists to contrast DLVO central forces against the same geometry
+      run with JKR bending; the contrast is only meaningful at matched
+      dimensionality. EXPIRES if that comparison is dropped.
+    what_would_change: >-
+      The comparison against chain-bend-2d-oscill would stop being one. Physically,
+      a second transverse direction would let the chain buckle out of plane — see
+      that case's entry; not verified.

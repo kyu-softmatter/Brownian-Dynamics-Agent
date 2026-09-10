@@ -130,6 +130,55 @@ turned out unobtainable after the whole thing had run.
 
 If `stated_goals: []`, do not push it into `choice` — **ask the user.**
 
+### 2.2 Dimensionality is an ambiguity unless the source *states* it ⭐️
+
+**A hand sketch is always drawn on flat paper, so its planarity carries no
+information.** This is not a hypothetical: `network`'s intake leaned 2D on the
+grounds *"(1) all 6 project cases are 2D (2) the drawing is planar"*, and the
+resolution now reads **`3D (user-specified 2026-08-06, "physical"). ★ my lean
+(2D) was wrong`**. Both grounds were non-reasons — one is the paper, the other is
+precedent with nothing being compared.
+
+Measured 2026-09-10 across the 8 cases: **`dimensions:` was a bare scalar in 8 of
+8**, with no `source` and no `tier` — less provenance than `particle.density`,
+which only feeds a sanity check. It was raised as an ambiguity in **2 of 8**
+(`trap-2d-5um`, `network`); in the other six, 2D first appears on the
+`system_guess:` line and is never questioned again.
+
+| This **is** a source statement | This is **not** |
+|---|---|
+| the text says "3D", "monolayer", "in the plane" | **the drawing looks flat** |
+| a formula fixes it — `r = √(x²+y²)` excludes `z` | every previous case was 2D |
+| a human answered when asked (record who and when) | 3D is expensive |
+
+So unless one of the left-hand cases holds, write an `ambiguities` entry. Its
+`impact` is the usual requirement — a number, per observable. `network`'s is the
+model, and it was computed **before** the choice:
+
+> units change (2D `G*` is `[N/m]`, 3D is `[Pa]` — decides whether literature
+> comparison is possible at all) · cost `N ∝ (L/d)^dim` (`L = 30d` is hundreds in
+> 2D, thousands to tens of thousands in 3D)
+
+**Where to look for the impact.** The dimension is load-bearing when the case's
+observables carry `dim` — `⟨r²⟩ = dim·kT/k`, `MSD = 2·dim·D·t`,
+`φ` (`Nπσ²/4L²` vs `Nπσ³/6L³`), coordination / loops / percolation / `d_f`, and
+anything rotational (HOOMD's `rotational_diffusion` is **off by 2× in 3D** —
+skill `bd-hoomd` trap 14). It is *not* load-bearing when the observables are
+per-component and the degrees of freedom separate.
+
+⚠️ **A `2d` in the folder name is not a decision.** Seven of the eight case
+labels contain it; the one that does not is `network`, the only case in which
+the dimension was ever argued.
+
+**Downstream this is a hard gate, so an unresolved reading surfaces late rather
+than never.** L2 requires `structure.dim` with a `basis` of `given`,
+`required`, `inherited` or `sufficient` (`bdbot.physical.check_dim`), and
+`given` — the source stated it — takes precedence over the other three. The
+decision and the eight worked examples are in
+[`knowledge/wiki/concepts/dimensionality-has-no-default.md`](../../../knowledge/wiki/concepts/dimensionality-has-no-default.md).
+Getting it right here means the human sees the question at L0, where it is cheap,
+instead of at L2 after a lean has hardened.
+
 ## 3. Missing values — separate `physical` from `choice` ⭐️
 
 Each `missing_required` entry gets a `kind`:

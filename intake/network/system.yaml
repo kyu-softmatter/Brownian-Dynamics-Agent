@@ -329,3 +329,26 @@ not_verified:
      압축 전 배치의 아핀 상이라는 뜻일 수 있다. A8(압축 속도 무관성)을 재기 전에는
      '겔화했다'고 말하지 말 것"
   - "2단계의 굽힘 구현(force.Custom 26배 느림)이 N=1528·ω스윕에서 감당되는지 미측정"
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 3
+    basis: given
+    source: >-
+      user-specified 2026-08-06, "물리적". observation.yaml ambiguity resolution —
+      the agent's lean was 2D and the record marks it wrong.
+    alternatives: [2]
+    why_not: >-
+      The sketch states no dimension. The agent leaned 2D on "(1) all 6 project
+      cases are 2D (2) the drawing is planar" — precedent with no named comparison,
+      and a flat drawing, neither of which is evidence. The user overrode it.
+    what_would_change: >-
+      Computed BEFORE deciding: 2D gives G* in [N/m] and 3D in [Pa], which decides
+      whether literature comparison is possible at all; cost scales as
+      N ~ (L/d)^dim (L = 30d is hundreds in 2D, thousands to tens of thousands in
+      3D). Coordination z, independent loop count, d_f and percolation — this
+      case's stage-1 observables — are all dimension-critical.

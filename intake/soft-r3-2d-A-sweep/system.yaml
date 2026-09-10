@@ -159,3 +159,21 @@ not_verified:
   - "문헌 대조 없음 (KB 문헌 0편). 2D r⁻³는 계면 상자성 콜로이드의 표준 모델로 알려져
      있고 녹음 전이의 Γ 값이 문헌에 있을 것으로 기억하나 **확인하지 않았다** —
      Phase 5에서 증류 대상"
+
+# ── structural choices — the basis for this case's dimensionality (D9) ──────
+#  knowledge/wiki/concepts/dimensionality-has-no-default.md
+#  Not hashed into run_id: `dimensions` above is the physics value; this records
+#  why. `physical.check_dim` cross-checks the two.
+structure:
+  dim:
+    value: 2
+    basis: required
+    alternatives: [3]
+    why_not: >-
+      The question is the KTHNY two-stage melting sequence and the hexatic window;
+      psi_6 and the eta_6 = 1/4 boundary are 2D constructs (Zahn 1999 distillation).
+      In 3D that question does not exist, so 3D is a DIFFERENT case, not a better one.
+    what_would_change: >-
+      The case's own question disappears. phi also changes form
+      (N pi sigma^2/4L^2 -> N pi sigma^3/6L^3), and the finite-size slope
+      p = -dln|<psi_6>|/dlnN that discriminates the phase has no 3D counterpart.
