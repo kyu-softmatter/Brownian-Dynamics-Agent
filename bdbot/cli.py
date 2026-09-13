@@ -159,6 +159,17 @@ def cmd_status(args) -> int:
     """
     rows = []
     for d in _cases():
+      # * ⚠ THE AMPLIFIER, guarded 2026-09-13. This loop had no guard and the
+      #   table is printed only AFTER it completes, so ONE unreadable case file
+      #   took down all 8 rows -- and six rounds of adversarial review closed
+      #   coercion sites one at a time without touching the thing that converts
+      #   any single site into total loss. ~145 provenance sites in
+      #   `load_node`/`render_check` can still raise, and they predate this
+      #   branch, so closing them one by one is not a strategy.
+      #   A row that cannot be read is now reported AS a row. The verdict column
+      #   says ERROR, which is louder than a traceback, not quieter: a traceback
+      #   loses the other seven.
+      try:
         obs = _intake.load(d)
         # Block A comes first, so it is the first column. ABSENT / FAIL block;
         # DRAFT does not -- an unconfirmed goal still tells the analysis stage
@@ -184,6 +195,9 @@ def cmd_status(args) -> int:
             blk.insert(0, f"goal:{goal_verdict.lower()}")
         blockers = ", ".join(blk) or "—"
         rows.append((d.name, goal_verdict, l0, l2, mark, len(specs), len(runs), blockers))
+      except Exception as exc:                       # noqa: BLE001 -- see above
+        rows.append((d.name, "ERROR", "ERROR", "ERROR", "—", 0, 0,
+                     f"unreadable: {type(exc).__name__}: {exc}"[:60]))
 
     w = max([len(r[0]) for r in rows] + [8])
     print("=" * (w + 72))
