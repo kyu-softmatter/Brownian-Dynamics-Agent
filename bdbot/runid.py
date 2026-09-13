@@ -13,7 +13,37 @@ import hashlib
 import json
 from pathlib import Path
 
-PRESERVE = {"record.json"}     # files not deleted even on a re-run
+#: Files `prepare_outdir` must NOT delete. The distinction is input vs output:
+#: `prepare_outdir` exists to clear the *outputs* of a partial run, and every
+#: name here is a human-authored *input* that is written before the run and
+#: that a gate downstream has to be able to see.
+#:
+#: ★ Measured 2026-09-13, and the reason this set grew. `execute()` checks the
+#:   seal at run.py:416 and `params.json` at run.py:424 -- both AFTER
+#:   `prepare_outdir` at run.py:399 had already deleted them. Verified by
+#:   running `execute()` on a temp directory:
+#:
+#:     a VALID seal          -> "no SEALED.sha256. Refusing to run"
+#:     a TAMPERED seal       -> "[warn] ... is unsealed", and the run PROCEEDS
+#:     an APPROVED params    -> "no params.json. Rule 10 requires every number"
+#:     a DRIFTING params     -> the drift check never runs at all
+#:
+#:   So `require_seal=True` and `require_approval=True` could only ever fail,
+#:   never be satisfied; the two branches behind them were unreachable; and
+#:   `runcard.verify_or_raise`'s documented asymmetry -- *"unsealed is a known
+#:   historical state, broken is tampering"* -- was inverted, with tampering
+#:   silently downgraded to "unsealed". It also explains why 0 of 260 run
+#:   directories carry a seal: sealing before a run was undone by the run.
+#:
+#:   The structure gate does not appear in that list only because it was hoisted
+#:   above `prepare_outdir` in a previous pass (run.py:324 says so). The two
+#:   gates below it had the identical defect and were walked past.
+SEAL_FILE = "SEALED.sha256"    # = runcard.SEAL_NAME; runcard imports us, not vice versa
+PRESERVE = {
+    "record.json",             # a lesson must outlive the run artefacts
+    "params.json",             # rule 10: the approved numbers
+    SEAL_FILE,                 # the pre-registration
+}
 
 # * Keys excluded from the run_id hash -- documentation, provenance, derived values.
 #   This actually bit: adding a `derived_from` field to a system file changed one
@@ -116,12 +146,24 @@ def prepare_outdir(outdir: Path, force: bool = False) -> tuple[bool, str]:
         return False, (f"\nthis run is already complete: runs/{outdir.name}/  "
                        f"(--force to re-run)\n{tail}")
     if outdir.exists():
+        # * Keep PRESERVE. A lesson (a KB entry) must outlive the run artefacts;
+        #   run_id is content-addressed, so the same directory means the same
+        #   spec and the previous lesson is still valid. (Added after a --force
+        #   re-run destroyed 6 lessons.) The approved numbers and the seal are
+        #   kept for the reason recorded on PRESERVE above.
+        # * ...and whatever the seal COVERS. Keeping `SEALED.sha256` while
+        #   deleting the document it hashes leaves a dangling seal, which
+        #   `verify_seal` then reports as a missing document -- trading a silent
+        #   failure for a loud one that blocks every re-run of a sealed case.
+        keep = set(PRESERVE)
+        seal = outdir / SEAL_FILE
+        if seal.exists():
+            for line in seal.read_text().splitlines():
+                part = line.split(None, 1)
+                if len(part) == 2:
+                    keep.add(Path(part[1].strip()).name)
         for f in outdir.iterdir():
-            # * Keep record.json. A lesson (a KB entry) must outlive the run
-            #   artefacts. run_id is content-addressed, so the same directory means
-            #   the same spec, and the previous lesson is still valid.
-            #   (Added after a --force re-run destroyed 6 lessons.)
-            if f.is_file() and f.name not in PRESERVE:
+            if f.is_file() and f.name not in keep:
                 f.unlink()
     outdir.mkdir(parents=True, exist_ok=True)
     return True, ""

@@ -1,0 +1,145 @@
+{
+ "scope": "full suite",
+ "rows": [
+  {
+   "id": "L2-dim-wired",
+   "gate": "physical.validate calls check_dim",
+   "failures": 22,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.7
+  },
+  {
+   "id": "L2-size-wired",
+   "gate": "physical.validate calls check_size",
+   "failures": 52,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 56.7
+  },
+  {
+   "id": "RUN-structure-validate",
+   "gate": "execute() refuses a structure block that does not validate",
+   "failures": 1,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.1
+  },
+  {
+   "id": "RUN-structure-required",
+   "gate": "require_structure=True refuses a spec with no block",
+   "failures": 1,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.0
+  },
+  {
+   "id": "RUN-spec-hash",
+   "gate": "execute() refuses a hand-edited spec (rule 2)",
+   "failures": 1,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.9
+  },
+  {
+   "id": "RUN-verdict-fail",
+   "gate": "execute() refuses a spec whose L3 verdict is FAIL",
+   "failures": 1,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 58.3
+  },
+  {
+   "id": "RUN-approval-missing",
+   "gate": "rule 10: require_approval=True refuses a run with no params.json",
+   "failures": 1,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.9
+  },
+  {
+   "id": "RUN-approval-unsigned",
+   "gate": "rule 10: an unapproved params.json does not run",
+   "failures": 1,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.7
+  },
+  {
+   "id": "RUN-params-drift",
+   "gate": "approving one set of numbers and running another",
+   "failures": 2,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.7
+  },
+  {
+   "id": "SEAL-broken",
+   "gate": "a broken seal is a hard stop",
+   "failures": 2,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.9
+  },
+  {
+   "id": "SEAL-missing",
+   "gate": "require_seal=True refuses an unsealed run",
+   "failures": 2,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 58.2
+  },
+  {
+   "id": "A4-core-imports-llm",
+   "gate": "A4: the deterministic core carries no LLM dependency",
+   "failures": 2,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 1.7
+  },
+  {
+   "id": "PRESERVE-gate-inputs",
+   "gate": "prepare_outdir keeps the human-authored gate inputs",
+   "failures": 8,
+   "caught": true,
+   "expect": "caught",
+   "agrees": true,
+   "why": null,
+   "seconds": 57.9
+  },
+  {
+   "id": "HEALTH-gate-wired",
+   "gate": "health.gate() blocks a bad spec",
+   "failures": 0,
+   "caught": false,
+   "expect": "uncaught",
+   "agrees": true,
+   "why": "documented in docs/05 section 2 and in health.gate's own docstring: reachable only from tools/health.py, so run.execute never calls it",
+   "seconds": 57.8
+  }
+ ]
+}
