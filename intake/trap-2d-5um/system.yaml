@@ -86,3 +86,32 @@ structure:
       f_c = k_t/(2 pi gamma) are per-component and carry no `dim`. It WOULD change
       <r^2> = dim*kT/k (x1.5) and the total MSD = 2*dim*D*t. Adding either of
       those makes the dimension load-bearing again.
+  size:
+    role: replication
+    n: 1000
+    n_physical: 1
+    n_replicas: 1000
+    stated_in_source: null      # the source is silent on N
+    fixed_by: confirmed_by_run
+    what_would_change: >-
+      Nothing physical. The 1000 do not interact, so the box is a container for
+      replicas and not a system: anchors sit on a 1d lattice (L = 32 d) and
+      l_k = 20.4 nm = 0.00407 d, so anchor->edge is 123 l_k and anchor->anchor
+      246 l_k. Raising n_replicas shrinks the error bar only; at N = 1000 the
+      achieved statistical error on <x^2> is +/-0.0481%
+      (runs/trap-2d-5um__a5ef4f45d589).
+      ⚠ CORRECTED 2026-09-11: that was written "against goal.yaml's 5% target",
+      but goal.yaml's decisive_precision is 5% ON f_c, its answering_quantity --
+      a different observable. The comparison that belongs here is f_c's own
+      error, +1.17%, against the 5%. <x^2>'s +/-0.0481% has no stated target.
+      ⚠ +/-0.594% is the N = 200 SMOKE run (runs/trap-2d-5um__ed80885e01b3);
+      quoting it beside N = 1000 was wrong by 12x, caught in review.
+      ⚠ The original record justifies 1000 only as "a device to get a statistics
+      multiple", settled `confirmed_by: run` after the four observables matched
+      the analytic solution -- it was not inverted from a target.
+      ⚠ NOT VERIFIED, recorded as a question: the existing check is `2 l_k / L`,
+      i.e. the fluctuation against the whole box, while the distance a replica
+      would actually have to cross is anchor->edge = 0.5 d. If that reading is
+      right the check is 64x looser than the constraint it stands for -- but the
+      check's own basis line says it guards the box, not the lattice cell, so
+      the two may simply be guarding different things. Both pass here (123x).

@@ -223,3 +223,14 @@ structure:
       The comparison against chain-bend-2d-oscill would stop being one. Physically,
       a second transverse direction would let the chain buckle out of plane — see
       that case's entry; not verified.
+  size:
+    role: object
+    n: [5, 9, 15, 25]
+    stated_in_source: null      # the source is silent on N
+    fixed_by: swept
+    what_would_change: >-
+      n is the independent variable, not a numerical parameter: the user asked
+      for the chain-length dependence, and the measured K' falling monotonically
+      toward 0 across n=5..25 is reported as EVIDENCE for the conclusion (rule
+      7'), not as a finite-size artefact to extrapolate away. n=25 is inherited
+      from [P1] Fig.4 so one point is comparable to the paper.

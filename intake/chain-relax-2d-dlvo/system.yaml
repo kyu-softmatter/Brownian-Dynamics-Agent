@@ -208,3 +208,12 @@ structure:
       It would stop being a control. The free chain also rotates and translates
       freely here, so a third dimension adds rigid-body modes that the shape
       observables would have to be re-derived against.
+  size:
+    role: object
+    n: [9]
+    stated_in_source: null      # the source is silent on N
+    fixed_by: inherited
+    what_would_change: >-
+      It would stop being the static control for chain-bend-2d-dlvo, whose most
+      used length is n=9. The comparison is the point (rule 8), so n follows it.
+      Overridable with --n; the pilot is one seed.

@@ -174,3 +174,42 @@ structure:
       have to be redesigned; psi_6 would be replaced by a different order
       parameter, and the number of lattice periods per traverse (n_x = 17), which
       sets this case's statistics, is defined by the 2D row spacing.
+  size:
+    role: system
+    n: 306
+    phi: 0.35
+    stated_in_source: 300
+    approved_by: "user 2026-08-04 (observation.yaml B4; the sketch writes 'N ~ 300',
+      the tilde delegating the exact value to the lattice)"
+    fixed_by: commensurability
+    pins: n
+    finite_size_status: not_done
+    finite_size: >-
+      not done -- 81 run directories, all at N = 306. The observables include
+      defect count, psi_6 and F_drag, which are collective, and this case has
+      already had one conclusion reversed (defect count read as v-independent,
+      then found to be a non-monotonic hump) by adding seeds rather than sizes.
+    what_would_change: >-
+      ★ The direction is reversed here relative to the other two system cases:
+      the hexagonal lattice must close on itself, so N is pinned to an integer
+      pair N = n_x*n_y = 17x18 and L_x = n_x a_NN, L_y = n_y (sqrt3/2) a_NN
+      FOLLOW. The selection rule, ENUMERATED rather than asserted -- three
+      CONSTRAINTS and then one selector:
+        n_y even                                 (staggered rows, 2-row period)
+        |N - 300| / 300 <= 0.05                  (the sketch's "N ~ 300")
+        0.80 <= L_x/L_y <= 1.25                  near-square, where
+                                                 L_x/L_y = n_x / (n_y sqrt3/2)
+        -> exactly 3 candidates, and they ARE the three bd-physics 6.2b tables:
+             17x18  N=306  +2.0%  AR=1.0906
+             16x18  N=288  -4.0%  AR=1.0264
+             15x20  N=300   0.0%  AR=0.8660
+        then MAXIMISE n_x  ->  17x18, because n_x is the number of lattice
+        periods per traverse and therefore this case's statistics.
+      ⚠ CORRECTED TWICE, 2026-09-11. First wording was "closest to 300 with the
+      largest n_x" -- maximising n_x alone picks 157x2 and 17x18 ranks 42nd of 80.
+      Second wording was "near-square aspect ratio FIRST, then largest n_x" --
+      aspect ratio closest to 1 picks 16x18. Aspect ratio is a BAND (a
+      constraint), not the selector; n_x is the selector. Both earlier wordings
+      were falsifiable by enumeration, which is how they were caught. A square box at
+      the same phi is NOT commensurate and injects seam defects into exactly the
+      observables being measured.

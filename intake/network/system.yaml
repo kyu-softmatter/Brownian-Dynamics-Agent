@@ -352,3 +352,21 @@ structure:
       N ~ (L/d)^dim (L = 30d is hundreds in 2D, thousands to tens of thousands in
       3D). Coordination z, independent loop count, d_f and percolation — this
       case's stage-1 observables — are all dimension-critical.
+  size:
+    role: system
+    n: [512, 1528]
+    phi: 0.1
+    stated_in_source: null      # the source is silent on N
+    fixed_by: measurement_radius
+    pins: L
+    finite_size_status: not_done
+    finite_size: >-
+      not done -- one run exists (the sprout topology, N=512) and the two
+      compression runs stopped with only traj_A.gsd. Stage 1 is incomplete, so
+      no N-scaling has been measured for z, the loop count, d_f or percolation,
+      all of which are collective.
+    what_would_change: >-
+      N = phi (L/d)^3 * 6/pi at phi = 0.1, so L is what is chosen and N follows:
+      L/d = 13.89 gives 512 (pilot, the finite-size lower bound) and L/d = 20.00
+      gives 1528 (production, because L/2 = 10 d is the radius over which stress
+      propagation stays inside the box). The upper bound is cost, not physics.

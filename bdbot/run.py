@@ -271,9 +271,15 @@ def judge(pe_series, *, status: str = OK, expect_steady: bool = True,
 # ══════════════════════════════════════════════════════════════════════
 # execution -- one spec -> one run directory
 # ══════════════════════════════════════════════════════════════════════
+#: Where a case records the N it will actually integrate, in priority order.
+#: Measured over `specs/` 2026-09-13: n_beads 183 · N 92 · n_particles 3.
+_N_PARAM_KEYS = ("N", "n_particles", "n_beads")
+
+
 def execute(spec, build_fn, outdir, *, force: bool = False, progress: bool = True,
             guard_every: int = GUARD_EVERY, extra_metrics=None,
-            require_seal: bool = False, require_approval: bool = False) -> dict:
+            require_seal: bool = False, require_approval: bool = False,
+            require_structure: bool = False) -> dict:
     """Run one spec and leave a `metrics.json`. Returns the verdict dict.
 
     `spec` is a `bdbot.nondim.LoadedSpec` -- that is, a `specs/<run_id>.json` read
@@ -289,13 +295,107 @@ def execute(spec, build_fn, outdir, *, force: bool = False, progress: bool = Tru
     checked against the spec's numerics, because approving one set of numbers and
     running another is worse than never writing them down.
 
+    `require_structure` is the same shape for `structure.dim` / `structure.size`
+    (`physical.check_dim`, `check_size`). It defaults to **False** for the same
+    reason, and carries the same always-check half: a `structure` block present
+    in the spec is ALWAYS validated, because recording one dimensionality or one
+    N-role and running another is the failure the field exists to stop.
+
+    ⚠ Why this is here at all: adversarial review found the structure gate
+    blocked no run. `validate()` is reachable only from `bdbot.cli system check`
+    and `status`, so a case script ran to PASS with the whole block missing --
+    precisely the `health.gate()` pattern the seal check above was moved here to
+    escape ("an unwired checker cannot be wrong out loud").
+
     WARNING: this does not write `result.txt`. The case script does. A case that
     omits it has its runs counted as zero by `bdbot.cli status`.
     """
+    from . import physical as _PH  # yaml + pint only; no hoomd
     from . import runcard as RC   # hashlib only; no hoomd, no simbot
     from . import sim as SIM       # pull hoomd in only here
 
     outdir = Path(outdir)
+    _struct = (spec.raw.get("system") or {}).get(_PH.STRUCTURE_SECTION) \
+        if isinstance(spec.raw.get("system"), dict) else None
+    # * the structural choices, enforced here for the third time for the same
+    #   reason as the two gates above. The spec carries the block (part of
+    #   `system`, excluded from the run_id hash but not from the document), so no
+    #   file outside the run directory has to be reachable.
+    #   ⚠ Placed BEFORE `prepare_outdir` (see above): a refusal must not leave an
+    #     emptied run directory behind, and this check needs only `spec`.
+    if _struct:
+        _ps = _PH.PhysicalSystem(path=outdir / "system.yaml", raw=spec.raw["system"])
+        #  ⚠ the gate's OWN failure mode on a malformed block used to be a
+        #     traceback out of `execute()` rather than its ValueError refusal --
+        #     i.e. the refusal path was itself unguarded. `verify_hash()` does
+        #     not cover `structure` (it is a DOC_KEY), so nothing upstream
+        #     guarantees the block is well-formed.
+        try:
+            _iss = _PH.check_dim(_ps) + _PH.check_size(_ps)
+        except Exception as _exc:
+            raise ValueError(
+                f"{outdir.name}: the spec's `structure` block could not even be "
+                f"validated ({type(_exc).__name__}: {_exc}). A block the gate "
+                f"cannot read is not a block it approved.") from _exc
+        _errs = [i for i in _iss if i.level == "error"]
+        if _errs:
+            raise ValueError(
+                f"{outdir.name}: the spec's `structure` block does not validate, "
+                f"so this run would record one set of structural choices and "
+                f"execute another: " + "; ".join(str(i) for i in _errs))
+        #  ⚠ the warns were computed and thrown away. An expiring basis and a
+        #    missing N-sweep announce themselves on every READ of the document;
+        #    a run is a read.
+        for i in _iss:
+            if i.level == "warn":
+                print(f"  {i}")
+        #  ★ What this gate does NOT compare, said out loud rather than printed
+        #    as a bare "structure OK". The block is validated against the
+        #    *document* (`system.particle.count`); the N this run will actually
+        #    integrate lives in `spec.params`, and the two differ on the
+        #    sanctioned smoke path -- `bdbot.smoke.PROFILES` shrinks N
+        #    deliberately (trap-2d-5um N=200, verified=True), so 3 of the 278
+        #    archived specs disagree by design. A hard error here would refuse
+        #    the repo's own smoke contract ("a gate that refuses everything is
+        #    worse than no gate"), so it is a warning that names both numbers --
+        #    which is what was missing: the gate used to print "structure OK"
+        #    for exactly the state its own error text names.
+        _declared = ((spec.raw["system"].get(_PH.STRUCTURE_SECTION) or {})
+                     .get("size") or {}).get("n")
+        #  ⚠ this was `.get("N", .get("n_particles"))` and MISSED `n_beads`,
+        #     which 183 of the 278 archived specs use -- the chain cases, i.e.
+        #     exactly the `role: object` cases whose n IS the chain length. The
+        #     comparison silently did not happen for the majority of specs.
+        _actual = next((spec.params[k] for k in _N_PARAM_KEYS
+                        if isinstance(spec.params, dict) and k in spec.params
+                        and spec.params[k] is not None), None)
+        if _actual is not None and _declared is not None:
+            _ok = (_actual in _declared) if isinstance(_declared, (list, tuple)) \
+                else _PH._same_number(_actual, _declared)
+            if not _ok:
+                print(f"  ⚠ structure.size.n = {_declared} but this run integrates "
+                      f"N = {_actual} (a deliberate override, e.g. --smoke, is the "
+                      f"usual reason -- but the recorded block describes the "
+                      f"un-overridden run)")
+            print(f"structure: schema OK against the spec's system document; "
+                  f"N compared against spec.params ({_actual}). ⚠ the phi closure "
+                  f"and the stated_in_source cross-check do NOT run here -- they "
+                  f"need the Provenanced leaves and the L0 file; "
+                  f"`bdbot.cli system check` is the full gate")
+        else:
+            print(f"structure: schema OK against the spec's system document. "
+                  f"⚠ spec.params carries no N, so the declared size.n = "
+                  f"{_declared} was NOT compared with what will run; and the phi "
+                  f"closure / stated_in_source cross-check do not run here")
+    elif require_structure:
+        raise ValueError(
+            f"{outdir.name}: the spec carries no `structure` block. Every case "
+            f"declares WHY its dimensionality and its N are what they are "
+            f"(knowledge/wiki/concepts/dimensionality-has-no-default.md, "
+            f"system-size-is-never-chosen-directly.md). Add it to the case's "
+            f"system.yaml and regenerate the spec, or pass "
+            f"require_structure=False for a deliberately unrecorded run.")
+
     go, msg = RID.prepare_outdir(outdir, force)
     if not go:
         print(msg)

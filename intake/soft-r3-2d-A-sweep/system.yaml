@@ -177,3 +177,55 @@ structure:
       The case's own question disappears. phi also changes form
       (N pi sigma^2/4L^2 -> N pi sigma^3/6L^3), and the finite-size slope
       p = -dln|<psi_6>|/dlnN that discriminates the phase has no 3D counterpart.
+  size:
+    role: system
+    n: 400
+    phi: 0.35
+    stated_in_source: 100
+    approved_by: "user 2026-08-03 (observation.yaml A5: 'N을 늘려 r_c를 제대로 확보')"
+    fixed_by: minimum_image
+    fixed_by_detail: >-
+      r_c floor = 5 a_mean is a JUDGEMENT, not a measured floor. Convergence was
+      checked 5a -> 7a AT the A=100 production point, Gamma = 29.7. The run
+      MEASURES a hexagonal crystal there -- psi_6 = 0.885 and six-fold
+      coordination 98.6%, both from the trajectory
+      (runs/soft-r3-2d-A-sweep__A100__30caa5c9e0). Structure moved 0.15%,
+      <U>/N moved +7.5%.
+      ⚠ `state_predicted = 결정` is NOT one of those measurements, and an earlier
+      draft listed it as if it were: it comes from `approach_distance(A, a_star,
+      eps)`, a function of the INPUTS only, which never touches the trajectory.
+      It is an estimator's label that happens to agree. Corrected 2026-09-11.
+      ⚠ CORRECTED 2026-09-11. An earlier draft of this line called Gamma = 29.7
+      "deep in the liquid" and set it against the hexatic window "Gamma
+      55.87-59.88". That mixed two Gamma conventions: Zahn's is
+      Gamma = pi^1.5 * beta U(a_mean) -- Zahn's `d` is the MEAN SPACING
+      n^(-1/2) = L/sqrt(N), NOT the particle diameter, which is what `d` means
+      everywhere else in this file (5 um). Writing it as `beta U(d)` was a third
+      error in this sentence, caught 2026-09-11.
+      This file's convention is Gamma = U(a_mean)/kT, so the
+      window here is 10.03-10.75 and Gamma = 29.7 sits 2.8x ABOVE it, not below
+      it in the liquid (simbot/analysis/structure.py ZAHN_GAMMA_OVER_A = pi^1.5;
+      findings/order-parameter-magnitude-cannot-identify-a-phase already records
+      the conversion). Same class of error the system card warns about: confusing
+      two length conventions by 7% makes Gamma 23% wrong.
+      The conclusion survives the correction but for a different reason: the
+      check was run in the crystal, far above the window on the other side, so it
+      still says nothing about cutoff sensitivity AT the transition.
+      Combined with r_c < L/2 this gives sqrt(N)/2 > 9 -> N > 324 -> 400.
+    pins: L
+    finite_size_status: partial
+    finite_size: >-
+      PARTIAL, not done. Ladders exist -- campaigns/soft2d_fss.py and
+      soft2d_nconv.py, with examples/soft-r3-fss and soft-r3-nconv -- and the
+      N-scaling IS the phase discriminant here: p = -dln|<psi_6>|/dlnN,
+      eta_6 = 4p (findings/order-parameter-magnitude-cannot-identify-a-phase).
+      ⚠ But A = 100, the production point this n = 400 was chosen for, has NO
+      N-sweep, and the file's own convergence item CV3 was never run. Saying
+      "done" here read the existence of a ladder as coverage of this point.
+    what_would_change: >-
+      phi is physics and does not move; what moved N was `r_c < L/2`. The
+      sketch's N=100 could not reach the target coupling while keeping the
+      minimum image, so N was raised to 400 (user-confirmed 2026-08-03), which
+      lets all three r_c = 5, 7, 9 a_mean be tested inside the minimum image.
+      Reading |<psi_6>| at one size is what produced the two misreadings this
+      case is known for.

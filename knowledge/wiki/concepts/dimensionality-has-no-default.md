@@ -1,4 +1,17 @@
 ---
+type: concept
+author: agent
+drafted: 2026-09-10
+confirmed_by:
+cites:
+  - docs/history/2026-07_bd_agent_00_decision_log.ko.md
+  - bdbot/physical.py
+  - verify/verify_dim_gate.py
+  - verify/verify_abp_rod_dimension_impact.py
+  - tests/test_dim_gate.py
+  - knowledge/source/papers/2024-quah-graybox-abp-mpc-repo.md
+  - knowledge/source/papers/2022-modica-porous-media-active-diffusion.md
+  - knowledge/source/papers/2020-takatori-motility-induced-buckling.md
 id: dimensionality-has-no-default
 kind: models
 tags: [dimensionality, 2d, 3d, scope, decision, provenance, D9]
@@ -188,10 +201,12 @@ given with the consequences visible rather than discovered afterwards.
 
 **What this page does not settle.**
 
-- **`boundary` and system size.** This page settles the dimension only. The same
-  two questions — is the box periodic, and how big — are still bare fields:
-  `periodic: true` as a plain bool in 5 cases, prose in 1, absent in 2, and none
-  with a source, an alternative or a consequence.
+- **`boundary`.** This page settles the dimension; system size is settled in
+  [system-size-is-never-chosen-directly](system-size-is-never-chosen-directly.md).
+  The boundary has no field and does not need one: all 8 cases are periodic,
+  HOOMD's box always is, and "open" is already expressed as a large box plus
+  `declare_absent("box", reason)` in the 3 chain cases. A wall would be
+  *physics*, not a numerical convenience, and enters as an interaction (rule 9).
 - **The other 17 `OPEN` decisions.** The log holds 38 decisions, **18 of them
   `OPEN`**, and there is no live register saying which have since been settled
   elsewhere. This page closes one and inherits that discoverability problem.

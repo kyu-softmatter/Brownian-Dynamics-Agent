@@ -169,3 +169,17 @@ structure:
       0.70x, so it moves 30-44% either way. 3D would also require
       rotational_diffusion = 2*D_r_phys, rewrite hard constraint H1 ("2D has one
       rotation axis"), and would be the FIRST case to exercise trap 14.
+  size:
+    role: replication
+    n: 1000
+    n_physical: 1
+    n_replicas: 1000
+    stated_in_source: null      # the source is silent on N
+    fixed_by: inherited
+    what_would_change: >-
+      Nothing physical -- the sketch has one ellipsoid and the 1000 are an
+      independent ensemble for MSD/MSAD statistics. Taken from trap-2d-5um
+      ("1-A와 같은 방식" in particle.count.source), so this inherits that case's
+      weakness: 1000 was never inverted from a target precision.
+      The box IS checked against the physics here -- `l_p/(L/4)`, with
+      l_p = 1.7167 um -- because a persistent swimmer can traverse the box.

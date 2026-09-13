@@ -189,3 +189,15 @@ structure:
       softer. Whether that changes K' is a `hypothesis` (rule 7'), i.e. a result
       rather than a bug — see Takatori 2020, which infers an out-of-plane
       transition from a 2D run.
+  size:
+    role: object
+    n: 25
+    stated_in_source: null      # the source is silent on N
+    fixed_by: design_power
+    what_would_change: >-
+      A different chain, not a better-converged one. n is bound by the amplitude
+      window: delta_max ~ n^2, and at n=11 delta_max = 74 nm is only ~3 l_k, so
+      the bending signal sits in the trap's thermal noise. n=25 opens it to
+      429 nm. [P1] Fig.4 also uses a 25-bead chain, so literature and design
+      power agree here; design power is the binding one because it is what
+      excludes n=11.
