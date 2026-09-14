@@ -1,0 +1,400 @@
+schema: bdbot.prediction/0.1
+campaign: soft-r3-melting-hysteresis-S30
+case: soft-r3-2d-A-sweep
+written: 2026-09-14
+
+# ═══════════════════════════════════════════════════════════════════════
+sealable: false        # ⛔ DO NOT SEAL. Four structural objections are open.
+# ═══════════════════════════════════════════════════════════════════════
+#
+# This draft was attacked by four independent adversarial reviews before
+# sealing, and all four said do not seal. Three objections were fixed and are
+# recorded inline as `⚠_corrected_before_sealing`:
+#
+#   * "the first pre-registered run in this repository" was FALSE -- 7 of the 9
+#     `runs_s1s8/` seals already cover an `02_prediction.md`
+#   * P2 was not a prediction: a run with BIT-IDENTICAL params already sits in
+#     `runs/` and measured defect_fraction = 0.0000
+#   * the driver crashed before `write_seal`, on a `name`/`symbol` key mismatch,
+#     AFTER copying these documents into a run directory -- leaving an UNSEALED
+#     pre-registration where a sealed one belongs
+#
+# Four remain, and none is editorial:
+#
+#   K1  THE MELTING HAPPENS IN AN UNSAMPLED WINDOW. `bdbot/run.py` builds the
+#       equilibration phase with `collect=False`, and n_eq = 406,914 steps x
+#       4.915e-05 = 20.00 tau_B. The observation window is t in [20, 120] tau_B,
+#       not [0, 100]. If the crystal melts quickly the entire event is invisible,
+#       and F1 cannot show what it promises. Needs an `n_eq = 0` option on the
+#       case, or the claim changes.
+#
+#   K2  MELTED IS A NON-REJECTION SOLD AS A FINDING. The band is |Delta| <= 3
+#       sigma with no equivalence margin anywhere, and its `means` text asserts
+#       a positive claim about the literature.
+#
+#   K3  SURVIVED IS THE SAME KINETIC STATEMENT THIS DOCUMENT REJECTS. A random
+#       start gives only an UPPER bound because a supercooled liquid is steady;
+#       a crystal start gives only a LOWER bound for the identical reason, and
+#       100 tau_B does not close it.
+#
+#   K4  NO BAND MEANS "ZAHN TRANSFERS". At Gamma_Z = 57.87 Zahn predicts
+#       HEXATIC -- positional order already lost -- while SURVIVED requires
+#       psi6_global > 0.5, which is a crystal. The outcome the literature
+#       actually predicts maps to no verdict in the rule.
+#
+# Also open, smaller: 3 sigma / 5 sigma are z-thresholds on a sigma estimated
+# from 3+3 seeds, which `findings/tolerance-from-a-4-seed-se-is-not-a-3-sigma-
+# test.md` already covers and this document does not cite (at nu = 4,
+# P(|t| > 3) = 0.040, not 0.003); `r_c = 7.8 a_mean` appears nowhere in `runs:`
+# although the case default is 5.0 and r_c_star is hashed; `tau_d = 2.2440
+# tau_B` is never stated, so the archive's "10 tau_d" is 22.44 tau_B and this
+# campaign's 100 tau_B is 4.5x longer rather than 10x.
+#
+# Kept in the tree rather than deleted because the draft plus the four reviews
+# that killed it is the record of what a pre-registration has to survive, and
+# because fixing K1-K4 is the next piece of work, not a rewrite.
+
+# ─────────────────────────────────────────────────────────────────────────
+question: >-
+  This repository has measured the soft-r3 system at Gamma_Zahn = 57.9 -- the
+  centre of Zahn's hexatic window -- starting from a RANDOM configuration, and
+  read isotropic liquid. Near a first-order transition a random start can stay
+  liquid arbitrarily long behind a nucleation barrier, and a supercooled liquid
+  is also steady, so that reading is an UPPER bound on the boundary and not the
+  boundary. Started instead from a perfect hexagonal crystal at the same
+  coupling, in the same box, with the same seeds: does the crystal survive, or
+  does it melt to the state the random arm found?
+
+why_this_run_exists: >-
+  The scientific question is the vehicle. The deliverable is the first run
+  GATED AT EXECUTION by a sealed prediction, and the first `runs/` directory to
+  carry a seal at all.
+
+  ⚠ CORRECTED BEFORE SEALING. An earlier draft of this line said "the first
+  pre-registered run in this repository", and that is false -- refuted by a file
+  this very document cites. `runs_s1s8/` holds 9 sealed campaign directories and
+  7 of their seals cover an `02_prediction.md`; `2026-07-29_soft-r3-relax-seeds`
+  opens "S2 PREDICTION -- 사전 등록 (pre-registration) / this file is sealed
+  before S5 runs, do not edit afterwards", fixes k = 256 in advance to forbid
+  optional stopping, and pre-registers its own INCONCLUSIVE branch. The
+  discipline is older than this campaign.
+
+  What IS new, and is checkable: none of those 9 was gated by
+  `bdbot.run.execute` -- the seal was verified by a sibling tool afterwards, not
+  by the function that would otherwise proceed. And `runs/`, where all 262
+  bdbot-engine runs live, carries zero seals. Until 2026-09-13 it could not:
+  `prepare_outdir` deleted SEALED.sha256 before `execute()` looked for it, so
+  `require_seal=True` could only refuse and never be satisfied, and a TAMPERED
+  seal was downgraded to "[warn] unsealed" while the run proceeded. Fixed in
+  63fde87; this is the first use.
+
+# ─────────────────────────────────────────────────────────────────────────
+# Rule 7' -- the two lists, written separately and BEFORE the run.
+what_the_simulation_imposes:
+  - "U(r)/kT = A (d/r)^3 with A_case = 34.938, plus a WCA core, at phi = 0.35"
+  - "overdamped Brownian dynamics, no hydrodynamic interactions"
+  - "a periodic 20x20 commensurate box, L_x/L_y = 1.1547"
+  - "the initial positions: a perfect hexagonal lattice (H) or RSA (R)"
+  - "NOTHING about which phase is stable. No phase boundary is put in."
+
+what_the_theory_adds:
+  - source: "Zahn 1999 PRL 82 2721 (knowledge/source/papers/1999-zahn-two-stage-melting-2d.md)"
+    claim: >-
+      Gamma_Z > 59.88 crystal; 55.87 < Gamma_Z < 59.88 hexatic;
+      Gamma_Z < 55.87 isotropic liquid. Gamma_Z = pi^1.5 * beta U(a_mean).
+    at_our_point: "Gamma_Z = 57.87 -> Zahn says HEXATIC, i.e. not an isotropic liquid"
+    transfers_how: >-
+      Zahn's system is superparamagnetic colloids at an air-water interface, ours
+      is a generic r^-3 repulsion in a 2D periodic box. The two share only the
+      exponent and the dimensionless coupling. Whether the boundary transfers is
+      exactly what is open, which is what makes this a `hypothesis` and not an
+      implementation check. Marked `[source, not reproduced]` in the distillation.
+
+# ─────────────────────────────────────────────────────────────────────────
+runs:
+  - id: H
+    arm: "crystal start"
+    init: hex
+    A_case: 34.938
+    Gamma_case: 10.3936
+    Gamma_Zahn: 57.87
+    N: 400
+    lattice: [20, 20]
+    T_obs_tau_B: 100.0
+    seeds: [20260914, 20260915, 20260916]
+    steps_each: 2441314
+  - id: R
+    arm: "random start, matched"
+    init: rsa
+    A_case: 34.938
+    Gamma_case: 10.3936
+    Gamma_Zahn: 57.87
+    N: 400
+    lattice: [20, 20]
+    T_obs_tau_B: 100.0
+    seeds: [20260914, 20260915, 20260916]
+    steps_each: 2441314
+    why: >-
+      Same box, same N, same seeds, same everything except the positions. The
+      archived random-start data at this Gamma is from a different engine
+      (simbot/campaigns, r_cut 7.80 a_mean, 10 tau_d) with a different psi_6
+      estimator, so it cannot be the baseline of a paired test. It is kept as an
+      independent third check instead.
+  - id: C1
+    arm: "crystal start, deep crystal control"
+    init: hex
+    A_case: 106.224
+    Gamma_Zahn: 175.96
+    N: 400
+    lattice: [20, 20]
+    T_obs_tau_B: 10.0
+    seeds: [20260914]
+    steps_each: 341810
+    rules_out: "that the protocol melts everything it is handed"
+  - id: C2
+    arm: "crystal start, deep liquid control"
+    init: hex
+    A_case: 10.000
+    Gamma_Zahn: 16.57
+    N: 400
+    lattice: [20, 20]
+    T_obs_tau_B: 10.0
+    seeds: [20260914]
+    steps_each: 876005
+    rules_out: "that the protocol cannot melt a crystal at all"
+
+# ─────────────────────────────────────────────────────────────────────────
+# The statistic, fixed before the data exists.
+primary_statistic:
+  name: "Delta"
+  definition: "mean_over_seeds(psi6_global)_H  -  mean_over_seeds(psi6_global)_R"
+  psi6_global: "|<psi_6i>| -- the magnitude of the MEAN over particles, per sample"
+  window: >-
+    ⚠ THE LAST QUARTER ONLY: samples 301-400, i.e. 75-100 tau_B. Not the full
+    window. Corrected before sealing: a crystal that melts cleanly at
+    t = 40 tau_B has a full-window mean of ~0.30, which sits below the SURVIVED
+    threshold and above the liquid, and would have been scored PARTIAL --
+    "neither clean outcome" -- for what is physically a clean MELTED. The late
+    window is also the only one the drift gate certifies as stationary, and it
+    is the one F1 already draws as R's reference band. The full-window mean is
+    still reported, as a diagnostic.
+  sigma: "sqrt(sd_H^2/3 + sd_R^2/3), sd from the seed-to-seed scatter of psi6_global_late (3 seeds per arm)"
+  why_global_not_local: >-
+    findings/order-parameter-magnitude-cannot-identify-a-phase: the LOCAL
+    <|psi_6i|> is flat in N (0.5756 / 0.5736 / 0.5733 over N = 256/576/1024 at
+    this coupling) and is not the discriminant; the global |<psi_6i>| carries
+    the N-scaling (0.2043 / 0.1574 / 0.0942) that is. Only the local one was
+    recorded by this case before 2026-09-14; the global one was added for this
+    campaign and is verified to return exactly 1.0 on the perfect lattice
+    (tests/test_lattice.py).
+
+decision_rule:
+  - band: "|Delta| <= 3 sigma"
+    verdict: MELTED
+    means: >-
+      The crystal is indistinguishable from the random arm after 100 tau_B. No
+      hysteresis is detectable on this timescale, so the earlier isotropic-liquid
+      reading is robust to the initial condition -- and Zahn's hexatic window
+      does NOT transfer to this system at this packing. That is a disagreement
+      with the literature and, by rule 7', a RESULT.
+  - band: "3 sigma < |Delta| <= 5 sigma"
+    verdict: INCONCLUSIVE
+    means: >-
+      Separated, but three seeds per arm cannot support it: with n = 3 the sd
+      estimate itself carries about 40 % uncertainty
+      (findings/low-seed-pilots-give-optimistic-design-power). Report the
+      separation and the seeds needed to settle it. Pre-registered as
+      inconclusive so that a marginal result cannot be read as a finding.
+  - band: "|Delta| > 5 sigma AND psi6_global_late(H) > 0.5"
+    verdict: SURVIVED
+    means: >-
+      The crystal holds where a random start does not. The random-start reading
+      was kinetic, not thermodynamic, and the equilibrium boundary is bracketed
+      between the two arms. Zahn's window is supported at this point.
+  - band: "|Delta| > 5 sigma AND psi6_global_late(H) <= 0.5"
+    verdict: "ORDERED BUT BELOW THE CRYSTAL FLOOR"
+    means: >-
+      More ordered than the random arm and not a crystal by this repository's
+      own criterion. Report both numbers and the separation; do not name a
+      phase. This is a result, not a failure of the design.
+  drift_gate:
+    rule: >-
+      Applied FIRST and overrides every band above. Fire when
+      |mean(Q4) - mean(Q3)| > 3 * sqrt(block_sem(Q3)^2 + block_sem(Q4)^2),
+      where Q3 = samples 201-300 and Q4 = samples 301-400. If it fires, H is
+      still relaxing and the verdict is INCONCLUSIVE whatever Delta says.
+    why: >-
+      A window mean hides a monotonic decay. Without this a crystal caught
+      halfway down reads as SURVIVED.
+    ⚠_corrected_before_sealing: >-
+      The denominator was `3 * block_sem(last 200 samples)`. That is the SE of
+      ONE 200-sample mean, but the statistic is the DIFFERENCE of two
+      100-sample means, whose SE is about twice as large -- so the nominal
+      3 sigma was really 1.5 sigma. Measured false-positive rate on stationary
+      data, Monte Carlo 3000-4000 trials: 15.2 % (iid), 16.1 % (AR(1),
+      tau_int = 1 sample), 21.3 % (tau_int = 3), 41.0 % (tau_int = 12.8). And
+      applied verbatim to the only case-engine psi6_global series that exists
+      (the disclosed pilot's random arm, tau_int = 12.8 samples) it fires at
+      4.73x on a steady liquid. With the SE of the difference the measured rate
+      is 0.4 / 1.4 / 4.2 %.
+    also_report: >-
+      tau_int alongside the gate result. `bdbot.stats.block_sem` uses 20 blocks
+      and its own docstring records a 1.09-2.28x underestimate.
+  crystal_floor:
+    value: 0.5
+    source: "simbot.analysis.structure.PSI6_CRYSTAL_FLOOR, pinned by test_phase_reading_does_not_call_a_crystal_hexatic"
+    why: >-
+      This repository's own constant, already used by `phase_from_finite_size`,
+      and justified there as at least 5x the finite-size disorder floor 1/sqrt(N)
+      (1/sqrt(400) = 0.05).
+    ⚠_corrected_before_sealing: >-
+      An earlier draft used midpoint(R, C1) = 0.5*(liquid + deep crystal). Two
+      faults. C1 is at Gamma_Z = 176, three times the coupling of the primary,
+      so it anchors the threshold on a far deeper crystal; computed, that
+      midpoint is 0.531, while an equilibrium crystal AT Gamma_Z = 57.87
+      extrapolates from the archived N=400 crystal branch (Gamma_Z
+      74.06/99.12/131.97/175.96 -> psi6_global 0.6881/0.7780/0.8329/0.8722) to
+      only 0.60-0.66. The margin was 1.8-3.6 seed-sigma, and the branch must
+      steepen approaching the transition, so a genuinely surviving crystal had a
+      material chance of missing its own threshold. Second, C1 has one seed, so
+      the threshold would have carried no error bar while everything compared
+      against it did.
+
+# ─────────────────────────────────────────────────────────────────────────
+predictions:
+  - id: P1
+    name: "psi6_global, crystal arm vs matched random arm"
+    role: hypothesis
+    statistic: Delta
+    prediction: "Delta > 5 sigma, and psi6_global_late(H) > 0.5 -> SURVIVED"
+    basis: >-
+      Zahn puts Gamma_Z = 57.87 inside the hexatic window, i.e. the crystal is
+      not the unstable phase there. The archived random-start runs read
+      isotropic liquid at the same Gamma, and correction 3 of
+      findings/order-parameter-magnitude-cannot-identify-a-phase argues that is
+      a supercooling upper bound rather than the boundary. If that argument is
+      right, the crystal arm holds.
+    if_it_disagrees: >-
+      A RESULT, not a bug. It would mean the equilibrium phase at this coupling
+      and packing really is the isotropic liquid, and Zahn's window measured on
+      interfacial magnetic colloids does not transfer to a generic r^-3 system
+      at phi = 0.35.
+    confidence_before_the_run: >-
+      Genuinely uncertain. The prediction above is what the literature implies;
+      the author does not hold it strongly. The one archived fact pulling the
+      other way is that ascan A13.3 (Gamma_Z = 74.06) FROZE spontaneously from a
+      random start, so the random-start freezing boundary is already bracketed
+      in [60.14, 74.06] -- above Zahn's melting boundary of 59.88, which is
+      itself evidence of hysteresis but says nothing about which side 57.87 is on.
+
+  - id: P2
+    name: "C1 deep crystal survives -- a GATE, whose answer is already on disk"
+    role: implementation_check
+    is_a_prediction: false
+    prediction: "psi6_global(C1) > 0.5 and defect_fraction(C1) < 0.10"
+    already_measured: >-
+      ⚠ NOT a prediction, and saying so is the whole point of writing this down
+      before running. `runs/soft-r3-2d-A-sweep__A106.224-rc7.8-hex20x20__53cdbc49da`
+      has params BIT-IDENTICAL to C1 -- A_case 106.224, phi 0.35, N 400,
+      r_c_star 11.684375924541376, init hex, n_x 20, n_y 20 -- differing only in
+      seed (20260803 vs 20260914) and length (0.5 vs 10 tau_B). It measured
+      coord_hist[6] = 1.0 exactly, i.e. defect_fraction = 0.0000, and
+      psi6_local = 0.9158. Both thresholds above are already known to hold, with
+      infinite and 83 % margin. That directory is the one this document
+      elsewhere discloses as "a timing probe": it was run to measure steps/s at
+      production geometry, and it happens to be the control.
+    what_it_is_for: >-
+      A protocol gate, which is what a control is: its answer SHOULD be known,
+      and the run exists so that a protocol failure cannot be mistaken for
+      physics. Scored, reported, and NOT counted as a prediction that came true.
+    if_it_disagrees: >-
+      A BUG, and it voids P1: the protocol melts what it should not, so the
+      crystal arm melting would carry no information. A disagreement would also
+      be a seed-to-seed irreproducibility at a coupling where there should be
+      none, which is its own finding.
+
+  - id: P3
+    name: "C2 deep liquid melts the crystal -- a GATE"
+    role: implementation_check
+    is_a_prediction: false
+    prediction: "psi6_global(C2) < 0.30 and defect_fraction(C2) > 0.20"
+    basis: >-
+      Gamma_Z = 16.57 is 3.4x below the isotropic edge. The archived case run at
+      this exact A (A_case = 10) is a liquid.
+    if_it_disagrees: >-
+      A BUG, and it voids P1 in the other direction: a protocol that cannot melt
+      a crystal would make SURVIVED vacuous.
+
+  - id: P4
+    name: "the matched random arm reproduces the archived defect fraction"
+    role: implementation_check
+    prediction: "defect_fraction(R) = 0.285 +- 0.057 (20 %)"
+    basis: >-
+      hexwin at Gamma_Z = 57.911, random start, gives 0.2849 / 0.2870 / 0.2863
+      at N = 256/576/1024 -- flat in N, so N = 400 is interpolation not
+      extrapolation. The tolerance is wide because the two engines differ in
+      cutoff (7.80 vs 7.8 a_mean -- these happen to agree), run length and
+      psi_6 estimator.
+    if_it_disagrees: >-
+      A BUG in one of the two implementations. It does not void P1, because P1
+      is a within-engine paired comparison, but it must be reported.
+
+  - id: P5
+    name: "energy consistency"
+    role: implementation_check
+    prediction: "|<U>/N (force sum) - (rho/2) integral U g(r) 2 pi r dr| <= 2 %"
+    basis: "an identity for any g(r); the case already computes both sides"
+    if_it_disagrees: "A BUG: g(r) binning or the potential definition"
+
+# ─────────────────────────────────────────────────────────────────────────
+what_this_campaign_will_NOT_claim:
+  - >-
+    That the state is hexatic. Zahn's crystal->hexatic boundary is defined by the
+    DYNAMIC Lindemann parameter gamma_M crossing 0.033; this repository does not
+    implement it, and psi_6 magnitude plus defect fraction cannot separate
+    hexatic from crystal. SURVIVED means "ordered", not "hexatic".
+  - >-
+    A value for the equilibrium boundary. Two arms at one coupling bracket it,
+    they do not locate it.
+  - >-
+    A finite-size exponent eta_6. That needs three system sizes and a cutoff
+    controlled at the exponent level, not the value level (correction 2 of the
+    finding: a 2.9 sigma shift in p between r_cut 3.80 and 7.80 while fixed-N
+    psi_6 agreed within 3 sigma). One size is run here.
+
+# ─────────────────────────────────────────────────────────────────────────
+disclosures:
+  - what: "pilot runs at the target coupling, seen before this document was written"
+    detail: >-
+      Three smoke runs at A_case = 34.938, N = 144, T_obs = 3 tau_B, r_c = 5
+      a_mean: hex start psi6_local 0.6291 / psi6_global 0.4435; matched random
+      start 0.5784 / 0.2897; random start in a square box 0.5521. The arms are
+      separated in the expected direction at 3 tau_B.
+    why_it_does_not_answer_the_question: >-
+      3 tau_B is 33x shorter than the production window and N = 144 vs 400.
+      Nothing has relaxed: the archived random-start runs at this same Gamma end
+      at psi6_global 0.09-0.20 for N >= 256, so the random arm has most of its
+      decay still ahead of it at 3 tau_B. The pilot fixes neither arm's endpoint.
+    kept: "runs/soft-r3-2d-A-sweep__A34.938-smoke*"
+  - what: "a timing probe at the control coupling"
+    detail: "A_case = 106.224, T_obs = 0.5 tau_B, 17,091 steps in 8.4 s -> 2043.8 steps/s"
+    why: "axiom A3 wants a measured cost, not an extrapolated one"
+  - what: "the author knows the random-start answer, from the archive"
+    detail: >-
+      hexwin and ascan are read and quoted throughout this document. What is not
+      known, and is not derivable from them, is the crystal-start answer.
+
+# ─────────────────────────────────────────────────────────────────────────
+cost:
+  measured_rate_steps_per_s: 2043.8
+  total_steps: 15865699
+  central_core_hours: 2.16
+  band_core_hours: [0.8, 6.0]
+  band_basis: >-
+    2.8x machine-load spread measured on identical work in this repository
+    (8.4 min vs 23.8 min for the same 3,316,858 steps).
+
+thin_margins_accepted:
+  - "dt/tau_int = 1.000 against a limit of 0.01 -- the case's default sits exactly on the gate"
+  - "T_obs/tau_B = 100.0 against a soft limit of 100 -- likewise"
+  - "r_c/(min(L)/2) = 0.838; against the area-equivalent square box this would read 0.780, which is 7.5 % optimistic. The short side is what is checked."
