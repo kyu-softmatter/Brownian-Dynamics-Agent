@@ -100,6 +100,12 @@ MUTANTS = [
          anchor="import anthropic  # MUTANT",
          gate="A4: the deterministic core carries no LLM dependency",
          expect="caught", fast=["tests/test_invariants.py"]),
+    dict(id="RULE10-derived-recomputed", file="bdbot/params.py", kind="replace",
+         anchor="            out += self.check_derived()",
+         into="            pass  # MUTANT",
+         gate="rule 10: a `derived` value must follow from d, T and eta",
+         expect="caught",
+         fast=["tests/test_params.py"]),
     dict(id="PRESERVE-gate-inputs", file="bdbot/runid.py", kind="replace",
          anchor="""    "record.json",             # a lesson must outlive the run artefacts
     "params.json",             # rule 10: the approved numbers

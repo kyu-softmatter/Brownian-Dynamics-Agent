@@ -50,6 +50,27 @@ nothing else. `blockers()` reports it unset, `runcard` refuses to seal, and
 `derived` is listed separately and checked against a recomputation, because
 `physical.verify()` already catches a hand-edited derived value and this is the
 same invariant one layer up.
+
+## ★ Four for four (2026-09-14)
+
+The paragraph above was **false for twelve days**. `derived` was listed
+separately and nothing recomputed it: `blockers()` checked that each
+`REQUIRED_KEYS` name was *present*, never that its value was *real*. Measured by
+using it -- the first campaign to build a manifest wrote
+
+    m.add("derived", "gamma",   0.0, "1", "6 pi eta a -- in the ledger, recomputed by L3")
+    m.add("derived", "D_t",     0.0, "1", "kT/gamma -- in the ledger, recomputed by L3")
+    m.add("derived", "tau_gov", 0.0, "1", "tau_B = d^2/D_t -- in the ledger, recomputed by L3")
+
+and `blockers()` returned `[]`. Three physically impossible zeros -- no friction,
+no diffusion, no timescale -- cleared the gate whose entire purpose is to refuse
+a number that is not there, in the run written to demonstrate that gate. The
+provenance string was itself the confession ("in the ledger") and nothing read
+it.
+
+So the list of three at the top of this docstring was really a list of four, and
+the fourth was in this file. `check_derived()` below is the check the paragraph
+had been claiming. `unknown()` is what "it is in the ledger" should have used.
 """
 from __future__ import annotations
 
@@ -74,6 +95,14 @@ REQUIRED_KEYS = {
     "numerics": ("dt", "n_prod", "seed"),
     "derived": ("gamma", "D_t", "tau_gov"),
 }
+
+#: Unit strings that mean "expressed in this system's own reference scales".
+#: In that convention the scales are chosen so that kT = D = gamma = 1, which
+#: makes every `derived` entry exactly 1 -- checkable without an SI
+#: recomputation. `"1"` is included because rule 10 requires a dimensionless
+#: quantity to say so rather than leave the field blank.
+REDUCED_UNITS = ("1", "tau_B", "tau_trap", "tau_int", "tau_bond", "tau_v",
+                 "d", "sigma", "kT")
 
 #: Provenance tiers, same scale as `provenance.py`.
 #:   0 given/handbook · 1 literature+verified or a confirmed convention
@@ -184,6 +213,121 @@ class Manifest:
             out[p.tier] = out.get(p.tier, 0) + 1
         return dict(sorted(out.items()))
 
+    #: How close a declared `derived` value must sit to its recomputation.
+    #:
+    #: ⚠ Was 1e-6 for about an hour, and 1e-6 REFUSED A CORRECT MANIFEST.
+    #:   `trap-2d-5um`'s card writes `gamma = 4.0102e-8 kg/s`, which is the right
+    #:   number to five significant figures and sits 1.07e-5 from the
+    #:   recomputation. The tolerance of a comparison comes from how the value
+    #:   was WRITTEN, not from how precisely it could be computed -- the same
+    #:   lesson this repository already recorded for a 5-s.f. finite-size number.
+    #:   0.1 % accepts anything written to four figures and still catches what
+    #:   this check is for: a placeholder, a wrong unit, an order-of-magnitude
+    #:   slip, a stale value. The tight comparison belongs one layer down, in
+    #:   `physical.verify()`, where both sides are full-precision.
+    DERIVED_RTOL = 1e-3
+
+    def check_derived(self) -> list:
+        """Recompute `derived` from `geometry.d`, `energy.T` and `medium.eta`
+        and report every disagreement.
+
+        This is `physical.verify()`'s invariant one layer up: a derived number
+        that does not follow from the inputs beside it was either typed or
+        stale, and in the measured case it was a placeholder zero with an
+        excuse in its provenance field.
+
+        Returns a list of strings, empty when it agrees. A missing input is
+        REPORTED, never silently skipped -- an unrunnable check that returns
+        `[]` is indistinguishable from a check that ran and passed, which is
+        this repository's most-repeated defect.
+        """
+        from . import materials as MAT
+        from .units import Q
+
+        have = {c: (self.params.get(c) or {}) for c in CATEGORIES}
+        need = {"d": ("geometry", "d"), "T": ("energy", "T"),
+                "eta": ("medium", "eta")}
+        missing = [f"{c}.{k}" for k, (c, k) in need.items() if k not in have[c]]
+        if missing:
+            return [f"`derived` cannot be recomputed: {missing} absent. "
+                    f"State them, or the derived block is unchecked."]
+        try:
+            q = {k: Q(float(have[c][name].value), have[c][name].unit)
+                 for k, (c, name) in need.items()}
+            b = MAT.sphere_bulk(q["d"], q["T"], q["eta"])
+        except Exception as exc:                       # a bad unit string
+            return [f"`derived` cannot be recomputed ({type(exc).__name__}: "
+                    f"{exc}). A check that cannot run is not a check that passed."]
+
+        # ★ `tau_gov` is NOT tau_B, and assuming it was refused a correct
+        #   manifest too. CLAUDE.md rule 10 asks for "gamma, D_t, tau_B, and
+        #   WHICH TIMESCALE GOVERNS" -- four things, and the fourth is a
+        #   case-dependent choice. `trap-2d-5um` declares
+        #   `tau_gov = 4.010e-3 s` with the provenance "tau_k = gamma/k governs,
+        #   NOT tau_B = 242 s", and it is right: the trap relaxation is five
+        #   orders faster than diffusion across the particle. So `tau_gov` is
+        #   checked for being a positive time; `tau_B` is checked against the
+        #   recomputation when the manifest carries it.
+        want = {"gamma": b["gamma"], "D_t": b["D_t"], "tau_B": b["tau_B"]}
+        out = []
+        gov = have["derived"].get("tau_gov")
+        if gov is not None:
+            if str(gov.unit).strip() in REDUCED_UNITS:
+                if float(gov.value) <= 0:
+                    out.append(
+                        f"derived.tau_gov = {gov.value} {gov.unit!r}: a timescale "
+                        f"cannot be zero or negative -- provenance says "
+                        f"{gov.provenance[:40]!r}")
+            else:
+                try:
+                    secs = float(Q(float(gov.value), gov.unit).to("s").magnitude)
+                except Exception as exc:
+                    out.append(f"derived.tau_gov = {gov.value} {gov.unit!r} is not "
+                               f"a time ({type(exc).__name__})")
+                else:
+                    if secs <= 0:
+                        out.append(
+                            f"derived.tau_gov = {secs:.6g} s: a timescale cannot be "
+                            f"zero or negative -- provenance says "
+                            f"{gov.provenance[:40]!r}")
+        for name, expect in want.items():
+            p = have["derived"].get(name)
+            if p is None:
+                continue                # `blockers` already reports it missing
+            # ★ Two conventions, both checked, neither skipped.
+            #   A manifest written in REDUCED units says `gamma = 1` because the
+            #   reference scales are chosen to make kT = D = gamma = 1 -- there
+            #   is no SI recomputation to compare against, but the value is
+            #   fixed at 1 BY CONSTRUCTION, so it is still checkable.
+            #   `bead-water-3d`'s manifest is of this kind and is correct.
+            #   The placeholder that started all this was `0.0` with unit "1",
+            #   which this branch refuses.
+            if str(p.unit).strip() in REDUCED_UNITS:
+                if float(p.value) != 1.0:
+                    out.append(
+                        f"derived.{name} = {p.value} {p.unit!r}: in the reduced "
+                        f"convention the reference scales make kT = D = gamma = 1, "
+                        f"so this is 1 by construction. {p.value} is not a value, "
+                        f"it is a placeholder -- provenance says "
+                        f"{p.provenance[:40]!r}")
+                continue
+            try:
+                got = Q(float(p.value), p.unit).to(expect.units)
+            except Exception as exc:
+                out.append(f"derived.{name} = {p.value} {p.unit!r} is not "
+                           f"convertible to {expect.units:~P} "
+                           f"({type(exc).__name__})")
+                continue
+            e = float(expect.magnitude)
+            g = float(got.magnitude)
+            if abs(g - e) > self.DERIVED_RTOL * abs(e):
+                out.append(
+                    f"derived.{name} = {g:.6g} {expect.units:~P} but "
+                    f"d, T and eta give {e:.6g} "
+                    f"({'placeholder zero' if g == 0 else f'{100*(g-e)/e:+.3g} %'})"
+                    f" -- provenance says {p.provenance[:44]!r}")
+        return out
+
     def blockers(self) -> list:
         """Every reason this manifest is not ready to run."""
         out = []
@@ -198,6 +342,10 @@ class Manifest:
             missing = [k for k in REQUIRED_KEYS[c] if k not in have]
             if missing:
                 out.append(f"category {c!r} is missing {missing}")
+        #  ★ presence is not validity. Added 2026-09-14 after three placeholder
+        #    zeros cleared this function -- see the docstring's "four for four".
+        if "derived" not in self.absent:
+            out += self.check_derived()
         for name, who in self.unknowns.items():
             out.append(f"{name} is UNKNOWN -- needs {who}. BLOCKED is correct here; "
                        f"inventing it is not (rule 3)")

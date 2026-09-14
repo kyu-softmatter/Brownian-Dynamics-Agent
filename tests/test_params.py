@@ -252,3 +252,201 @@ def test_rule_10_is_in_the_project_contract():
     assert "params.py" in md
     for word in ("radius", "box size", "trap stiffness", "provenance"):
         assert word in md, word
+
+
+# ── 6. presence is not validity — the `derived` recomputation ──────────────
+#
+# ★ `bdbot/params.py`'s docstring said, from the day it was written, that
+#   `derived` "is checked against a recomputation, because `physical.verify()`
+#   already catches a hand-edited derived value and this is the same invariant
+#   one layer up." No such check existed for twelve days. `blockers()` checked
+#   that each `REQUIRED_KEYS` name was PRESENT and never that its value was
+#   REAL, so this cleared the gate:
+#
+#       m.add("derived", "gamma",   0.0, "1", "6 pi eta a -- in the ledger")
+#       m.add("derived", "D_t",     0.0, "1", "kT/gamma -- in the ledger")
+#       m.add("derived", "tau_gov", 0.0, "1", "tau_B -- in the ledger")
+#
+#   Three physically impossible zeros -- no friction, no diffusion, no timescale
+#   -- in the first manifest anyone built, written for the run that was meant to
+#   demonstrate rule 10. The docstring's own list of practices-that-were-never-
+#   enforced ("three for three") had a fourth entry in the same file.
+
+#: The truth, at d = 5 um, T = 300 K, eta = 0.851 mPa*s -- `soft-r3`'s numbers.
+#: Cross-checked against the closed forms by hand, independently of
+#: `materials.sphere_bulk`, and they agree to 15 significant figures:
+#:   gamma = 3 pi eta d  = 3*pi*0.851e-3*5e-6      = 4.0102430223073706e-08
+#:   D_t   = kT/gamma    = 1.380649e-23*300/gamma  = 1.0328418943590235e-13
+#:   tau_B = d^2/D_t                               = 242.05059977272592
+#: The last-digit differences are float association order.
+TRUE_GAMMA = 4.01024302230737e-08       # kg/s
+TRUE_D_T = 1.0328418943590236e-13       # m^2/s
+TRUE_TAU_B = 242.05059977272577         # s
+
+
+def si_probe(approved="a human", **derived) -> PRM.Manifest:
+    """A manifest whose inputs are SI, so `derived` is checkable by recomputation.
+    `soft-r3`'s numbers: d = 5 um, T = 300 K, water at 0.851 mPa*s."""
+    m = PRM.Manifest("si-probe", approved_by=approved)
+    m.add("geometry", "d", 5.0, "um", "sketch", 0)
+    m.add("geometry", "L", 29.96, "um", "a_mean*sqrt(N)", 1)
+    m.add("geometry", "dim", 2, "1", "2D", 0)
+    m.add("geometry", "N", 400, "1", "the spec", 1)
+    m.add("energy", "T", 300.0, "K", "sketch", 0)
+    m.add("energy", "kT", 1.0, "1", "reduced convention", 0)
+    m.add("medium", "eta", 0.851, "mPa*s", "handbook, water at 300 K", 0)
+    m.not_applicable("interaction", "checked elsewhere in this probe")
+    m.add("numerics", "dt", 4.915e-05, "1", "dt/tau_B", 0)
+    m.add("numerics", "n_prod", 2034400, "1", "T_obs/dt", 1)
+    m.add("numerics", "seed", 20260914, "1", "fixed", 0)
+    m.add("derived", "gamma", derived.get("gamma", TRUE_GAMMA),
+          derived.get("gamma_u", "kg/s"), "6 pi eta a", 1)
+    m.add("derived", "D_t", derived.get("D_t", TRUE_D_T),
+          derived.get("D_t_u", "m^2/s"), "kT/gamma", 1)
+    m.add("derived", "tau_gov", derived.get("tau_gov", TRUE_TAU_B),
+          derived.get("tau_gov_u", "s"),
+          "tau_B governs here: no trap and no bond", 1)
+    m.add("derived", "tau_B", derived.get("tau_B", TRUE_TAU_B),
+          derived.get("tau_B_u", "s"), "d^2/D_t", 1)
+    return m
+
+
+def test_the_si_probe_is_correct_to_begin_with():
+    """Guard on the guard: every break below starts from this manifest, so a
+    'caught' result proves nothing unless this one is clean."""
+    assert si_probe().blockers() == []
+
+
+def test_the_measured_defect_three_placeholder_zeros():
+    """★ The exact manifest that cleared the gate on 2026-09-14."""
+    m = si_probe(gamma=0.0, gamma_u="1", D_t=0.0, D_t_u="1",
+                 tau_gov=0.0, tau_gov_u="1", tau_B=0.0, tau_B_u="1")
+    b = m.blockers()
+    for name in ("gamma", "D_t", "tau_gov", "tau_B"):
+        assert any(f"derived.{name}" in x for x in b), (name, b)
+    #  gamma / D_t / tau_B are refuted by the reduced-convention rule (they are
+    #  1 by construction there); tau_gov by positivity, because a governing
+    #  timescale is a case-dependent choice and has no single right value.
+    assert any("by construction" in x for x in b), b
+    assert any("cannot be zero or negative" in x for x in b), b
+
+
+@pytest.mark.parametrize("secs", [0.0, -1.0])
+def test_a_governing_timescale_must_be_positive(secs):
+    m = si_probe(tau_gov=secs, tau_gov_u="s")
+    b = [x for x in m.blockers() if "tau_gov" in x]
+    assert b and "cannot be zero or negative" in b[0], b
+
+
+def test_tau_gov_is_not_required_to_equal_tau_B():
+    """★★ The fix that this check needed within the hour of being written.
+
+    `tau_gov` is "which timescale GOVERNS" (CLAUDE.md rule 10), and it is a
+    case-dependent choice. `trap-2d-5um`'s real card declares
+    `tau_gov = 4.010e-3 s` with the provenance "tau_k = gamma/k governs, NOT
+    tau_B = 242 s" -- right by five orders of magnitude. The first version of
+    `check_derived` compared `tau_gov` against tau_B and refused that manifest
+    at -100 %. A gate that refuses a correct answer is worse than no gate; this
+    repository's own pre-run gate once rejected 80 of 83 specs with zero real
+    failures among them.
+    """
+    m = si_probe(tau_gov=4.010e-3, tau_gov_u="s")      # a trap, not diffusion
+    assert [x for x in m.blockers() if "tau_gov" in x] == [], m.blockers()
+    #  ...and tau_B, which IS derivable, is still checked in the same manifest
+    m2 = si_probe(tau_gov=4.010e-3, tau_gov_u="s", tau_B=TRUE_TAU_B * 1.05)
+    assert [x for x in m2.blockers() if "derived.tau_B" in x], m2.blockers()
+
+
+def test_the_real_trap_card_manifest_is_accepted():
+    """The regression, on the actual numbers rather than a mutation of mine.
+    `trap-2d-5um`'s manifest is written to 4-5 significant figures throughout,
+    which is why DERIVED_RTOL is 1e-3 and not 1e-6."""
+    m = PRM.Manifest("trap-2d-5um", approved_by="a human")
+    m.add("geometry", "d", 5.0, "um", "sketch", 0)
+    m.add("geometry", "L", 160.0, "um", "n_side * d", 0)
+    m.add("geometry", "dim", 2, "1", "sketch: a 2D trap", 0)
+    m.add("geometry", "N", 1000, "1", "choice", 3)
+    m.add("energy", "T", 300.0, "K", "sketch", 0)
+    m.add("energy", "kT", 4.142e-21, "J", "k_B T at 300 K", 0)
+    m.add("medium", "eta", 0.851e-3, "Pa*s", "Welty, water at 300 K", 0)
+    m.add("interaction", "k_t", 10.0, "pN/um", "sketch", 0)
+    m.add("numerics", "dt", 8.02e-6, "s", "0.1 % EM bias", 0)
+    m.add("numerics", "n_prod", 1_000_000, "1", "T_obs / dt", 0)
+    m.add("numerics", "seed", 20260803, "1", "choice", 3)
+    m.add("derived", "gamma", 4.0102e-8, "kg/s", "3 pi eta d", 0)
+    m.add("derived", "D_t", 0.1033, "um**2/s", "kT/gamma", 0)
+    m.add("derived", "tau_gov", 4.010e-3, "s",
+          "tau_k = gamma/k governs, NOT tau_B = 242 s", 0)
+    assert m.blockers() == [], m.blockers()
+
+
+@pytest.mark.parametrize("key,unit,truth", [
+    ("gamma", "kg/s", TRUE_GAMMA),
+    ("D_t", "m^2/s", TRUE_D_T),
+    ("tau_B", "s", TRUE_TAU_B),
+])
+def test_a_typo_in_a_recomputable_derived_value_is_caught(key, unit, truth):
+    """1 % -- small enough to miss by eye, ten times the tolerance. The tight
+    comparison lives one layer down in `physical.verify()`, where both sides
+    are full precision; here the tolerance is set by how the value was written
+    (four to five significant figures across the real manifests)."""
+    m = si_probe(**{key: truth * 1.01, f"{key}_u": unit})
+    b = [x for x in m.blockers() if f"derived.{key}" in x]
+    assert b and "+1" in b[0], b
+
+
+def test_the_recomputation_is_not_vacuous():
+    """...and it accepts the truth. Without this the test above would pass for a
+    check that rejects every value."""
+    assert [x for x in si_probe().blockers() if "derived." in x] == []
+
+
+def test_a_derived_value_in_the_wrong_dimension_is_refused_not_converted():
+    m = si_probe(gamma=TRUE_GAMMA, gamma_u="m")
+    b = [x for x in m.blockers() if "derived.gamma" in x]
+    assert b and "not convertible" in b[0], b
+
+
+@pytest.mark.parametrize("missing", ["d", "T", "eta"])
+def test_a_missing_input_is_reported_rather_than_skipped(missing):
+    """An unrunnable check that returns [] is indistinguishable from a check
+    that ran and passed -- this repository's most-repeated defect
+    (docs/05 section 2). It must say it could not run."""
+    cat = {"d": "geometry", "T": "energy", "eta": "medium"}[missing]
+    m = si_probe()
+    del m.params[cat][missing]
+    b = [x for x in m.blockers() if "cannot be recomputed" in x]
+    assert b and f"{cat}.{missing}" in b[0], b
+
+
+def test_the_reduced_convention_is_checked_not_exempted():
+    """`gamma = 1` with a reduced unit is correct BY CONSTRUCTION, and 0 is not.
+    `bead-water-3d`'s real manifest is of this kind, so exempting reduced units
+    would have left the original defect open on the very manifest that shipped."""
+    assert water_probe("a human").blockers() == []
+    m = water_probe("a human")
+    m.params["derived"]["gamma"] = PRM.Param("gamma", 0.0, "1", "reduced", 0)
+    b = m.blockers()
+    assert b and "by construction" in b[0], b
+
+
+def test_declaring_derived_not_applicable_skips_the_check_explicitly():
+    """The escape hatch is `not_applicable`, which raises on an empty reason --
+    the same shape as `scales.declare_absent`. Silence is not an escape hatch."""
+    m = si_probe()
+    m.params.pop("derived")
+    m.not_applicable("derived", "a probe with no medium: nothing to derive")
+    assert m.blockers() == []
+    with pytest.raises(ValueError):
+        PRM.Manifest("x").not_applicable("derived", "   ")
+
+
+def test_the_docstring_no_longer_claims_an_unimplemented_check():
+    """The paragraph promising the recomputation stood for twelve days with
+    nothing behind it. If the check is ever removed, the docstring must not
+    quietly go back to claiming it."""
+    src = Path(PRM.__file__).read_text()
+    assert "Four for four" in src, \
+        "the correction record was removed from bdbot/params.py"
+    assert "def check_derived" in src, \
+        "check_derived is gone but the docstring still promises a recomputation"

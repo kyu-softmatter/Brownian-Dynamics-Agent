@@ -84,6 +84,59 @@ called `gate()`. Full account in
 **Rule: `N/N HEALTHY` is not coverage.** Print the count of *unmeasured* runs
 separately, and state what the verdict does and does not cover.
 
+### A gate that checks presence, not validity
+
+Rule 10's manifest refuses a number with no value, no unit or no provenance.
+[`bdbot/params.py`](../bdbot/params.py)'s docstring also said, from the day it
+was written, that `derived` "is checked against a recomputation … the same
+invariant one layer up." **No such check existed for twelve days.**
+`blockers()` verified that each `REQUIRED_KEYS` name was *present* and never
+that its value was *real*, so this cleared the gate:
+
+```python
+m.add("derived", "gamma",   0.0, "1", "6 pi eta a -- in the ledger, recomputed by L3")
+m.add("derived", "D_t",     0.0, "1", "kT/gamma -- in the ledger, recomputed by L3")
+m.add("derived", "tau_gov", 0.0, "1", "tau_B = d^2/D_t -- in the ledger, recomputed by L3")
+```
+
+`blockers()` returned `[]`. Three physically impossible zeros — no friction, no
+diffusion, no timescale — in the first manifest anyone built, written for the
+run that was meant to *demonstrate* rule 10. **The provenance string was the
+confession** ("in the ledger") and nothing read it.
+
+That docstring opens by listing three practices that were written and never
+enforced — `bd-intake` §2.1's empty-goal blocker, `A4`'s grep, `health.gate()`
+— and calls the record *three for three*. It was four, and the fourth was in
+the same file.
+
+**Rule: a required field is a schema check, not a physics check.** If a value
+follows from other values in the same document, recompute it. If it does not
+follow from anything, it is a choice and must say so — `unknown(name, who)` is
+what "it is in the ledger" should have used.
+
+#### …and the fix over-corrected within the hour
+
+The recomputation was written with `rtol = 1e-6` and with `tau_gov` compared
+against `tau_B`. It immediately **refused a correct manifest** —
+`trap-2d-5um`'s card, on two counts:
+
+| declared | recomputed | verdict | what was actually wrong |
+|---|---|---|---|
+| `gamma = 4.0102e-8 kg/s` | `4.010243e-8` | −0.00107 %, **blocked** | the tolerance. The value is right to the five figures it was *written* to |
+| `tau_gov = 4.010e-3 s` | `tau_B = 242.051 s` | −100 %, **blocked** | the check. `tau_gov` is *which timescale governs* — here `τ_k = γ/k`, and the provenance says so in words |
+
+Both are the same mistake in opposite directions: **a comparison's tolerance
+comes from how the value was written, and a field's meaning comes from what it
+was for.** Rule 10 asks for "γ, `D_t`, `τ_B`, and **which timescale governs**"
+— four things, and the fourth is a case-dependent choice, not a synonym for the
+third. `τ_B` is recomputed; `tau_gov` is checked for being a positive time.
+
+A gate that refuses a correct answer is worse than no gate, and this repository
+had already measured that once at 80 rejections out of 83. The second version
+was caught by the mutation harness in the same session that introduced it
+([`verify/verify_gates_bite.py`](../verify/verify_gates_bite.py)), which is the
+only reason it is a footnote rather than a fourth entry.
+
 ### A check whose success is indistinguishable from its own failure
 
 The family below is about checks that go blind. This one is worse: it inverts.
