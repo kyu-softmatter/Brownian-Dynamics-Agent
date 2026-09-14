@@ -2,8 +2,8 @@
   "schema": "bdbot.nondim/0.1",
   "case": "soft-r3-2d-A-sweep",
   "label": "soft-r3-2d-A-sweep",
-  "tag": "A100",
-  "run_id": "soft-r3-2d-A-sweep__A100__30caa5c9e0",
+  "tag": "A34.938-smoke",
+  "run_id": "soft-r3-2d-A-sweep__A34.938-smoke__9e3f970c1f",
   "system": {
     "label": "soft-r3-2d-A-sweep",
     "derived_from": "observation.yaml",
@@ -322,12 +322,12 @@
       },
       {
         "symbol": "r_min",
-        "value": 6.706401373695135e-06,
+        "value": 5.7779188574576005e-06,
         "unit": "meter",
         "note": "closest approach distance",
         "role": "",
         "star": true,
-        "reduced": 1.3412802747390271
+        "reduced": 1.1555837714915203
       },
       {
         "symbol": "a_mean",
@@ -349,12 +349,12 @@
       },
       {
         "symbol": "L",
-        "value": 0.00014979969134027406,
+        "value": 8.987981480416443e-05,
         "unit": "meter",
         "note": "box",
         "role": "box",
         "star": false,
-        "reduced": 29.959938268054813
+        "reduced": 17.975962960832888
       }
     ],
     "times": [
@@ -369,21 +369,21 @@
       },
       {
         "symbol": "dt",
-        "value": 0.008756339787830662,
+        "value": 0.011896906473868317,
         "unit": "second",
         "note": "integration step",
         "role": "dt",
         "star": false,
-        "reduced": 3.6175658296457254e-05
+        "reduced": 4.9150493677929146e-05
       },
       {
         "symbol": "tau_int",
-        "value": 0.8756339787830663,
+        "value": 1.1896906473868316,
         "unit": "second",
         "note": "gamma/U''(r_min) interaction",
         "role": "",
         "star": true,
-        "reduced": 0.003617565829645726
+        "reduced": 0.0049150493677929145
       },
       {
         "symbol": "tau_B",
@@ -396,12 +396,12 @@
       },
       {
         "symbol": "T_obs",
-        "value": 24205.059977272576,
+        "value": 726.1517993181774,
         "unit": "second",
         "note": "observation window",
         "role": "observation",
         "star": false,
-        "reduced": 100.0
+        "reduced": 3.0000000000000004
       }
     ],
     "energies": [
@@ -416,21 +416,21 @@
       },
       {
         "symbol": "U_a",
-        "value": 1.2321732661092366e-19,
+        "value": 4.304966957132452e-20,
         "unit": "kilogram * meter ** 2 / second ** 2",
         "note": "U(a_mean) mean-spacing coupling = Gamma*kT",
         "role": "",
         "star": false,
-        "reduced": 29.748648790272707
+        "reduced": 10.39358291434548
       },
       {
         "symbol": "U_d",
-        "value": 4.1833664700000002e-19,
+        "value": 1.4885329128600001e-19,
         "unit": "kilogram * meter ** 2 / second ** 2",
         "note": "U(d) contact coupling = (A+eps_WCA)*kT",
         "role": "",
         "star": false,
-        "reduced": 101.0
+        "reduced": 35.938
       }
     ]
   },
@@ -438,7 +438,7 @@
   "groups": [
     {
       "name": "Gamma",
-      "value": 29.748648790272707,
+      "value": 10.39358291434548,
       "expr": "U(a_mean)/kT",
       "meaning": "coupling vs thermal fluctuation *",
       "num": [
@@ -452,7 +452,7 @@
     },
     {
       "name": "A",
-      "value": 100.0,
+      "value": 34.938,
       "expr": "",
       "meaning": "the r^-3 amplitude (input, from the sketch)",
       "num": null,
@@ -460,7 +460,7 @@
     },
     {
       "name": "U(d)/kT",
-      "value": 101.0,
+      "value": 35.938,
       "expr": "(A+ε_WCA)",
       "meaning": "contact coupling",
       "num": [
@@ -496,7 +496,7 @@
     },
     {
       "name": "L/d",
-      "value": 29.959938268054813,
+      "value": 17.975962960832888,
       "expr": "",
       "meaning": "box size",
       "num": [
@@ -538,7 +538,7 @@
     },
     {
       "name": "dt/tau_int",
-      "value": 0.009999999999999998,
+      "value": 0.01,
       "expr": "",
       "meaning": "integration resolution",
       "num": [
@@ -552,7 +552,7 @@
     },
     {
       "name": "T_obs/tau_B",
-      "value": 100.0,
+      "value": 3.0000000000000004,
       "expr": "",
       "meaning": "observation window",
       "num": [
@@ -583,75 +583,75 @@
     {
       "kind": "model",
       "name": "inertia negligible   tau_p/tau_int",
-      "value": 3.72773759128525e-06,
+      "value": 2.7436827431450458e-06,
       "limit": 0.01,
       "op": "<=",
       "ok": true,
-      "margin": 2682.5922573998023,
+      "margin": 3644.7362673342973,
       "hard": true,
       "phase": "design"
     },
     {
       "kind": "integration",
       "name": "interaction resolved dt/tau_int",
-      "value": 0.009999999999999998,
+      "value": 0.01,
       "limit": 0.01,
       "op": "<=",
       "ok": true,
-      "margin": 1.0000000000000002,
+      "margin": 1.0,
       "hard": true,
       "phase": "design"
     },
     {
       "kind": "geometry",
       "name": "cutoff             r_c/(L/2)",
-      "value": 0.5,
+      "value": 0.8333333333333334,
       "limit": 1.0,
       "op": "<=",
       "ok": true,
-      "margin": 2.0,
+      "margin": 1.2,
       "hard": true,
       "phase": "design"
     },
     {
       "kind": "geometry",
       "name": "core margin        r_table_min/r_min",
-      "value": 0.37277816532214714,
+      "value": 0.43268174262662623,
       "limit": 1.0,
       "op": "<=",
       "ok": true,
-      "margin": 2.6825605494780542,
+      "margin": 2.3111675429830405,
       "hard": true,
       "phase": "design"
     },
     {
       "kind": "statistics",
       "name": "observation window T_obs/tau_B",
-      "value": 100.0,
+      "value": 3.0000000000000004,
       "limit": 100.0,
       "op": ">=",
-      "ok": true,
-      "margin": 1.0,
+      "ok": false,
+      "margin": 0.030000000000000006,
       "hard": false,
       "phase": "design"
     }
   ],
-  "verdict": "PASS",
+  "verdict": "PASS (1 warnings)",
   "params": {
-    "A": 100.0,
+    "A": 34.938,
     "phi": 0.35,
-    "N": 400,
+    "N": 144,
     "r_c_star": 7.489984567013703,
     "wca_eps": 1.0,
-    "Gamma": 29.748648790272707
+    "Gamma": 10.39358291434548
   },
   "numerics": {
-    "dt_star": 3.6175658296457254e-05,
+    "dt_star": 4.9150493677929146e-05,
     "dt_over_tau_int": 0.01,
-    "n_eq": 552858,
-    "n_prod": 2764000,
+    "n_eq": 12207,
+    "n_prod": 60952,
     "n_samples": 400,
-    "sample_every": 6910,
+    "sample_every": 152,
     "seed": 20260803
   },
   "l3_issues": []

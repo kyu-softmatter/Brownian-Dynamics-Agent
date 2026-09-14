@@ -41,6 +41,7 @@ from bdbot.provenance import load_node  # noqa: E402
 # * The potential numerics (U, U'', r_min) were promoted into bdbot when
 #   `trap-drag` started using the same ones. Redefining them here would let the two
 #   cases' dt diverge (see bdbot/pairpot.py).
+from bdbot import lattice as LAT  # noqa: E402
 from bdbot.pairpot import HEX_NN, R_WCA, U2_star, U_star, approach_distance  # noqa: E402,F401
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -79,7 +80,8 @@ def load_system(path: Path) -> dict:
 #    Against the trap case: the lengths go from 3 to 5, and tau_int is a function of
 #    r rather than a constant.
 # ════════════════════════════════════════════════════════════════════════
-def build_ledger(sys_, A, N, phi, r_c_star, dt_scale=1.0, T_obs_tau=None) -> SC.ScaleLedger:
+def build_ledger(sys_, A, N, phi, r_c_star, dt_scale=1.0, T_obs_tau=None,
+                 lattice=None) -> SC.ScaleLedger:
     """The ledger. * `dt` and `T_obs` go in too -- so they are visible in the
     timescale ordering.
 
@@ -93,6 +95,17 @@ def build_ledger(sys_, A, N, phi, r_c_star, dt_scale=1.0, T_obs_tau=None) -> SC.
 
     a_star = math.sqrt(math.pi / (4 * phi))             # a_mean/d
     L_star = a_star * math.sqrt(N)
+    # ★ A commensurate hexagonal box is RECTANGULAR -- commensurability sets the
+    #   aspect, it is not chosen. Its area is identical (L_x*L_y = N*a_mean^2, so
+    #   phi is conserved exactly and sqrt(L_x*L_y) == L_star), but the minimum
+    #   image is set by the SHORT side, which is L_star/HEX_NN = 0.9306*L_star.
+    #   Checking r_c against L_star/2 there is 7.5 % optimistic -- measured: at
+    #   N=400 the square box gives L/2 = 14.980 d and the commensurate box
+    #   13.940 d, and the ratio is exactly HEX_NN.
+    Lx_star = Ly_star = L_star
+    if lattice is not None:
+        Lx_star, Ly_star = LAT.box_for(*lattice, HEX_NN * a_star)
+    L_min_star = min(Lx_star, Ly_star)
     r_min_star, crit, u_rms_rel, state = approach_distance(A, a_star, sys_["wca_eps_kT"])
     # tau_int = gamma/U''(r_min) -- the same structure as the trap's tau_k = gamma/k
     # (bdbot.checks.relaxation_time). The stiffness is a dimensionless value in units
@@ -109,6 +122,10 @@ def build_ledger(sys_, A, N, phi, r_c_star, dt_scale=1.0, T_obs_tau=None) -> SC.
     lg.add_length("a_mean", a_star * d, "mean spacing")
     lg.add_length("r_c", r_c_star * d, "cutoff")
     lg.add_length("L", L_star * d, "box", role="box")
+    if lattice is not None:
+        lg.add_length("L_min", L_min_star * d,
+                      f"short side of the commensurate {lattice[0]}x{lattice[1]} box "
+                      f"(L_x/L_y = {Lx_star/Ly_star:.4f}); the minimum image is set by this")
     lg.add_time("tau_p", b["tau_p"], "m/gamma momentum relaxation", role="inertia")
     lg.add_time("dt", dt, "integration step", role="dt")
     lg.add_time("tau_int", tau_int, "gamma/U''(r_min) interaction", star=True)
@@ -125,6 +142,8 @@ def build_ledger(sys_, A, N, phi, r_c_star, dt_scale=1.0, T_obs_tau=None) -> SC.
                   "U(d) contact coupling = (A+eps_WCA)*kT")
     lg.derived = dict(gamma=gamma, D_t=D_t, m=m, kT=kT, d=d, tau_B=tau_B,
                       a_star=a_star, L_star=L_star, r_min_star=r_min_star,
+                      Lx_star=Lx_star, Ly_star=Ly_star, L_min_star=L_min_star,
+                      lattice=lattice,
                       crit=crit, u_rms_rel=u_rms_rel, state=state, tau_int=tau_int,
                       dt=dt, T_obs=T_obs)
     lg.ref = SC.thermal_reference(
@@ -146,6 +165,8 @@ def analyze_scales(sys_, lg, A, phi, r_c_star):
     D = lg.derived
     f = lambda q: float(q.to("dimensionless").magnitude) if hasattr(q, "to") else float(q)
     a_star, L_star = D["a_star"], D["L_star"]
+    L_min_star = D.get("L_min_star", L_star)
+    lattice = D.get("lattice")
     Gamma = float(U_star(a_star, A, sys_["wca_eps_kT"]))
     dt, T_obs = lg.get("times", "dt"), lg.get("times", "T_obs")
     tau_p = lg.get("times", "tau_p")
@@ -182,8 +203,13 @@ def analyze_scales(sys_, lg, A, phi, r_c_star):
               f"tau_int = gamma/U''(r_min={D['r_min_star']:.3f}d), by the {D['crit']} criterion. "
               f"Bias for a linear system ~ {C.bias_from_dt(dt, D['tau_int']):.3f}% -- this is "
               f"nonlinear, so a convergence check is separate"),
-        C.Check("geometry", "cutoff             r_c/(L/2)", r_c_star / (L_star / 2), 1.0, "<=",
-              "minimum image (bd-hoomd trap 6). A past violation gave +1856%"),
+        C.Check("geometry", "cutoff             r_c/(L/2)", r_c_star / (L_min_star / 2), 1.0, "<=",
+              "minimum image (bd-hoomd trap 6). A past violation gave +1856%"
+              + ("" if lattice is None else
+                 f" -- measured against the SHORT side of the commensurate "
+                 f"{lattice[0]}x{lattice[1]} box, L_min = {L_min_star:.4f} d. Against the "
+                 f"area-equivalent square L = {L_star:.4f} d this reads "
+                 f"{r_c_star/(L_star/2):.4f}, which is {100*(HEX_NN-1):.1f} % optimistic")),
         C.Check("geometry", "core margin        r_table_min/r_min",
               R_TABLE_MIN / D["r_min_star"], 1.0, "<=",
               "pair.Table trap 11: the force is 0 for r<r_min. Is the approach distance above the table's lower bound"),
@@ -222,7 +248,14 @@ def report_blocks(sys_, lg, A, phi, N, n_eq, n_prod):
 # 6. execution (dimensionless units)
 # ════════════════════════════════════════════════════════════════════════
 def rsa_positions(N, L, min_sep, rng):
-    """Random sequential adsorption -- starting from a lattice biases the structural result."""
+    """Random sequential adsorption -- starting from a lattice biases the structural result.
+
+    `L` is a scalar (square) or `(L_x, L_y)`. The rectangular form exists so the
+    random arm of the melting bracket can run in the SAME commensurate box as the
+    crystal arm: changing the initial condition and the box shape together would
+    confound the two.
+    """
+    Lv = np.array([float(L), float(L)] if np.isscalar(L) else [float(L[0]), float(L[1])])
     pos = np.empty((N, 2))
     n = 0
     tries = 0
@@ -230,10 +263,10 @@ def rsa_positions(N, L, min_sep, rng):
         tries += 1
         if tries > 400 * N:
             raise RuntimeError(f"RSA failed: {n}/{N} (min_sep={min_sep} is too large)")
-        p = rng.uniform(-L / 2, L / 2, 2)
+        p = rng.uniform(-Lv / 2, Lv / 2, 2)
         if n:
             dr = pos[:n] - p
-            dr -= L * np.round(dr / L)
+            dr -= Lv * np.round(dr / Lv)          # minimum image, per axis
             if (dr**2).sum(axis=1).min() < min_sep**2:
                 continue
         pos[n] = p
@@ -269,10 +302,39 @@ def build(spec, outdir=None) -> RUN.Build:
     n_eq, n_prod = int(Nm["n_eq"]), int(Nm["n_prod"])
     sample_every = int(Nm["sample_every"])
 
+    # ★ Initial condition and box shape are TWO knobs, not one.
+    #   `init` absent == "rsa" == every archived run, and absent (rather than
+    #   "rsa") is what keeps their run_id unchanged -- any key added to `params`
+    #   re-ids the run.
+    #   They are separate because a crystal start needs a commensurate
+    #   rectangular box, so switching only `init` would change the box too and
+    #   confound the initial condition with the box shape. `n_x`/`n_y` select
+    #   the box; `init` selects the positions inside it. `simbot.run` reached the
+    #   same conclusion and refuses init="hex" with box_shape="square".
+    init = str(P.get("init", "rsa"))
+    n_x, n_y = (int(P["n_x"]), int(P["n_y"])) if "n_x" in P else (None, None)
+    if n_x is None:
+        hbox, L_min_star = L_star, L_star
+    else:
+        LAT.check(n_x, n_y, N)
+        Lx, Ly = LAT.box_for(n_x, n_y, HEX_NN * a_star)
+        hbox, L_min_star = (Lx, Ly), min(Lx, Ly)
+
     np_seed, _ = SIM.resolve_seed(seed)
     rng = np.random.default_rng(np_seed)
-    pos = rsa_positions(N, L_star, 1.0, rng)          # * starting from a lattice biases the structure
-    sim = SIM.make_sim(SIM.frame_2d(pos, L_star), seed=seed)
+    if init == "hex":
+        if n_x is None:
+            raise ValueError("init='hex' needs a commensurate box: pass n_x and n_y. "
+                             "A hexagonal lattice in a square box carries a seam, and "
+                             "the seam is a line of defects that melts on its own.")
+        pos = LAT.hex_lattice(n_x, n_y, HEX_NN * a_star)
+    elif init == "rsa":
+        # * starting from a lattice biases the structure -- which is the point of
+        #   the `hex` arm, and the reason this one is still the default
+        pos = rsa_positions(N, hbox, 1.0, rng)
+    else:
+        raise ValueError(f"init={init!r}: expected 'rsa' or 'hex'")
+    sim = SIM.make_sim(SIM.frame_2d(pos, hbox), seed=seed)
 
     cell = md.nlist.Cell(buffer=0.4)
     # the r^-3 tail -- pair.Table. * endpoint=False (trap 10), shifted at the cutoff
@@ -288,8 +350,10 @@ def build(spec, outdir=None) -> RUN.Build:
     gsd = (Path(outdir) / "traj_A.gsd") if outdir else None
     SIM.add_trajectory_writer(sim, gsd, max(1, n_prod // 200))
 
-    box = freud.box.Box.square(L_star)
-    rdf = freud.density.RDF(bins=RDF_BINS, r_max=min(r_c_star, L_star / 2 - 1e-6), r_min=0.3)
+    box = (freud.box.Box.square(L_star) if n_x is None
+           else freud.box.Box(Lx=hbox[0], Ly=hbox[1], is2D=True))
+    rdf = freud.density.RDF(bins=RDF_BINS, r_max=min(r_c_star, L_min_star / 2 - 1e-6),
+                            r_min=0.3)
     hexatic = freud.order.Hexatic(k=6, weighted=True)
     voro = freud.locality.Voronoi()
     # * Keeps the same memory footprint as the original implementation -- the
@@ -311,13 +375,27 @@ def build(spec, outdir=None) -> RUN.Build:
         counts = np.asarray(vn.neighbor_counts)
         coord_hist[:] += np.bincount(np.clip(counts, 0, 12), minlength=13)
         dists = np.asarray(vn.distances)
-        psi6 = float(np.abs(hexatic.compute((box, p), neighbors=vn).particle_order).mean())
-        return {"psi6": psi6, "min_sep": float(dists.min()),
+        # ★ TWO order parameters, because they answer different questions.
+        #   psi6_local = <|psi_6i|>  -- how hexagonal is a particle's own cage.
+        #   psi6_global = |<psi_6i>| -- is the orientation the SAME across the box.
+        #   findings/order-parameter-magnitude-cannot-identify-a-phase: the local
+        #   one is flat in N (0.5756/0.5736/0.5733 over N = 256/576/1024 at this
+        #   coupling) and is NOT the phase discriminant; the global one carries
+        #   the N-scaling that is (0.2043/0.1574/0.0942 over the same ladder).
+        #   Only the local one was recorded here, so the quantity the finding
+        #   calls the discriminant could not be read off any archived run.
+        psi6_i = hexatic.compute((box, p), neighbors=vn).particle_order
+        psi6 = float(np.abs(psi6_i).mean())
+        psi6_global = float(np.abs(psi6_i.mean()))
+        return {"psi6": psi6, "psi6_global": psi6_global,
+                "min_sep": float(dists.min()),
                 "bond_mean": float(dists.mean()), "bond_std": float(dists.std())}
 
     def finalize(cols):
         psi6 = float(cols["psi6"].mean())
         psi6_sem = ST.block_sem(cols["psi6"])
+        psi6_global = float(cols["psi6_global"].mean())
+        psi6_global_sem = ST.block_sem(cols["psi6_global"])
         min_sep = float(cols["min_sep"].min())
         bond_mean = float(cols["bond_mean"].mean())
         bond_std = float(cols["bond_std"].mean())
@@ -365,6 +443,8 @@ def build(spec, outdir=None) -> RUN.Build:
         post_dicts = [{**c.as_dict("post_run"), "note": c.note} for c in post_checks]
         return {"observables": obs,
                 "extra": {"psi6": psi6, "psi6_sem": psi6_sem,
+                          "psi6_global": psi6_global,
+                          "psi6_global_sem": psi6_global_sem,
                           "nn_distance_d": bond_mean, "nn_std_rel": bond_std / bond_mean,
                           "min_sep_d": min_sep, "Gamma": float(U_star(a_star, A, eps)),
                           "coord_hist": list(map(float, coord_hist / coord_hist.sum())),
@@ -419,7 +499,32 @@ def main():
                     help="dt multiplier, for the convergence check -- 0.5 halves it")
     ap.add_argument("--rc-shells", type=float, default=5.0,
                     help="r_c = (this value) * a_mean, for the cutoff-convergence check")
+    ap.add_argument("--init", choices=("rsa", "hex"), default="rsa",
+                    help="initial positions: random sequential adsorption, or a "
+                         "perfect hexagonal crystal (needs --box hex)")
+    ap.add_argument("--box", choices=("square", "hex"), default="square",
+                    help="box shape: the square L = a_mean*sqrt(N), or the "
+                         "commensurate rectangle a hexagonal lattice tiles")
+    ap.add_argument("--seed", type=int, default=None, help="override the RNG seed")
+    ap.add_argument("--require-seal", action="store_true",
+                    help="refuse to run without a sealed prediction in the run dir "
+                         "(bdbot.runcard). The default is off because the 9 archived "
+                         "runs predate the mechanism")
+    ap.add_argument("--require-approval", action="store_true",
+                    help="rule 10: refuse to run without an approved params.json")
     args = ap.parse_args()
+
+    # ★ Two knobs, and one forbidden combination. A hexagonal lattice in a square
+    #   box does not close on itself, so it carries a seam -- a line of defects
+    #   that melts on its own and would be read as the crystal melting.
+    #   The reverse (`--box hex --init rsa`) is not only allowed, it is REQUIRED
+    #   for the melting bracket: the random arm has to sit in the same box as the
+    #   crystal arm, or the initial condition and the box shape change together.
+    if args.init == "hex" and args.box == "square":
+        raise SystemExit(
+            "--init hex needs --box hex: a hexagonal lattice does not tile a square "
+            "box, so the periodic images do not match at the seam. (The reverse, "
+            "--box hex --init rsa, is the matched random arm and is allowed.)")
 
     sys_ = load_system(ROOT / "intake/soft-r3-2d-A-sweep/system.yaml")
     num = sys_["numerics"]
@@ -451,7 +556,15 @@ def main():
     if args.rc_shells != 5.0:
         tag += f"-rc{args.rc_shells:g}"
 
-    lg = build_ledger(sys_, A, N, phi, r_c_star, args.dt_scale, T_obs_tau)
+    lattice = LAT.commensurate(N) if args.box == "hex" else None
+    if lattice is not None:
+        LAT.check(*lattice, N)
+        tag += f"-hex{lattice[0]}x{lattice[1]}" if args.init == "hex" else \
+               f"-box{lattice[0]}x{lattice[1]}"
+    if args.seed is not None:
+        tag += f"-s{args.seed}"
+
+    lg = build_ledger(sys_, A, N, phi, r_c_star, args.dt_scale, T_obs_tau, lattice)
     D = lg.derived
     tau_B, tau_int = D["tau_B"], D["tau_int"]
     dt, T_obs = lg.get("times", "dt"), lg.get("times", "T_obs")
@@ -469,12 +582,18 @@ def main():
     spec = ND.NondimSpec(
         case=sys_["label"], system=sys_["_raw"], reference=lg.ref, ledger=lg,
         groups=groups, checks=checks,
+        # ★ `init`, `n_x`, `n_y` are ABSENT on the default path, not set to their
+        #   defaults. `params` is hashed, so writing "init": "rsa" would re-id
+        #   every archived run -- 9 spec files and their run directories.
         params={"A": A, "phi": phi, "N": N, "r_c_star": r_c_star,
-                "wca_eps": sys_["wca_eps_kT"], "Gamma": Gamma},
+                "wca_eps": sys_["wca_eps_kT"], "Gamma": Gamma,
+                **({"init": args.init} if args.init != "rsa" else {}),
+                **({"n_x": lattice[0], "n_y": lattice[1]} if lattice else {})},
         numerics={"dt_star": float((dt / tau_B).to("")),
                   "dt_over_tau_int": args.dt_scale * 1e-2,
                   "n_eq": n_eq, "n_prod": n_prod, "n_samples": args.samples,
-                  "sample_every": sample_every, "seed": 20260803},
+                  "sample_every": sample_every,
+                  "seed": 20260803 if args.seed is None else args.seed},
         tag=tag, nhex=10)
     run_id = spec.run_id()
 
@@ -507,7 +626,9 @@ def main():
     outdir = ROOT / "runs" / run_id
     loaded = ND.load(p)
     v = RUN.execute(loaded, RUN.get_builder(loaded.case), outdir,
-                    force=args.force, progress=True)
+                    force=args.force, progress=True,
+                    require_seal=args.require_seal,
+                    require_approval=args.require_approval)
     print(RUN.render_verdict(v))
     if v["status"] == "skipped":
         return 0
@@ -547,7 +668,11 @@ def main():
 
     lines += ["", "OBSERVABLES (structure)",
               f"  ⟨U⟩/N        = {pe_mean:.5f} ± {pe_sem:.5f} kT",
-              f"  psi_6 (Voronoi-weighted) = {psi6:.4f} +/- {psi6_sem:.4f}",
+              f"  psi_6 local  <|psi_6i|>  = {psi6:.4f} +/- {psi6_sem:.4f}"
+              f"   (cage shape; flat in N -- NOT the phase discriminant)",
+              f"  psi_6 global |<psi_6i>|  = {res_extra['psi6_global']:.4f} "
+              f"+/- {res_extra['psi6_global_sem']:.4f}"
+              f"   (orientational coherence across the box)",
               f"  NN distance   = {bond_mean:.4f} d   (s.d. {bond_std:.4f} d"
               f" = {100*bond_std/bond_mean:.2f}%)",
               f"  min neighbour = {min_sep:.4f} d   (minimum over all samples)",

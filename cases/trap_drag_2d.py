@@ -48,6 +48,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from bdbot import checks as C, materials as M, metrics as MET, report as R  # noqa: E402
 from bdbot import nondim as ND, run as RUN, scales as SC, sim as SIM  # noqa: E402
 from bdbot import stats as ST, traps as TR  # noqa: E402
+from bdbot import lattice as LAT  # noqa: E402
 from bdbot.pairpot import HEX_NN, U2_star, U_star, a_mean_star, approach_distance  # noqa: E402
 from bdbot.provenance import load_node  # noqa: E402
 
@@ -136,11 +137,7 @@ def build_ledger(sys_, *, dt_scale=1.0, n_traverse=1.0,
     #   at the seam — and this system's observables (lattice deformation field, ψ₆) are
     #   sensitive to exactly that defect.
     n_x, n_y = sys_["n_x"], sys_["n_y"]
-    if n_x * n_y != N:
-        raise ValueError(f"commensurate hexagon broken: n_x·n_y = {n_x}·{n_y} = {n_x*n_y} ≠ N = {N}")
-    if n_y % 2:
-        raise ValueError(f"n_y = {n_y} is odd — the staggered rows have a period of 2 rows, so "
-                         "they do not join across the periodic boundary")
+    LAT.check(n_x, n_y, N)
     a_star = a_mean_star(phi)                       # a_mean/d
     a_nn_star = HEX_NN * a_star                     # a_NN/d — this is the lattice constant
     Lx_star = n_x * a_nn_star
@@ -432,21 +429,10 @@ def report_blocks(sys_, lg, extra, n_warm, n_equil, n_prod, n_relax,
 # ════════════════════════════════════════════════════════════════════════
 # ⑤ L4 — build the system from the spec alone (bdbot.run runs it and judges)
 # ════════════════════════════════════════════════════════════════════════
-def hex_lattice(n_x: int, n_y: int, a_nn: float) -> np.ndarray:
-    """Commensurate hexagonal lattice (n_x·n_y particles).
-
-    Rows run along x; odd rows are staggered by a_NN/2.
-
-    The box is `[-L_x/2, L_x/2) x [-L_y/2, L_y/2)`, `L_x = n_x a_NN`,
-    `L_y = n_y (√3/2) a_NN`. n_y must be even for the stagger to join across the
-    periodic boundary.
-    """
-    row = math.sqrt(3) / 2 * a_nn
-    Lx, Ly = n_x * a_nn, n_y * row
-    j, i = np.divmod(np.arange(n_x * n_y), n_x)
-    x = (i + 0.5 * (j % 2)) * a_nn - Lx / 2
-    y = j * row - Ly / 2
-    return np.c_[x, y]
+#: Promoted to `bdbot.lattice` on its third occurrence (here, `soft_r3_2d`'s
+#: crystal-start arm, and `simbot.build`). Re-exported under the old name so the
+#: references in this file and its verify scripts keep resolving.
+hex_lattice = LAT.hex_lattice
 
 
 PH_WARM, PH_EQ, PH_DRAG, PH_RELAX = "warm-up", "equilibrium", "drag", "relaxation"

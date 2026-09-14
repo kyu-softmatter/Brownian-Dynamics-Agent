@@ -83,7 +83,8 @@ import importlib as _importlib
 
 _SUBMODULES = (
     "analysisplan", "checks", "cli", "constants", "cost", "design", "dt", "goal",
-    "groups", "health", "intake", "interactions", "lockin", "materials", "metrics",
+    "groups", "health", "intake", "interactions", "lattice", "lockin", "materials",
+    "metrics",
     "microrheo", "nondim", "pairpot", "params", "physical", "planrun", "provenance",
     "refbd",
     "report", "run", "runcard", "runid", "scales", "sim", "smoke", "stats", "traps",

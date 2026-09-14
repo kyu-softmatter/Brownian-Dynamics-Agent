@@ -64,11 +64,31 @@ def _h(d):
 
 
 specs = sorted((ROOT / "specs").glob("*.json"))
-moved = [f.name for f in specs
-         if _h(_strip(json.load(open(f)), OLD)) != _h(_strip(json.load(open(f)),
-                                                             RID.DOC_KEYS))]
-report(specs and not moved, f"{len(specs)} archived specs keep their hash",
-       f"{len(moved)} moved" if moved else "0 moved")
+
+#  ⚠ CORRECTED 2026-09-14. This used to compare each spec's hash under the OLD
+#    key set against the current one and require them equal -- which is only the
+#    same question while NO spec carries a `structure` block. That premise died
+#    the first time a case was re-run: `cases/*.py` regenerate the spec from
+#    `system.yaml`, so the block appears in `specs/` immediately.
+#    `tests/test_dim_gate.py` already records the premise dying; this script did
+#    not, and reported `6 moved` for six specs that were simply regenerated.
+#    The invariant that actually matters is the one below, and it survives
+#    regeneration: a spec's recorded `run_id` is the hash of its physics, and
+#    the file is named by it. If `structure` ever entered the hash, every
+#    regenerated spec would be named wrongly and this fails.
+misnamed = [f.name for f in specs if json.load(open(f)).get("run_id") != f.stem]
+report(specs and not misnamed,
+       f"{len(specs)} specs are named by their own run_id",
+       f"{len(misnamed)} misnamed: {misnamed[:3]}" if misnamed else "0 misnamed")
+
+carry = [f for f in specs if "structure" in (json.load(open(f)).get("system") or {})]
+same = [f.name for f in carry
+        if _h(RID.physics_only(json.load(open(f))))
+        != _h(RID.physics_only(_strip(json.load(open(f)), {"structure"})))]
+report(not same,
+       f"{len(carry)} spec(s) carry the block and hash as if they did not",
+       f"{len(same)} changed" if same else
+       ("0 changed" if carry else "none carry it yet -- vacuous, re-run a case"))
 
 #  ...and the exclusion is not vacuous: a doc that DOES carry the key must change
 probe = {"dimensions": 2, "structure": {"dim": {"value": 2}}}
