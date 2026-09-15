@@ -4,8 +4,12 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1424 passed, 7 skipped in ~82 s** on HOOMD-blue 7.1.0, plus **42 sealed
-documents verified** — 18 of them in `runs_s1s8/` from the predecessor era, and
+**1424 passed, 7 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
+documents verified** — the count is identical on `linux-64` and `osx-arm64`,
+while the wall time is not quoted here because it is not stable: the same suite
+took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
+is runner variance and not the repository changing. 18 of the seals are in
+`runs_s1s8/` from the predecessor era, and
 24 in `runs/` from the first campaign whose prediction was sealed before the runs
 existed and verified by `execute()` at run time, not by a sibling tool afterwards. `pytest -rs` prints every skip with its reason, which is
 the only thing that keeps that count from quietly shrinking. **What it does not
@@ -74,7 +78,7 @@ judges where there is no closed form, and originates no physical value.
 | **296 specifications · 275 run directories** | 271 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **79 verification scripts** | every physics claim in the docs traces to one |
-| **1424 tests** | 7 skipped, ~82 s with the engine → [above](#brownian-dynamics-agent) |
+| **1424 tests** | 7 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
 | **Knowledge base** | 48 wiki pages — 11 system cards · 25 findings · 5 concepts — plus 43 paper and 2 book distillations and 145 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -410,7 +414,7 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **296** specs · 275 run directories · **271** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 79 verification scripts |
-| Tests | **1424 pass**, 7 skipped, ~82 s with the engine |
+| Tests | **1424 pass**, 7 skipped, ~79 s locally · 85-165 s on CI |
 | Knowledge | 48 wiki pages · 43 paper + 2 book distillations · 145 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
