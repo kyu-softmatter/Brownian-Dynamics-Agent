@@ -633,11 +633,27 @@ def main():
     if verdict == "FAIL":
         print("\nx a hard separation check failed -- not running.")
         return 1
-    p = spec.write(ROOT / "specs" / f"{run_id}.json")
+    #  ★ ONE guard, covering both flags, and only `--spec` writes.
+    #    `--report` used to write the spec too. Once this case grew 15 tests
+    #    that call `--report` to read a run_id off stdout, running the suite
+    #    added a spec per test: 17 of the specs committed in one session had no
+    #    run behind them, most of them test residue, in a directory the README
+    #    presents as the artefact ledger.
+    #
+    #    ⚠ The first attempt at this fix split the guard in two -- an early
+    #      `if args.report and not args.spec: return 0` before the write, then
+    #      `if args.spec: ... return 0`. That is fragile in a way that bit
+    #      immediately: deleting the first guard does not merely let `--report`
+    #      write, it lets `--report` fall through and RUN THE SIMULATION. A
+    #      mutation test of that line launched fifteen 100-tau_B production runs
+    #      before it was killed. Keep the single guard: deleting it breaks
+    #      `--spec` and `--report` together and obviously.
     if args.spec or args.report:
         if args.spec:
+            p = spec.write(ROOT / "specs" / f"{run_id}.json")
             print(f"\nL3 spec: {p.relative_to(ROOT)}")
         return 0
+    p = spec.write(ROOT / "specs" / f"{run_id}.json")
 
     # -- L4 -- read the spec back off disk and run it (bdbot.run; the hash check fires there)
     outdir = ROOT / "runs" / run_id

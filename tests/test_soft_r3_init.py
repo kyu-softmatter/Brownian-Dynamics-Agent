@@ -28,6 +28,18 @@ def _run(*args, **kw):
                           capture_output=True, text=True, cwd=ROOT, **kw)
 
 
+def _cleanup(rundir) -> None:
+    """Remove a run directory and its spec. A test must not leave the working
+    tree dirty -- `git status` after `pytest` has to stay clean, or a real
+    change is invisible among the residue."""
+    import shutil
+    if rundir is None:
+        return
+    spec = ROOT / "specs" / f"{rundir.name}.json"
+    shutil.rmtree(rundir, ignore_errors=True)
+    spec.unlink(missing_ok=True)
+
+
 # ── the forbidden combination ──────────────────────────────────────────────
 
 def test_a_hex_lattice_in_a_square_box_is_refused():
@@ -159,29 +171,75 @@ def test_a_run_with_no_equilibration_phase_writes_its_artefacts():
     is what `RID.prepare_outdir` treats as the completion marker, and its
     absence is what made a passing run look failed.
     """
-    r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
-             "--box", "hex", "--init", "hex", "--eq-frac", "0", "--force")
-    assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
-    line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
-    rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
-    for name in ("result.txt", "metrics.json", "observables.npz",
-                 "observables.png"):
-        assert (rundir / name).exists(), f"{name} was not written to {rundir}"
-    import numpy as np
-    res = np.load(rundir / "observables.npz")
-    assert "eq_trace" not in res.files, \
-        "an eq_frac=0 run grew an eq_trace -- this test no longer covers the bug"
-    assert "psi6_global" in res.files, "the decision statistic is not on disk"
+    #  ⚠ its own seed, and cleaned up. Without that the test runs `--force` over
+    #     a COMMITTED smoke directory, so every `pytest` left four tracked files
+    #     modified and `git status` was never clean after a test run.
+    rundir = None
+    try:
+        r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
+                 "--box", "hex", "--init", "hex", "--eq-frac", "0",
+                 "--seed", "424242")
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
+        line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
+        rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
+        for name in ("result.txt", "metrics.json", "observables.npz",
+                     "observables.png"):
+            assert (rundir / name).exists(), f"{name} was not written to {rundir}"
+        import numpy as np
+        res = np.load(rundir / "observables.npz")
+        assert "eq_trace" not in res.files, \
+            "an eq_frac=0 run grew an eq_trace -- this no longer covers the bug"
+        assert "psi6_global" in res.files, "the decision statistic is not on disk"
+    finally:
+        _cleanup(rundir)
 
 
 @pytest.mark.slow
 def test_the_default_run_still_has_an_equilibration_trace():
     """Guard on the guard: the branch must be a branch. If `eq_trace` vanished
     from every run, the test above would pass for the wrong reason."""
-    r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
-             "--box", "hex", "--init", "hex", "--force")
-    assert r.returncode == 0, r.stdout[-1500:]
-    line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
-    import numpy as np
-    res = np.load(ROOT / "runs" / line.split("run_id=")[1].strip() / "observables.npz")
-    assert "eq_trace" in res.files, "the default path lost its equilibration trace"
+    rundir = None
+    try:
+        r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
+                 "--box", "hex", "--init", "hex", "--seed", "424243")
+        assert r.returncode == 0, r.stdout[-1500:]
+        line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
+        rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
+        import numpy as np
+        res = np.load(rundir / "observables.npz")
+        assert "eq_trace" in res.files, \
+            "the default path lost its equilibration trace"
+    finally:
+        _cleanup(rundir)
+
+
+def test_report_is_read_only():
+    """★ `--report` must not write to `specs/`.
+
+    It used to. Every invocation left a spec file behind, and once this file
+    grew 13 tests that call `--report` to read a run_id off stdout, running the
+    suite added one spec per test. Measured: 17 of the specs committed in a
+    single session had no run behind them, most of them test residue, in a
+    directory the README presents as the artefact ledger.
+
+    `--spec` is the path that writes. This test is what keeps the two apart.
+    """
+    before = {p.name for p in (ROOT / "specs").glob("*.json")}
+    r = _run("--A", "34.938", "--N", "400", "--box", "hex", "--init", "hex",
+             "--seed", "999", "--report")
+    assert r.returncode == 0, r.stderr[-800:]
+    after = {p.name for p in (ROOT / "specs").glob("*.json")}
+    assert after == before, f"--report wrote {sorted(after - before)}"
+
+
+def test_spec_still_writes():
+    """Guard on the guard: `--spec` must still write, or the test above passes
+    for a case script that can no longer produce a spec at all -- and the
+    campaign driver reads run_ids from exactly that path."""
+    r = _run("--A", "34.938", "--N", "400", "--box", "hex", "--init", "hex",
+             "--seed", "998", "--spec")
+    assert r.returncode == 0, r.stderr[-800:]
+    line = next(ln for ln in r.stdout.splitlines() if "L3 spec:" in ln)
+    p = ROOT / line.split("L3 spec:")[1].strip()
+    assert p.exists(), p
+    p.unlink()                      # a probe, not an artefact

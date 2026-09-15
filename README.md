@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1008 passed, 2 skipped in 100.7 s** on HOOMD-blue 7.1.0, plus **42 sealed
+**1405 passed, 2 skipped in 78.8 s** on HOOMD-blue 7.1.0, plus **42 sealed
 documents verified** — 18 of them in `runs_s1s8/` from the predecessor era, and
 24 in `runs/` from the first campaign whose prediction was sealed before the runs
 existed and verified by `execute()` at run time, not by a sibling tool afterwards. `pytest -rs` prints every skip with its reason, which is
@@ -63,16 +63,16 @@ judges where there is no closed form, and originates no physical value.
 | | |
 |---|---|
 | **8 worked cases** | all `READY` at L0 · L2 · L3; six have produced runs |
-| **278 specifications · 256 run directories** | 254 carrying `metrics.json` |
-| **227 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
-| **76 verification scripts** | every physics claim in the docs traces to one |
-| **1008 tests** | 2 skipped, ~101 s with the engine, as measured by CI on `linux-64` → [above](#brownian-dynamics-agent) |
-| **Knowledge base** | 46 wiki pages — 11 system cards · 23 findings · 5 benchmarks — plus 42 paper and 2 book distillations and 135 tool-written entries |
+| **296 specifications · 275 run directories** | 271 carrying `metrics.json` |
+| **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
+| **79 verification scripts** | every physics claim in the docs traces to one |
+| **1405 tests** | 2 skipped, ~79 s with the engine → [above](#brownian-dynamics-agent) |
+| **Knowledge base** | 47 wiki pages — 11 system cards · 24 findings · 5 concepts — plus 43 paper and 2 book distillations and 144 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
 > system has been pushed through a scientific workflow, been wrong, and kept
-> what that cost — 227 of those are written down.
+> what that cost — 239 of those are written down.
 
 ---
 
@@ -288,7 +288,7 @@ evidence back into it. `R` marks a read, `W` marks a write.
   |                     how much of this is fighting instruments       |
   |                     rather than physics.                           |
   |                                                                    |
-  |  runs/**/record.json   227 post-mortems. A run is not finished     |
+  |  runs/**/record.json   239 post-mortems. A run is not finished     |
   |                        when it exits; it is finished when its      |
   |                        post-mortem exists.                        |
   +---------------------------------+---------------------------------+
@@ -400,10 +400,10 @@ wired to the engine.**
 | | |
 |---|---|
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
-| Runs | **278** specs · 256 run directories · **254** with `metrics.json` · 227 post-mortems |
-| Code | `bdbot/` 21 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 76 verification scripts |
-| Tests | **1008 pass**, 2 skipped, ~101 s on CI with the engine |
-| Knowledge | 46 wiki pages · 42 paper + 2 book distillations · 135 entries |
+| Runs | **296** specs · 275 run directories · **271** with `metrics.json` · 239 post-mortems |
+| Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 79 verification scripts |
+| Tests | **1405 pass**, 2 skipped, ~79 s with the engine |
+| Knowledge | 47 wiki pages · 43 paper + 2 book distillations · 144 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is
@@ -604,7 +604,7 @@ make them wrong.**
 
 | Module | Layer | Status |
 |---|---|---|
-| [`bdbot/`](bdbot/) | L2 engine, L0→L7 | 21 modules. `nondim.py` is the single contract; `health.py` the numerical verdict; `run.py` the `@RUN.builder` assembly registry that all 8 cases use. Front end does not import `hoomd`, so specifying is fast. Promotion rule is only ever *"has it appeared twice?"* |
+| [`bdbot/`](bdbot/) | L2 engine, L0→L7 | 35 modules. `nondim.py` is the single contract; `health.py` the numerical verdict; `run.py` the `@RUN.builder` assembly registry that all 8 cases use. Front end does not import `hoomd`, so specifying is fast. Promotion rule is only ever *"has it appeared twice?"* |
 | [`simbot/`](simbot/) | L2 pipeline half, S2/S6/S7/S8 | 19 modules. Prediction sealing, `PASS/FAIL/INCONCLUSIVE` with design power, `REPORT.md` generation, figure generation that cannot emit an uncaptioned figure. ⚠️ **one runner only** — see the seam above |
 | [`cases/`](cases/) | case physics | 8 scripts. Each supplies only `build(spec) -> Build`; the loops, guards and storage are common |
 | [`campaigns/`](campaigns/) | sweep analyses | 18 scripts from the 3,856-run `soft-r3` campaign — finite-size scaling, hexatic window, seed sweeps |
@@ -626,7 +626,7 @@ python -m bdbot.cli status
 |---|---|
 | 6 hand sketches (the actual inputs) | in [`intake/`](intake/), downscaled |
 | HOOMD-blue 7.1.0, CPU, no MPI, no GPU | installed; capability matrix measured |
-| 42 paper distillations | in-repo. ⚠️ 38 of 42 are the group's own published work, so *"the literature says…"* is narrower here than it looks |
+| 43 paper distillations | in-repo. ⚠️ 38 are the group's own published work, so *"the literature says…"* is narrower here than it looks. ⚠️ The count was 42 and drifted before it was noticed (2026-09-15); the **38** is carried forward from an earlier audit and was NOT reproduced in that recount — a grep for lab-sourced raw files finds 22, so the two use different criteria and only one of them is written down |
 | 2 book distillations (Leal 2026; Welty 5th ed.) | in-repo, 56/56 claims re-derived numerically |
 | Copyrighted PDFs | **not published** — see [NOTICE](NOTICE.md) |
 | Trajectories (542 MB of `.gsd`/`.npz`) | **not published** — regenerate from `spec + seed` |
