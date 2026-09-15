@@ -1,0 +1,44 @@
+{
+  "status": "ok",
+  "n_samples": 401,
+  "warnings": [
+    "[production] <U>/N is drifting: second half - first half = -0.08115 kT = 7.0 * block SEM (limit 3). Equilibration is insufficient"
+  ],
+  "pe_mean": 37.78142520992694,
+  "pe_std": 0.08720257547242742,
+  "phases": {
+    "equilibration": {
+      "status": "ok",
+      "n_samples": 2,
+      "warnings": [],
+      "pe_mean": 37.8486349393362,
+      "pe_std": 0.00490637196885757,
+      "steps": 12207,
+      "expect_steady": true
+    },
+    "production": {
+      "status": "ok",
+      "n_samples": 401,
+      "warnings": [
+        "[production] <U>/N is drifting: second half - first half = -0.08115 kT = 7.0 * block SEM (limit 3). Equilibration is insufficient"
+      ],
+      "pe_mean": 37.78142520992694,
+      "pe_std": 0.08720257547242742,
+      "drift": -0.08115333754208365,
+      "drift_sem": 0.011551318518433494,
+      "drift_sigma": 7.025460982015158,
+      "steps": 60952,
+      "expect_steady": true
+    }
+  },
+  "run_id": "soft-r3-2d-A-sweep__A34.938-smoke__9e3f970c1f",
+  "wall_seconds": 7.824923992156982,
+  "steps_done": 73159,
+  "steps_planned": 73159,
+  "trip": null,
+  "guard_samples": 403,
+  "f_max_last": 28.782215888445318,
+  "step_disp_last": 0.0014146601200618234,
+  "f_max_seen": 63.25742477329495,
+  "step_disp_seen": 0.003109133656401912
+}

@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import pathlib
 import shutil
 import subprocess
@@ -57,23 +58,39 @@ from bdbot import runcard as RC          # noqa: E402
 
 CASE = ROOT / "cases/soft_r3_2d.py"
 DOCS = pathlib.Path(__file__).resolve().parent / "s30_preregistration"
-SEEDS = (20260914, 20260915, 20260916)
+#: ★ FIVE, not three. With the archive's seed-to-seed sd of psi6_global at
+#: N = 400 (0.0394, pooled ascan+fss) the equivalence band fires on truly-null
+#: data only 57 % of the time at n = 3, and 95 % at n = 5. Measured by Monte
+#: Carlo, 200k trials, TOST at 0.05 per side against delta = 0.10. The extra two
+#: seed pairs cost 8,137,600 steps = 1.11 core-h, inside the band already
+#: approved. `findings/low-seed-pilots-give-optimistic-design-power` applies to
+#: the NUISANCE parameter here, not to the effect: sigma_Delta is the thing
+#: three seeds cannot pin.
+SEEDS = (20260914, 20260915, 20260916, 20260917, 20260918)
 
 #: `A_case`. See the module docstring for the other two conventions.
 A_PRIMARY = 34.938        # Gamma_Zahn 57.87 -- the centre of Zahn's window
 A_CRYSTAL = 106.224       # Gamma_Zahn 175.96 -- deep crystal control
 A_LIQUID = 10.000         # Gamma_Zahn 16.57  -- deep liquid control
 
+#: ★ The CONTROLS RUN FIRST. The analysis plan reads G1 and G2 before anything
+#  else and stops on either, so they are also the runs that finish first: a
+#  protocol failure is then known after ~8 minutes instead of after two
+#  core-hours. Revision 1 ordered them H, R, C1, C2.
 RUNS = (
-    [dict(id=f"H{i+1}", A=A_PRIMARY, tobs=100.0, init="hex", seed=s)
-     for i, s in enumerate(SEEDS)]
+    [dict(id="C1", A=A_CRYSTAL, tobs=10.0, init="hex", seed=SEEDS[0]),
+     dict(id="C2", A=A_LIQUID, tobs=10.0, init="hex", seed=SEEDS[0])]
+    + [dict(id=f"H{i+1}", A=A_PRIMARY, tobs=100.0, init="hex", seed=s)
+       for i, s in enumerate(SEEDS)]
     + [dict(id=f"R{i+1}", A=A_PRIMARY, tobs=100.0, init="rsa", seed=s)
        for i, s in enumerate(SEEDS)]
-    + [dict(id="C1", A=A_CRYSTAL, tobs=10.0, init="hex", seed=SEEDS[0]),
-       dict(id="C2", A=A_LIQUID, tobs=10.0, init="hex", seed=SEEDS[0])]
 )
 
-COMMON = ["--N", "400", "--rc-shells", "7.8", "--box", "hex"]
+#: `--eq-frac 0` because the equilibration phase is built with `collect=False`:
+#: at the case default of 0.2 the first 20.00 tau_B of the window carries no
+#: sample at all, and a crystal that melts quickly melts out of sight. For a
+#: melting measurement the transient IS the measurement.
+COMMON = ["--N", "400", "--rc-shells", "7.8", "--box", "hex", "--eq-frac", "0"]
 APPROVED_BY = "Takuya Kobayashi, 2026-09-14 (chat: 'run it')"
 
 
@@ -179,6 +196,69 @@ def manifest_for(r, run_id: str) -> PRM.Manifest:
     return m
 
 
+def check_docs_determine_the_runs() -> list:
+    """Every number the sealed document states about a run must equal the number
+    that run will actually use. Returns a list of disagreements.
+
+    ★ This is the gate that makes the seal mean something. A pre-registration
+      that records `r_c = 7.8 a_mean` while the driver quietly uses the case
+      default of 5.0 is not a pre-registration of the run that happened -- and
+      `r_c_star` is inside the hashed `params`, so it would also be eight
+      different run_ids. Revision 1 of the document stated no `r_c` at all, no
+      `dt_star` and no step counts; the only trace of the cutoff anywhere was a
+      ratio buried in a footnote.
+    """
+    import yaml
+    out = []
+    # ★ Both documents must PARSE. `write_seal` hashes bytes and does not
+    #   parse, so a .yaml file that YAML cannot load was committed in revisions
+    #   1 and 2 and came within one command of being sealed:
+    #   `order_of_operations` mixed a sequence and mapping keys at the same
+    #   indentation. A sealed document nobody can load is a hash over a
+    #   mistake.
+    for name in RC.SEALED_DOCS:
+        try:
+            yaml.safe_load((DOCS / name).read_text())
+        except Exception as exc:
+            out.append(f"{name} is not valid YAML: "
+                       f"{type(exc).__name__}: {str(exc).splitlines()[0]}")
+    if out:
+        return out
+    doc = yaml.safe_load((DOCS / "prediction.yaml").read_text())
+    entries = {e["id"]: e for e in doc["runs"]["entries"]}
+    common = doc["runs"]["common"]
+    if float(common.get("eq_frac", -1)) != 0.0:
+        out.append(f"common.eq_frac = {common.get('eq_frac')}, the driver passes 0")
+    for r in RUNS:
+        e = entries.get(r["id"])
+        if e is None:
+            out.append(f"{r['id']}: no entry in prediction.yaml")
+            continue
+        rid = run_id_of(r)
+        spec = json.loads((ROOT / "specs" / f"{rid}.json").read_text())
+        pm, nm = spec["params"], spec["numerics"]
+        for field, got, want in (
+                ("A_case", float(pm["A"]), float(e["A_case"])),
+                ("seed", int(nm["seed"]), int(e["seed"])),
+                ("n_eq", int(nm["n_eq"]), int(e["n_eq"])),
+                ("n_prod", int(nm["n_prod"]), int(e["n_prod"])),
+                ("dt_star", float(nm["dt_star"]), float(e["dt_star"])),
+                ("N", int(pm["N"]), int(common["N"])),
+                ("n_x", int(pm["n_x"]), int(common["lattice"][0])),
+                ("n_y", int(pm["n_y"]), int(common["lattice"][1])),
+                ("init", str(pm.get("init", "rsa")), str(e["init"]))):
+            if isinstance(got, float):
+                if abs(got - want) > 1e-9 * max(abs(want), 1e-30):
+                    out.append(f"{r['id']}.{field}: spec {got!r} != document {want!r}")
+            elif got != want:
+                out.append(f"{r['id']}.{field}: spec {got!r} != document {want!r}")
+        rc_doc = float(str(common["r_c"]).split()[0])
+        rc_spec = float(pm["r_c_star"]) / math.sqrt(math.pi / (4 * float(pm["phi"])))
+        if abs(rc_spec - rc_doc) > 1e-6:
+            out.append(f"{r['id']}.r_c: spec {rc_spec:.6f} a_mean != document {rc_doc}")
+    return out
+
+
 def prepare() -> int:
     if not (DOCS / "prediction.yaml").exists():
         raise SystemExit(f"missing {DOCS}/prediction.yaml")
@@ -186,12 +266,18 @@ def prepare() -> int:
     #    that says no. Four structural objections from the pre-seal review are
     #    still open (see the header of prediction.yaml). A pre-registration is
     #    permanent once hashed, so the refusal lives here rather than in a note.
-    head = (DOCS / "prediction.yaml").read_text()
-    if "sealable: false" in head:
+    #  ⚠ Read the KEY, not the file. A substring test for "sealable: false"
+    #    fired on revision 3, because the header quotes what revision 1 said --
+    #    a correction record made the document unsealable. Grep-instead-of-parse
+    #    is the defect this repository has recorded three times (A4's grep,
+    #    the doc-scraper regex, the two `.yaml` files that were never parsed).
+    import yaml as _yaml
+    _doc = _yaml.safe_load((DOCS / "prediction.yaml").read_text())
+    if not _doc.get("sealable"):
         raise SystemExit(
-            "prediction.yaml says `sealable: false` -- refusing to seal it.\n"
-            "Open objections are listed in its header (K1-K4). Once sealed the "
-            "document cannot be edited, so this is the last gate there is.")
+            "prediction.yaml has `sealable: false` -- refusing to seal it.\n"
+            "Open objections are listed in its header. Once sealed the document "
+            "cannot be edited, so this is the last gate there is.")
     print(f"{len(RUNS)} runs\n")
     # ★ Build and validate every manifest FIRST, writing nothing. A crash in
     #   the middle of the loop used to leave one run directory holding UNSEALED
@@ -206,7 +292,12 @@ def prepare() -> int:
         if blockers:
             raise SystemExit(f"{r['id']}: rule 10 blocks:\n  " + "\n  ".join(blockers))
         plan.append((r, rid, man))
-    print("  all 8 manifests build and clear rule 10; writing\n")
+    bad = check_docs_determine_the_runs()
+    if bad:
+        raise SystemExit("the sealed document does not determine the runs:\n  "
+                         + "\n  ".join(bad))
+    print(f"  all {len(plan)} manifests clear rule 10, and every number in "
+          f"prediction.yaml matches the spec it will run\n")
 
     for r, rid, man in plan:
         d = ROOT / "runs" / rid
@@ -256,7 +347,14 @@ def main() -> int:
     ap.add_argument("--prepare", action="store_true")
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--check", action="store_true",
+                    help="verify that prediction.yaml determines the runs, and exit")
     a = ap.parse_args()
+    if a.check:
+        bad = check_docs_determine_the_runs()
+        print("\n".join(bad) if bad else
+              "every number in prediction.yaml matches the spec it will run")
+        return 1 if bad else 0
     if a.prepare:
         return prepare()
     if a.run:

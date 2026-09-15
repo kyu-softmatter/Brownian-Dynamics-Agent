@@ -1,0 +1,121 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "soft-r3-2d-A-sweep__A34.938-eq0-rc7.8-box20x20-s20260916__d1f41732f9",
+  "case": "soft-r3-2d-A-sweep",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 400,
+    "A": 34.938,
+    "phi": 0.35,
+    "r_c_star": 11.684375924541376,
+    "L_star": 29.959938268054813
+  },
+  "dimensionless": {
+    "Gamma": 10.39358291434548,
+    "A": 34.938,
+    "U(d)/kT": 35.938,
+    "phi": 0.35,
+    "a_mean/d": 1.4979969134027407,
+    "L/d": 29.959938268054813,
+    "r_c/d": 11.684375924541376,
+    "r_c/a_mean": 7.799999999999999,
+    "dt/tau_int": 0.01,
+    "T_obs/tau_B": 100.0,
+    "St": 1.3485336132119386e-08
+  },
+  "observables": [
+    {
+      "name": "energy consistency <U>/N",
+      "measured": 41.274342405106324,
+      "predicted": 41.280284684978604,
+      "unit": "kT",
+      "err_pct": -0.014394958556188367,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "consistency",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "<U>/N = (rho/2)*integral U(r) g(r) 2*pi*r dr is an identity that holds for any g(r) (it is not a mean-field or dilute approximation) -- it carries over unchanged to a crystal or a fluid",
+      "tol_pct": 2.0,
+      "tol_sigma": null,
+      "note": "consistency: the HOOMD force sum vs (rho/2)*integral U g(r) 2*pi*r dr"
+    }
+  ],
+  "numerics": {
+    "dt_star": 4.9150493677929146e-05,
+    "dt_over_tau_int": 0.01,
+    "n_eq": 0,
+    "n_prod": 2034400,
+    "n_samples": 400,
+    "sample_every": 5086,
+    "seed": 20260916,
+    "steps_done": 2034400,
+    "step_drift_max_sigma": 0.003516828847975133,
+    "f_max_kT_per_sigma": 71.55225888513003
+  },
+  "diagnostics": {
+    "equilibrium_z": 2.360002962924935,
+    "trend_t": 1.2729881388131912,
+    "first_half": 41.26482688041691,
+    "second_half": 41.283857929795744,
+    "tau_int_samples": 0.49718822440539145,
+    "n_eff": 200.56394079388275,
+    "drift_span": 0.01790897176106137,
+    "drift_span_rel_pct": 0.043390083808690146,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 400
+  },
+  "findings": [
+    "equilibrated OK (half/half z=+2.36, indicator=⟨U⟩/N [kT])",
+    "no drift OK (t=+1.27, total +0.043%, n_eff=201/400)",
+    "all hard checks passed OK of 5 separation checks (4 thin margin(s))",
+    "1 observable(s) agree with prediction OK (worst error -0.01% @ energy consistency <U>/N)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "dt_convergence_direct  (no dt/2 re-run)"
+  ],
+  "lessons": [
+    {
+      "claim": "P1 arm R, and an implementation_check that PASSED: the matched random arm at Gamma_Zahn=57.87 reproduces the archived cross-engine defect fraction to 1.7 percent (0.2899 vs hexwin 0.285) while running in a commensurate RECTANGULAR box rather than the square one the archive used",
+      "kind": "finding",
+      "coords": {
+        "psi6_global_late": 0.1303,
+        "defect_fraction": 0.2903,
+        "Gamma_Zahn": 57.875
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "SEALED.sha256",
+    "analysis_plan.yaml",
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "params.json",
+    "prediction.yaml",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

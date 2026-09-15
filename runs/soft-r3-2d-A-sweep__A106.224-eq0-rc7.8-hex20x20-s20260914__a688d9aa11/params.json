@@ -1,0 +1,188 @@
+{
+ "schema": "bdbot.params/0.1",
+ "case": "soft-r3-2d-A-sweep",
+ "params": {
+  "geometry": {
+   "d": {
+    "value": 5.0,
+    "unit": "um",
+    "provenance": "스케치 미기재. 다른 3개 스케치의 'R = 5 µm' 관례로 통일 — 사용자 확인 2026-08-03",
+    "tier": 1,
+    "note": ""
+   },
+   "N": {
+    "value": 400,
+    "unit": "1",
+    "provenance": "the spec",
+    "tier": 1,
+    "note": ""
+   },
+   "dim": {
+    "value": 2,
+    "unit": "1",
+    "provenance": "2D: psi_6 and the eta_6 = 1/4 boundary are 2D constructs",
+    "tier": 0,
+    "note": ""
+   },
+   "L": {
+    "value": 0.00014979969134027406,
+    "unit": "m",
+    "provenance": "a_mean*sqrt(N); the commensurate box has the same area",
+    "tier": 1,
+    "note": ""
+   },
+   "n_x": {
+    "value": 20,
+    "unit": "1",
+    "provenance": "commensurate hexagonal tiling",
+    "tier": 0,
+    "note": ""
+   },
+   "n_y": {
+    "value": 20,
+    "unit": "1",
+    "provenance": "commensurate hexagonal tiling; must be even",
+    "tier": 0,
+    "note": ""
+   },
+   "phi": {
+    "value": 0.35,
+    "unit": "1",
+    "provenance": "confirmed by the user",
+    "tier": 1,
+    "note": ""
+   }
+  },
+  "energy": {
+   "T": {
+    "value": 300,
+    "unit": "K",
+    "provenance": "스케치 미기재. 1-A(trap-2d-5um)에서 확인된 300 K 승계",
+    "tier": 1,
+    "note": ""
+   },
+   "kT": {
+    "value": 1.0,
+    "unit": "1",
+    "provenance": "reduced units: kT is the energy scale",
+    "tier": 0,
+    "note": ""
+   }
+  },
+  "medium": {
+   "eta": {
+    "value": 0.851,
+    "unit": "mPa*s",
+    "provenance": "물 @300K 핸드북값. 매질이 물임은 1-A에서 확인, 이 스케치엔 미기재",
+    "tier": 1,
+    "note": ""
+   },
+   "rho_p": {
+    "value": 2000,
+    "unit": "kg/m^3",
+    "provenance": "실리카 가정. τ_p(모델 타당성 검사)에만 사용, BD 결과에 영향 없음",
+    "tier": 3,
+    "note": ""
+   }
+  },
+  "interaction": {
+   "A": {
+    "value": 106.224,
+    "unit": "1",
+    "provenance": "A_case: U/kT = A (d/r)^3, d = particle DIAMETER. Gamma_Zahn = 1.6565023*A",
+    "tier": 0,
+    "note": ""
+   },
+   "r_c": {
+    "value": 11.684375924541376,
+    "unit": "d",
+    "provenance": "7.8 a_mean; beta U(r_c) = 0.0219 kT",
+    "tier": 1,
+    "note": ""
+   },
+   "wca_eps": {
+    "value": 1.0,
+    "unit": "kT",
+    "provenance": "excluded-volume core",
+    "tier": 1,
+    "note": ""
+   }
+  },
+  "numerics": {
+   "dt": {
+    "value": 3.508155795351508e-05,
+    "unit": "1",
+    "provenance": "dt/tau_B; set from tau_int(r_min), dt/tau_int = 0.01",
+    "tier": 0,
+    "note": ""
+   },
+   "n_eq": {
+    "value": 0,
+    "unit": "1",
+    "provenance": "20% of the window",
+    "tier": 1,
+    "note": ""
+   },
+   "n_prod": {
+    "value": 284800,
+    "unit": "1",
+    "provenance": "T_obs/dt",
+    "tier": 1,
+    "note": ""
+   },
+   "sample_every": {
+    "value": 712,
+    "unit": "1",
+    "provenance": "400 samples",
+    "tier": 1,
+    "note": ""
+   },
+   "seed": {
+    "value": 20260914,
+    "unit": "1",
+    "provenance": "fixed per run; H and R share seeds",
+    "tier": 0,
+    "note": ""
+   }
+  },
+  "derived": {
+   "gamma": {
+    "value": 4.01024302230737e-08,
+    "unit": "kg/s",
+    "provenance": "3 pi eta d (Stokes); recomputed from d, T, eta above",
+    "tier": 1,
+    "note": ""
+   },
+   "D_t": {
+    "value": 1.0328418943590236e-13,
+    "unit": "m^2/s",
+    "provenance": "kT/gamma; recomputed from d, T, eta above",
+    "tier": 1,
+    "note": ""
+   },
+   "tau_gov": {
+    "value": 242.05059977272577,
+    "unit": "s",
+    "provenance": "tau_B governs here -- unlike the trap case, dt is set from tau_int(r_min) but tau_B is the governing scale (case docstring)",
+    "tier": 1,
+    "note": ""
+   },
+   "tau_B": {
+    "value": 242.05059977272577,
+    "unit": "s",
+    "provenance": "d^2/D_t, taken from the L3 ledger (cross-checks the recomputation)",
+    "tier": 1,
+    "note": ""
+   }
+  }
+ },
+ "not_applicable": {},
+ "unknown": {},
+ "approved_by": "Takuya Kobayashi, 2026-09-14 (chat: 'run it')",
+ "tier_counts": {
+  "0": 7,
+  "1": 15,
+  "3": 1
+ },
+ "blockers": []
+}

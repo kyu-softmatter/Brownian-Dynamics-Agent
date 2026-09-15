@@ -1,0 +1,221 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "soft-r3-2d-A-sweep__A34.938-eq0-rc7.8-hex20x20-s20260917__2c79c8989f",
+  "case": "soft-r3-2d-A-sweep",
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 400,
+    "A": 34.938,
+    "phi": 0.35,
+    "r_c_star": 11.684375924541376,
+    "L_star": 29.959938268054813
+  },
+  "dimensionless": {
+    "Gamma": 10.39358291434548,
+    "A": 34.938,
+    "U(d)/kT": 35.938,
+    "phi": 0.35,
+    "a_mean/d": 1.4979969134027407,
+    "L/d": 29.959938268054813,
+    "r_c/d": 11.684375924541376,
+    "r_c/a_mean": 7.799999999999999,
+    "dt/tau_int": 0.01,
+    "T_obs/tau_B": 100.0,
+    "St": 1.3485336132119386e-08
+  },
+  "checks": [
+    {
+      "kind": "model",
+      "name": "inertia negligible   tau_p/tau_int",
+      "value": 2.7436827431450458e-06,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 3644.7362673342973,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "integration",
+      "name": "interaction resolved dt/tau_int",
+      "value": 0.01,
+      "limit": 0.01,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "geometry",
+      "name": "cutoff             r_c/(L/2)",
+      "value": 0.8381645468223626,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.1930831526949996,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "geometry",
+      "name": "core margin        r_table_min/r_min",
+      "value": 0.43268174262662623,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 2.3111675429830405,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "statistics",
+      "name": "observation window T_obs/tau_B",
+      "value": 100.0,
+      "limit": 100.0,
+      "op": ">=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "energy consistency <U>/N",
+      "measured": 41.259549594713256,
+      "predicted": 41.266786133873104,
+      "unit": "kT",
+      "err_pct": -0.01753598920054532,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "consistency",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "<U>/N = (rho/2)*integral U(r) g(r) 2*pi*r dr is an identity that holds for any g(r) (it is not a mean-field or dilute approximation) -- it carries over unchanged to a crystal or a fluid",
+      "tol_pct": 2.0,
+      "tol_sigma": null,
+      "note": "consistency: the HOOMD force sum vs (rho/2)*integral U g(r) 2*pi*r dr"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 4.9150493677929146e-05,
+    "dt_over_tau_int": 0.01,
+    "n_eq": 0,
+    "n_prod": 2034400,
+    "n_samples": 400,
+    "sample_every": 5086,
+    "seed": 20260917,
+    "steps_done": 2034400,
+    "step_drift_max_sigma": 0.0037719433053632306,
+    "f_max_kT_per_sigma": 76.74273487627264
+  },
+  "wall_seconds": 1085.6735019683838,
+  "steps_per_second": 1873.859863312059,
+  "l4": {
+    "status": "ok",
+    "n_samples": 400,
+    "warnings": [],
+    "pe_mean": 41.259549594713256,
+    "pe_std": 0.07755081997550897,
+    "phases": {
+      "production": {
+        "status": "ok",
+        "n_samples": 400,
+        "warnings": [],
+        "pe_mean": 41.259549594713256,
+        "pe_std": 0.07755081997550897,
+        "drift": 0.023133149845286027,
+        "drift_sem": 0.012665525842999235,
+        "drift_sigma": 1.826465804266049,
+        "steps": 2034400,
+        "expect_steady": true
+      }
+    },
+    "run_id": "soft-r3-2d-A-sweep__A34.938-eq0-rc7.8-hex20x20-s20260917__2c79c8989f",
+    "wall_seconds": 1085.6735019683838,
+    "steps_done": 2034400,
+    "steps_planned": 2034400,
+    "trip": null,
+    "guard_samples": 400,
+    "f_max_last": 38.20059379476733,
+    "step_disp_last": 0.0018775780438028509,
+    "f_max_seen": 76.74273487627264,
+    "step_disp_seen": 0.0037719433053632306
+  },
+  "result": {
+    "psi6": 0.5666343796253205,
+    "psi6_sem": 0.006126635362788441,
+    "psi6_global": 0.15420769861200825,
+    "psi6_global_sem": 0.0236570841058422,
+    "nn_distance_d": 1.6393522718548774,
+    "nn_std_rel": 0.12708259255109935,
+    "min_sep_d": 1.0616947412490845,
+    "Gamma": 10.39358291434548,
+    "coord_hist": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0004875,
+      0.13814375,
+      0.7231875,
+      0.13724375,
+      0.0009375,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "state_predicted": "crystal",
+    "u_rms_rel_einstein": 0.09403780848325041,
+    "pe_mean": 41.259549594713256,
+    "pe_sem": 0.012665525842999235,
+    "pe_rdf": 41.266786133873104,
+    "post_checks": [
+      {
+        "kind": "geometry",
+        "name": "table lower-bound margin r_tab_min/min_sep",
+        "value": 0.4709451601990132,
+        "limit": 1.0,
+        "op": "<=",
+        "ok": true,
+        "margin": 2.123389482498169,
+        "hard": true,
+        "phase": "post_run",
+        "note": "pair.Table trap 11: the force is 0 for r<0.5d. Measured minimum 1.062d"
+      },
+      {
+        "kind": "integration",
+        "name": "design r_min respected r_min/min_sep",
+        "value": 1.0884331687769078,
+        "limit": 1.15,
+        "op": "<=",
+        "ok": true,
+        "margin": 1.0565646407967113,
+        "hard": true,
+        "phase": "post_run",
+        "note": "dt was set from the local stiffness at r_min=1.156d. Measured minimum 1.062d -- if it is well inside, revisit dt"
+      }
+    ],
+    "post_checks_ok": true
+  }
+}

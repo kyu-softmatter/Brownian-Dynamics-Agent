@@ -1,0 +1,31 @@
+{
+  "status": "ok",
+  "n_samples": 400,
+  "warnings": [],
+  "pe_mean": 41.259549594713256,
+  "pe_std": 0.07755081997550897,
+  "phases": {
+    "production": {
+      "status": "ok",
+      "n_samples": 400,
+      "warnings": [],
+      "pe_mean": 41.259549594713256,
+      "pe_std": 0.07755081997550897,
+      "drift": 0.023133149845286027,
+      "drift_sem": 0.012665525842999235,
+      "drift_sigma": 1.826465804266049,
+      "steps": 2034400,
+      "expect_steady": true
+    }
+  },
+  "run_id": "soft-r3-2d-A-sweep__A34.938-eq0-rc7.8-hex20x20-s20260917__2c79c8989f",
+  "wall_seconds": 1085.6735019683838,
+  "steps_done": 2034400,
+  "steps_planned": 2034400,
+  "trip": null,
+  "guard_samples": 400,
+  "f_max_last": 38.20059379476733,
+  "step_disp_last": 0.0018775780438028509,
+  "f_max_seen": 76.74273487627264,
+  "step_disp_seen": 0.0037719433053632306
+}

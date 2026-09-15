@@ -1,0 +1,77 @@
+========================================================================================
+DimensionlessReport — soft-r3-2d-A-sweep  A=106.224   run_id=soft-r3-2d-A-sweep__A106.224-rc7.8-hex20x20__53cdbc49da
+========================================================================================
+reference scales: length=d  energy=kT  time=tau_B   [strategy: thermal]
+  basis: thermal convention, fixed (sigma=d, E=kT, tau=tau_B). The unit system is not changed per system, so that literature comparison stays possible (bd-physics 1.1). The governing timescale may differ per system, and dt is set from that one. Unlike the trap case, here tau_B really is the governing timescale, and dt is set from tau_int(r_min).
+
+INPUT (dimensional, SI)
+  d      = 5 µm               [tier 1] 스케치 미기재. 다른 3개 스케치의 'R = 5 µm' 관례로 통일 — 사용자 확인
+  T      = 300 K              [tier 1] 스케치 미기재. 1-A(trap-2d-5um)에서 확인된 300 K 승계
+  eta    = 0.851 mPa·s        [tier 1] 물 @300K 핸드북값. 매질이 물임은 1-A에서 확인, 이 스케치엔 미기재
+  rho_p  = 2000 kg/m³         [tier 3] 실리카 가정. τ_p(모델 타당성 검사)에만 사용, BD 결과에 영향 없음
+  A      = 106.224            [tier 0] sketch 'A = 0.1, 1, 10, 100' (read as dimensionless -- needs confirmation)
+  phi    = 0.35               [tier 1] confirmed by the user (not stated in the sketch)
+  N      = 400                [tier 1] sketch says 100 -> raised for minimum image
+
+DERIVED
+  gamma    = 40.1 µg/s
+  D_t      = 1.033×10⁵ nm²/s
+  m        = 130.9 pg
+  state estimate = crystal  (Lindemann sigma_bond/a_NN = 0.0539, limit 0.15)
+  a_NN (hexagonal prediction) = 1.6097 d   <- NOT a_mean
+
+SCALE LEDGER  (smallest first)
+  lengths
+    d            particle diameter (reference) 5 µm
+    r_min        closest approach distance ★ 6.746 µm
+    a_mean       mean spacing              7.49 µm
+    r_c          cutoff                    58.42 µm
+    L_min        short side of the commensurate 20x20 box (L_x/L_y = 1.1547); the minimum image is set by this 139.4 µm
+    L            box                       149.8 µm
+  times
+    tau_p        m/gamma momentum relaxation 3.264 µs
+    dt           integration step          8.492 ms
+    tau_int      gamma/U''(r_min) interaction ★ 849.2 ms
+    T_obs        observation window        121 s
+    tau_B        d^2/D_t diffusion (reference) 242.1 s
+  energies
+    kT           thermal energy (reference) 4.142 zJ
+    U_a          U(a_mean) mean-spacing coupling = Gamma*kT 130.9 zJ
+    U_d          U(d) contact coupling = (A+eps_WCA)*kT 444.1 zJ
+
+DIMENSIONLESS GROUPS  (each a ratio of two scales)
+  Gamma       = U(a_mean)/kT  coupling vs thermal fluctuation * 31.6
+  A                           the r^-3 amplitude (input, from the sketch) 106.2
+  U(d)/kT     = (A+ε_WCA)     contact coupling 107.2
+  phi                         packing          0.35
+  a_mean/d                    mean spacing     1.498
+  L/d                         box size         29.96
+  r_c/d                       cutoff           11.68
+  r_c/a_mean                  cutoff (in neighbour shells) 7.8
+  dt/tau_int                  integration resolution 0.01
+  T_obs/tau_B                 observation window 0.5
+  St          = tau_p/tau_B   inertia vs diffusion 1.349e-08
+
+SEPARATION CHECKS                                            value     limit   margin
+  ✓ [model] inertia negligible   tau_p/tau_int         3.844e-06     1e-02  2601.5×
+        is overdamped BD valid. Independent of dt (bd-physics section 4)
+  ✓ [integration] interaction resolved dt/tau_int            1.000e-02     1e-02     1.0×
+        tau_int = gamma/U''(r_min=1.349d), by the vibration criterion. Bias for a linear system ~ 0.500% -- this is nonlinear, so a convergence check is separate
+  ✓ [geometry] cutoff             r_c/(L/2)               8.382e-01     1e+00     1.2×
+        minimum image (bd-hoomd trap 6). A past violation gave +1856% -- measured against the SHORT side of the commensurate 20x20 box, L_min = 27.8809 d. Against the area-equivalent square L = 29.9599 d this reads 0.7800, which is 7.5 % optimistic
+  ✓ [geometry] core margin        r_table_min/r_min       3.706e-01     1e+00     2.7×
+        pair.Table trap 11: the force is 0 for r<r_min. Is the approach distance above the table's lower bound
+  ⚠ [statistics] observation window T_obs/tau_B             5.000e-01     1e+02     0.0×
+        statistics for structural relaxation, referenced on tau_B -- defect annealing at strong coupling can be slower
+
+RUN PLAN
+  dt      = 8.492 ms  = 3.508e-05 τ_B
+  T_obs   = 121 s  = 0.5 τ_B
+  steps   = eq 2,851 + prod 14,240   × N=400
+
+VERDICT: PASS (1 warnings)
+  ! warning: observation window T_obs/tau_B = 0.5 (limit 100) -- statistics for structural relaxation, referenced on tau_B -- defect annealing at strong coupling can be slower
+  ! thin margin: interaction resolved dt/tau_int (1.0x)
+  ! thin margin: cutoff             r_c/(L/2) (1.2x)
+  ! thin margin: core margin        r_table_min/r_min (2.7x)
+========================================================================================

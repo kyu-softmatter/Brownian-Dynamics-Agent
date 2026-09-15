@@ -1,0 +1,123 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "soft-r3-2d-A-sweep__A10-eq0-rc7.8-hex20x20-s20260914__1c35e8f260",
+  "case": "soft-r3-2d-A-sweep",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 400,
+    "A": 10.0,
+    "phi": 0.35,
+    "r_c_star": 11.684375924541376,
+    "L_star": 29.959938268054813
+  },
+  "dimensionless": {
+    "Gamma": 2.9748648790272707,
+    "A": 10.0,
+    "U(d)/kT": 11.0,
+    "phi": 0.35,
+    "a_mean/d": 1.4979969134027407,
+    "L/d": 29.959938268054813,
+    "r_c/d": 11.684375924541376,
+    "r_c/a_mean": 7.799999999999999,
+    "dt/tau_int": 0.01,
+    "T_obs/tau_B": 10.0,
+    "St": 1.3485336132119386e-08
+  },
+  "observables": [
+    {
+      "name": "energy consistency <U>/N",
+      "measured": 12.396771590482647,
+      "predicted": 12.399407542936787,
+      "unit": "kT",
+      "err_pct": -0.021258696796700692,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "consistency",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "<U>/N = (rho/2)*integral U(r) g(r) 2*pi*r dr is an identity that holds for any g(r) (it is not a mean-field or dilute approximation) -- it carries over unchanged to a crystal or a fluid",
+      "tol_pct": 2.0,
+      "tol_sigma": null,
+      "note": "consistency: the HOOMD force sum vs (rho/2)*integral U g(r) 2*pi*r dr"
+    }
+  ],
+  "numerics": {
+    "dt_star": 1.3698186150837646e-05,
+    "dt_over_tau_int": 0.01,
+    "n_eq": 0,
+    "n_prod": 730000,
+    "n_samples": 400,
+    "sample_every": 1825,
+    "seed": 20260914,
+    "steps_done": 730000,
+    "step_drift_max_sigma": 0.0006950074527779893,
+    "f_max_kT_per_sigma": 50.73718849524392
+  },
+  "diagnostics": {
+    "equilibrium_z": 1.8946271016207676,
+    "trend_t": 2.0496293138189694,
+    "first_half": 12.3893889072508,
+    "second_half": 12.404154273714493,
+    "tau_int_samples": 1.0395673411395847,
+    "n_eff": 129.9066267877314,
+    "drift_span": 0.027534276252128995,
+    "drift_span_rel_pct": 0.22210844211462152,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 400
+  },
+  "findings": [
+    "equilibrated OK (half/half z=+1.89, indicator=⟨U⟩/N [kT])",
+    "no drift OK (t=+2.05, total +0.222%, n_eff=130/400)",
+    "separation check warning: observation window T_obs/tau_B = 10 (limit 100)",
+    "all hard checks passed OK of 5 separation checks (3 thin margin(s))",
+    "1 observable(s) agree with prediction OK (worst error -0.02% @ energy consistency <U>/N)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "soft checks unmet: observation window T_obs/tau_B",
+    "dt_convergence_direct  (no dt/2 re-run)"
+  ],
+  "lessons": [
+    {
+      "claim": "GATE G2, sealed before the run: a crystal start at Gamma_Zahn=16.6 melts to psi6_global=0.0531 with defect fraction 0.4637 within 10 tau_B. The gate that says the protocol CAN melt a crystal, so a surviving crystal would not be vacuous",
+      "kind": "benchmark",
+      "coords": {
+        "psi6_global": 0.0531,
+        "defect_fraction": 0.4637,
+        "Gamma_Zahn": 16.565
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "SEALED.sha256",
+    "analysis_plan.yaml",
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "observables.png",
+    "params.json",
+    "prediction.yaml",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}

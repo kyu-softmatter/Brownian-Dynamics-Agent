@@ -1,0 +1,40 @@
+{
+  "status": "ok",
+  "n_samples": 20,
+  "warnings": [],
+  "pe_mean": 122.46217909024055,
+  "pe_std": 0.047963373784678895,
+  "phases": {
+    "equilibration": {
+      "status": "ok",
+      "n_samples": 1,
+      "warnings": [],
+      "pe_mean": 122.36640135569756,
+      "pe_std": 0.0,
+      "steps": 2851,
+      "expect_steady": true
+    },
+    "production": {
+      "status": "ok",
+      "n_samples": 20,
+      "warnings": [],
+      "pe_mean": 122.46217909024055,
+      "pe_std": 0.047963373784678895,
+      "drift": 0.015681079400678755,
+      "drift_sem": 0.01346040272961236,
+      "drift_sigma": 1.164978471719943,
+      "steps": 14240,
+      "expect_steady": true
+    }
+  },
+  "run_id": "soft-r3-2d-A-sweep__A106.224-rc7.8-hex20x20__53cdbc49da",
+  "wall_seconds": 8.36252212524414,
+  "steps_done": 17091,
+  "steps_planned": 17091,
+  "trip": null,
+  "guard_samples": 21,
+  "f_max_last": 52.70467256078021,
+  "step_disp_last": 0.001848962024862047,
+  "f_max_seen": 65.7108399172522,
+  "step_disp_seen": 0.0023052386387312353
+}

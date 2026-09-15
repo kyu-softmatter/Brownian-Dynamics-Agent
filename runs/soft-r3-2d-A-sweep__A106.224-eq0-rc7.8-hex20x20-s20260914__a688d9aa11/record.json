@@ -1,0 +1,138 @@
+{
+  "schema": "bdbot.record/0.1",
+  "run_id": "soft-r3-2d-A-sweep__A106.224-eq0-rc7.8-hex20x20-s20260914__a688d9aa11",
+  "case": "soft-r3-2d-A-sweep",
+  "kind": "our_run",
+  "tier": 3,
+  "system_tags": [
+    "2D",
+    "soft_repulsion",
+    "r^-3",
+    "WCA_core",
+    "newtonian",
+    "pair_interaction",
+    "structure"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_B"
+  },
+  "physical": {
+    "N": 400,
+    "A": 106.224,
+    "phi": 0.35,
+    "r_c_star": 11.684375924541376,
+    "L_star": 29.959938268054813
+  },
+  "dimensionless": {
+    "Gamma": 31.600204690979282,
+    "A": 106.224,
+    "U(d)/kT": 107.224,
+    "phi": 0.35,
+    "a_mean/d": 1.4979969134027407,
+    "L/d": 29.959938268054813,
+    "r_c/d": 11.684375924541376,
+    "r_c/a_mean": 7.799999999999999,
+    "dt/tau_int": 0.01,
+    "T_obs/tau_B": 10.0,
+    "St": 1.3485336132119386e-08
+  },
+  "observables": [
+    {
+      "name": "energy consistency <U>/N",
+      "measured": 122.46711557824166,
+      "predicted": 122.48892135054092,
+      "unit": "kT",
+      "err_pct": -0.017802240446591566,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "consistency",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "<U>/N = (rho/2)*integral U(r) g(r) 2*pi*r dr is an identity that holds for any g(r) (it is not a mean-field or dilute approximation) -- it carries over unchanged to a crystal or a fluid",
+      "tol_pct": 2.0,
+      "tol_sigma": null,
+      "note": "consistency: the HOOMD force sum vs (rho/2)*integral U g(r) 2*pi*r dr"
+    },
+    {
+      "name": "hexagonal NN distance",
+      "measured": 1.6145536240935325,
+      "predicted": 1.6097024411070593,
+      "unit": "d",
+      "err_pct": 0.30137141266536727,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "lattice",
+      "role": "hypothesis",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": 2.0,
+      "tol_sigma": null,
+      "note": "lattice: a_NN = sqrt(2/sqrt(3))*a_mean (perfect hexagonal). Applied only when psi_6>0.6"
+    }
+  ],
+  "numerics": {
+    "dt_star": 3.508155795351508e-05,
+    "dt_over_tau_int": 0.01,
+    "n_eq": 0,
+    "n_prod": 284800,
+    "n_samples": 400,
+    "sample_every": 712,
+    "seed": 20260914,
+    "steps_done": 284800,
+    "step_drift_max_sigma": 0.0031698747434311223,
+    "f_max_kT_per_sigma": 90.35729677773644
+  },
+  "diagnostics": {
+    "equilibrium_z": 0.6837632166900253,
+    "trend_t": 0.25598329121567837,
+    "first_half": 122.46524645102258,
+    "second_half": 122.46898470546076,
+    "tau_int_samples": 0.06894932039390397,
+    "n_eff": 351.52515844738656,
+    "drift_span": 0.0024193517704443664,
+    "drift_span_rel_pct": 0.001975511351778914,
+    "source": "observables.npz:pe",
+    "label": "⟨U⟩/N [kT]",
+    "n_frames_production": 400
+  },
+  "findings": [
+    "equilibrated OK (half/half z=+0.68, indicator=⟨U⟩/N [kT])",
+    "no drift OK (t=+0.26, total +0.002%, n_eff=352/400)",
+    "separation check warning: observation window T_obs/tau_B = 10 (limit 100)",
+    "all hard checks passed OK of 5 separation checks (3 thin margin(s))",
+    "2 observable(s) agree with prediction OK (worst error +0.30% @ hexagonal NN distance)"
+  ],
+  "outcome": "success",
+  "failure_modes": [],
+  "not_verified": [
+    "soft checks unmet: observation window T_obs/tau_B",
+    "dt_convergence_direct  (no dt/2 re-run)"
+  ],
+  "lessons": [
+    {
+      "claim": "GATE G1, sealed before the run: a crystal start at Gamma_Zahn=176 keeps psi6_global=0.8961 and ZERO Voronoi defects over 10 tau_B. The in-engine crystal reference, and the gate that says the protocol does not melt everything it is handed",
+      "kind": "benchmark",
+      "coords": {
+        "psi6_global": 0.8961,
+        "defect_fraction": 0.0,
+        "Gamma_Zahn": 175.96
+      },
+      "tier": 3
+    }
+  ],
+  "artifacts": [
+    "SEALED.sha256",
+    "analysis_plan.yaml",
+    "l4.json",
+    "metrics.json",
+    "observables.npz",
+    "params.json",
+    "prediction.yaml",
+    "report.txt",
+    "result.txt",
+    "spec.json",
+    "traj_A.gsd"
+  ]
+}
