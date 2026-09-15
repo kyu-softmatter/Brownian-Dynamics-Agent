@@ -84,6 +84,47 @@ called `gate()`. Full account in
 **Rule: `N/N HEALTHY` is not coverage.** Print the count of *unmeasured* runs
 separately, and state what the verdict does and does not cover.
 
+### A crash while writing artefacts makes a passing run look failed
+
+The first attempt at the S30 campaign printed
+
+```
+VERDICT: ✓ PASS
+```
+
+and then died. `make_plots` read `observables.npz["eq_trace"]`, which does not
+exist when a run has no equilibration phase — and a melting measurement needs
+`--eq-frac 0`, because that phase is built with `collect=False` and would leave
+the first 20 `τ_B` of a 100 `τ_B` window unsampled.
+
+The physics was complete and correct. But `result.txt` is written **after**
+`execute()` returns, and `RID.prepare_outdir` treats its presence as the
+completion marker, so:
+
+| | |
+|---|---|
+| the run | finished, `metrics.json` written, every check passed |
+| `result.txt` | never written |
+| exit code | 1 |
+| the campaign driver | read a correct run as a failed one and stopped |
+| cost | 1 of 12 runs, and the whole queue behind it |
+
+**Rule: the completion marker must not be downstream of an optional artefact.**
+Two independent things go wrong together here — `result.txt` being written by
+the case script rather than the engine (already filed as a seam, below), and a
+figure panel that assumes a phase exists. Either alone is survivable; together
+they convert a `PASS` into a `FAIL` with no diagnostic anywhere near the cause.
+
+⚠ And the traceback is the *lucky* version. Had `make_plots` swallowed the
+`KeyError` instead, the run would have been reported as complete with a panel
+silently missing — which is the same defect as the family above.
+
+Prevention: `tests/test_soft_r3_init.py::test_a_run_with_no_equilibration_phase_writes_its_artefacts`
+asserts `result.txt`, `metrics.json`, `observables.npz` and `observables.png`
+all exist after an `--eq-frac 0` run, with a sibling test requiring the default
+path to still produce an `eq_trace` so the branch stays a branch. Unguarding the
+read fails the first and not the second (measured).
+
 ### A gate that checks presence, not validity
 
 Rule 10's manifest refuses a number with no value, no unit or no provenance.

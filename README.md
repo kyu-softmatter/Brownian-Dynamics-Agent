@@ -4,8 +4,10 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1008 passed, 2 skipped in 100.7 s** on HOOMD-blue 7.1.0, plus **18 sealed
-documents verified**. `pytest -rs` prints every skip with its reason, which is
+**1008 passed, 2 skipped in 100.7 s** on HOOMD-blue 7.1.0, plus **42 sealed
+documents verified** — 18 of them in `runs_s1s8/` from the predecessor era, and
+24 in `runs/` from the first campaign whose prediction was sealed before the runs
+existed and verified by `execute()` at run time, not by a sibling tool afterwards. `pytest -rs` prints every skip with its reason, which is
 the only thing that keeps that count from quietly shrinking. **What it does not
 cover:** CI runs `linux-64`, and [`CLAUDE.md`](CLAUDE.md) documents
 `osx-arm64` — which is where the work actually happens. HOOMD ships a separate

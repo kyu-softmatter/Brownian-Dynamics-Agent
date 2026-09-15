@@ -139,3 +139,49 @@ def test_the_square_box_reading_is_unchanged():
     line = next(ln for ln in r.stdout.splitlines() if "r_c/(L/2)" in ln)
     assert "7.800e-01" in line, line
     assert "optimistic" not in line
+
+
+# ── the artefact path, which is where a melting run actually broke ─────────
+
+@pytest.mark.slow
+def test_a_run_with_no_equilibration_phase_writes_its_artefacts():
+    """★ `--eq-frac 0` crashed AFTER the verdict had printed PASS.
+
+    The equilibration phase is built with `collect=False`, so a melting run
+    needs `--eq-frac 0` to record from t = 0 -- and then `observables.npz` has
+    no `eq_trace` array, which `make_plots` panel 3 read unconditionally. The
+    physics was complete and correct; the `KeyError` arrived during artefact
+    writing, so `result.txt` was never written, the exit code was 1, and the
+    campaign driver read that as a failed run and stopped. It cost a 12-run
+    sealed campaign its first run, measured 2026-09-14.
+
+    So the assertion is on `result.txt`, not on the exit code alone: that file
+    is what `RID.prepare_outdir` treats as the completion marker, and its
+    absence is what made a passing run look failed.
+    """
+    r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
+             "--box", "hex", "--init", "hex", "--eq-frac", "0", "--force")
+    assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
+    line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
+    rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
+    for name in ("result.txt", "metrics.json", "observables.npz",
+                 "observables.png"):
+        assert (rundir / name).exists(), f"{name} was not written to {rundir}"
+    import numpy as np
+    res = np.load(rundir / "observables.npz")
+    assert "eq_trace" not in res.files, \
+        "an eq_frac=0 run grew an eq_trace -- this test no longer covers the bug"
+    assert "psi6_global" in res.files, "the decision statistic is not on disk"
+
+
+@pytest.mark.slow
+def test_the_default_run_still_has_an_equilibration_trace():
+    """Guard on the guard: the branch must be a branch. If `eq_trace` vanished
+    from every run, the test above would pass for the wrong reason."""
+    r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
+             "--box", "hex", "--init", "hex", "--force")
+    assert r.returncode == 0, r.stdout[-1500:]
+    line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
+    import numpy as np
+    res = np.load(ROOT / "runs" / line.split("run_id=")[1].strip() / "observables.npz")
+    assert "eq_trace" in res.files, "the default path lost its equilibration trace"

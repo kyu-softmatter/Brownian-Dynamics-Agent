@@ -455,10 +455,15 @@ def build(spec, outdir=None) -> RUN.Build:
                 "arrays": {"rdf_r": rdf_r, "rdf_g": rdf_g, "final_xy": final_xy,
                           "coord_hist": coord_hist / coord_hist.sum()}}
 
+    #  n_eq = 0 must drop the phase, not run a zero-step one: `plan()` returns
+    #  the default pair only when `phases` is empty, so name it explicitly.
+    phases = ([RUN.Phase("production", n_prod, sample_every)] if n_eq == 0
+              else None)
     return RUN.Build(
         sim=sim, forces=[tab, wca], n_particles=N,
         sample=sample, pe_per_particle=pe_pp,
         n_eq=n_eq, n_prod=n_prod, sample_every=sample_every,
+        phases=phases,
         tags=["2D", "soft_repulsion", "r^-3", "WCA_core", "newtonian",
              "pair_interaction", "structure"],
         physical={"N": N, "A": A, "phi": phi, "r_c_star": r_c_star, "L_star": L_star},
@@ -512,6 +517,10 @@ def main():
                          "runs predate the mechanism")
     ap.add_argument("--require-approval", action="store_true",
                     help="rule 10: refuse to run without an approved params.json")
+    ap.add_argument("--eq-frac", type=float, default=0.2,
+                    help="fraction of T_obs spent equilibrating. NOTHING is "
+                         "sampled during it, so pass 0 when the transient is "
+                         "the measurement (a melting run)")
     args = ap.parse_args()
 
     # ★ Two knobs, and one forbidden combination. A hexagonal lattice in a square
@@ -553,6 +562,8 @@ def main():
         tag += "-smoke"
     if args.dt_scale != 1.0:
         tag += f"-dt{args.dt_scale:g}"
+    if args.eq_frac != 0.2:
+        tag += f"-eq{args.eq_frac:g}"
     if args.rc_shells != 5.0:
         tag += f"-rc{args.rc_shells:g}"
 
@@ -569,7 +580,13 @@ def main():
     tau_B, tau_int = D["tau_B"], D["tau_int"]
     dt, T_obs = lg.get("times", "dt"), lg.get("times", "T_obs")
 
-    n_eq = int(round(float((0.2 * T_obs / dt).to(""))))   # 20% of the observation window to equilibration
+    # ★ K1. `bdbot.run` builds the equilibration phase with `collect=False`, so
+    #   NOTHING is sampled during it -- and at the default 0.2 that is the first
+    #   20 tau_B of a 100 tau_B window. For an equilibrium measurement that is
+    #   correct: the transient is not the answer. For a MELTING measurement the
+    #   transient IS the answer, and a crystal that melts quickly does so
+    #   entirely inside the unsampled segment. `--eq-frac 0` records from t = 0.
+    n_eq = int(round(float((args.eq_frac * T_obs / dt).to(""))))
     n_prod = int(round(float((T_obs / dt).to(""))))
     sample_every = max(1, n_prod // args.samples)
     n_prod = (n_prod // sample_every) * sample_every
@@ -662,8 +679,13 @@ def main():
         lines.append(f"{c['name']:<26}{c['value']:>14.4g}{c['limit']:>14.4g}"
                      f"{c['margin']:>9.2f}×   {'✓' if c['ok'] else '✗'}")
         lines.append(f"    {c['note']}")
+    #  ★ rule 7'. A `hypothesis` mismatch is a RESULT, not a failure, so it must
+    #    not set the exit code -- `main()` returns 1 on `not all_ok`, which would
+    #    halt a campaign on the very observable it exists to discover. Only an
+    #    `implementation_check` can FAIL here.
     all_ok = (all(abs(o["err_pct"]) < (o["tol_pct"] or 2.0) for o in obs_out
-                 if o["err_pct"] is not None)
+                 if o["err_pct"] is not None
+                 and o.get("role", "implementation_check") == "implementation_check")
              and res_extra.get("post_checks_ok", True))
 
     lines += ["", "OBSERVABLES (structure)",
@@ -737,19 +759,36 @@ def make_plots(sys_, lg, A, phi, r_c_star, Gamma, outdir, dilute):
 
     # 2. final configuration + Voronoi coordination
     xy = res["final_xy"]
-    L = lg.derived["L_star"]
+    #  ★ the REAL box. A commensurate hexagonal box is rectangular, and drawing
+    #    the area-equivalent square puts particles outside the frame in x and
+    #    leaves empty margin in y -- +/-14.980 d against the true
+    #    +/-16.097 x +/-13.940 at N = 400.
+    Lx = lg.derived.get("Lx_star", lg.derived["L_star"])
+    Ly = lg.derived.get("Ly_star", lg.derived["L_star"])
     ax[0, 1].plot(xy[:, 0], xy[:, 1], "o", ms=max(1.5, 260 / math.sqrt(len(xy)) / 4))
-    ax[0, 1].set(xlim=(-L / 2, L / 2), ylim=(-L / 2, L / 2), aspect="equal",
-                 xlabel="x / d", ylabel="y / d", title="2. final configuration")
+    ax[0, 1].set(xlim=(-Lx / 2, Lx / 2), ylim=(-Ly / 2, Ly / 2), aspect="equal",
+                 xlabel="x / d", ylabel="y / d",
+                 title=f"2. final configuration  ({Lx:.2f} x {Ly:.2f} d)")
     ax[0, 1].grid(alpha=.2)
 
     # 3. equilibration + the energy time series
-    eq = res["eq_trace"]
+    #  ★ `eq_trace` is absent when the run had no equilibration phase
+    #    (`--eq-frac 0`, which a melting measurement needs because that phase
+    #    collects nothing). It used to be read unconditionally, and the
+    #    KeyError arrived AFTER the verdict had printed PASS -- so the physics
+    #    was complete, `result.txt` was never written, and the campaign driver
+    #    read the exit code as a failed run and stopped. The traceback cost a
+    #    12-run campaign its first run.
+    eq = res["eq_trace"] if "eq_trace" in res.files else np.empty((0, 2))
     n_eq_pts = len(eq)
-    ax[1, 0].plot(np.arange(n_eq_pts), eq[:, 1], "-", label="equilibration")
+    if n_eq_pts:
+        ax[1, 0].plot(np.arange(n_eq_pts), eq[:, 1], "-", label="equilibration")
     ax[1, 0].plot(np.linspace(n_eq_pts, n_eq_pts + 20, len(res["pe"])), res["pe"],
                   "-", lw=.8, alpha=.8, label="production")
-    ax[1, 0].set(xlabel="segment (20 equilibration + production)", ylabel="⟨U⟩/N [kT]",
+    ax[1, 0].set(xlabel=("segment (production only -- no equilibration phase)"
+                         if not n_eq_pts else
+                         "segment (20 equilibration + production)"),
+                 ylabel="⟨U⟩/N [kT]",
                  title="3. potential energy -- equilibrated?")
     ax[1, 0].legend(); ax[1, 0].grid(alpha=.3)
 
