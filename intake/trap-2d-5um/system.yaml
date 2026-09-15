@@ -72,9 +72,14 @@ structure:
   dim:
     value: 2
     basis: given
+    source_kind: artefact
+    source_file: sketch_01.jpeg
     source: >-
-      sketch_01.jpeg "U(r) = 1/2 k_t r^2,  r = sqrt(x^2+y^2)" — the formula fixes
-      the plane. observation.yaml `dimensionality` resolution, 2026-08-03.
+      sketch_01.jpeg "U(r) = 1/2 k_t r^2,  r = sqrt(x^2+y^2)" — the formula
+      fixes the plane, and that is checkable from the image alone.
+      observation.yaml resolves `dimensionality` to "2D (스케치가 r=√(x²+y²)로
+      명시)"; the 2026-08-03 date is the file-level confirmation in this file's
+      own header (`사람 확인 완료 2026-08-03`), not a per-entry one.
     alternatives: [3]
     why_not: >-
       A real optical trap is 3D and L0 says so ("실제 광집게는 3D이나 축방향을 따로

@@ -29,6 +29,8 @@ Invariants enforced here:
 """
 from __future__ import annotations
 
+import pathlib
+
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -109,6 +111,28 @@ DIM_BASIS_REQUIRES = {
     "required":   (),
     "inherited":  ("compared_with",),
     "sufficient": ("checked_observables",),
+}
+
+#: `basis: given` asserts "the input states it". But WHICH input? A `source`
+#: field satisfies the check below by existing, and it cannot tell a file from a
+#: sentence someone is recalling -- the same "presence is not validity" shape
+#: that `params.blockers()` had for `derived` (see bdbot/params.py, "four for
+#: four"). Measured 2026-09-15: of the three `given` cases, two cite an artefact
+#: and one rested entirely on a conversation, and the gate passed all three
+#: identically. Its own prose said "The sketch itself is silent."
+#:
+#: So the author DECLARES which kind, and each kind owes a different thing. Not
+#: inferred from the text: a keyword scan for "sketch"/"observation.yaml" in the
+#: source string mislabelled exactly the one conversational case, because its
+#: source says the sketch is silent. Parse, do not grep.
+DIM_GIVEN_KINDS = ("artefact", "human")
+DIM_GIVEN_MEANING = {
+    "artefact": "a file in the record states it -- and the file must exist",
+    "human":    "a person stated it, in conversation -- so it needs confirming",
+}
+DIM_GIVEN_REQUIRES = {
+    "artefact": ("source_file",),
+    "human":    ("confirmed_by",),
 }
 
 #: Always required, whatever the basis. `what_would_change` is the load-bearing
@@ -865,6 +889,61 @@ def check_dim(s: PhysicalSystem) -> list:
                      f"must be one of {DIM_BASES} (got {basis!r}). "
                      + " . ".join(f"{k}={v}" for k, v in DIM_BASIS_MEANING.items())))
 
+    #  ★ `given` owes one more thing: WHICH kind of input, and the obligation
+    #    that kind carries. See DIM_GIVEN_KINDS.
+    if basis == "given":
+        kind = e.get("source_kind")
+        if kind is None:
+            out.append(I("error", f"{where}.source_kind",
+                         "missing -- `basis: given` says the input states the "
+                         "dimension, and this says WHICH input. One of "
+                         + " . ".join(f"{k}={v}" for k, v in
+                                      DIM_GIVEN_MEANING.items())))
+        elif kind not in DIM_GIVEN_KINDS:
+            out.append(I("error", f"{where}.source_kind",
+                         f"{kind!r} is not one of {DIM_GIVEN_KINDS}"))
+        else:
+            for f in DIM_GIVEN_REQUIRES[kind]:
+                if _blank(e.get(f)):
+                    out.append(I("error", f"{where}.{f}",
+                                 f"missing -- required when source_kind is "
+                                 f"{kind!r} ({DIM_GIVEN_MEANING[kind]})"))
+            if kind == "artefact":
+                rel = e.get("source_file")
+                if not _blank(rel):
+                    #  ⚠ `ROOT` does not exist in this module. The first version
+                    #    of this line read `s.path.parent if s.path else ROOT`,
+                    #    a latent NameError that the eight real cases never
+                    #    reach because `s.path` is always set for them.
+                    repo = pathlib.Path(__file__).resolve().parent.parent
+                    base = s.path.parent if s.path else repo
+                    if not base.exists():
+                        #  ★ `run.execute` rebuilds a PhysicalSystem around the
+                        #    SPEC's system document, and its `path` does not
+                        #    point at the case directory -- so existence cannot
+                        #    be checked there. Say so. A check that cannot run
+                        #    is not a check that passed, which is why the phi
+                        #    closure and the `stated_in_source` cross-check
+                        #    already warn on that path instead of going silent.
+                        out.append(I(
+                            "warn", f"{where}.source_file",
+                            f"{rel!r} recorded, NOT verified: the case directory "
+                            f"{str(base)!r} is not present here, so the file's "
+                            f"existence cannot be checked. `bdbot.cli system "
+                            f"check` is the full gate"))
+                    #  resolve against the case directory first, then the repo
+                    #  root -- `knowledge/source/papers/x.md` is a legitimate
+                    #  artefact and lives at the root.
+                    elif not [q for q in (base / str(rel), repo / str(rel))
+                              if q.exists()]:
+                        out.append(I(
+                            "error", f"{where}.source_file",
+                            f"{rel!r} does not exist, relative to the case "
+                            f"directory or the repo root. `source_kind: "
+                            f"artefact` claims a file states the dimension; a "
+                            f"path that resolves to nothing is the one thing "
+                            f"this check exists to catch"))
+
     need = DIM_ALWAYS + DIM_BASIS_REQUIRES.get(basis, ())
     for f in need:
         if f not in e:
@@ -1012,7 +1091,9 @@ def render_check(s: PhysicalSystem) -> str:
     return "\n".join(L)
 
 
-__all__ = ["SCHEMA", "PhysicalSystem", "load", "validate", "check_dim", "check_size",
+__all__ = [
+           "DIM_GIVEN_KINDS", "DIM_GIVEN_MEANING", "DIM_GIVEN_REQUIRES",
+           "SCHEMA", "PhysicalSystem", "load", "validate", "check_dim", "check_size",
            "verify", "render_check",
            "REQUIRED_TOP", "OPTIONAL_TOP", "CORE_PROVENANCED", "DERIVED_SECTIONS",
            "TIER_MEANING", "STRUCTURE_SECTION", "DIM_BASES",

@@ -45,7 +45,7 @@ not a default; it is an unfilled field wearing one.
 
 | `basis` | It means | Required alongside | Expires? |
 |---|---|---|---|
-| `given` | The input — sketch, paper, or a human asked directly — **states** it. It is an input, not a modelling choice, so it is not re-derived | `source` naming **who and when** | no |
+| `given` | The input — sketch, paper, or a human asked directly — **states** it. It is an input, not a modelling choice, so it is not re-derived | `source_kind` (`artefact` \| `human`), plus `source_file` **which must exist** or `confirmed_by` — see below | no |
 | `required` | The question does not exist in another dimension. 3D is a **different case**, not a better one | — | no |
 | `inherited` | Matched to an existing case so the two are comparable | `compared_with` naming the case(s) | **yes** — if the comparison target changes or is dropped |
 | `sufficient` | The degrees of freedom separate and the observable is one of the separated components. 3D would give the same answer; 2D is only cheaper | `checked_observables` | **yes** — when an observable is added |
@@ -71,6 +71,48 @@ Observables that **do** carry the dimension: `⟨r²⟩ = dim·kT/k` · `MSD = 2
 · `φ` (`Nπσ²/4L²` vs `Nπσ³/6L³`) · coordination number, loop count, percolation,
 `d_f` · `D_r` and HOOMD's `rotational_diffusion` (**off by 2× in 3D** — skill
 `bd-hoomd` trap 14).
+
+### ★ `given` has to say WHICH input, and the two kinds owe different things
+
+`basis: given` asserts that the input states the dimension. Until 2026-09-15 the
+gate discharged that with the mere **presence** of a `source` field, so a file
+and a half-remembered conversation satisfied it identically — the same
+"presence is not validity" shape `params.blockers()` had for `derived`.
+
+It was found by auditing which `structure` claims an artefact could settle.
+Of the three `given` cases:
+
+| case | what `source` points at | settled by |
+|---|---|---|
+| `network` | `observation.yaml` A4, quoted verbatim, with `confirmed_by: user` | reading the file |
+| `trap-2d-5um` | the sketch's own `U(r) = ½k_t r²,  r = √(x²+y²)` | looking at the image |
+| `chain-bend-2d-oscill` | **an exchange dated 2026-09-10 that appears nowhere in that case's intake** — `observation.yaml` never resolves dimensionality at all | only by asking |
+
+The third was put to the user on 2026-09-15 and **confirmed**, so the `given`
+stands. What did not stand was the check. Its own `source` prose reads *"The
+sketch itself is silent"* — the record openly said no artefact stated it, and
+nothing read that.
+
+So the author now **declares** the kind and each kind owes a different thing:
+
+| `source_kind` | means | owes | checked how |
+|---|---|---|---|
+| `artefact` | a file in the record states it | `source_file` | **the file must exist**, resolved against the case directory then the repo root |
+| `human` | a person stated it, in conversation | `confirmed_by` | naming who, and when |
+
+⚠ **Declared, not inferred.** The first attempt scanned the `source` string for
+`sketch` / `observation.yaml` / `.jpeg` and labelled exactly the one
+conversational case `artefact`, because its text contains the word *sketch*
+while saying the sketch says nothing. Parse, do not grep — the same lesson
+`A4`'s grep taught, one layer up.
+
+⚠ And the existence check **cannot run on the spec path**. `run.execute()`
+rebuilds a `PhysicalSystem` around the spec's `system` document, whose `path`
+does not point at the case directory. There it emits a **warning** saying so
+(`recorded, NOT verified`) rather than an error that would refuse every run or a
+silence that would let the run path print "structure OK" over an unverifiable
+claim. `bdbot.cli system check` is the full gate. Same shape as `_phi_closure`,
+for the same reason.
 
 ## Anti-patterns
 
@@ -180,8 +222,8 @@ practices CLAUDE.md rule 10 records as written-and-never-enforced.
 |---|---|
 | the field | `structure.dim` in `system.yaml` — `value`, `basis`, `alternatives`, `what_would_change`, plus whatever the basis owes |
 | the check | [`bdbot/physical.check_dim`](../../../bdbot/physical.py), called from `validate()` — **not** from a sibling tool, because `health.gate()` was reachable only from `tools/health.py` and no run ever gated itself |
-| what fails | the section absent · `basis` not one of the four · a required field missing or blank · `structure.dim.value` disagreeing with the hashed `dimensions` |
-| the adversarial test | [`verify/verify_dim_gate.py`](../../../verify/verify_dim_gate.py) — 27/27, breaking one field at a time, and requiring the eight **real** cases to pass |
+| what fails | the section absent · `basis` not one of the four · a required field missing or blank · `structure.dim.value` disagreeing with the hashed `dimensions` · `given` without a `source_kind`, or with one whose obligation is unmet, or naming a `source_file` that does not exist |
+| the adversarial test | [`verify/verify_dim_gate.py`](../../../verify/verify_dim_gate.py) — 28/28, breaking one field at a time, and requiring the eight **real** cases to pass. [`tests/test_dim_gate.py`](../../../tests/test_dim_gate.py) adds the `source_kind` obligations: 6 break cases, 3 mutations of the branch, all caught |
 | run_id | unaffected. 278/278 archived specs keep their hash, `structure` is in `runid.DOC_KEYS`, and `dimensions` 2 → 3 still re-ids |
 
 Both expiring bases announce themselves on every read: `inherited` prints its

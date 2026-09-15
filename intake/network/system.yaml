@@ -338,9 +338,13 @@ structure:
   dim:
     value: 3
     basis: given
+    source_kind: artefact
+    source_file: observation.yaml
     source: >-
-      user-specified 2026-08-06, "물리적". observation.yaml ambiguity resolution —
-      the agent's lean was 2D and the record marks it wrong.
+      observation.yaml ambiguity A4, verbatim: `**3D** (사용자 지정 2026-08-06,
+      '물리적'). ★ 내 lean(2D)이 틀렸습니다 — 비용을 근거로 물리를 깎으려 한
+      것이었고, 사용자가 물리를 택했습니다.` with `confirmed_by: user`. The
+      agent's lean was 2D on cost grounds and the record marks it wrong.
     alternatives: [2]
     why_not: >-
       The sketch states no dimension. The agent leaned 2D on "(1) all 6 project

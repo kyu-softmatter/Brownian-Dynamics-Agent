@@ -172,11 +172,21 @@ structure:
   dim:
     value: 2
     basis: given
+    source_kind: human
+    confirmed_by: "user, 2026-09-15 — asked directly and confirmed"
     source: >-
       user-specified 2026-09-10 — the chain is held and manipulated by optical
       tweezers, in the tweezers' plane. The sketch itself is silent: it names y
       ("oscillation in y-dir") and implies x, and never mentions z, which under
       rule 5 is `null` rather than 2D.
+      ⚠ This is the only `given` in the eight cases that rests on a
+      conversation rather than a file, and nothing in this case's intake records
+      the 2026-09-10 exchange — `observation.yaml` never resolves dimensionality
+      at all. It was found on 2026-09-15 while auditing which `structure` claims
+      an artefact could settle, put to the user, and confirmed. That audit is
+      why `source_kind` exists: `basis: given` used to be satisfied by a
+      `source` field of any content, so a file and a recollection passed the
+      same check.
     alternatives: [3]
     why_not: >-
       Same three-point-bending geometry as the source experiments [P1][P2], which

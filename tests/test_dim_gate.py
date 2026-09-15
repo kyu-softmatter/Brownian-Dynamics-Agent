@@ -259,3 +259,160 @@ def test_every_archived_spec_is_named_by_its_own_run_id():
     bad = [f.name for f in specs
            if json.load(open(f)).get("run_id") != f.stem]
     assert not bad, bad[:5]
+
+
+# ── `given` owes more than a non-empty string ──────────────────────────────
+#
+# ★ `basis: given` asserts "the input states it", and `DIM_BASIS_REQUIRES` used
+#   to discharge that with the mere PRESENCE of a `source` field. A file and a
+#   half-remembered conversation satisfied it identically.
+#
+#   Measured 2026-09-15, auditing which `structure` claims an artefact could
+#   settle: of the three `given` cases, `network` quotes `observation.yaml` A4
+#   verbatim and `trap-2d-5um` cites the sketch's own formula, while
+#   `chain-bend-2d-oscill` rested entirely on an exchange dated 2026-09-10 that
+#   appears nowhere in that case's intake -- its own `source` prose says "The
+#   sketch itself is silent." The gate passed all three the same way. (The claim
+#   was then put to the user and confirmed, so the `given` stands; what did not
+#   stand was the check.)
+#
+#   ⚠ And the first attempt to tell them apart was a keyword scan of the source
+#     string for "sketch"/"observation.yaml"/".jpeg". It labelled the one
+#     conversational case "artefact", because its text contains the word
+#     "sketch" while saying the sketch says nothing. Hence `source_kind`: the
+#     author declares, the gate checks. Parse, do not grep.
+
+@pytest.fixture
+def given_case(tmp_path, donor_sys):
+    """A `basis: given` document whose artefacts exist inside the case dir."""
+    (tmp_path / "sketch_01.jpeg").write_bytes(b"")
+    (tmp_path / "observation.yaml").write_text(
+        (DONOR / "observation.yaml").read_text())
+
+    def write(mutate=None):
+        d = copy.deepcopy(donor_sys)
+        d["structure"]["dim"].update(basis="given", source="the sketch says so",
+                                     source_kind="artefact",
+                                     source_file="sketch_01.jpeg")
+        if mutate is not None:
+            mutate(d)
+        (tmp_path / "system.yaml").write_text(yaml.safe_dump(d, allow_unicode=True))
+        return P.load(tmp_path)
+
+    return write
+
+
+def test_a_declared_artefact_that_exists_is_accepted(given_case):
+    """Guard on the guard. Every break below starts here."""
+    assert not _dim_errors(given_case()), [str(i) for i in _dim_errors(given_case())]
+
+
+@pytest.mark.parametrize("mutate,where", [
+    (lambda d: d["structure"]["dim"].pop("source_kind"), "structure.dim.source_kind"),
+    (lambda d: d["structure"]["dim"].update(source_kind="vibes"),
+     "structure.dim.source_kind"),
+    (lambda d: d["structure"]["dim"].pop("source_file"), "structure.dim.source_file"),
+    (lambda d: d["structure"]["dim"].update(source_file="no_such_file.jpeg"),
+     "structure.dim.source_file"),
+    (lambda d: (d["structure"]["dim"].update(source_kind="human"),
+                d["structure"]["dim"].pop("source_file")),
+     "structure.dim.confirmed_by"),
+    (lambda d: (d["structure"]["dim"].update(source_kind="human", confirmed_by="  "),
+                d["structure"]["dim"].pop("source_file")),
+     "structure.dim.confirmed_by"),
+], ids=["no-kind", "bad-kind", "artefact-no-file", "artefact-file-missing",
+        "human-no-confirmation", "human-blank-confirmation"])
+def test_each_given_obligation_fires(given_case, mutate, where):
+    s = given_case(mutate)
+    assert any(i.where == where for i in s.errors), \
+        f"{where} not caught: {[str(i) for i in s.errors]}"
+
+
+def test_a_missing_artefact_is_the_point_of_the_check(given_case):
+    """The message has to say the path resolved to nothing, because "the field
+    is present" and "the file is there" are exactly what this distinguishes."""
+    s = given_case(lambda d: d["structure"]["dim"].update(source_file="ghost.jpeg"))
+    msg = next(i.msg for i in s.errors if i.where == "structure.dim.source_file")
+    assert "does not exist" in msg and "ghost.jpeg" in msg, msg
+
+
+def test_a_human_source_is_accepted_when_it_is_confirmed(given_case):
+    """A conversation is a legitimate source -- `chain-bend-2d-oscill`'s
+    dimension really was specified by a person. It just has to say who and be
+    confirmed, rather than being indistinguishable from a file."""
+    s = given_case(lambda d: (
+        d["structure"]["dim"].update(source_kind="human",
+                                     confirmed_by="user, 2026-09-15"),
+        d["structure"]["dim"].pop("source_file")))
+    assert not _dim_errors(s), [str(i) for i in _dim_errors(s)]
+
+
+def test_an_artefact_at_the_repo_root_resolves(given_case):
+    """A paper distillation is a legitimate artefact and lives at the root, not
+    in the case directory. Both roots are tried."""
+    s = given_case(lambda d: d["structure"]["dim"].update(
+        source_file="knowledge/source/papers/2024-quah-graybox-abp-mpc-repo.md"))
+    assert not _dim_errors(s), [str(i) for i in _dim_errors(s)]
+
+
+def test_the_other_bases_are_not_asked_for_a_source_kind(given_case):
+    """`required` and `inherited` do not claim the input states anything, so the
+    obligation must not leak onto them -- a gate that refuses everything is
+    worse than none."""
+    for basis, extra in (("required", {}),
+                         ("inherited", {"compared_with": ["some-case"]})):
+        s = given_case(lambda d, b=basis, x=extra: (
+            d["structure"]["dim"].update(basis=b, **x),
+            [d["structure"]["dim"].pop(k, None)
+             for k in ("source_kind", "source_file")]))
+        assert not [i for i in s.errors
+                    if i.where.endswith(("source_kind", "source_file"))], \
+            f"basis={basis} was asked for a source_kind"
+
+
+@pytest.mark.parametrize("case", CASES, ids=[c.name for c in CASES])
+def test_every_real_given_case_declares_its_source_kind(case):
+    """The eight worked cases, which were not written for this checker."""
+    s = P.load(case)
+    dim = ((s.raw.get("structure") or {}).get("dim") or {})
+    if dim.get("basis") != "given":
+        pytest.skip(f"{case.name} is basis={dim.get('basis')}")
+    assert dim.get("source_kind") in P.DIM_GIVEN_KINDS, dim.get("source_kind")
+    assert not _dim_errors(s), [str(i) for i in _dim_errors(s)]
+
+
+def test_the_run_path_says_it_could_not_check_the_artefact():
+    """★ `run.execute` rebuilds a PhysicalSystem around the SPEC's system
+    document, and its `path` does not point at the case directory -- so the
+    artefact's existence cannot be checked there.
+
+    That must be a WARNING, not silence and not an error. Silence would let the
+    run path print "structure OK" over an unverifiable claim, which is the shape
+    `_phi_closure` already had to be fixed for; an error would refuse every real
+    run, and this repository's pre-run gate once rejected 80 of 83 specs with
+    zero real failures among them.
+    """
+    raw = yaml.safe_load((ROOT / "intake/trap-2d-5um/system.yaml").read_text())
+    s = P.PhysicalSystem(path=pathlib.Path("nowhere/system.yaml"), raw=raw)
+    issues = P.check_dim(s)
+    w = [i for i in issues if i.where == "structure.dim.source_file"]
+    assert w, [str(i) for i in issues]
+    assert w[0].level == "warn", f"{w[0].level}: an invisible level is not saying so"
+    assert "NOT verified" in w[0].msg, w[0].msg
+    assert not [i for i in issues if i.level == "error"], \
+        [str(i) for i in issues if i.level == "error"]
+
+
+def test_the_full_gate_does_check_it():
+    """...and the same document loaded from its real case directory DOES get
+    the existence check, or the warning above would be the only behaviour and
+    the check would exist nowhere."""
+    s = P.load(ROOT / "intake/trap-2d-5um")
+    assert not [i for i in s.issues if i.where == "structure.dim.source_file"], \
+        "the real case emitted a source_file issue"
+    #  and a broken path there is an error, not a warning
+    raw = yaml.safe_load((ROOT / "intake/trap-2d-5um/system.yaml").read_text())
+    raw["structure"]["dim"]["source_file"] = "ghost.jpeg"
+    s2 = P.PhysicalSystem(path=ROOT / "intake/trap-2d-5um/system.yaml", raw=raw)
+    e = [i for i in P.check_dim(s2) if i.where == "structure.dim.source_file"]
+    assert e and e[0].level == "error", [str(i) for i in P.check_dim(s2)]
