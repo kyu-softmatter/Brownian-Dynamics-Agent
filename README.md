@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1405 passed, 2 skipped in 78.8 s** on HOOMD-blue 7.1.0, plus **42 sealed
+**1424 passed, 7 skipped in ~82 s** on HOOMD-blue 7.1.0, plus **42 sealed
 documents verified** — 18 of them in `runs_s1s8/` from the predecessor era, and
 24 in `runs/` from the first campaign whose prediction was sealed before the runs
 existed and verified by `execute()` at run time, not by a sibling tool afterwards. `pytest -rs` prints every skip with its reason, which is
@@ -12,7 +12,15 @@ the only thing that keeps that count from quietly shrinking. **What it does not
 cover:** CI runs `linux-64`, and [`CLAUDE.md`](CLAUDE.md) documents
 `osx-arm64` — which is where the work actually happens. HOOMD ships a separate
 build per platform, so a green badge here says `linux-64` holds and says nothing
-about the development machine.
+about the development machine. And the first CI run that ever re-derived a spec
+on `linux-64` found that **`run_id` itself is not portable**: `params.Gamma`
+goes through `pow`, which IEEE-754 does not require to be correctly rounded, so
+Apple libm and glibc differ by one ULP and `soft-r3-2d-A-sweep__A100` is
+`30caa5c9e0` here and `079a25f073` there. Stored specs still verify everywhere —
+`verify_hash()` re-hashes stored content — but **re-deriving** a spec elsewhere
+does not reproduce its name. Measured, pinned by four tests, and written up in
+[`docs/05-pitfalls.md`](docs/05-pitfalls.md); not fixed, because the rename it
+would take is cited by name inside a sealed pre-registration.
 
 An agent that turns a sketch, a note or a paper into a Brownian-dynamics result
 that is explicit about what was assumed, what was predicted, what was verified,
@@ -66,8 +74,8 @@ judges where there is no closed form, and originates no physical value.
 | **296 specifications · 275 run directories** | 271 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **79 verification scripts** | every physics claim in the docs traces to one |
-| **1405 tests** | 2 skipped, ~79 s with the engine → [above](#brownian-dynamics-agent) |
-| **Knowledge base** | 47 wiki pages — 11 system cards · 24 findings · 5 concepts — plus 43 paper and 2 book distillations and 144 tool-written entries |
+| **1424 tests** | 7 skipped, ~82 s with the engine → [above](#brownian-dynamics-agent) |
+| **Knowledge base** | 48 wiki pages — 11 system cards · 25 findings · 5 concepts — plus 43 paper and 2 book distillations and 145 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
@@ -402,8 +410,8 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **296** specs · 275 run directories · **271** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 79 verification scripts |
-| Tests | **1405 pass**, 2 skipped, ~79 s with the engine |
-| Knowledge | 47 wiki pages · 43 paper + 2 book distillations · 144 entries |
+| Tests | **1424 pass**, 7 skipped, ~82 s with the engine |
+| Knowledge | 48 wiki pages · 43 paper + 2 book distillations · 145 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is

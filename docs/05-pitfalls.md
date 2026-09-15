@@ -344,6 +344,59 @@ a spec that omits the physical system entirely will keep the same `run_id`
 across a 16× change in `τ_B` — see [03
 §4](03-knowledge-base.md#4--provenance-and-tiers--a-number-without-a-source-is-not-a-number).
 
+### A content hash over a `pow` result is not portable ★
+
+`run_id` is the sha256 of the spec's JSON, which serialises floats at full
+`repr` precision. That makes the identity of a run depend on **every bit** of
+every derived float — including bits that IEEE-754 does not pin down.
+
+`sqrt` is required to be correctly rounded, so it is bit-identical everywhere.
+**`pow` is not.** Measured on `soft-r3`'s `Gamma = A / a_mean³`:
+
+```
+a_mean       = sqrt(pi/(4*0.35)) = 1.4979969134027407     identical on both
+a_mean**3    = 3.361497213033026        Apple libm,  osx-arm64
+a_mean*a*a   = 3.3614972130330254       glibc + exact mults, linux-64
+Gamma(A=100) = 29.748648790272707   vs  29.74864879027271   -- 1 ULP
+run_id       = ...__A100__30caa5c9e0 vs ...__A100__079a25f073
+```
+
+So **the same physical system has two identities**, and which one you get
+depends on the machine. It was invisible for six weeks because every run was
+computed on one laptop; CI run 35026488825 was the first time the suite ran the
+derivation on `linux-64`, and it surfaced as one failing test asserting a
+literal digest. 104 of 296 specs carry a hashed `params.Gamma`, and **all 104
+move** under a 1-ULP shift (measured).
+
+**What is *not* broken:** `LoadedSpec.verify_hash()` re-hashes the **stored**
+content, so it is portable and passed on `linux-64`. Rule 2's hand-edit
+detector still works. Only *re-deriving* a spec from the physics is
+platform-dependent — which is what "reproduce this run elsewhere" means.
+
+**And it cannot be fixed by normalising the payload.** Rounding `Gamma` to 12
+significant figures makes the derivation portable and renames the archive —
+including `runs/soft-r3-2d-A-sweep__A100__30caa5c9e0`, which the **sealed**
+`campaigns/s30_preregistration/prediction.yaml` cites by name and whose sha256
+is locked into 12 `SEALED.sha256` files. Renaming means editing a sealed
+pre-registration after the fact, which is the one thing pre-registration exists
+to prevent. The mutation is in
+`tests/test_soft_r3_init.py::test_the_ulp_tolerance_still_refuses_what_it_exists_to_catch`
+and it is CAUGHT, so this trade-off is measured rather than asserted.
+
+**How to live with it.** A run_id assertion must be written against the payload,
+not the digest string: `test_the_archived_run_id_does_not_move` now accepts any
+digest reachable by a one-ULP shift of one float leaf of the archived payload,
+and refuses everything else — which still catches the two mutations that
+originally survived this file (`init`, `n_x`/`n_y` written on the default path)
+plus a 10th-digit change in `phi`. If the archive is ever re-identified — which
+can only happen at a campaign boundary, where re-sealing is legitimate —
+normalise the payload to 15 significant figures at the same time. At 15 digits
+both platforms' `Gamma` collapse to the same string.
+
+**The general form:** a content address is only as portable as the least
+portable operation upstream of it. Hash rounded values, or accept that the
+address is machine-local.
+
 ### `dt` candidate lists that omit a stiffness
 
 With `--kt-scale` near 200 the trap becomes the *fastest* mode, and `dt` had not
@@ -429,5 +482,8 @@ a real crash bug precisely because it was written to break things.
    without an error?*
 3. File a KB entry with `origin: tooling` and a **cause, not a symptom**.
 
-There are 48 `tooling` entries. That number is the honest measure of how much of
-this work is fighting the instruments rather than the physics.
+There are **57** `tooling` entries of 145 (measured 2026-09-15: 57 tooling · 50
+method · 25 handbook · 10 intake · 3 paper). That number is the honest measure of
+how much of this work is fighting the instruments rather than the physics — and
+it had drifted from 48, which is the same class of defect as the counts in the
+README.

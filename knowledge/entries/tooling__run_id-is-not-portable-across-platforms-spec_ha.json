@@ -1,0 +1,26 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "run-id",
+    "content-addressing",
+    "reproducibility",
+    "floating-point",
+    "libm",
+    "ci",
+    "platform"
+  ],
+  "dimensionless": {},
+  "source": "bdbot/runid.py#spec_hash",
+  "lessons": [
+    {
+      "claim": "run_id is not portable across platforms: spec_hash serialises floats at full repr precision and params.Gamma = A/a_mean**3 goes through pow, which IEEE-754 does not require to be correctly rounded, so Apple libm returns 3.361497213033026 for a_mean**3 where glibc and exact multiplication return 3.3614972130330254 -- one ULP, giving soft-r3-2d-A-sweep__A100__30caa5c9e0 on osx-arm64 and __079a25f073 on linux-64 (CI run 35026488825). 104 of 296 specs carry a hashed float params.Gamma and all 104 move under a 1-ULP shift. verify_hash() re-hashes STORED content so it stays portable; only re-deriving a spec does not. Deliberately not normalised: the rename is cited by name in a sealed pre-registration whose sha256 sits in 12 SEALED.sha256 files. Pinned by tests/test_soft_r3_init.py as a one-ULP neighbourhood of the archived payload, with 6 mutations measured CAUGHT.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

@@ -114,6 +114,31 @@ def spec_hash(spec: dict, nhex: int = 12) -> str:
       What makes the ASCII agreement hold at all is `physics_only`, which strips
       `source`, `note`, `description` and the rest of `DOC_KEYS` -- i.e. exactly
       the fields that carry prose -- before this ever sees the spec.
+
+    ⚠ **And it is not portable across platforms either.** `json.dumps` writes
+      floats at full `repr` precision, so the digest depends on bits IEEE-754
+      does not pin down. `sqrt` is correctly rounded everywhere; **`pow` is
+      not.** Measured on CI run 35026488825 (2026-09-15), `soft-r3`'s
+      `Gamma = A / a_mean**3` at `A=100`:
+
+          osx-arm64 (Apple libm)   29.748648790272707   -> ...__A100__30caa5c9e0
+          linux-64  (glibc)        29.74864879027271    -> ...__A100__079a25f073
+
+      One ULP, two identities for one physical system. 104 of 296 specs carry a
+      hashed float `params.Gamma` and all 104 move under a 1-ULP shift.
+      `LoadedSpec.verify_hash()` is unaffected -- it re-hashes STORED content --
+      so rule 2's hand-edit detector still holds; it is *re-deriving* a spec
+      elsewhere that does not reproduce the name.
+      **Deliberately not fixed, for the same reason as above and one more:** the
+      sealed `campaigns/s30_preregistration/prediction.yaml` cites
+      `runs/soft-r3-2d-A-sweep__A100__30caa5c9e0` by name and its sha256 is in 12
+      `SEALED.sha256` files, so normalising the payload means editing a sealed
+      pre-registration after the fact. Pinned instead by
+      `tests/test_soft_r3_init.py` (four tests), and written up in
+      `docs/05-pitfalls.md` and
+      `knowledge/wiki/findings/a-content-hash-is-only-as-portable-as-its-least-portable-operation.md`.
+      If the archive is ever re-identified at a campaign boundary, normalise to
+      15 significant figures then -- both platforms agree at 15 digits.
     """
     blob = json.dumps(spec, sort_keys=True, default=str).encode()
     return hashlib.sha256(blob).hexdigest()[:nhex]

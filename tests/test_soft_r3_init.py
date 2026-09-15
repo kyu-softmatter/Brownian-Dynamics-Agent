@@ -12,15 +12,22 @@ would re-id all nine soft-r3 specs and their run directories.
 """
 from __future__ import annotations
 
+import copy
 import json
+import math
 import pathlib
+import struct
 import subprocess
 import sys
 
 import pytest
 
+from bdbot import runid as RID
+from bdbot.pairpot import a_mean_star
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CASE = ROOT / "cases/soft_r3_2d.py"
+ARCHIVED = "soft-r3-2d-A-sweep__A100__30caa5c9e0"
 
 
 def _run(*args, **kw):
@@ -61,14 +68,181 @@ def test_the_matched_random_arm_is_allowed():
 
 
 # ── run_id stability ───────────────────────────────────────────────────────
+#
+# ⚠ **The literal digest is not portable, and that is measured rather than
+#   suspected.** `params.Gamma = A / a_mean^3` with `a_mean = sqrt(pi/(4 phi))`.
+#   `sqrt` is correctly rounded by IEEE-754 and is therefore identical
+#   everywhere; `pow` is **not required to be**, and the two libms disagree:
+#
+#       a_mean          1.4979969134027407     identical on both
+#       a_mean**3       3.361497213033026      Apple libm,  osx-arm64
+#       a_mean*a*a      3.3614972130330254     glibc + exact mults, linux-64
+#       Gamma(A=100)   29.748648790272707  vs 29.74864879027271   (1 ULP)
+#
+#   `runid.spec_hash` serialises floats at full `repr` precision, so one ULP
+#   renames the run: `__A100__30caa5c9e0` on osx-arm64 against
+#   `__A100__079a25f073` on linux-64. Measured on CI run 35026488825, and
+#   localised by perturbing each of the payload's 30 float leaves by one ULP in
+#   turn -- `params.Gamma` is the only leaf that reproduces the linux digest.
+#
+#   **The archive cannot be re-identified to fix this.** The sealed
+#   pre-registration `campaigns/s30_preregistration/prediction.yaml` cites
+#   `runs/soft-r3-2d-A-sweep__A100__30caa5c9e0` by name, and its sha256 is locked
+#   into 12 `SEALED.sha256` files; renaming means editing a sealed document after
+#   the fact, which is the one thing pre-registration exists to prevent. 104 of
+#   296 specs carry a hashed `params.Gamma` and all 104 move under a 1-ULP shift.
+#   So the platform dependence is pinned here instead of papered over.
+#
+#   `LoadedSpec.verify_hash()` is **unaffected**: it re-hashes STORED content, so
+#   it is portable, and it passed on linux-64. Only re-deriving a spec from the
+#   physics is platform-dependent.
+
+def _archived_payload() -> dict:
+    """The hashed payload of the archived spec, read off the artefact."""
+    spec = json.loads((ROOT / "specs" / f"{ARCHIVED}.json").read_text())
+    return {"system": RID.physics_only(spec.get("system", {})),
+            "params": RID.physics_only(spec["params"]),
+            "numerics": RID.physics_only(spec["numerics"])}
+
+
+def _float_leaves(node, path=()):
+    if isinstance(node, dict):
+        for k, v in node.items():
+            yield from _float_leaves(v, path + (k,))
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            yield from _float_leaves(v, path + (i,))
+    elif isinstance(node, float):
+        yield path
+
+
+def _ulp_neighbourhood(payload: dict, nhex: int, radius: int = 2) -> set:
+    """Every digest the archived payload yields when ONE float leaf lands on an
+    adjacent double -- i.e. the set of run_ids meaning *the same physics,
+    computed against a different libm*.
+
+    One leaf at a time, because that is what was measured. Two leaves diverging
+    together would fail the test that uses this, and that is the intended
+    behaviour: it would be a new fact and should be measured, not absorbed.
+    """
+    payload = copy.deepcopy(payload)
+    leaves = list(_float_leaves(payload))
+    assert leaves, "no float leaves -- this is not the payload the test means"
+
+    def at(path, value=None):
+        d = payload
+        for k in path[:-1]:
+            d = d[k]
+        if value is None:
+            return d[path[-1]]
+        d[path[-1]] = value
+
+    out = {RID.spec_hash(payload, nhex)}
+    for path in leaves:
+        orig = at(path)
+        for direction in (math.inf, -math.inf):
+            y = orig
+            for _ in range(radius):
+                y = math.nextafter(y, direction)
+                at(path, y)
+                out.add(RID.spec_hash(payload, nhex))
+        at(path, orig)
+    return out
+
+
+def _ulp_distance(x: float, y: float) -> int:
+    ix, iy = (struct.unpack("<q", struct.pack("<d", v))[0] for v in (x, y))
+    return abs(ix - iy)
+
 
 def test_the_archived_run_id_does_not_move():
-    """The default path must produce the run_id the archive already carries. If
-    `init` were written as "rsa" rather than left absent, this is what would
-    catch it — nine specs and their run directories would be renamed."""
+    """The default path must still produce the archived run_id -- to within the
+    last bit of one float, which is all the portability `pow` offers.
+
+    If `init` were written as "rsa" rather than left absent, this is what catches
+    it: adding a key to `params` moves the digest somewhere no single-ULP
+    perturbation of the archived payload can reach, and nine specs and their run
+    directories would be renamed.
+
+    ★ This asserts strictly MORE than the literal string it replaces. The string
+    said "the digest is 30caa5c9e0" -- true only on the machine the archive was
+    built on. This says "the payload IS the archived payload, to within one ULP
+    of one float, and in no other respect", which holds on every platform.
+    """
     r = _run("--A", "100", "--report")
     assert r.returncode == 0, r.stderr[-800:]
-    assert "soft-r3-2d-A-sweep__A100__30caa5c9e0" in r.stdout, r.stdout[:300]
+    got = next(ln for ln in r.stdout.splitlines()
+               if "run_id=" in ln).split("run_id=")[1].strip()
+
+    assert got.startswith("soft-r3-2d-A-sweep__A100__"), got
+    digest = got.rsplit("__", 1)[1]
+    payload = _archived_payload()
+    ok = _ulp_neighbourhood(payload, len(digest))
+    assert digest in ok, (
+        f"{got} is not the archived payload. No one-ULP perturbation of any of "
+        f"{len(list(_float_leaves(payload)))} float leaves in {ARCHIVED} reaches "
+        f"{digest}, so something changed in `params` or `numerics` -- which "
+        f"renames nine specs and their run directories.")
+
+
+def test_both_measured_platform_digests_are_the_same_physics():
+    """Pin both measured values: `30caa5c9e0` on osx-arm64 (the archive) and
+    `079a25f073` on linux-64 (CI run 35026488825). If a libm update moves the
+    digest further than one ULP this fails, which is news rather than noise."""
+    ok = _ulp_neighbourhood(_archived_payload(), 10)
+    assert "30caa5c9e0" in ok, "the archive's own digest is not reproducible"
+    assert "079a25f073" in ok, "the linux-64 digest is no longer one ULP away"
+
+
+def test_the_ulp_tolerance_still_refuses_what_it_exists_to_catch():
+    """★ Guard on the guard. A tolerance that accepts everything is not a
+    tolerance, and this repository's record on unexercised checks is bad enough
+    that the discriminating power is measured rather than assumed.
+
+    Each mutation below is a real change to the hashed payload -- the first two
+    are exactly the two that survived this file's first version -- and each must
+    land OUTSIDE the one-ULP neighbourhood.
+    """
+    payload = _archived_payload()
+    ok = _ulp_neighbourhood(payload, 10)
+    mutations = [
+        ("init written on the default path", {"init": "rsa"}),
+        ("lattice written on the default path", {"n_x": 20, "n_y": 20}),
+        ("phi moved in the 10th digit", {"phi": 0.3500000001}),
+        ("A moved in the 12th digit", {"A": 100.00000000001}),
+    ]
+    for why, mutation in mutations:
+        m = copy.deepcopy(payload)
+        m["params"].update(mutation)
+        assert RID.spec_hash(m, 10) not in ok, f"accepted: {why} ({mutation})"
+
+    # ...and the size of what IS accepted, stated rather than assumed.
+    n_leaves = len(list(_float_leaves(payload)))
+    assert len(ok) <= 4 * n_leaves + 1, (len(ok), n_leaves)
+
+
+def test_pow_is_what_moves_and_it_moves_by_one_ulp():
+    """The cause, asserted portably on both platforms.
+
+    `sqrt` is correctly rounded by IEEE-754, so `a_mean` is bit-identical
+    everywhere. `pow` carries no such guarantee, so `a**3` and `a*a*a` are
+    *allowed* to differ -- they do on osx-arm64 and do not on linux-64. What is
+    true on both is that they agree to 15 significant figures and differ by at
+    most one ULP. That is also why a payload serialised at 15 significant
+    figures would have been portable while a full-`repr` one is not.
+    """
+    a = a_mean_star(0.35)
+    assert a == math.sqrt(math.pi / (4 * 0.35))       # exact, everywhere
+    p, m = 100.0 / a**3, 100.0 / (a * a * a)
+    assert p == pytest.approx(m, rel=1e-15)
+    assert _ulp_distance(p, m) <= 1, (repr(p), repr(m))
+
+    # and one ULP is enough to rename the run -- the reason any of this matters
+    payload = _archived_payload()
+    shifted = copy.deepcopy(payload)
+    shifted["params"]["Gamma"] = math.nextafter(payload["params"]["Gamma"],
+                                                -math.inf)
+    assert RID.spec_hash(shifted, 10) != RID.spec_hash(payload, 10)
 
 
 def test_the_archived_spec_is_still_named_by_its_own_run_id():
