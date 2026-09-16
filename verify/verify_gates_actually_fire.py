@@ -53,7 +53,7 @@ def _():
     g.check(timestep=100, positions=pos, pe=0.0)
 
 @case("health NUM_NONFINITE (PE)", "a non-finite potential energy must abort",
-      RuntimeError, "PE=nan")
+      RuntimeError, "step 100: PE=nan")
 def _():
     from bdbot import health as H
     g = H.Guard(box_L=10.0)
