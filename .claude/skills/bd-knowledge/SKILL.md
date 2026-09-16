@@ -17,7 +17,7 @@ Contract: [`knowledge/wiki/CLAUDE.md`](../../../knowledge/wiki/CLAUDE.md)
 
 ```
 knowledge/
-├── source/papers/   42 per-paper distillations + INDEX.md   (original PDFs are gitignored; see NOTICE.md)
+├── source/papers/   43 per-paper distillations + INDEX.md   (original PDFs are gitignored; see NOTICE.md)
 ├── source/books/    2 book distillations
 ├── entries/         126 tool-written JSON entries (tools/kb.py)
 └── wiki/
@@ -61,7 +61,7 @@ whether that page can be used as a basis at all.
   `source/papers/`. "I saw it in training data" is not a basis
 - **Do not use `reproduced: no` as a basis.** That a paper printed a number does
   not mean the number works in our code
-- ⚠️ 38 of the 42 distillations are the group's own published work, so the
+- ⚠️ 38 of the 43 distillations are the group's own published work, so the
   literature layer is narrower than it looks. Weight it accordingly
 - ⚠️ Bibliographic data here is largely unchecked — one distillation carries an
   explicit `verified: false` and 41 carry no `verified` field at all. The physics

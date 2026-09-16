@@ -66,7 +66,7 @@ actual temperature.
 
 ### The literature base is narrow
 
-38 of 42 distillations are the group's own published work, so *"the literature
+38 of 43 distillations are the group's own published work, so *"the literature
 says…"* is weaker here than it looks ([NOTICE §1](../NOTICE.md)). And
 bibliographic data is largely unchecked — confirm a citation before it reaches a
 manuscript.

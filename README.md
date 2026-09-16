@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1637 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
+**1646 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -78,7 +78,7 @@ judges where there is no closed form, and originates no physical value.
 | **306 specifications · 283 run directories** | 273 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **95 verification scripts** | every physics claim in the docs traces to one |
-| **1637 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **1646 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
 | **Knowledge base** | 54 wiki pages — 12 system cards · 30 findings · 5 concepts — plus 43 paper and 2 book distillations and 162 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -414,7 +414,7 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **306** specs · 283 run directories · **273** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 36 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 9 case scripts · 95 verification scripts |
-| Tests | **1637 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Tests | **1646 pass**, 6 skipped (wall time not quoted — see the badge note) |
 | Knowledge | 54 wiki pages · 43 paper + 2 book distillations · 162 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -638,7 +638,7 @@ python -m bdbot.cli status
 |---|---|
 | 6 hand sketches (the actual inputs) | in [`intake/`](intake/), downscaled |
 | HOOMD-blue 7.1.0, CPU, no MPI, no GPU | installed; capability matrix measured |
-| 43 paper distillations | in-repo. ⚠️ **38** of them are the group's own published work, so *"the literature says…"* is narrower here than it looks. The criterion is `lab_authored: true` in the distillation frontmatter — written down in [NOTICE](NOTICE.md) and five other places, and it reproduces: 38 `true`, 0 `false`, 42 with no field, totalling the 43. ⚠️ **The note that stood here was wrong on three counts** and is kept as a correction rather than deleted: the count never drifted (the directory has held 43 `.md` files at every commit — 42 distillations plus the generated `INDEX.md`, and counting the index is what made it "43" on 2026-09-15); the 38 was not unreproduced; and the "grep finds 22" it cited is the `raw_file` count, i.e. whether the original PDF was obtained, which `INDEX.md` tabulates separately as 22 / 40. All of these are now re-measured by [`verify/verify_counts.py`](verify/verify_counts.py) |
+| 43 paper distillations | in-repo. ⚠️ **38** of them are the group's own published work, so *"the literature says…"* is narrower here than it looks. The criterion is `lab_authored: true` in the distillation frontmatter — written down in [NOTICE](NOTICE.md) and five other places, and it reproduces: **38 `true`, 3 `false`, 2 with no field**, totalling the 43. ⚠️ **This correction was itself wrong** and is likewise kept rather than replaced: it read *"38 `true`, 0 `false`, 42 with no field, totalling the 43"*, which does not add up — 38 + 0 + 42 is 80. The `false` and absent figures were never measured, only the 38 was. Re-measured 2026-09-16 and now claimed in `verify_counts.py`, so the next drift is reported rather than written. ⚠️ **The note that stood here was wrong on three counts** and is kept as a correction rather than deleted: the count never drifted (the directory has held 43 `.md` files at every commit — 42 distillations plus the generated `INDEX.md`, and counting the index is what made it "43" on 2026-09-15); the 38 was not unreproduced; and the "grep finds 22" it cited is the `raw_file` count, i.e. whether the original PDF was obtained, which `INDEX.md` tabulates separately as 22 / 40. All of these are now re-measured by [`verify/verify_counts.py`](verify/verify_counts.py) |
 | 2 book distillations (Leal 2026; Welty 5th ed.) | in-repo, 64/64 claims re-derived numerically |
 | Copyrighted PDFs | **not published** — see [NOTICE](NOTICE.md) |
 | Trajectories (542 MB of `.gsd`/`.npz`) | **not published** — regenerate from `spec + seed` |

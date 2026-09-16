@@ -316,7 +316,7 @@ Three of them were worse than stale, because they were *arguments*:
   directory has held 43 `.md` files at every one of the 83 commits. The
   "correction" was the off-by-one.
 - *"the **38** … was NOT reproduced … only one of them is written down"* — it
-  reproduces in one command (`lab_authored: true` → 38 of 42), and the criterion
+  reproduces in one command (`lab_authored: true` → 38 of 43), and the criterion
   was written in `NOTICE.md` and five other places 18 days before that sentence
   claimed otherwise. The "grep finds 22" it cited is the `raw_file` count —
   whether the PDF was obtained — which `INDEX.md` tabulates separately.
