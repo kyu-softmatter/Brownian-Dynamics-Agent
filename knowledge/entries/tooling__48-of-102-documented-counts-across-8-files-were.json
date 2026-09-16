@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "counts",
+    "documentation",
+    "drift",
+    "gate",
+    "readme",
+    "measurement"
+  ],
+  "dimensionless": {},
+  "source": "verify/verify_counts.py",
+  "lessons": [
+    {
+      "claim": "48 of 102 documented counts across 8 files were wrong (measured 2026-09-15). The counts had drifted three times and been hand-corrected three times, and each correcting pass introduced drift: 8bb504f re-measured 'every count in the README', changed 11, turned 42 paper distillations into 43 by counting the generated INDEX.md, and left 56/56 two lines below the line it edited; aeb4a4b fixed tooling 48->57 and the next commit made it 58. Three claims were arguments rather than counts and all three were false: '56/56 claims re-derived' (the script has printed 64/64 since 2026-08-29, and 6 of the 8 added checks are [DOC] checks added because a typo had written 'passed 56/56'); 'the count was 42 and drifted' (it never did -- 43 .md files at all 83 commits, so the correction WAS the off-by-one); and 'the 38 was NOT reproduced, only one criterion is written down' (lab_authored: true gives 38 of 42 in one command, and the criterion was in NOTICE.md and 5 other places 18 days earlier; the cited 'grep finds 22' is the raw_file count, a different quantity). Fixed by deriving: verify/verify_counts.py holds 55 claims over 102 numbers as (regex, counter) pairs with --fix, tests/test_counts.py fails CI on drift, a pattern matching zero times is an ERROR not a pass, and the registry size is asserted so an emptied registry cannot report zero drift. 6/6 mutations CAUGHT. Known limit: a number added to the docs and not registered is not detectable; docs/00-merge-decisions.md is deliberately excluded as a historical snapshot and a test asserts that exclusion.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

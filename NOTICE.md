@@ -26,24 +26,31 @@ This repository has no licence to redistribute them.
 
 The distillations are our own summaries: what the paper gives us in one line,
 its equations **converted into this project's non-dimensional conventions**, the
-values we reproduced, and what we could not reproduce. Thirty-five of the 42
-carry a DOI in their frontmatter, so a reader can fetch the original; seven
-carry no DOI field and have to be found by title. Fifty-six claims taken out
+values we reproduced, and what we could not reproduce. 35 of the 42
+carry a DOI in their frontmatter, so a reader can fetch the original; 7
+carry no DOI field and have to be found by title. 64 claims taken out
 of the two books are re-derived numerically by
-[`verify/verify_book_claims.py`](verify/verify_book_claims.py) (56/56 pass), and
+[`verify/verify_book_claims.py`](verify/verify_book_claims.py) (64/64 pass), and
 that script labels each check `[BOOK]` (the book's own reported number, i.e. did
 we read it right), `[DERIV]` (the book's formulas checked against each other),
-or `[OURS]` (checked against our measurements). None of those checks needs the
-PDF.
+`[OURS]` (checked against our measurements), or `[DOC]` (a number quoted in this
+repository's own documents, checked against the distillation). None of those
+checks needs the PDF.
 
-**Bibliographic data in these distillations is largely unchecked.** One
+⚠️ The numbers above were words until 2026-09-15 — "Thirty-five", "Fifty-six" —
+and the 56 had been wrong since 2026-08-29, when the script grew to 64 checks.
+Six of the eight it gained are `[DOC]` checks, added because a transcription typo
+had written "passed 56/56". They are numerals now so that
+[`verify/verify_counts.py`](verify/verify_counts.py) can re-measure them.
+
+**Bibliographic data in these distillations is largely unchecked.** 0
 carries an explicit `verified: false` — meaning its citation was written from
 memory — and the other 41 carry no `verified` field at all, which operationally
 means the same thing. The physics in a distillation was checked (that is what
 the `[BOOK]`/`[DERIV]`/`[OURS]` labels are for); the volume-and-page line
 mostly was not. Confirm the citation before it goes into a manuscript.
 
-Thirty-eight of the 42 are marked `lab_authored: true` — the literature base is
+**38** of the 42 are marked `lab_authored: true` — the literature base is
 mostly the group's own published work, which is why it grew fast and why it is
 narrow. That is a real limitation on any claim of the form *"the literature
 says…"* in this repository.

@@ -35,7 +35,7 @@ knowledge stores with different shapes, different writers and different readers.
 | Form | Markdown + YAML frontmatter | flat JSON, one file per claim |
 | Written by | a human or an agent, deliberately | `tools/kb.py add` |
 | Read by | skill `bd-knowledge`, and by reading | `tools/kb.py query` |
-| Size | 46 wiki pages · 42 paper + 2 book distillations | 135 entries |
+| Size | 49 wiki pages · 42 paper + 2 book distillations | 147 entries |
 | Keyed on | kind (systems / findings / …) | `origin` × `kind` |
 | Strength | contracts, cross-links, human-legible rationale | cheap to append, so it actually gets appended |
 
@@ -52,7 +52,7 @@ verified by tests, knowledge by citation, rules by an accident report.**
 | Kind | Count | What | Contract |
 |---|---:|---|---|
 | **`systems/`** | 11 | ★ **(system × target dynamics)** cards | **the card owns the non-dimensionalization and the gates.** Not the pipeline, not the case script |
-| **`findings/`** | 23 | Q→A, and **dead-ends** | summary · basis · scope/limits · references |
+| **`findings/`** | 26 | Q→A, and **dead-ends** | summary · basis · scope/limits · references |
 | **`benchmarks/`** | 5 | systems whose answer is known, run as regression tests | input · observable · expected · tolerance · `evidence_layer` · source |
 | **`concepts/`** | 3 | a physical concept in this project's conventions | — |
 | **`techniques/`** | 2 | method notes, e.g. the environment log | — |
@@ -84,17 +84,17 @@ Recording it is worth as much as recording a success, and it must state a
 
 ## 3 · The `entries/` store — what actually gets written
 
-135 entries, by origin. The distribution is itself a finding:
+147 entries, by origin. The distribution is itself a finding:
 
 | `origin` | Count | What it means |
 |---|---:|---|
-| **`tooling`** | **52** | **a tool bit us** |
+| **`tooling`** | **59** | **a tool bit us** |
 | `method` | 45 | how to do something, learned by doing it |
 | `handbook` | 25 | a number or a formula from a reference work |
 | `intake` | 10 | how to read a sketch |
 | `paper` | 3 | a claim from a paper |
 
-⚠️ **52 tooling entries against 3 paper entries is not a good sign about the
+⚠️ **59 tooling entries against 3 paper entries is not a good sign about the
 tools.** This table read 44 against 3 when it was written, with `tooling` tied
 with `method`; the store has grown by 9 since and `tooling` accounts for 8 of
 that difference, so it is now ahead on its own. **The gap is widening.** More time went into "our own machinery silently misled us" than into
@@ -110,7 +110,7 @@ $PY tools/kb.py add --origin tooling --kind pitfall \
     --source "bdbot/metrics.py#build" --claim "…"
 ```
 
-Plus **227 `record.json`** post-mortems under `runs/`, written by
+Plus **239 `record.json`** post-mortems under `runs/`, written by
 `tools/postmortem.py`. A run is not finished when it exits; it is finished when
 its post-mortem exists.
 

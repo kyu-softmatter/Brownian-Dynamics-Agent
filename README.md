@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1434 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
+**1494 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -75,11 +75,11 @@ judges where there is no closed form, and originates no physical value.
 | | |
 |---|---|
 | **8 worked cases** | all `READY` at L0 · L2 · L3; six have produced runs |
-| **296 specifications · 275 run directories** | 271 carrying `metrics.json` |
+| **296 specifications · 273 run directories** | 271 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
-| **79 verification scripts** | every physics claim in the docs traces to one |
-| **1434 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
-| **Knowledge base** | 49 wiki pages — 11 system cards · 26 findings · 5 concepts — plus 43 paper and 2 book distillations and 146 tool-written entries |
+| **80 verification scripts** | every physics claim in the docs traces to one |
+| **1494 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **Knowledge base** | 49 wiki pages — 11 system cards · 26 findings · 5 concepts — plus 42 paper and 2 book distillations and 147 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
@@ -283,19 +283,19 @@ evidence back into it. `R` marks a read, `W` marks a write.
   |                                                                    |
   |  wiki/findings/     Q->A, and dead-ends. A dead end is worth as    |
   |                     much as a success, and must state a CAUSE      |
-  |                     rather than a symptom. 23                      |
+  |                     rather than a symptom. 26                      |
   |                                                                    |
   |  wiki/benchmarks/   systems with known answers, run AS REGRESSION  |
   |                     TESTS. Literature is the grader we don't have. |
   |                     Used only as reading, a paper wastes half its  |
-  |                     value. 5                                       |
+  |                     value. 2                                       |
   |                                                                    |
   |  source/papers/     42 distillations -- equations converted into   |
   |  source/books/       our conventions, with what we could and       |
-  |                      could NOT reproduce. 2 books, 56/56 claims    |
+  |                      could NOT reproduce. 2 books, 64/64 claims    |
   |                      re-derived numerically                        |
   |                                                                    |
-  |  entries/           126 tool-written entries. 44 of them are       |
+  |  entries/           147 tool-written entries. 59 of them are       |
   |                     `tooling` -- which is the honest measure of    |
   |                     how much of this is fighting instruments       |
   |                     rather than physics.                           |
@@ -377,7 +377,7 @@ anyone switches back.
 **This system is structured by writing the examples alongside it, not before it.**
 The framework is not designed up front and then populated with cases — a case is
 driven end to end first, and only what has appeared **twice** is pulled out into
-shared code. There are 8 worked cases in [`cases/`](cases/) and 22 modules in
+shared code. There are 8 worked cases in [`cases/`](cases/) and 35 modules in
 [`bdbot/`](bdbot/); the promotion rule into that shared layer is only ever
 *"has it appeared twice?"*.
 
@@ -412,10 +412,10 @@ wired to the engine.**
 | | |
 |---|---|
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
-| Runs | **296** specs · 275 run directories · **271** with `metrics.json` · 239 post-mortems |
-| Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 79 verification scripts |
-| Tests | **1434 pass**, 6 skipped (wall time not quoted — see the badge note) |
-| Knowledge | 49 wiki pages · 43 paper + 2 book distillations · 146 entries |
+| Runs | **296** specs · 273 run directories · **271** with `metrics.json` · 239 post-mortems |
+| Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 80 verification scripts |
+| Tests | **1494 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Knowledge | 49 wiki pages · 42 paper + 2 book distillations · 147 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is
@@ -619,12 +619,12 @@ make them wrong.**
 | [`bdbot/`](bdbot/) | L2 engine, L0→L7 | 35 modules. `nondim.py` is the single contract; `health.py` the numerical verdict; `run.py` the `@RUN.builder` assembly registry that all 8 cases use. Front end does not import `hoomd`, so specifying is fast. Promotion rule is only ever *"has it appeared twice?"* |
 | [`simbot/`](simbot/) | L2 pipeline half, S2/S6/S7/S8 | 19 modules. Prediction sealing, `PASS/FAIL/INCONCLUSIVE` with design power, `REPORT.md` generation, figure generation that cannot emit an uncaptioned figure. ⚠️ **one runner only** — see the seam above |
 | [`cases/`](cases/) | case physics | 8 scripts. Each supplies only `build(spec) -> Build`; the loops, guards and storage are common |
-| [`campaigns/`](campaigns/) | sweep analyses | 18 scripts from the 3,856-run `soft-r3` campaign — finite-size scaling, hexatic window, seed sweeps |
-| [`verify/`](verify/) | executable claims | 74 scripts. Every physics claim in the docs traces to one. A checker that has not been deliberately broken is not a checker |
+| [`campaigns/`](campaigns/) | sweep analyses | 20 scripts from the 3,856-run `soft-r3` campaign — finite-size scaling, hexatic window, seed sweeps |
+| [`verify/`](verify/) | executable claims | 80 scripts. Every physics claim in the docs traces to one. A checker that has not been deliberately broken is not a checker |
 | [`tools/`](tools/) | knowledge | `kb.py` (query/add), `postmortem.py` (a run is finished when this has run), `health.py` |
 | [`.claude/`](.claude/) | L1 agent layer | 6 skills — 3 mutually-exclusive orchestrators (`bd-pipeline`, `bd-diagnose`, `bd-knowledge`) and 3 domain references the pipeline reads at a stage (`bd-intake`, `bd-physics`, `bd-hoomd`) · 9 subagents, model-tiered by whether the task needs judgment or is mechanical · 4 rules, each born from a dated accident |
 | [`knowledge/`](knowledge/) | L3 | ⚠️ **two unmerged schemas** — `wiki/` Markdown and `entries/` JSON, read by different tools |
-| [`intake/`](intake/), [`specs/`](specs/), [`runs/`](runs/), [`figures/`](figures/) | L4 | the inputs, the 278 contracts, the text-only run ledger, and the curated result figures |
+| [`intake/`](intake/), [`specs/`](specs/), [`runs/`](runs/), [`figures/`](figures/) | L4 | the inputs, the 296 contracts, the text-only run ledger, and the curated result figures |
 
 ```bash
 python -m bdbot.cli status
@@ -638,8 +638,8 @@ python -m bdbot.cli status
 |---|---|
 | 6 hand sketches (the actual inputs) | in [`intake/`](intake/), downscaled |
 | HOOMD-blue 7.1.0, CPU, no MPI, no GPU | installed; capability matrix measured |
-| 43 paper distillations | in-repo. ⚠️ 38 are the group's own published work, so *"the literature says…"* is narrower here than it looks. ⚠️ The count was 42 and drifted before it was noticed (2026-09-15); the **38** is carried forward from an earlier audit and was NOT reproduced in that recount — a grep for lab-sourced raw files finds 22, so the two use different criteria and only one of them is written down |
-| 2 book distillations (Leal 2026; Welty 5th ed.) | in-repo, 56/56 claims re-derived numerically |
+| 42 paper distillations | in-repo. ⚠️ **38** of them are the group's own published work, so *"the literature says…"* is narrower here than it looks. The criterion is `lab_authored: true` in the distillation frontmatter — written down in [NOTICE](NOTICE.md) and five other places, and it reproduces: 38 `true`, 0 `false`, 41 with no field, totalling the 42. ⚠️ **The note that stood here was wrong on three counts** and is kept as a correction rather than deleted: the count never drifted (the directory has held 43 `.md` files at every commit — 42 distillations plus the generated `INDEX.md`, and counting the index is what made it "43" on 2026-09-15); the 38 was not unreproduced; and the "grep finds 22" it cited is the `raw_file` count, i.e. whether the original PDF was obtained, which `INDEX.md` tabulates separately as 22 / 40. All of these are now re-measured by [`verify/verify_counts.py`](verify/verify_counts.py) |
+| 2 book distillations (Leal 2026; Welty 5th ed.) | in-repo, 64/64 claims re-derived numerically |
 | Copyrighted PDFs | **not published** — see [NOTICE](NOTICE.md) |
 | Trajectories (542 MB of `.gsd`/`.npz`) | **not published** — regenerate from `spec + seed` |
 | The experiment's actual temperature | **not obtained.** The one-number fix that would remove a −15 % worst case from every timescale |

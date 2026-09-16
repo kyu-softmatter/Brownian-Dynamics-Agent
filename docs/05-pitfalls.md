@@ -291,6 +291,62 @@ requires a non-empty `verified` list, and the count is in the summary. After:
 agree 21/21, and five gate mutants are CAUGHT
 (`verify/verify_gates_bite.py`, `SEAL-*`).
 
+### A count corrected by hand is a practice, not a gate
+
+The counts in `README.md` and `docs/` drifted three times and were corrected by
+hand three times. **Each correcting pass introduced drift of its own:**
+
+| | |
+|---|---|
+| `8bb504f` | re-measured *"every count in the README"* and changed 11 of them — and turned 42 paper distillations into **43** by counting the generated `INDEX.md`, while leaving `56/56` untouched **two lines below the line it edited** |
+| `aeb4a4b` | corrected the tooling-entry count 48 → 57; the next commit in the same session made it 58 by adding an entry |
+| — | the architecture diagrams still carried the 2026-08-28 merge-era numbers, so `README.md` stated the entry count as both **145 and 126**, and the findings count as both 25 and 23 |
+
+Measured on 2026-09-15 across 8 files: **48 of 102 documented numbers were
+wrong.** Not subtly — `bdbot` was described as 21 modules and as 22 and as 35
+(it is 35); `verify/` as 74 and as 79; `specs/` as 278 and as 296.
+
+Three of them were worse than stale, because they were *arguments*:
+
+- `56/56 claims re-derived` — the script has printed **64/64** since 2026-08-29.
+  Six of the eight checks it gained are `[DOC]` checks, added precisely because a
+  transcription typo had written "passed 56/56". The stale claim was the exact
+  error its own new checks exist to catch.
+- *"The count was 42 and drifted before it was noticed"* — it never drifted. The
+  directory has held 43 `.md` files at every one of the 83 commits. The
+  "correction" was the off-by-one.
+- *"the **38** … was NOT reproduced … only one of them is written down"* — it
+  reproduces in one command (`lab_authored: true` → 38 of 42), and the criterion
+  was written in `NOTICE.md` and five other places 18 days before that sentence
+  claimed otherwise. The "grep finds 22" it cited is the `raw_file` count —
+  whether the PDF was obtained — which `INDEX.md` tabulates separately.
+
+★ **`CLAUDE.md` rule 10 already records the tally: practices without gates are
+three for three against.** A count maintained by careful re-reading is a
+practice. So the counts are now **derived**:
+[`verify/verify_counts.py`](../verify/verify_counts.py) holds 55 claims over 102
+numbers as (regex, counter) pairs, `tests/test_counts.py` makes CI fail on drift,
+and `--fix` rewrites the numbers so nobody hand-edits them again.
+
+Two properties make it a gate rather than a script:
+
+- **A pattern that matches nothing is an ERROR, never a pass** — otherwise a
+  rotted regex is indistinguishable from a claim that holds. Same guard
+  `verify_gates_bite.py` puts on its anchors.
+- **The registry's size is asserted** (≥ 50 claims over ≥ 7 files), because an
+  emptied registry would also report zero drift.
+
+Six mutations were run against it and all six are CAUGHT: a hand-edited number,
+a rotted pattern, `_papers()` counting the index again, an emptied registry, a
+counter stubbed to a constant, and a merge-era historical number "fixed".
+
+⚠ **What it still does not catch: a number added to the docs and not
+registered.** There is no way to distinguish a new prose number from prose. The
+registry is the definition of a live claim, and `docs/00-merge-decisions.md` is
+deliberately excluded — it records the three predecessor repositories as they
+stood at the merge, and re-measuring those would destroy the record. A test
+asserts that exclusion so nobody "fixes" them.
+
 ### Output that looks like a finding
 
 The unwired-checker failure above has a family. Each member produces something
@@ -578,7 +634,7 @@ a real crash bug precisely because it was written to break things.
    without an error?*
 3. File a KB entry with `origin: tooling` and a **cause, not a symptom**.
 
-There are **57** `tooling` entries of 145 (measured 2026-09-15: 57 tooling · 50
+There are **59** `tooling` entries of 147 (measured 2026-09-15: 59 tooling · 50
 method · 25 handbook · 10 intake · 3 paper). That number is the honest measure of
 how much of this work is fighting the instruments rather than the physics — and
 it had drifted from 48, which is the same class of defect as the counts in the

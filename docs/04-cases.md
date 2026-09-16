@@ -176,7 +176,7 @@ had to introduce JKR: what is needed is neither friction nor tension but
 
 ## `chain-bend-2d-oscill` — the HOOMD bug, and the way around it
 
-The original beam-mechanics case. It is **L3-only** — 15 specs, 8 run
+The original beam-mechanics case. It is **L3-only** — 15 specs, 7 run
 directories, 7 with `metrics.json`, and no end-to-end script registered — and the
 reason it stalled is a genuine finding.
 
@@ -463,7 +463,7 @@ lever arm is `particles.diameter/2` and is **independent of `sigma`**; and
 
 ## What the literature added
 
-Two books were distilled (2026-08-06): 24 KB `handbook` entries, 56/56 checks
+Two books were distilled (2026-08-06): 25 KB `handbook` entries, 64/64 checks
 passing in [`verify/verify_book_claims.py`](../verify/verify_book_claims.py).
 
 **★ The `chain-bend-2d-dlvo` conclusion was promoted by [L] Leal §2.2**, which
