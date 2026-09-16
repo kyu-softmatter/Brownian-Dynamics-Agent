@@ -4,7 +4,7 @@ It has to behave identically **outside** a Claude Code session: cron, a script, 
 another person must get the same result from the same command, and these commands
 are also what a hook would intercept.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
 
     $PY -m bdbot.cli status                     pipeline progress for every case
     $PY -m bdbot.cli goal init    <folder>      block A -- a goal.yaml template

@@ -30,7 +30,7 @@ they are imported from chain_bend_dlvo_2d as-is (the second case to do so,
 following the precedent `network` already set). Whether to promote them into
 `bdbot/` is decided when a third case appears -- the "has it appeared twice"
 principle in CLAUDE.md.
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY cases/chain_relax_2d_dlvo.py --init straight --report
     $PY cases/chain_relax_2d_dlvo.py --init kink --kink-angle 0.3 --report
     $PY cases/chain_relax_2d_dlvo.py --init straight --smoke --run     # a quick sanity check

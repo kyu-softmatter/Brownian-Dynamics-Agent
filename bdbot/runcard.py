@@ -119,20 +119,40 @@ def verify_seal(rundir, *, root=None) -> tuple:
                        f"sealed prediction"]
     problems, drifted = [], 0
     for want, rel in entries:
-        target = root / rel
-        if not target.exists():                 # renamed run dir: fall back, warn
-            target = rundir / Path(rel).name
-            drifted += 1
-        if not target.exists():
+        # ★ The document verified is the seal's SIBLING. A seal can only ever
+        #   cover documents in its own directory (`write_seal` cannot reach
+        #   outside `rundir`), so the recorded path is a provenance record and
+        #   not a resolution strategy.
+        #
+        #   ⚠ This resolved `root / rel` FIRST until 2026-09-15, and that is
+        #     unsafe in a way no archived run exposes. Measured: copy a sealed
+        #     run directory, rewrite the copy's `prediction.yaml`, and the copy's
+        #     seal verifies the ORIGINAL's documents -- `ok=True`, no problems,
+        #     not even the `[warn]`, because `drifted` was only counted when the
+        #     recorded path was absent. `verify_or_raise` then returned and the
+        #     falsified run would have proceeded, and this is the checker wired
+        #     into `bdbot.run.execute`. `simbot.io.verify_seal` reported the same
+        #     directory `changed=['prediction.yaml']` correctly.
+        #
+        #   The 21 archived seals cannot tell the two rules apart: of the 18
+        #   entries whose recorded path differs from the sibling, 0 point at a
+        #   file that exists, so both rules pick the sibling. That is why the
+        #   cross-implementation agreement test could not see this, and why the
+        #   test that does exercise it constructs the case instead.
+        here = rundir / Path(rel).name
+        recorded = Path(rel) if Path(rel).is_absolute() else root / rel
+        if not here.exists():
             problems.append(f"sealed document missing: {rel}")
             continue
-        got = sha256_file(target)
+        if here.resolve() != recorded.resolve():
+            drifted += 1
+        got = sha256_file(here)
         if got != want:
             problems.append(f"seal broken for {rel}: recorded {want[:12]}…, "
                             f"computed {got[:12]}…")
     if drifted:
-        problems.append(f"[warn] {drifted} recorded path(s) did not resolve from "
-                        f"the repo root; verified next to the seal instead")
+        problems.append(f"[warn] {drifted} recorded path(s) are not where the "
+                        f"document lives now; verified the seal's sibling")
     hard = [p for p in problems if not p.startswith("[warn]")]
     return (not hard), problems
 

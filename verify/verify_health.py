@@ -4,7 +4,7 @@ CLAUDE.md working practice: "when you build a checker, deliberately break it and
 see -- silently passing and not checking are different things." Each failure mode
 is manufactured, and the test is whether it is caught **as exactly that mode**.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/verify_health.py
 """
 from __future__ import annotations

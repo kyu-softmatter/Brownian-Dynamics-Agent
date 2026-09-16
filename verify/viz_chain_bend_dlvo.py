@@ -5,7 +5,7 @@ check of whether the run supports hypothesis G1: a straight chain with purely
 central-force DLVO, equilibrated at its natural length, has exactly zero linear
 bending stiffness.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/viz_chain_bend_dlvo.py [run_id]
 """
 from __future__ import annotations

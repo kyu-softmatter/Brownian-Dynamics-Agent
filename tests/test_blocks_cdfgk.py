@@ -525,3 +525,79 @@ def test_the_template_has_every_required_key(tmp_path):
     pl = AP.load(tmp_path)
     assert [i for i in pl.errors if i.msg == "required field missing"] == []
     assert pl.errors, "an untouched template must not pass as a real plan"
+
+
+# =============================================================================
+# the seal's resolution order — the case the archive cannot expose
+# =============================================================================
+def _sealed_pair(root):
+    """An original sealed run and a copy of it, under `root`. The copy carries
+    the ORIGINAL's recorded paths, which is what makes this the interesting case:
+    the recorded path exists AND differs from the seal's sibling. None of the 21
+    archived seals is like this — of the 18 whose recorded path differs from the
+    sibling, 0 point at a file that exists — so both resolution rules pick the
+    same file there and an agreement test over the archive cannot tell them
+    apart."""
+    import shutil
+    orig = root / "runs" / "ZZ-orig"
+    orig.mkdir(parents=True)
+    (orig / "prediction.yaml").write_text("primary: 5\n")
+    (orig / "analysis_plan.yaml").write_text("steps: [1]\n")
+    RC.write_seal(orig, root=root)
+    copy = root / "runs" / "ZZ-orig_rerun"
+    shutil.copytree(orig, copy)
+    return orig, copy
+
+
+def test_a_copied_run_is_verified_against_its_own_documents(tmp_path):
+    """★★ `verify_seal` resolved the RECORDED path first until 2026-09-15, and
+    this is what that cost.
+
+    Measured on the previous revision: copy a sealed run directory, rewrite the
+    copy's `prediction.yaml`, and the copy's seal verified the ORIGINAL's
+    documents — `ok=True`, `problems=[]`, not even the `[warn]`, because `drifted`
+    was only counted when the recorded path was ABSENT. `verify_or_raise` then
+    returned, and this is the checker wired into `bdbot.run.execute`, so the
+    falsified run would have proceeded and reported itself as sealed.
+    """
+    root = tmp_path
+    orig, copy = _sealed_pair(root)
+
+    ok, problems = RC.verify_seal(copy, root=root)
+    assert ok, problems
+    assert any(q.startswith("[warn]") for q in problems), (
+        "the copy's recorded paths point elsewhere; that must be reported as drift")
+
+    (copy / "prediction.yaml").write_text("primary: 0   # rewritten after the fact\n")
+    ok, problems = RC.verify_seal(copy, root=root)
+    assert not ok, problems
+    assert any("seal broken" in q for q in problems), problems
+
+    with pytest.raises(RC.SealBroken):
+        RC.verify_or_raise(copy, root=root, require=True)
+
+    # and the original, whose documents were never touched, still verifies
+    assert RC.verify_seal(orig, root=root)[0]
+
+
+def test_both_seal_implementations_resolve_the_same_way_on_that_case(tmp_path):
+    """★ The cross-implementation agreement test in `tests/test_s8_io.py` iterates
+    the archive, where the two rules coincide. This pins them on the input that
+    separates them, which is the only place agreement means anything."""
+    from simbot import io as SIO
+
+    root = tmp_path
+    orig, copy = _sealed_pair(root)
+    (copy / "prediction.yaml").write_text("primary: 0\n")
+
+    saved = SIO.REPO_ROOT
+    try:
+        SIO.REPO_ROOT = root
+        v = SIO.verify_seal(SIO.RunDir(copy))
+    finally:
+        SIO.REPO_ROOT = saved
+
+    ok, problems = RC.verify_seal(copy, root=root)
+    assert v.ok is ok is False, (v, problems)
+    assert v.changed == ["prediction.yaml"], v
+    assert "analysis_plan.yaml" in v.verified, v

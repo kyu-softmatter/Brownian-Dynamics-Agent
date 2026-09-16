@@ -20,7 +20,7 @@ human-written Markdown read by the `bd-knowledge` skill; this store is
 tool-written JSON read by this file. A lesson filed in one is invisible to a
 reader of the other -- query both. See docs/03-knowledge-base.md.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY tools/kb.py list
     $PY tools/kb.py query --tags 2D,harmonic_trap
     $PY tools/kb.py query --kind intake

@@ -141,6 +141,19 @@ MUTANTS = [
              "verify_seal reached `continue` for every archived document, so it "
              "hashed nothing and still returned ok=True on 12 of 21 runs",
          fast=["tests/test_s8_io.py"]),
+    dict(id="SEAL-sibling-first-simbot", file="simbot/io.py", kind="replace",
+         anchor="        here = rundir.path / name\n        recorded = Path(rel) if Path(rel).is_absolute() else REPO_ROOT / rel",
+         into="        recorded = Path(rel) if Path(rel).is_absolute() else REPO_ROOT / rel\n        here = recorded if recorded.exists() else rundir.path / name  # MUTANT",
+         gate="the seal verifies its own sibling, not the recorded path",
+         expect="caught", fast=["tests/test_s8_io.py", "tests/test_blocks_cdfgk.py"]),
+    dict(id="SEAL-sibling-first-runcard", file="bdbot/runcard.py", kind="replace",
+         anchor="        here = rundir / Path(rel).name\n        recorded = Path(rel) if Path(rel).is_absolute() else root / rel",
+         into="        recorded = Path(rel) if Path(rel).is_absolute() else root / rel\n        here = recorded if recorded.exists() else rundir / Path(rel).name  # MUTANT",
+         gate="the ENFORCING checker verifies the sibling too",
+         why="this is the checker wired into run.execute; it kept the "
+             "recorded-path-first rule for one commit after simbot dropped it, "
+             "and a copied run directory's falsified prediction verified clean",
+         expect="caught", fast=["tests/test_blocks_cdfgk.py"]),
     dict(id="SEAL-unsealed-detected", file="simbot/io.py", kind="replace",
          anchor="    unsealed = [RUN_LAYOUT[s] for s in stages\n                if rundir.exists(s) and RUN_LAYOUT[s] not in covered]",
          into="    unsealed = []  # MUTANT",

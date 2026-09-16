@@ -1,10 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-
   "permissions": {
     "allow": [
-      "Bash(/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python:*)",
-      "Bash(/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/pytest:*)",
+      "Bash(bin/py:*)",
+      "Bash(./bin/py:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -17,13 +16,22 @@
       "Bash(shasum:*)",
       "Bash(du:*)"
     ],
-
     "deny": [
       "Bash(conda activate:*)",
+      "Edit(./runs/**/prediction.yaml)",
+      "Edit(./runs/**/analysis_plan.yaml)",
+      "Edit(./runs_s1s8/**/prediction.yaml)",
+      "Edit(./runs_s1s8/**/analysis_plan.yaml)",
+      "Edit(./runs/**/01_intake.md)",
       "Edit(./runs/**/02_prediction.md)",
       "Edit(./runs/**/02_prediction.json)",
-      "Edit(./runs/**/01_intake.md)",
-      "Edit(./runs/**/SEALED.sha256)"
+      "Edit(./runs/**/03_spec.yaml)",
+      "Edit(./runs_s1s8/**/01_intake.md)",
+      "Edit(./runs_s1s8/**/02_prediction.md)",
+      "Edit(./runs_s1s8/**/02_prediction.json)",
+      "Edit(./runs_s1s8/**/03_spec.yaml)",
+      "Edit(./runs/**/SEALED.sha256)",
+      "Edit(./runs_s1s8/**/SEALED.sha256)"
     ]
   }
 }

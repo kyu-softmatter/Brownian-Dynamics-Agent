@@ -15,7 +15,7 @@ Two traps came out of this check (skill bd-hoomd traps 10 and 11):
       It is NOT the standard theory's (d-1)*D_r -- Lambda/D_r = 1.00 in both 2D
       and 3D.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/standalone_abp_diffusion.py        # ~4 min
 """
 import math

@@ -23,7 +23,7 @@ description: |
 ## Environment
 
 ```bash
-PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+PY=./bin/py
 ```
 hoomd **7.1.0** · `gpu=False` · **`mpi=False`** · macOS arm64 · double precision
 

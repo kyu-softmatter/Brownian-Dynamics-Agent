@@ -38,13 +38,61 @@ def _run(*args, **kw):
 def _cleanup(rundir) -> None:
     """Remove a run directory and its spec. A test must not leave the working
     tree dirty -- `git status` after `pytest` has to stay clean, or a real
-    change is invisible among the residue."""
+    change is invisible among the residue.
+
+    ⚠ **Prefer the `no_residue` fixture below.** This function can only clean
+      what the caller managed to name, and the callers set `rundir` *after*
+      asserting the run succeeded -- so on the one path where cleanup matters
+      most, a failed run, `rundir` was still `None` and this returned
+      immediately. The case writes the spec into `specs/` BEFORE executing
+      (`bdbot.run.execute` loads it back off disk, which is where the hash check
+      fires), so a failed run leaks a spec into the tracked artefact ledger and
+      nothing recovered it.
+    """
     import shutil
     if rundir is None:
         return
     spec = ROOT / "specs" / f"{rundir.name}.json"
     shutil.rmtree(rundir, ignore_errors=True)
     spec.unlink(missing_ok=True)
+
+
+@pytest.fixture
+def no_residue():
+    """Snapshot `specs/` and `runs/`, and delete whatever the test added.
+
+    ★ Named by what it guarantees, not by what it deletes: it does not need the
+    test to tell it the run_id, so it works when the run failed before printing
+    one, when the run_id is not what the test expected, and when a single
+    invocation writes more than one artefact. The teardown also ASSERTS that
+    nothing survived, so a cleanup that silently fails is not a pass.
+
+    `specs/` is tracked and the README presents it as the artefact ledger; 17 of
+    the specs committed in one earlier session had no run behind them, most of it
+    test residue.
+
+    ⚠ Measured on the two mutations that matter: deleting the cleanup is CAUGHT
+      (the assertion below fires and `git status` shows the residue); deleting
+      the assertion is **UNCAUGHT**, and that is the correct result rather than a
+      gap. The assertion covers the path where deletion itself fails -- a
+      permission error, a file held open -- which no mutation here reproduces. It
+      is a guard on an error path, not a gate, and it is recorded as such so the
+      distinction is not mistaken for coverage.
+    """
+    import shutil
+    specs, runs = ROOT / "specs", ROOT / "runs"
+    before_specs = {p.name for p in specs.glob("*.json")}
+    before_runs = {p.name for p in runs.iterdir() if p.is_dir()}
+    yield
+    new_specs = {p.name for p in specs.glob("*.json")} - before_specs
+    new_runs = {p.name for p in runs.iterdir() if p.is_dir()} - before_runs
+    for name in new_specs:
+        (specs / name).unlink(missing_ok=True)
+    for name in new_runs:
+        shutil.rmtree(runs / name, ignore_errors=True)
+    left = ([f"specs/{n}" for n in new_specs if (specs / n).exists()]
+            + [f"runs/{n}" for n in new_runs if (runs / n).exists()])
+    assert not left, f"residue survived cleanup: {left}"
 
 
 # ── the forbidden combination ──────────────────────────────────────────────
@@ -376,7 +424,7 @@ def test_the_square_box_reading_is_unchanged():
 # ── the artefact path, which is where a melting run actually broke ─────────
 
 @pytest.mark.slow
-def test_a_run_with_no_equilibration_phase_writes_its_artefacts():
+def test_a_run_with_no_equilibration_phase_writes_its_artefacts(no_residue):
     """★ `--eq-frac 0` crashed AFTER the verdict had printed PASS.
 
     The equilibration phase is built with `collect=False`, so a melting run
@@ -394,43 +442,74 @@ def test_a_run_with_no_equilibration_phase_writes_its_artefacts():
     #  ⚠ its own seed, and cleaned up. Without that the test runs `--force` over
     #     a COMMITTED smoke directory, so every `pytest` left four tracked files
     #     modified and `git status` was never clean after a test run.
-    rundir = None
-    try:
-        r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
-                 "--box", "hex", "--init", "hex", "--eq-frac", "0",
-                 "--seed", "424242")
-        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
-        line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
-        rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
-        for name in ("result.txt", "metrics.json", "observables.npz",
-                     "observables.png"):
-            assert (rundir / name).exists(), f"{name} was not written to {rundir}"
-        import numpy as np
-        res = np.load(rundir / "observables.npz")
-        assert "eq_trace" not in res.files, \
-            "an eq_frac=0 run grew an eq_trace -- this no longer covers the bug"
-        assert "psi6_global" in res.files, "the decision statistic is not on disk"
-    finally:
-        _cleanup(rundir)
+    r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
+             "--box", "hex", "--init", "hex", "--eq-frac", "0",
+             "--seed", "424242")
+    assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
+    line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
+    rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
+    for name in ("result.txt", "metrics.json", "observables.npz",
+                 "observables.png"):
+        assert (rundir / name).exists(), f"{name} was not written to {rundir}"
+    import numpy as np
+    res = np.load(rundir / "observables.npz")
+    assert "eq_trace" not in res.files, \
+        "an eq_frac=0 run grew an eq_trace -- this no longer covers the bug"
+    assert "psi6_global" in res.files, "the decision statistic is not on disk"
 
 
 @pytest.mark.slow
-def test_the_default_run_still_has_an_equilibration_trace():
+def test_the_default_run_still_has_an_equilibration_trace(no_residue):
     """Guard on the guard: the branch must be a branch. If `eq_trace` vanished
     from every run, the test above would pass for the wrong reason."""
-    rundir = None
-    try:
-        r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
-                 "--box", "hex", "--init", "hex", "--seed", "424243")
-        assert r.returncode == 0, r.stdout[-1500:]
-        line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
-        rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
-        import numpy as np
-        res = np.load(rundir / "observables.npz")
-        assert "eq_trace" in res.files, \
-            "the default path lost its equilibration trace"
-    finally:
-        _cleanup(rundir)
+    r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
+             "--box", "hex", "--init", "hex", "--seed", "424243")
+    assert r.returncode == 0, r.stdout[-1500:]
+    line = next(ln for ln in r.stdout.splitlines() if "run_id=" in ln)
+    rundir = ROOT / "runs" / line.split("run_id=")[1].strip()
+    import numpy as np
+    res = np.load(rundir / "observables.npz")
+    assert "eq_trace" in res.files, \
+        "the default path lost its equilibration trace"
+
+
+@pytest.mark.slow
+def test_a_failed_run_leaves_no_spec_behind(no_residue):
+    """★ The case writes the spec into `specs/` BEFORE executing, because
+    `bdbot.run.execute` loads it back off disk -- that is where the content-hash
+    check fires, so the ordering is deliberate and correct.
+
+    The consequence is that a run which fails after the spec is written leaks a
+    spec into the tracked artefact ledger. The old cleanup could not recover it:
+    the callers set `rundir` only *after* asserting the run succeeded, so on a
+    failure `rundir` was `None` and the cleanup returned immediately.
+
+    ⚠ **The first version of this test was vacuous and measurement caught it.**
+      It failed the run with `--rc-shells 500`, which the hard separation check
+      refuses *before* the spec is written, so `specs/` went 296 -> 296 and the
+      assertion held in a situation where a leak was impossible. The failure has
+      to happen INSIDE `execute()`. `--require-seal` on a run with no seal does:
+      measured `specs/` 296 -> **297**, one untracked file left in the ledger.
+    """
+    specs = ROOT / "specs"
+    before = {p.name for p in specs.glob("*.json")}
+    r = _run("--A", "34.938", "--N", "144", "--rc-shells", "5", "--smoke",
+             "--box", "hex", "--init", "hex", "--seed", "424244",
+             "--require-seal")
+    assert r.returncode != 0, (
+        "--require-seal was satisfied without a seal; this no longer exercises a "
+        "run that fails after the spec is written\n" + r.stdout[-800:])
+    assert "SEALED.sha256" in (r.stdout + r.stderr), \
+        "the failure is no longer the seal gate -- re-check where it now fails"
+
+    leaked = sorted({p.name for p in specs.glob("*.json")} - before)
+    assert len(leaked) == 1, (
+        "expected exactly one leaked spec -- if this is 0 the case now cleans up "
+        f"after itself and this test should be retired, got {leaked}")
+    # the leak is a real property of the ordering, not a bug to fix here: the
+    # spec must exist before `execute()` because `execute` loads it back off disk
+    # and that is where the content-hash check fires. What must not happen is a
+    # TEST leaving it behind, which is what `no_residue` now guarantees.
 
 
 def test_report_is_read_only():

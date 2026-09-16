@@ -1,7 +1,7 @@
 """Apply the L4 judge to a completed run (post hoc) -- the CLI adapter for
 `bdbot.health`.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY tools/health.py runs/<run_id>        # one run
     $PY tools/health.py --all                # sweep everything
     $PY tools/health.py --gate specs/x.json  # the **pre-run** gate only

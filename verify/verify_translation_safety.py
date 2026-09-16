@@ -5,7 +5,7 @@ The Korean -> English migration edits hundreds of files mechanically. `ast.parse
 is not enough: it accepts a file where a number, a variable name or an f-string
 field moved. This does the stronger check.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
 
     $PY verify/verify_translation_safety.py --selftest          # prove it has power
     $PY verify/verify_translation_safety.py before.py after.py  # compare two files

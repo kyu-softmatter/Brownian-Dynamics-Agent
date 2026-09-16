@@ -52,7 +52,7 @@ convergence table).
    **the builder is complete**.
    Details and the way around it: `assert_angle_force_valid()`, skill bd-hoomd trap 15.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY cases/chain_bend_2d.py --report              # ω = ω_min (the most expensive point)
     $PY cases/chain_bend_2d.py --omega 7853 --report
     $PY cases/chain_bend_2d.py --sweep --spec        # the whole sweep as specs

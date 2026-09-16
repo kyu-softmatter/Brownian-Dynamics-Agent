@@ -334,7 +334,7 @@ vdW 발산과 WCA 코어가 균형하는 자리이고 **비가역**입니다 —
 
 ```bash
 conda env update -f environment.yml -n simulation_bot --prune
-CONDA=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+CONDA=./bin/py
 $CONDA scratch/survey.py     # 능력 조사 (설치본 introspection)
 $CONDA scratch/smoke.py      # 15개 API 실동작
 $CONDA scratch/golden_trap.py         # 조화 트랩 골든 물리 검증 (~2분)

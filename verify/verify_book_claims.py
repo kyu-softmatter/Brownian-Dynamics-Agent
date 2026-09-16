@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Verify claims taken from the two books in kb/ **by execution** (absolute rule 6).
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/verify_book_claims.py
 
 Books:

@@ -23,7 +23,7 @@ The remaining candidates are peeled off one rung at a time.
       compare against the model, to see **where spatially** the disagreement arises
       (only the driven bead? the ends? an overall scale?)
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/diagnose_chain_bend_28pct.py --stage 12      # (1) and (2) (fast)
     $PY scratch/diagnose_chain_bend_28pct.py --stage 3 --de 91.8
 """

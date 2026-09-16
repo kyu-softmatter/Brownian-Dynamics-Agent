@@ -306,7 +306,7 @@ dimensionless reading is consistent with the goal.
 ## 8. Procedure
 
 ```bash
-PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+PY=./bin/py
 
 $PY -m bdbot.cli intake init  intake/<case>     # generate the template
 #   -> read the image and fill in steps 1 through 5

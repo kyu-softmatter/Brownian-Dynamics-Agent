@@ -1,0 +1,97 @@
+#!/bin/sh
+# Resolve the `simulation_bot` interpreter and exec it.
+#
+#     ./bin/py -m pytest -q
+#     ./bin/py tools/postmortem.py runs/<run_id>
+#
+# WHY THIS EXISTS. `CLAUDE.md` and about twenty docstrings told every reader to
+# use one absolute path:
+#
+#     PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+#
+# That path **does not exist** -- not on the machine this repository is developed
+# on (miniforge, not a Homebrew miniconda), not on CI (micromamba under
+# /home/runner), and not on any reader's machine. `.claude/settings.json` also
+# allow-listed it, so the allow rules matched nothing either and every command
+# prompted. Measured 2026-09-15.
+#
+# `conda activate` is genuinely unreliable in a non-interactive shell, which is
+# why the absolute path was written down in the first place. The fix is not a
+# different absolute path -- every one of those is machine-specific and this
+# repository is public. It is to resolve it, here, once.
+#
+# Order: an explicit override, then an already-active environment (this is what
+# makes it a no-op inside CI's `micromamba-shell`), then the installers' usual
+# roots. Failure prints what it looked for; it never silently falls back to a
+# system python, because a system python has no `hoomd` and the error it produces
+# would be about an import rather than about the environment.
+set -eu
+
+ENV_NAME=simulation_bot
+
+_is_env() {                       # $1 = a python; is it THIS environment?
+    [ -x "$1" ] || return 1
+    p=$("$1" -c 'import sys; print(sys.prefix)' 2>/dev/null) || return 1
+    case "$p" in *"/$ENV_NAME") return 0 ;; *) return 1 ;; esac
+}
+
+tried=""
+_try() {
+    tried="$tried
+  $1"
+    if _is_env "$1"; then PY="$1"; return 0; fi
+    return 1
+}
+
+PY=""
+
+# 1 · explicit override, for a layout none of the guesses below cover
+if [ -n "${BD_PY:-}" ]; then
+    if _try "$BD_PY"; then :; else
+        echo "bin/py: BD_PY is set to '$BD_PY', which is not the $ENV_NAME environment" >&2
+        exit 1
+    fi
+fi
+
+# 2 · already active -- CI runs inside `micromamba-shell`, so `python` is it
+if [ -z "$PY" ] && command -v python >/dev/null 2>&1; then
+    _try "$(command -v python)" || true
+fi
+if [ -z "$PY" ] && [ -n "${CONDA_PREFIX:-}" ]; then
+    _try "$CONDA_PREFIX/bin/python" || true
+fi
+if [ -z "$PY" ] && [ -n "${MAMBA_ROOT_PREFIX:-}" ]; then
+    _try "$MAMBA_ROOT_PREFIX/envs/$ENV_NAME/bin/python" || true
+fi
+
+# 3 · the installers' usual roots
+if [ -z "$PY" ]; then
+    for root in \
+        "$HOME/miniforge3" "$HOME/mambaforge" "$HOME/miniconda3" "$HOME/anaconda3" \
+        "$HOME/micromamba" "/opt/miniforge3" "/opt/conda" "/opt/homebrew/Caskroom/miniconda/base" \
+        "/usr/local/Caskroom/miniconda/base"
+    do
+        _try "$root/envs/$ENV_NAME/bin/python" && break || true
+    done
+fi
+
+# 4 · ask conda, if it is on PATH at all
+if [ -z "$PY" ]; then
+    for exe in conda mamba micromamba; do
+        command -v "$exe" >/dev/null 2>&1 || continue
+        base=$("$exe" info --base 2>/dev/null) || continue
+        [ -n "$base" ] || continue
+        _try "$base/envs/$ENV_NAME/bin/python" && break || true
+    done
+fi
+
+if [ -z "$PY" ]; then
+    echo "bin/py: could not find the '$ENV_NAME' environment." >&2
+    echo "Looked at:$tried" >&2
+    echo "" >&2
+    echo "Create it with:  conda env create -f environment.yml" >&2
+    echo "Or point at it:  BD_PY=/path/to/envs/$ENV_NAME/bin/python ./bin/py ..." >&2
+    exit 1
+fi
+
+exec "$PY" "$@"

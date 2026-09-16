@@ -23,7 +23,7 @@ cycle. There is no reason to call into Python every step.
 The parameters are read from specs/chain-bend-2d-oscill__w85__*.json (the lowest
 omega, the most expensive point).
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/bench_chain_bend.py
 """
 from __future__ import annotations

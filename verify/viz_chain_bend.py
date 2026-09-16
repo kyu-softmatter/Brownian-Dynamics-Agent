@@ -13,7 +13,7 @@ The animation is made with **kT=0 determinism and a large dt** (dt*lambda_max = 
 The thermal amplitude l_k = sqrt(kT/k_t) is a static equilibrium quantity, so it
 still comes out right at this dt (dt*k_t/gamma = 5e-5).
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/viz_chain_bend.py
 """
 from __future__ import annotations

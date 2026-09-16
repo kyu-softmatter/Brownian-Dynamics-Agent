@@ -14,14 +14,30 @@ failures back as knowledge the next run can query.
 ## Run environment
 
 ```bash
-PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+PY=./bin/py
+$PY -m pytest -q
 ```
 
 conda env `simulation_bot` · HOOMD-blue **7.1.0** (CPU, **no MPI**, no GPU) ·
-macOS arm64. Defined in [environment.yml](environment.yml).
+`osx-arm64` for development, `linux-64` on CI. Defined in
+[environment.yml](environment.yml).
 
-`conda activate` is unreliable in a non-interactive shell. **Use the absolute
-path.**
+`conda activate` is unreliable in a non-interactive shell, which is why this file
+used to carry an absolute path instead.
+
+⚠️ **That path did not exist.** It named a Homebrew miniconda that is not
+installed on the development machine (miniforge is), not present on CI
+(micromamba under `/home/runner`), and not on any reader's machine —
+and `.claude/settings.json` allow-listed the same dead path, so the allow rules
+matched nothing either and every command prompted. Measured 2026-09-15, after it
+had been the documented instruction in 34 files. Every absolute path is
+machine-specific and this repository is public, so the resolution lives in
+[`bin/py`](bin/py): an override, then an already-active environment (which makes
+it a no-op inside CI's `micromamba-shell`), then the installers' usual roots. It
+fails loudly with the list of what it tried rather than falling back to a system
+python, because a system python has no `hoomd` and would fail with an import
+error instead of an environment error. `tests/test_run_environment.py` fails if
+the documented command does not run.
 
 ---
 

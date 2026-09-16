@@ -58,7 +58,7 @@ measured margin**. Contamination is largest where omega is closest to tau_fast, 
 at the **highest omega**, so De = 10 and 4.7 are the ones examined.
 
 ────────────────────────────────────────────────────────────────────────────
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/verify_chain_bend_gates.py --gate lockin
     $PY scratch/verify_chain_bend_gates.py --gate inertia --method bd       --de 10
     $PY scratch/verify_chain_bend_gates.py --gate inertia --method langevin --de 10

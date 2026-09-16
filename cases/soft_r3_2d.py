@@ -15,7 +15,7 @@ stand in for it:
   3. minimum neighbour distance monitoring -- the defence against pair.Table
      trap 11 (force is 0 for r<r_min)
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY cases/soft_r3_2d.py --A 100            # one A (an independent run, so parallelizable)
     $PY cases/soft_r3_2d.py --A 1 --smoke      # short
     $PY cases/soft_r3_2d.py --dilute           # the dilute-limit verification run

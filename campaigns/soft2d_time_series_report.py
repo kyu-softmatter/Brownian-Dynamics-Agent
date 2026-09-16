@@ -373,7 +373,7 @@ def report_md(rd: RunDir, metrics: dict, spec: dict, figures_md: str) -> str:
                                           "hoomd_version", "python")),
             }), "",
             "```bash",
-            "/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python "
+            "./bin/py "
             "scripts/soft2d_time_series.py",
             "```", "",
             f"| 항목 | 값 |", "|---|---|",

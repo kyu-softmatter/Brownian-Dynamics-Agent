@@ -11,7 +11,7 @@ signal either).
 reuses the GSD of an existing production run as-is (nothing is re-run); only kT=0 is
 run fresh and short (same dt, same initial condition, same forces).
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/anim_chain_relax_kink.py
 """
 import json

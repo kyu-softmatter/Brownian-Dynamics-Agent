@@ -9,7 +9,7 @@ analytic solution, the equilibrium indicator (anchor displacement), and the plot
 What to promote and what to leave was decided by the comparison table in skill
 `bd-physics` section 6.3.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY cases/trap_2d_5um.py              # full run (~3 min)
     $PY cases/trap_2d_5um.py --smoke      # short (~20 s)
     $PY cases/trap_2d_5um.py --report     # report only, does not run

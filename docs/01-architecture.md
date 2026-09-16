@@ -219,7 +219,7 @@ the case scripts. The promotion rule is only ever *"has it appeared twice?"*
 ## 4 · Running it
 
 ```bash
-PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+PY=./bin/py
 ```
 
 The front end enforces the order — you cannot skip a stage by accident:

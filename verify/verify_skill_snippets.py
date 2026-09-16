@@ -3,7 +3,7 @@
 A skill containing a broken snippet is worse than no skill at all. Run this every
 time the documents are edited.
 
-  PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+  PY=./bin/py
   $PY scratch/verify_skill_snippets.py
 """
 import ast

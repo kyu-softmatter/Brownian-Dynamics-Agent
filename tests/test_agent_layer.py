@@ -208,7 +208,7 @@ def test_pipeline_skill_forbids_confirming_verdicts():
 def test_pipeline_skill_names_the_interpreter_absolutely():
     """`conda activate` is unreliable in a non-interactive shell."""
     text = (CLAUDE / "skills/bd-pipeline/SKILL.md").read_text(encoding="utf-8")
-    assert "/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python" in text
+    assert "./bin/py" in text
 
 
 def test_pipeline_skill_states_the_question_budget():
@@ -265,8 +265,18 @@ def test_settings_is_valid_json():
 
 
 def test_settings_allows_the_project_interpreter():
+    """⚠ This asserted the substring `simulation_bot/bin/python`, i.e. an absolute
+    path — and the Homebrew-miniconda path the allow list actually carried **did
+    not exist on any machine**, so the allow rules matched nothing and every
+    command prompted. The test pinned the dead path in place. It asserts the
+    property now: the allow list names the interpreter entry point, and that
+    entry point runs. `tests/test_run_environment.py` executes it, and it also
+    fails if any tracked file names an interpreter that is not there."""
     s = json.loads((CLAUDE / "settings.json").read_text(encoding="utf-8"))
-    assert any("simulation_bot/bin/python" in a for a in s["permissions"]["allow"])
+    allow = s["permissions"]["allow"]
+    assert any("bin/py" in a for a in allow), allow
+    wrapper = CLAUDE.parent / "bin" / "py"
+    assert wrapper.exists() and wrapper.stat().st_mode & 0o111, wrapper
 
 
 def test_settings_denies_conda_activate():

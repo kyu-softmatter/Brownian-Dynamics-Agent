@@ -13,7 +13,7 @@ You write **a scientific claim that will be sealed**. Protocol:
 **Do not produce a number in your head.** Get it by **calling**
 `simbot.estimators` / `simbot.spec.derive`. Not even `4.14e-21 × 2`.
 
-Interpreter: `/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python`
+Interpreter: `./bin/py`
 
 ## The four parts of one prediction
 

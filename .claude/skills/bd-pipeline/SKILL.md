@@ -40,7 +40,7 @@ them cannot be caught by an energy check.
 ## Interpreter
 
 ```
-/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+./bin/py
 ```
 
 `conda activate` is unreliable in a non-interactive shell. **Use the absolute

@@ -20,7 +20,7 @@ and leaves the force wrong** -- which is exactly why
 
 Lesson: **verifying a potential by its energy alone is not verifying its force.**
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/verify_angle_force_small_theta.py
 """
 from __future__ import annotations

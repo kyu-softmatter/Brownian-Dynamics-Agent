@@ -17,7 +17,7 @@ O(y⁴))에 의해, 작은 진폭에서는 이웃 결합의 신장이 O(y²)로�
 
 ★ 시각화/탐색 전용 스크립트다 — L3 스펙·health 게이트를 거치지 않는다(생산 런 아님).
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/drive_chain_relax_center.py --omega 3000 --amp 50 --cycles 20
 """
 import argparse

@@ -18,7 +18,7 @@
 
 set -e
 cd "$(dirname "$0")/.."
-PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+PY=./bin/py
 NPAR=${1:-4}
 
 JOBS=$(mktemp)
@@ -37,7 +37,7 @@ RUNNER=$(mktemp)
 cat > "$RUNNER" << 'EOF'
 #!/bin/zsh
 cd "$RESUME_ROOT"
-PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+PY=./bin/py
 mode=$1; s=$2
 # ★ zsh 은 bash 와 달리 `$extra` 를 단어분할하지 않는다 — 배열로 두거나 `${=extra}` 를
 #   써야 한다. 처음에 문자열로 뒀다가 `--drive-mode position` 이 통짜 한 인자로 넘어가

@@ -27,7 +27,7 @@ L4 (the run) is driven by `bdbot.run` and judges **numerical health only**
 (blow-up, NaN, frozen, drift).
 The physics comparison is the role system in `metrics.observables` — not L4's job.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY cases/trap_drag_2d.py --report        # the L3 report only
     $PY cases/trap_drag_2d.py --spec          # the L3 spec
     $PY cases/trap_drag_2d.py --smoke         # L4 wiring check (short)

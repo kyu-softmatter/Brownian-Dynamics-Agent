@@ -18,7 +18,7 @@ Three things compared:
   (2) the continuum beam 48EI/L^3
   (3) HOOMD, measured                            <- this is the new measurement
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY scratch/verify_angle_matrix.py
 """
 from __future__ import annotations

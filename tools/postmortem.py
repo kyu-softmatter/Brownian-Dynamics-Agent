@@ -4,7 +4,7 @@
 Success and failure are decided by **measurement**, not by declaration.
 Runs with no LLM -- every verdict comes from a numerical indicator.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY tools/postmortem.py runs/<run_id>
     $PY tools/postmortem.py runs/<run_id> --lesson "the lesson" --kind pitfall
 

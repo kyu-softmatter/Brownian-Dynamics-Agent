@@ -20,7 +20,7 @@ its predictions are `implementation_check` -- they follow from the model that wa
 implemented -- so it validates the code and discovers nothing. See
 docs/02-verification.md section 4 and bd-physics section 7.5.
 
-    PY=/opt/homebrew/Caskroom/miniconda/base/envs/simulation_bot/bin/python
+    PY=./bin/py
     $PY cases/abp_rod_2d.py              # full (~140k steps x N=1000)
     $PY cases/abp_rod_2d.py --smoke      # short
     $PY cases/abp_rod_2d.py --report     # report only
