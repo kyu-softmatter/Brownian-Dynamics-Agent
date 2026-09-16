@@ -79,7 +79,7 @@ judges where there is no closed form, and originates no physical value.
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **93 verification scripts** | every physics claim in the docs traces to one |
 | **1559 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
-| **Knowledge base** | 50 wiki pages — 12 system cards · 26 findings · 5 concepts — plus 43 paper and 2 book distillations and 157 tool-written entries |
+| **Knowledge base** | 50 wiki pages — 12 system cards · 26 findings · 5 concepts — plus 43 paper and 2 book distillations and 158 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
@@ -295,7 +295,7 @@ evidence back into it. `R` marks a read, `W` marks a write.
   |                      could NOT reproduce. 2 books, 64/64 claims    |
   |                      re-derived numerically                        |
   |                                                                    |
-  |  entries/           157 tool-written entries. 62 of them are       |
+  |  entries/           158 tool-written entries. 62 of them are       |
   |                     `tooling` -- which is the honest measure of    |
   |                     how much of this is fighting instruments       |
   |                     rather than physics.                           |
@@ -415,7 +415,7 @@ wired to the engine.**
 | Runs | **296** specs · 273 run directories · **271** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 93 verification scripts |
 | Tests | **1559 pass**, 6 skipped (wall time not quoted — see the badge note) |
-| Knowledge | 50 wiki pages · 43 paper + 2 book distillations · 157 entries |
+| Knowledge | 50 wiki pages · 43 paper + 2 book distillations · 158 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is

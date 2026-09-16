@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "process",
+    "collaboration",
+    "verification",
+    "cross-repo",
+    "method"
+  ],
+  "dimensionless": {
+    "repos": 3.0
+  },
+  "source": "sim-exp-bridge README; PR #3; 2026-09-15/16 cross-repo session",
+  "lessons": [
+    {
+      "claim": "How the 2026-09-15/16 cross-repository session actually produced findings, stated as a mechanism rather than as credit: a SHAPE crosses between repositories and a SURFACE does not. Each finding was one side handing over a form and the other applying it to a surface the giver could not see. The bridge session enumerated its error-producing rules with no negative fixture and found four; applying the same form here found 88 of 154 error paths never executed. It measured its own warning volume; the same check here found a test that passed vacuously with an empty parameter list. It named rule-versus-branch granularity; the same distinction then appeared twice more here, as exception-type-versus-message and source-line-versus-full-expression. In every case the form was transferable and the finding was not, because neither side could see the other's surface. The operative half is cheap and is the whole contribution: RUN THE OTHER SIDE'S FORM ON YOURSELF IMMEDIATELY, AND EXPECT THE ANSWER TO BE WORSE THAN YOU THINK -- three times out of three it was. Corollary, from the same session: a test that can only ever say 'do more' is a ratchet and not a test; the evidence that a criterion is calibrated is an occasion on which it said no (here, the two-tier correction test declining to spend a round document on a midpoint quoted for a range).",
+      "kind": "method_note",
+      "coords": {
+        "repos": 3.0
+      }
+    }
+  ],
+  "not_verified": []
+}
