@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "trap",
+    "drag-slope",
+    "equipartition",
+    "microscopy",
+    "bridge",
+    "error-budget"
+  ],
+  "dimensionless": {
+    "T_obs_over_tau_k": 310.0
+  },
+  "source": "verify/verify_drag_ladder.py",
+  "lessons": [
+    {
+      "claim": "Per-rung precision of the drag-calibration route gamma = alpha_equipartition x slope, measured on exact OU with exposure and localisation noise applied: sigma_gamma = 7.2 to 9.5 % over h = 3-10 um at 5 s per rung. The plan's error budget assumes 3 %, so it is 2.4x to 3.2x optimistic. The error is almost entirely the equipartition alpha (7.3-9.5 %); the drag slope itself is 1.3-1.6 %. The camera adds a BIAS of -4.8 to -6.9 % on gamma (camera off: -0.1 to +2.6 %), because epsilon inflates var(x) by (eps/l_k)^2 = 8.66 % and alpha = kT/var(x) inherits it. Bias, not scatter, and it does not average over rungs.",
+      "kind": "method_note",
+      "coords": {
+        "T_obs_over_tau_k": 310.0
+      }
+    }
+  ],
+  "not_verified": []
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "trap",
+    "faxen",
+    "ladder-fit",
+    "h0",
+    "bridge"
+  ],
+  "dimensionless": {
+    "n_rungs": 6.0
+  },
+  "source": "verify/verify_drag_ladder.py#part3",
+  "lessons": [
+    {
+      "claim": "Six-rung least-squares fit of gamma(dz) = gamma_0/(1 - 9a/(16(dz+h0))) with the MEASURED per-rung error returns h0 to sigma = 0.433-0.450 um, stable across injected h0 of 0.5, 1.0 and 2.0 um (n = 192 ladders each). The claim it replaces is +/- 0.195 um from a 400-realisation numpy model assuming 3 % per rung, so the real scatter is 2.2x the target. gamma_bulk comes back at sd 4.6-5.1 % against a claimed 2.1 %. The fit bias on h0 is <= 0.11 um, smaller than the scatter and h0-dependent, so scatter and not bias is the failure mode. A uniform multiplicative bias on gamma hits gamma_0 and NOT h0 (camera on 1.106, camera off 1.136 at h0_true = 1.0), because h0 is set by the SHAPE of gamma(h).",
+      "kind": "phase_boundary",
+      "coords": {
+        "n_rungs": 6.0
+      }
+    }
+  ],
+  "not_verified": []
+}
