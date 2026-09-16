@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1618 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
+**1620 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -75,10 +75,10 @@ judges where there is no closed form, and originates no physical value.
 | | |
 |---|---|
 | **8 worked cases** | all `READY` at L0 · L2 · L3; six have produced runs |
-| **308 specifications · 275 run directories** | 273 carrying `metrics.json` |
+| **306 specifications · 283 run directories** | 273 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **94 verification scripts** | every physics claim in the docs traces to one |
-| **1618 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **1620 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
 | **Knowledge base** | 52 wiki pages — 12 system cards · 28 findings · 5 concepts — plus 43 paper and 2 book distillations and 160 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -412,9 +412,9 @@ wired to the engine.**
 | | |
 |---|---|
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
-| Runs | **308** specs · 275 run directories · **273** with `metrics.json` · 239 post-mortems |
+| Runs | **306** specs · 283 run directories · **273** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 36 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 9 case scripts · 94 verification scripts |
-| Tests | **1618 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Tests | **1620 pass**, 6 skipped (wall time not quoted — see the badge note) |
 | Knowledge | 52 wiki pages · 43 paper + 2 book distillations · 160 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -624,7 +624,7 @@ make them wrong.**
 | [`tools/`](tools/) | knowledge | `kb.py` (query/add), `postmortem.py` (a run is finished when this has run), `health.py` |
 | [`.claude/`](.claude/) | L1 agent layer | 6 skills — 3 mutually-exclusive orchestrators (`bd-pipeline`, `bd-diagnose`, `bd-knowledge`) and 3 domain references the pipeline reads at a stage (`bd-intake`, `bd-physics`, `bd-hoomd`) · 9 subagents, model-tiered by whether the task needs judgment or is mechanical · 4 rules, each born from a dated accident |
 | [`knowledge/`](knowledge/) | L3 | ⚠️ **two unmerged schemas** — `wiki/` Markdown and `entries/` JSON, read by different tools |
-| [`intake/`](intake/), [`specs/`](specs/), [`runs/`](runs/), [`figures/`](figures/) | L4 | the inputs, the 308 contracts, the text-only run ledger, and the curated result figures |
+| [`intake/`](intake/), [`specs/`](specs/), [`runs/`](runs/), [`figures/`](figures/) | L4 | the inputs, the 306 contracts, the text-only run ledger, and the curated result figures |
 
 ```bash
 python -m bdbot.cli status

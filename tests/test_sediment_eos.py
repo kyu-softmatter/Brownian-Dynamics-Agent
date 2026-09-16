@@ -277,3 +277,46 @@ def test_the_height_sampler_reproduces_the_profile_it_was_built_from():
     ks = stats.kstest(h, lambda x: np.interp(x, zk, cdf))
     assert ks.statistic < 1.36 / np.sqrt(n), (ks.statistic, 1.36 / np.sqrt(n))
     assert h.min() >= margin and h.max() <= lz - margin
+
+
+# ── the stationarity split ─────────────────────────────────────────────────
+
+def test_the_half_window_split_is_on_the_timestep_not_the_frame_count():
+    """★ `bdbot.run.execute` does NOT sample every `sample_every` steps -- it caps
+    the interval. Measured 2026-09-16: `sample_every = 29815` and the runner
+    sampled every 10,000, so the case's `n_prod // sample_every` predicted 12
+    frames where 36 arrived, and the "halves" came out 6 and 30.
+
+    The statistic still returned an ordinary-looking 1.6356. Nothing failed, and
+    `profile_halves_chi2_nu` is the whole basis of the campaign's verdict -- so
+    this is the class where a check's success is indistinguishable from its
+    failure. The split is now on the timestep and the balance is ASSERTED.
+    """
+    src = (ROOT / "cases" / "sediment_3d.py").read_text()
+    #  the arithmetic that caused it must not come back
+    assert "n_prod_frames" not in src, (
+        "a predicted frame count is back in the case; the runner's cadence is not "
+        "this case's to predict")
+    assert 'split_step' in src and 'timestep <= acc["split_step"]' in src
+    assert 'int(Nm["n_eq"]) + int(Nm["n_prod"]) // 2' in src
+
+
+def test_the_balance_guard_raises_on_a_lopsided_split():
+    """The guard is inside the run, so it is exercised here against the numbers
+    that actually occurred rather than against its own source."""
+    def guard(f1r, f2r, split_step=178890):
+        tot = f1r + f2r
+        if tot >= 8 and abs(f1r - f2r) > max(2, 0.15 * tot):
+            raise RuntimeError(f"{f1r}/{f2r}")
+        return True
+
+    #  the measured failure, and the production-length version of it
+    with pytest.raises(RuntimeError):
+        guard(6, 30)
+    with pytest.raises(RuntimeError):
+        guard(80, 397)
+    #  the measured fix, and an exactly even split
+    assert guard(17, 19) and guard(18, 18) and guard(238, 239)
+    #  a short run below the guard's floor is not rejected -- it has no halves
+    #  worth testing and the statistic reports NaN from the 5-bin minimum instead
+    assert guard(2, 5)

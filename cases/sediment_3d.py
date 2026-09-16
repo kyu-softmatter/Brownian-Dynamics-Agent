@@ -551,10 +551,21 @@ def build(spec, outdir=None) -> RUN.Build:
     #      this was found: the sealed plan promised a comparison the output could
     #      not support. The campaign was stopped 12 minutes into P1 and
     #      relaunched rather than the plan being edited to match the code.
-    n_prod_frames = max(1, int(Nm["n_prod"]) // max(1, int(Nm["sample_every"])))
+    #  ★ The split point is a TIMESTEP, not a frame index.
+    #
+    #    ⚠ The first version computed `n_prod // sample_every` and split on the
+    #      frame counter. `bdbot.run.execute` does NOT sample at `sample_every`:
+    #      it caps the interval (measured 10,000 steps against a `sample_every` of
+    #      29,815), so the real frame count was 3x the prediction and the halves
+    #      came out 6 and 30 instead of 18 and 18. A chi^2 between a sixth and
+    #      five sixths of the window is not the test the sealed plan asked for,
+    #      and nothing would have said so -- the statistic still returns a number.
+    #      Splitting on the clock removes the coupling to a cadence this case does
+    #      not control.
+    split_step = int(Nm["n_eq"]) + int(Nm["n_prod"]) // 2
     acc = {"hist": np.zeros(nbins), "frames": 0, "ref_xy": None, "ref_t": None,
            "hist_h1": np.zeros(nbins), "hist_h2": np.zeros(nbins),
-           "frames_h1": 0, "frames_h2": 0, "n_prod_frames": n_prod_frames}
+           "frames_h1": 0, "frames_h2": 0, "split_step": split_step}
 
     def _snap():
         s = sim.state.get_snapshot()
@@ -570,9 +581,7 @@ def build(spec, outdir=None) -> RUN.Build:
             counts_now = np.histogram(h, bins=edges)[0]
             acc["hist"] += counts_now
             acc["frames"] += 1
-            #  the halves are indexed by the frame's own position in the window,
-            #  not by wall time, so a stopped-and-resumed run splits the same way
-            if acc["frames"] <= (acc["n_prod_frames"] + 1) // 2:
+            if timestep <= acc["split_step"]:
                 acc["hist_h1"] += counts_now
                 acc["frames_h1"] += 1
             else:
@@ -689,7 +698,22 @@ def build(spec, outdir=None) -> RUN.Build:
         #    error on each half, so the expected value is 1.0 if the profile is
         #    stationary and > 1 if it drifted. This is a ratio, not a p-value,
         #    because the plan's threshold is stated as "within Poisson error".
-        f1, f2 = max(acc["frames_h1"], 1), max(acc["frames_h2"], 1)
+        #  ★ THE GUARD THAT WOULD HAVE CAUGHT THE CADENCE BUG. A chi^2 between
+        #    two halves means nothing if they are not halves, and the statistic
+        #    returns a perfectly ordinary number either way -- 1.6356 on the
+        #    6-versus-30 split that the first version produced. So the balance is
+        #    asserted rather than assumed, and it raises: a silently mis-split
+        #    stationarity test is the whole basis of the campaign's verdict.
+        f1r, f2r = int(acc["frames_h1"]), int(acc["frames_h2"])
+        tot = f1r + f2r
+        if tot >= 8 and abs(f1r - f2r) > max(2, 0.15 * tot):
+            raise RuntimeError(
+                f"the production window did not split into halves: {f1r} frames "
+                f"before step {acc['split_step']} and {f2r} after, out of {tot}. "
+                f"`bdbot.run.execute` does not sample at `sample_every` -- it caps "
+                f"the interval -- so any frame-count arithmetic here is wrong by "
+                f"whatever that cap does. The split must be on the timestep.")
+        f1, f2 = max(f1r, 1), max(f2r, 1)
         r1 = acc["hist_h1"] / f1                           # counts per frame
         r2 = acc["hist_h2"] / f2
         #  variance of (r1 - r2) for Poisson counts: N/f^2 summed
@@ -900,6 +924,7 @@ def build(spec, outdir=None) -> RUN.Build:
                 "phi_mean_measured": float(phi_z.mean()),
                 "frames_h1": int(acc["frames_h1"]),
                 "frames_h2": int(acc["frames_h2"]),
+                "split_step": int(acc["split_step"]),
                 "stationarity_bins": n_st_bins,
             },
             "arrays": {
