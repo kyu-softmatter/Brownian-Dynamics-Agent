@@ -195,9 +195,15 @@ def test_every_real_case_declares_a_basis(case):
     assert basis in P.DIM_BASES, f"{case.name}: basis={basis!r}"
 
 
-def test_there_are_still_eight_cases():
-    """If a ninth appears, the parametrisation above must have picked it up."""
-    assert len(CASES) == 8, [c.name for c in CASES]
+def test_the_case_count_matches_the_parametrisation():
+    """If a case appears, the parametrisation above must have picked it up.
+
+    Was `== 8` and named `..._eight_cases` until 2026-09-16, when
+    `sediment-pmma-3d` made it nine. Renamed rather than re-numbered in place: a
+    test called `eight` that asserts nine is a lie in the one place a reader
+    looks first.
+    """
+    assert len(CASES) == 9, [c.name for c in CASES]
 
 
 # ── run_id must not move ───────────────────────────────────────────────────

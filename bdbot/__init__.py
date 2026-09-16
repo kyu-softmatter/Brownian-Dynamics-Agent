@@ -19,6 +19,10 @@ case appeared -- each module docstring records which.)
     materials    gamma=3*pi*eta*d, D_t=kT/gamma, tau_B=d^2/D_t, m, tau_p (sphere in a Newtonian fluid)
     pairpot      numerics of a soft repulsive pair -- U, U'', closest approach r_min
                  (the physics that sets dt)
+    placement    overlap-free initial placement in a SLAB (periodic x,y + walls in
+                 z). Promoted on its third occurrence; the two fully-periodic
+                 predecessors in `cases/` are deliberately left alone because
+                 switching them would change their RNG stream and re-id their runs
     scales       ScaleLedger -- the length/time/energy ledger, references, basis,
                  and required-role completeness
     nondim       * the L3 NondimSpec -- the only contract between L2 and L4.
@@ -85,7 +89,8 @@ _SUBMODULES = (
     "analysisplan", "checks", "cli", "constants", "cost", "design", "dt", "goal",
     "groups", "health", "intake", "interactions", "lattice", "lockin", "materials",
     "metrics",
-    "microrheo", "nondim", "pairpot", "params", "physical", "planrun", "provenance",
+    "microrheo", "nondim", "pairpot", "params", "physical", "placement", "planrun",
+    "provenance",
     "refbd",
     "report", "run", "runcard", "runid", "scales", "sim", "smoke", "stats", "traps",
     "units",

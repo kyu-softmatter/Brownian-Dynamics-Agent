@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1559 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
+**1578 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -78,7 +78,7 @@ judges where there is no closed form, and originates no physical value.
 | **296 specifications · 273 run directories** | 271 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **93 verification scripts** | every physics claim in the docs traces to one |
-| **1559 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **1578 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
 | **Knowledge base** | 50 wiki pages — 12 system cards · 26 findings · 5 concepts — plus 43 paper and 2 book distillations and 158 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -377,7 +377,7 @@ anyone switches back.
 **This system is structured by writing the examples alongside it, not before it.**
 The framework is not designed up front and then populated with cases — a case is
 driven end to end first, and only what has appeared **twice** is pulled out into
-shared code. There are 8 worked cases in [`cases/`](cases/) and 35 modules in
+shared code. There are 8 worked cases in [`cases/`](cases/) and 36 modules in
 [`bdbot/`](bdbot/); the promotion rule into that shared layer is only ever
 *"has it appeared twice?"*.
 
@@ -413,8 +413,8 @@ wired to the engine.**
 |---|---|
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **296** specs · 273 run directories · **271** with `metrics.json` · 239 post-mortems |
-| Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 93 verification scripts |
-| Tests | **1559 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Code | `bdbot/` 36 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 93 verification scripts |
+| Tests | **1578 pass**, 6 skipped (wall time not quoted — see the badge note) |
 | Knowledge | 50 wiki pages · 43 paper + 2 book distillations · 158 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -616,7 +616,7 @@ make them wrong.**
 
 | Module | Layer | Status |
 |---|---|---|
-| [`bdbot/`](bdbot/) | L2 engine, L0→L7 | 35 modules. `nondim.py` is the single contract; `health.py` the numerical verdict; `run.py` the `@RUN.builder` assembly registry that all 8 cases use. Front end does not import `hoomd`, so specifying is fast. Promotion rule is only ever *"has it appeared twice?"* |
+| [`bdbot/`](bdbot/) | L2 engine, L0→L7 | 36 modules. `nondim.py` is the single contract; `health.py` the numerical verdict; `run.py` the `@RUN.builder` assembly registry that all 8 cases use. Front end does not import `hoomd`, so specifying is fast. Promotion rule is only ever *"has it appeared twice?"* |
 | [`simbot/`](simbot/) | L2 pipeline half, S2/S6/S7/S8 | 19 modules. Prediction sealing, `PASS/FAIL/INCONCLUSIVE` with design power, `REPORT.md` generation, figure generation that cannot emit an uncaptioned figure. ⚠️ **one runner only** — see the seam above |
 | [`cases/`](cases/) | case physics | 8 scripts. Each supplies only `build(spec) -> Build`; the loops, guards and storage are common |
 | [`campaigns/`](campaigns/) | sweep analyses | 20 scripts from the 3,856-run `soft-r3` campaign — finite-size scaling, hexatic window, seed sweeps |

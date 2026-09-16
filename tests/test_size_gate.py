@@ -638,18 +638,24 @@ def test_every_real_case_declares_a_role(case):
 
 
 def test_the_roles_are_distributed_as_measured():
-    """object=3 · system=3 · replication=2 on 2026-09-10. Not a constraint on
+    """object=3 · system=4 · replication=2 on 2026-09-16. Not a constraint on
     the physics — a tripwire, so that a role silently flipping is noticed.
+
+    Was system=3 until `sediment-pmma-3d` arrived. Its N is `system`: the cell
+    height and phi are the paper's, so N follows from the box rather than being
+    the size of an object or a replica count.
     """
     dist: dict = {}
     for c in CASES:
         r = ((P.load(c).raw.get("structure") or {}).get("size") or {}).get("role")
         dist[r] = dist.get(r, 0) + 1
-    assert dist == {"object": 3, "system": 3, "replication": 2}, dist
+    assert dist == {"object": 3, "system": 4, "replication": 2}, dist
 
 
 def test_every_system_case_without_a_complete_n_sweep_says_so():
-    """All three `system` cases warn. `soft-r3` was written `done` because the
+    """All four `system` cases warn. `sediment-pmma-3d` is `partial` from the
+    start -- two cross-sections, 12 d and 24 d, which is a 4x change in N and
+    still not a ladder that covers the production point. `soft-r3` was written `done` because the
     FSS ladders exist (campaigns/soft2d_fss.py, soft2d_nconv.py) — but A = 100,
     the production point its n = 400 was chosen for, has no N-sweep and the
     file's own CV3 never ran. Adversarial review caught that as reading the
@@ -660,11 +666,12 @@ def test_every_system_case_without_a_complete_n_sweep_says_so():
     warned = sorted(c.name for c in CASES
                     if any("N-scaling" in i.msg for i in P.load(c).issues
                            if i.level == "warn"))
-    assert warned == ["network", "soft-r3-2d-A-sweep", "trap-drag-2d-hex300"], warned
+    assert warned == ["network", "sediment-pmma-3d", "soft-r3-2d-A-sweep",
+                      "trap-drag-2d-hex300"], warned
 
 
 def test_no_case_currently_claims_a_complete_finite_size_study():
-    """The honest state on 2026-09-10: 0 of 3. If one ever reaches `done`, this
+    """The honest state on 2026-09-16: 0 of 4. If one ever reaches `done`, this
     test fails and the claim gets looked at — which is the point.
     """
     done = [c.name for c in CASES

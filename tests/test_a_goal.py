@@ -219,10 +219,12 @@ def test_trap_2d_5um_has_a_draft_goal():
 
 
 def test_every_case_folder_is_accounted_for():
-    """Each of the 8 cases is ABSENT, DRAFT, FAIL or CONFIRMED -- never something
-    else. Guards against `status()` growing a fourth state nobody handles."""
+    """Each case is ABSENT, DRAFT, FAIL or CONFIRMED -- never something else.
+    Guards against `status()` growing a fourth state nobody handles.
+
+    8 -> 9 on 2026-09-16 (sediment-pmma-3d joined on 2026-09-16 -- the first case driven by gravity and the first with a wall)."""
     cases = sorted(p.parent for p in ROOT.glob("intake/*/observation.yaml"))
-    assert len(cases) == 8
+    assert len(cases) == 9
     for d in cases:
         v, reason = G.status(d, I.load(d))
         assert v in ("ABSENT", "DRAFT", "FAIL", "CONFIRMED"), (d.name, v)

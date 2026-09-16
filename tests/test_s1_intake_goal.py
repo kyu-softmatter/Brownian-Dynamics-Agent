@@ -205,11 +205,13 @@ def test_the_two_silent_sketches_are_ready_at_l0(case):
     assert not obs.errors, [str(i) for i in obs.errors]
 
 
-def test_all_eight_cases_are_ready_at_l0():
-    """L0 was READY for all 8 at HEAD and must stay that way — this whole change
-    should have moved nothing at L0."""
+def test_every_case_is_ready_at_l0():
+    """L0 was READY for all of them at HEAD and must stay that way.
+
+    8 -> 9 on 2026-09-16 (sediment-pmma-3d joined on 2026-09-16 -- the first case driven by gravity and the first with a wall).
+    """
     cases = sorted(p.parent for p in ROOT.glob("intake/*/observation.yaml"))
-    assert len(cases) == 8
+    assert len(cases) == 9
     for d in cases:
         obs = I.load(d)
         assert obs.ready_for_system, f"{d.name}: {obs.blockers}"

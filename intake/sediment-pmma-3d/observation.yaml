@@ -1,0 +1,272 @@
+# L0 Observation — no sketch. The source is a paper, read as text.
+# Protocol: transcribe first -> structure -> state what is ambiguous -> what is
+# absent stays null (rule 5, and `bd-intake`'s eight anti-invention rules).
+#
+# Why this case exists: the repository had no system driven by gravity, and no
+# wall anywhere (`grep -rl "hoomd.wall"` returned nothing before 2026-09-16).
+# This is the first source that needs both.
+
+source_files:
+  - knowledge/source/papers/2014-newman-yethiraj-sedimentation-equilibrium.md
+  - "https://arxiv.org/abs/1412.3190  (arXiv:1412.3190v3, read as HTML; the PDF was NOT obtained)"
+
+# ── (1) transcription — what the source states, before any interpretation ──
+raw_transcription: |
+  Newman & Yethiraj, "Clusters in sedimentation equilibrium for an experimental
+  hard-sphere-plus-dipolar Brownian colloidal system", arXiv:1412.3190v3.
+
+  Quoted or tabulated by the paper:
+    - PMMA colloids, 2a = 1.0 and 0.8 um; "less than 5% polydispersity in
+      particle size"
+    - solvent: "cis-trans-decahydronaphthalene (decalin) and tetrachloroethylene
+      (TCE)" at 50:50, 60:40 and 70:30 by volume
+    - Table 1 columns: rho (kg/m^3), n, eps_r, l_g (um), 2a (um), Pe = a/l_g
+    - rho_PMMA = 1259 kg/m^3; solvent densities 1113.8 ... 1259 kg/m^3
+    - l_g = 10.7 um (0.8 um in 70:30); 10.9 um (1.0 um in 60:40);
+      "l_g >> 100 um" for 50:50
+    - l_g defined as k_B T/((4/3) pi a^3 Delta-rho g)
+    - text: "the ratio of gravitational potential energy to thermal energy,
+      given by Pe_g = 2a/l_g << 0.1"
+    - "mean volume fraction Phi = 0.017"
+    - "the diffusion coefficient D saturates to the bulk value D_0 ~ 0.44 um^2/s"
+    - D = D_0(1 + K^L Phi) with K^L = -2.80 +- 0.05
+    - dipolar strength Lambda = pi eps_0 eps_f beta^2 a^3 E_0^2/(2 k_B T);
+      Table 2 gives Lambda = 0.0127 ... 2.626 over E = 166.7 ... 1666.7 V/mm
+    - "sample thickness of 100 um"; "z-stack (77 um x 77 um x 108 um) at 29
+      frames per second"
+    - "The zero field equation of state (EOS) for 0.8 um PMMA particles shows
+      excellent agreement with what is expected for a hard-sphere EOS from the
+      Carnahan-Starling relation"
+    - abstract: "The zero field equation of state (EOS) is hard sphere without
+      any re-scaling of particle size"
+
+  NOT stated anywhere: the temperature, the solvent viscosity, the number of
+  particles observed, any tabulated Phi(z), and any percentage for the
+  "excellent agreement".
+
+system_guess: >
+  A dilute monodisperse hard-sphere colloid in sedimentation equilibrium in a
+  walled cell of 100 um thickness. At zero applied field there is no dipolar
+  term, so the only interactions are excluded volume and the uniform buoyant
+  weight. The equilibrium profile Phi(z) is a Boltzmann distribution in the
+  gravitational potential, and its local equation of state is read from the
+  hydrostatic relation. We model the ZERO-FIELD case only; the applied-field
+  cluster physics is out of scope for this run.
+
+entities:
+  - kind: particle
+    form: "PMMA sphere, 2a = 0.8 um, rho = 1259 kg/m^3, < 5 % polydisperse"
+    note: "modelled monodisperse -- the polydispersity is stated but not resolved
+           into a distribution by the paper"
+  - kind: medium
+    form: "decalin/TCE 70:30, Newtonian, implicit (free-draining)"
+    note: "⚠ free-draining is OUR choice and it is what makes K^L unreachable;
+           see prerun_findings"
+  - kind: external
+    form: "uniform gravity, U(z) = kT z/l_g with l_g = 10.7 um"
+  - kind: boundary
+    form: "walls at the bottom and top of a 100 um cell; periodic laterally"
+    note: "the lateral periodicity is ours -- the real cell is 77 um wide and
+           bounded. See ambiguity A3."
+  - kind: pair_interaction
+    form: "hard sphere (paper); WCA in the simulation"
+    note: "⚠ the substitution the Carnahan-Salling comparison is about"
+
+# ── (2) structured quantities the source states ────────────────────────────
+stated_quantities:
+  - symbol: d
+    value: 0.8
+    unit: um
+    source: 'paper text and Table 1: 2a = 1.0 and 0.8 um'
+    note: "2a; the paper also studies 1.0 um"
+  - symbol: rho_p
+    value: 1259
+    unit: kg/m^3
+    source: "paper Table 1, PMMA row"
+  - symbol: rho_f
+    value: 1113.8
+    unit: kg/m^3
+    source: "paper Table 1, the 70:30 decalin/TCE row"
+    note: "the 70:30 decalin/TCE row of Table 1"
+  - symbol: l_g
+    value: 10.7
+    unit: um
+    source: "paper Table 1, l_g column"
+  - symbol: D_0
+    value: 0.44
+    unit: um^2/s
+    source: 'paper text: the diffusion coefficient D saturates to the bulk value D_0 ~ 0.44 um^2/s'
+  - symbol: phi
+    value: 0.017
+    unit: dimensionless
+    source: 'paper text: mean volume fraction Phi = 0.017'
+  - symbol: L_cell
+    value: 100
+    unit: um
+    source: 'paper text: sample thickness of 100 um'
+    note: "stated sample thickness; see ambiguity A2"
+  - symbol: K_L
+    value: -2.80
+    unit: dimensionless
+    source: "paper text: D = D_0(1 + K^L Phi), K^L = -2.80 +- 0.05"
+    note: "the hydrodynamic correction. NOT a target -- see prerun_findings"
+
+stated_goals:
+  - "Reproduce the barometric law in the dilute tail: Phi(z) ~ exp(-z/l_g) with
+     the l_g the paper measured -- implementation_check, because for point
+     particles it is exact and a miss is a bug."
+  - "Read the LOCAL equation of state out of the profile and compare it against
+     Carnahan-Starling, which the paper reports as 'excellent agreement' --
+     hypothesis, because the simulation imposes a WCA core rather than a hard
+     sphere and imposes no EOS at all."
+  - "Check lateral self-diffusion against kT/gamma -- implementation_check, and
+     the one place the run can be self-consistent about its own clock."
+
+# ── (3) ambiguities — stated, not resolved (rule 5) ────────────────────────
+ambiguities:
+  - id: A1
+    issue: "The paper defines the gravitational Peclet number two ways."
+    detail: >
+      The text says "Pe_g = 2a/l_g << 0.1"; Table 1's column header says
+      "Pe = a/l_g". The tabulated values (0.037-0.046) are reproduced by a/l_g
+      (0.4/10.7 = 0.0374), not by 2a/l_g (0.0748). A factor 2.
+    lean: "Use neither. l_g and a are both stated directly, so nothing downstream
+           needs Pe_g; the card fixes l_g* = l_g/d and says so."
+    resolution: "not resolved -- recorded. Do not cite a Pe_g from this paper
+                 without saying which definition."
+    proposed_by: assistant
+
+  - id: A2
+    issue: "Cell thickness 100 um vs an imaged z-stack of 108 um."
+    detail: >
+      The stated sample thickness is 100 um but the z-stack is 77 x 77 x 108 um,
+      which is 8 um taller than the cell it images.
+    lean: "Model the stated physical cell, 100 um, with a wall at each end. The
+           108 is then an imaging extent, not a geometry."
+    resolution: "not resolved; 100 um used, and the choice is recorded in
+                 geometry.cell_height's source line."
+    proposed_by: assistant
+
+  - id: A3
+    issue: "Is Phi = 0.017 the mean over the cell or over the imaged stack?"
+    detail: >
+      It matters for the profile's amplitude, not its shape: the decay length is
+      unaffected, but Phi(0) scales with whichever height normalises the mean.
+      Over the 100 um cell Phi(0) = 0.159; over a 108 um stack it would be lower.
+    lean: "Normalise over the modelled cell. The observable the comparison rests
+           on -- the fitted l_g, and Z(Phi) as a FUNCTION of the local Phi -- is
+           insensitive to it, because Z is read against the local Phi the run
+           itself produces rather than against an assumed amplitude."
+    resolution: "not resolved; the insensitivity is the reason it does not block."
+    proposed_by: assistant
+
+unread_regions: []      # text source, nothing unreadable
+
+# ── (4) values this case must fix, that the source does not give ───────────
+missing_required:
+  - symbol: T
+    what: "temperature"
+    kind: physical
+    assumed_value: 295.84
+    assumed_unit: K
+    confidence: 1
+    note: >
+      ★ NOT assumed -- DERIVED and closed. l_g, a and Delta-rho are all stated and
+      l_g = kT/((4/3) pi a^3 Delta-rho g) solves to T = 295.84 K = 22.69 C, a room
+      temperature to ~1 %. 20 C would need rho_f = 1115.1 and 25 C rho_f = 1112.7,
+      bracketing the stated 1113.8. Written without the pi the same inputs give
+      94 K, which is not a temperature -- so the check settles the form of the
+      formula as well.
+    resolution: "derived, tier 1. T = 296 +- 2 K."
+
+  - symbol: eta
+    what: "solvent viscosity"
+    kind: physical
+    assumed_value: 1.2312
+    assumed_unit: mPa*s
+    confidence: 1
+    note: >
+      Derived from the MEASURED D_0 = 0.44 um^2/s by Stokes-Einstein at the T
+      above. ⚠ Not independent of D_0 -- it is D_0 re-expressed -- so a recovered
+      D_0 is NOT a check on eta. The reduced system needs neither: (d, l_g, phi)
+      fix the problem and tau_d = d^2/D_0 fixes the clock, all measured.
+    resolution: "derived, tier 1."
+
+  - symbol: L_xy
+    what: "lateral box width"
+    kind: choice
+    assumed_value: 9.6
+    assumed_unit: um
+    confidence: 3
+    note: >
+      ⚠ OURS, tier 3, and the gate flags it for human approval. 12 d, the
+      smallest that leaves the minimum image comfortable (WCA r_c = 1.1225 d
+      needs L/2 > 1.1225, i.e. L > 2.245 d) while keeping N affordable. The
+      paper's own cross-section is 77 um = 96 d, which would be N = 37,500 and
+      about 64x the cost. Enters through cost alone for a one-body profile; the
+      untested axis is the lateral finite-size effect, recorded as
+      structure.size.finite_size_status = not_done.
+    resolution: "awaiting human approval (rule 10)."
+
+  - symbol: n_seeds
+    what: "number of independent seeds"
+    kind: choice
+    assumed_value: 5
+    assumed_unit: dimensionless
+    confidence: 2
+    note: >
+      A2 forbids a number without an error bar, and a single-seed production run
+      is forbidden outright. Measured cost: 8724 steps/s at N = 584, so 5 tau_sed
+      is 8.5 min per seed and 5 seeds is 43 min. Five gives a seed-to-seed sd with
+      nu = 4, which is thin but is what the budget buys; the within-run block SEM
+      is reported beside it.
+    resolution: "5, on the measured cost."
+
+# ── (5) findings recorded BEFORE the run ───────────────────────────────────
+prerun_findings:
+  - id: P_K_L
+    severity: "important"
+    finding: >
+      The paper's headline dynamical result, D = D_0(1 + K^L Phi) with
+      K^L = -2.80 +- 0.05, is a HYDRODYNAMIC correction. Brownian dynamics with a
+      scalar gamma and an implicit solvent has no hydrodynamic interactions, so
+      this simulation cannot produce K^L at all -- not "will probably miss it",
+      cannot.
+    consequence: >
+      K^L is therefore NOT a prediction of this run, and the prediction document
+      must not list it. Writing it down now is rule 7' applied before the run
+      rather than after: if it were adopted as a target, the run would "discover"
+      a failure that was a property of the model choice.
+    verified: false
+
+  - id: P_WCA
+    severity: "important"
+    finding: >
+      The paper reports a hard-sphere EOS "without any re-scaling of particle
+      size". The simulation uses WCA with epsilon = 1 kT, which is soft: the
+      effective hard-sphere diameter is slightly smaller than d and depends on
+      temperature (Barker-Henderson). So a systematic offset in Z(Phi) is
+      EXPECTED, with a sign -- a WCA fluid should be slightly LESS dense-packed
+      at a given nominal Phi than a hard sphere, so Z should come out slightly
+      BELOW Carnahan-Salling at the nominal Phi.
+    consequence: >
+      The EOS comparison's role is `hypothesis` and its threshold has to be set
+      in the prediction document with this offset in mind, not after seeing it.
+      knowledge/wiki/findings/wca-reproduces-carnahan-starling.md is this
+      repository's own prior measurement of the same substitution and is the
+      place to take the expected size of the offset from.
+    verified: false
+
+  - id: P_WALL
+    severity: "information"
+    finding: >
+      The wall is not a neutral container. A repulsive wall produces a depletion
+      layer and then oscillatory layering over roughly one diameter, so the
+      profile within ~2 d of either wall is wall structure and not the barometric
+      law. The fit window must exclude it, and the EOS read must use the
+      hydrostatic relation only where the profile is smooth.
+    consequence: >
+      The analysis plan fixes the fit window before the data exists. The Gaussian
+      wall used here has U(2 d) = 4.5e-9 kT, so 2 d is clean by construction
+      rather than by inspection.
+    verified: false

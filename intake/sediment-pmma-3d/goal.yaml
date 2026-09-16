@@ -1,0 +1,124 @@
+# Block A -- the goal. **DRAFT: awaiting human confirmation**
+#
+# Written before any run of this case existed, which is the order the block is
+# for: `T_obs`, the fit window and the seed count below all follow from the
+# question rather than being chosen and then justified.
+
+schema: bdbot.goal/0.1
+case: sediment-pmma-3d
+asked_by: paper
+
+# -- what do you want to know? ------------------------------------------------
+question: >-
+  For the dilute hard-sphere colloid Newman & Yethiraj held in sedimentation
+  equilibrium, does free-draining Brownian dynamics with a soft (WCA) core
+  reproduce the equation of state they report as hard-sphere Carnahan-Starling --
+  and does it do so only after the excluded volume is mapped to an effective
+  hard-sphere diameter, or at the nominal diameter as well?
+
+# -- which single measured number answers it? ---------------------------------
+answering_quantity:
+  symbol: Z_dev_max
+  unit: percent
+  why: >-
+    The largest deviation of the measured compressibility factor Z = P/(rho kT)
+    from Carnahan-Starling over the local volume fractions the profile spans.
+    One run sweeps phi from ~0.16 at the wall down to ~1e-4 at the top, so a
+    single number covers the whole range. Z is read from the profile by the
+    hydrostatic relation dP/dz = -rho kT/l_g, never from HOOMD's pressure --
+    which matters, because HOOMD's pressure carries a kinetic term built from
+    velocities and overdamped BD velocities are not physical
+    (knowledge/wiki/findings/wca-reproduces-carnahan-starling.md, trap 2).
+
+# -- how well would you have to measure it to decide? -------------------------
+decisive_precision:
+  value: 2.0
+  basis: >-
+    2 % of Z, taken from this repository's own prior measurement of the same
+    substitution: WCA reproduces Carnahan-Starling to within 2 % for
+    phi_eff <~ 0.38 once the Barker-Henderson diameter is used, and at
+    epsilon = 1 kT the measured deviations were -0.32 % at phi ~ 0.10 and
+    -0.51 % at phi ~ 0.21. This run's range tops out at phi_eff = 0.118, inside
+    that. The threshold is therefore inherited, not invented.
+  what_would_change_my_mind: >-
+    The discriminating comparison is the MAPPING, not the agreement. At
+    epsilon = 1 kT and sigma_LJ = 2^(-1/6) d, d_BH = 0.9048 d, so
+    phi_eff/phi = 0.7407 and Carnahan-Starling evaluated at phi_eff differs from
+    Carnahan-Starling at the nominal phi by -17.05 % at the wall. So: agreement
+    within 2 % against CS(phi_eff) AND a 10-17 % disagreement against
+    CS(phi_nominal) confirms that the effective-diameter mapping is required.
+    Agreement with BOTH would mean the run cannot tell them apart and the answer
+    is inconclusive. Agreement with CS(phi_nominal) but not CS(phi_eff) would
+    contradict the prior finding and be the interesting outcome.
+
+# -- which parameters does this goal make load-bearing? -----------------------
+physics_that_matters:
+  - symbol: l_g
+    why: >-
+      Sets the whole profile, and is the only quantity the comparison's x-axis
+      depends on. Measured by the paper (10.7 um); the fitted value is the
+      implementation check that licenses everything else.
+  - symbol: d
+    why: >-
+      Enters phi as d^3, so a 12 % error in the effective diameter is a 41 %
+      error in phi. This is where the case nearly went wrong: sigma_LJ = 1 with
+      r_cut = 2^(1/6) puts the WCA minimum at 1.1225 d, not d, and phi would have
+      been 1.414x the intended value with no symptom.
+  - symbol: epsilon_wca
+    why: >-
+      Sets d_BH and therefore the whole mapping. epsilon = 10 kT is 3x more
+      accurate than 1 kT at phi = 0.3 for 1.5x the cost; 1 kT is used because the
+      prior measurement puts it inside 2 % over THIS run's phi range, and the
+      choice is recorded rather than defaulted.
+  - symbol: phi
+    why: >-
+      The paper's 0.017 fixes N given the box. It also fixes how far up the
+      Carnahan-Starling curve the run reaches -- phi(0) = 0.159, where CS is
+      98 % above the ideal gas, so the comparison has something to bite on.
+  - symbol: L_z
+    why: >-
+      The paper's cell thickness, 100 um = 125 d = 9.35 l_g. With a wall at each
+      end there is no periodic lid, so the tail is clean and Z -> 1 there is a
+      free consistency check.
+  - symbol: T_obs
+    why: >-
+      Does not follow from the paper -- it follows from THIS goal. The slowest
+      mode of the equilibrium state is tau_sed = l_g^2/D_0 = 179 tau_d, and the
+      run is 5 tau_sed with the first half discarded. Starting from the analytic
+      profile is what makes that enough: from a uniform start the system must
+      fall the height of the cell, L_z l_g/D_0 = 1672 tau_d.
+  - symbol: L_xy
+    why: >-
+      Ours, not the paper's, and the only free parameter. It sets the per-slab
+      Poisson error and nothing else in a one-body profile -- which is the claim
+      the 24 d second arm exists to test.
+
+# -- what analysis does this imply? -------------------------------------------
+analysis_implied:
+  - "Phi(z) with Poisson error bars, on a log axis, with exp(-z/l_g) overlaid at the paper's l_g"
+  - "l_g fitted from the slope of ln n(z) over a declared window, against the paper's 10.7 um"
+  - "Z vs phi_eff with Carnahan-Starling overlaid, AND Z vs phi_nominal with CS overlaid, on the same figure -- the two curves are the answer"
+  - "Z -> 1 in the dilute tail, as a built-in check that the hydrostatic read is right"
+  - "lateral MSD against 2 D_0 t, so the clock is self-consistent"
+  - "the 12 d and 24 d profiles on the same axes -- the finite-size check"
+
+out_of_scope:
+  - "the applied-field dipolar cluster physics, which is most of the paper. Zero field only."
+  - >-
+    K_L = -2.80 in D = D_0(1 + K_L Phi), the paper's headline dynamical result.
+    It is a HYDRODYNAMIC correction and free-draining BD with a scalar gamma
+    cannot produce it -- not 'will probably miss it', cannot. Excluded here so it
+    is not adopted as a target and then 'discovered' to fail (rule 7').
+  - "any phase behaviour -- phi(0) = 0.159 is far below freezing at 0.494"
+  - "polydispersity. The paper reports < 5 %; this runs monodisperse."
+
+provenance:
+  source: >-
+    knowledge/source/papers/2014-newman-yethiraj-sedimentation-equilibrium.md
+    (arXiv:1412.3190v3) for the question and every measured input;
+    knowledge/wiki/findings/wca-reproduces-carnahan-starling.md for the 2 %
+    threshold and the Barker-Henderson mapping;
+    verify/verify_sedimentation_wall.py for the three capability stages and the
+    three new gates. The cross-section was approved by the user 2026-09-16
+    together with the two-arm finite-size scope.
+  confirmed_by: null
