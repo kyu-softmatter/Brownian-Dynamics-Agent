@@ -72,3 +72,4 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
+campaigns/sediment_figures/

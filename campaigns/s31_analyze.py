@@ -440,6 +440,72 @@ def make_figures(rows) -> list[Path]:
     return out
 
 
+# ── F5: the sealed prediction against the measurement, as a table ─────────
+#
+# ★ Named in the sealed analysis plan and missing from the first version of this
+#   script -- caught by reading the plan's figure list against what the script
+#   emits, which is the same check that found the missing half-window comparison.
+def write_F5(rows) -> Path | None:
+    live = [r for r in rows if r["ok"]]
+    if not live:
+        return None
+    doc = prereg()
+    preds = {q["quantity"]: q for q in doc["predictions"]}
+    #  the block SEM that belongs to each observable, where one exists
+    SEM = {"Z_dev_wmean_vs_CS_eff": "Z_dev_wmean_block_sem",
+           "l_g_fitted_dense": "l_g_dense_block_sem",
+           "phi_wall_measured_vs_cs_eff": "phi_wall_block_sem",
+           "phi_wall_measured": "phi_wall_block_sem",
+           "Z_dilute_tail": "Z_dilute_tail_block_sem"}
+    FIGDIR.mkdir(parents=True, exist_ok=True)
+    out = FIGDIR / "F5_prediction_vs_measurement.md"
+    L = ["# F5 — the sealed prediction against the measurement", "",
+         f"`prediction.yaml` revision {doc['revision']}, sealed into "
+         f"{len(rows)} run directories. {len(live)} have finished.", "",
+         "⚠ Every error bar below is the run's **own block SEM** over "
+         f"{live[0]['result'].get('n_blocks', '?')} blocks of its production "
+         "window — not the design-power Monte Carlo's sigma, which cannot see "
+         "temporal correlation.", ""]
+    for arm in ("cs_eff", "cs_nominal", "convergence", "finite_size"):
+        rs = [r for r in live if r["arm"] == arm]
+        if not rs:
+            continue
+        L += [f"## arm `{arm}`  ({len(rs)} seed(s), init=`{rs[0]['init']}`, "
+              f"{rs[0]['tau_sed']:g} tau_sed)", "",
+              "| id | quantity | role | sealed | measured | block SEM | dev |",
+              "|---|---|---|---|---|---|---|"]
+        for r in rs:
+            for name, ob in r["obs"].items():
+                if name.endswith("_block_sem"):
+                    continue
+                pr = preds.get(name, {})
+                role = ob.get("role", "?")
+                sealed = pr.get("predicted", ob.get("predicted"))
+                m = ob.get("measured")
+                sem = o(r, SEM[name]) if name in SEM else None
+                if sealed in (None, "") or not isinstance(sealed, (int, float)):
+                    dev = "—"
+                elif sealed == 0.0:
+                    dev = f"{m:+.3f} abs"
+                else:
+                    dev = f"{100.0*(m/sealed - 1):+.2f} %"
+                L.append(f"| {r['id']} | `{name}` | {role} | "
+                         f"{sealed if sealed is not None else '—'} | "
+                         f"{m:.5g} | "
+                         f"{('%.5g' % sem) if sem is not None and sem == sem else '—'} | "
+                         f"{dev} |")
+        L.append("")
+    L += ["## what this table cannot say", "",
+          "`confirmed_by` is human-only (CLAUDE.md), so no row here is a "
+          "confirmed result. A `hypothesis` row that misses its prediction is a "
+          "**result**, not a failure (rule 7'); only an `implementation_check` "
+          "miss is a fault — and revision 4 leaves just `D_xy` and "
+          "`min_sep_placed` in that class, for the reason the analysis plan's "
+          "accepted-weaknesses list gives.", ""]
+    out.write_text("\n".join(L) + "\n")
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--figures", action="store_true",
@@ -459,6 +525,9 @@ def main() -> int:
     if a.figures:
         for f in make_figures(rows):
             print(f"  wrote {f.relative_to(ROOT)}")
+        f5 = write_F5(rows)
+        if f5:
+            print(f"  wrote {f5.relative_to(ROOT)}")
         return 0
 
     an = Analysis(rows)
@@ -485,6 +554,9 @@ def main() -> int:
 
     for f in make_figures(rows):
         print(f"  wrote {f.relative_to(ROOT)}")
+    f5 = write_F5(rows)
+    if f5:
+        print(f"  wrote {f5.relative_to(ROOT)}")
     return rc
 
 
