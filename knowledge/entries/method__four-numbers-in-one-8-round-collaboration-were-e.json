@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "process",
+    "estimate",
+    "measurement",
+    "bridge",
+    "method-error"
+  ],
+  "dimensionless": {
+    "instances": 4.0
+  },
+  "source": "sim-exp-bridge README, trap-stiffness-recovery r1-r8",
+  "lessons": [
+    {
+      "claim": "Four numbers in one 8-round collaboration were estimated when measuring them was cheap, and all four were wrong: f_c recoverable to +1.17 % (survived 2 rounds, was the Lorentzian estimator's own bias), the trapped-bead blur term 2*D*t_exp/3 (3 rounds, the free-particle coefficient, 2x too large), the per-rung 3 % on the drag slope (7 rounds, measured 7.2-9.5 %, still unmeasured on real data), and a validator's warning volume judged 'not yet worth acting on' while already 11 repetitions past the threshold being described. The shape is identical each time: estimated once, propagated through documents that were individually careful, collapsed on first measurement, and cheap to measure throughout. The fourth was raised by the same agent that found the other three, which is the evidence it is not carelessness -- an estimate always looks sufficient at the moment it is made. Practical form: when a number is about to be carried into a second document, ask whether measuring it costs less than the round that would carry it.",
+      "kind": "pitfall",
+      "coords": {
+        "instances": 4.0
+      }
+    }
+  ],
+  "not_verified": []
+}
