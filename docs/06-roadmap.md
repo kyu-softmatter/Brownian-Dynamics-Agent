@@ -13,7 +13,7 @@ a number here disagrees with a Korean design document in
 | **L1 agent layer** | ✅ 6 skills · 9 subagents (model-tiered) · 4 rules · `settings.json` that refuses to edit a sealed document. Structure guarded by 64 tests |
 | **L2 engine (`bdbot/`)** | ✅ 35 modules, L0→L7. All 8 cases on the `@RUN.builder` contract. The 5 pre-existing cases were re-run after migration and matched to 15 decimal places |
 | **L2 pipeline half (`simbot/`)** | ✅ 19 modules, S2/S6/S7/S8 + sealing + `INCONCLUSIVE`. ⚠️ **one runner only** (`passive-sphere--harmonic-trap`) |
-| **L3 knowledge** | 🔶 49 wiki pages · 44 distillations · 148 entries · 239 post-mortems — **but two unmerged schemas** |
+| **L3 knowledge** | 🔶 50 wiki pages · 45 distillations · 148 entries · 239 post-mortems — **but two unmerged schemas** |
 | **L4 artifacts** | ✅ 296 specs · 273 run directories · 271 with `metrics.json` |
 | **Tests** | ✅ **1008 pass**, 2 skipped, ~101 s — the full suite with the engine, as CI runs it. `-m "not slow"` deselects 15 and is the fast local loop |
 | **Verification scripts** | ✅ 76 in [`verify/`](../verify/) |

@@ -45,15 +45,21 @@ S10 ANALYZE  → §6 관측량 목록
 
 행 = 계 · 열 = 목적 동역학. **✅ 카드 있음 · ○ 필요하나 없음 · — 해당 없음**
 
-| 계 \ 목적 동역학 | 평형 구조 | 수송 (`D`, MSD) | 상거동·조대화 | 비평형 과도 | 조밀 집단 |
-|---|---|---|---|---|---|
-| **수동 구형** | **✅ [카드](passive-sphere--equilibrium-structure.md)** | ○ | ○ | **✅ [트랩 카드](passive-sphere--harmonic-trap.md)** | ○ |
-| **인력 콜로이드** (depletion/Morse) | ○ | — | ○ | — | ○ |
-| **하전 콜로이드** (Yukawa/DLVO) | ○ | — | ○ | — | — |
-| **유체계면 콜로이드** | **✅ [카드](interfacial-colloid--equilibrium-structure.md)** | **✅ [카드](interfacial-colloid--transport.md)** | ○ | ○ | — |
-| **브러시 콜로이드** | — | — | — | ○ | — |
-| **ABP** | — | ○ | — | — | **✅ [카드](abp--dense-collective.md)** |
-| **다공성 매질 속 tracer** | — | ○ | — | — | — |
+| 계 \ 목적 동역학 | 평형 구조 | 수송 (`D`, MSD) | 상거동·조대화 | 비평형 과도 | 조밀 집단 | **외부장 평형 (침강)** |
+|---|---|---|---|---|---|---|
+| **수동 구형** | **✅ [카드](passive-sphere--equilibrium-structure.md)** | ○ | ○ | **✅ [트랩 카드](passive-sphere--harmonic-trap.md)** | ○ | **✅ [카드](passive-sphere--sedimentation.md)** |
+| **인력 콜로이드** (depletion/Morse) | ○ | — | ○ | — | ○ | ○ |
+| **하전 콜로이드** (Yukawa/DLVO) | ○ | — | ○ | — | — | ○ |
+| **유체계면 콜로이드** | **✅ [카드](interfacial-colloid--equilibrium-structure.md)** | **✅ [카드](interfacial-colloid--transport.md)** | ○ | ○ | — | — |
+| **브러시 콜로이드** | — | — | — | ○ | — | — |
+| **ABP** | — | ○ | — | — | **✅ [카드](abp--dense-collective.md)** | ○ |
+| **다공성 매질 속 tracer** | — | ○ | — | — | — | — |
+
+> **열이 하나 늘었다 (2026-09-16).** 침강은 기존 다섯 열 어디에도 들어가지 않는다 —
+> 외부 포텐셜 안의 **평형** 상태이므로 «비평형 과도»가 아니고, 구조가 `z` 에 따라
+> 변하므로 균질계 «평형 구조»도 아니다. 경계가 다른 것이 결정적이다: 다른 카드는
+> 전부 주기경계인데 이 쌍만 **벽**이 있고, `hoomd.wall` 은 2026-09-16 이전 이
+> 저장소에 한 줄도 없었다.
 | **2D 콜로이드 결정** ★신규 | **✅ [소프트 반발 `A/r³`](soft-repulsive-2d--equilibrium-structure.md)** | — | ○ | **✅ [끌기](colloidal-crystal-2d--driven-probe.md)** · **✅ [진동](colloidal-crystal-2d--oscillatory-microrheology.md)** | — |
 | **콜로이드 사슬** ★신규 | — | — | — | **✅ [굽힘 강성](colloidal-chain--bending-rigidity.md)** | — |
 
@@ -79,6 +85,7 @@ S10 ANALYZE  → §6 관측량 목록
 | [`passive-sphere--harmonic-trap`](passive-sphere--harmonic-trap.md) | **`usable`** | **`τ_trap = γ/k`**, 길이 `ℓ_trap = √(kT/k)` | **사용자 손그림 + 11개 벤치마크 실측 (run 2026-07-28)** |
 | [`soft-repulsive-2d--equilibrium-structure`](soft-repulsive-2d--equilibrium-structure.md) | `draft` | `τ_d = d²/D₀`, 길이 **`d = n^{-1/2}`** (최근접거리 아님) | **사용자 손그림 `soft-r3-2d-A-sweep` + 52런 실측 (2026-07-28/29) + Zahn 1999 상도 `[미재현]`** |
 | [`colloidal-chain--bending-rigidity`](colloidal-chain--bending-rigidity.md) | `draft` | — 관측량이 `κ` 다 | 사용자 손그림 `chain-bend-2d-oscill` + Furst 계수 |
+| [`passive-sphere--sedimentation`](passive-sphere--sedimentation.md) | `draft` | `τ_d = d²/D₀` (평형 구조 카드와 동일) | **Newman & Yethiraj 2014 (`arXiv:1412.3190`) `[미재현]`** + `verify/verify_sedimentation_wall.py` 실측 3단계. **이 저장소 첫 영어 카드** |
 
 ---
 

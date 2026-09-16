@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1520 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
+**1522 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -77,9 +77,9 @@ judges where there is no closed form, and originates no physical value.
 | **8 worked cases** | all `READY` at L0 · L2 · L3; six have produced runs |
 | **296 specifications · 273 run directories** | 271 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
-| **81 verification scripts** | every physics claim in the docs traces to one |
-| **1520 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
-| **Knowledge base** | 49 wiki pages — 11 system cards · 26 findings · 5 concepts — plus 42 paper and 2 book distillations and 148 tool-written entries |
+| **82 verification scripts** | every physics claim in the docs traces to one |
+| **1522 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **Knowledge base** | 50 wiki pages — 12 system cards · 26 findings · 5 concepts — plus 43 paper and 2 book distillations and 148 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
@@ -195,7 +195,7 @@ evidence back into it. `R` marks a read, `W` marks a write.
   |  S3  SPECIFY                    SI first. Always SI first.        |
   |  Every number carries provenance + tier + derived_from.            |
   |                                                                    |
-  |  R  knowledge/    material properties, past decisions, 44 paper    |
+  |  R  knowledge/    material properties, past decisions, 45 paper    |
   |                   and book distillations                          |
   |  GATE  no empty field . derived values recomputed and matched      |
   |                                                                    |
@@ -290,7 +290,7 @@ evidence back into it. `R` marks a read, `W` marks a write.
   |                     Used only as reading, a paper wastes half its  |
   |                     value. 2                                       |
   |                                                                    |
-  |  source/papers/     42 distillations -- equations converted into   |
+  |  source/papers/     43 distillations -- equations converted into   |
   |  source/books/       our conventions, with what we could and       |
   |                      could NOT reproduce. 2 books, 64/64 claims    |
   |                      re-derived numerically                        |
@@ -413,9 +413,9 @@ wired to the engine.**
 |---|---|
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **296** specs · 273 run directories · **271** with `metrics.json` · 239 post-mortems |
-| Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 81 verification scripts |
-| Tests | **1520 pass**, 6 skipped (wall time not quoted — see the badge note) |
-| Knowledge | 49 wiki pages · 42 paper + 2 book distillations · 148 entries |
+| Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 82 verification scripts |
+| Tests | **1522 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Knowledge | 50 wiki pages · 43 paper + 2 book distillations · 148 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is
@@ -558,7 +558,7 @@ or waits on either of the two, and if neither is built, nothing here breaks.
 `librarian-agent` reads this repository and writes nothing to it; anything it
 proposes arrives as a pull request. **It has read this one once already** —
 `knowledge/source/papers/INDEX.md` is headed *do not edit by hand*, names a
-generator that is not in the repository, and states 40 entries where 42 files
+generator that is not in the repository, and states 40 entries where 43 files
 exist. Both were found by its drift report.
 
 ---
@@ -620,7 +620,7 @@ make them wrong.**
 | [`simbot/`](simbot/) | L2 pipeline half, S2/S6/S7/S8 | 19 modules. Prediction sealing, `PASS/FAIL/INCONCLUSIVE` with design power, `REPORT.md` generation, figure generation that cannot emit an uncaptioned figure. ⚠️ **one runner only** — see the seam above |
 | [`cases/`](cases/) | case physics | 8 scripts. Each supplies only `build(spec) -> Build`; the loops, guards and storage are common |
 | [`campaigns/`](campaigns/) | sweep analyses | 20 scripts from the 3,856-run `soft-r3` campaign — finite-size scaling, hexatic window, seed sweeps |
-| [`verify/`](verify/) | executable claims | 81 scripts. Every physics claim in the docs traces to one. A checker that has not been deliberately broken is not a checker |
+| [`verify/`](verify/) | executable claims | 82 scripts. Every physics claim in the docs traces to one. A checker that has not been deliberately broken is not a checker |
 | [`tools/`](tools/) | knowledge | `kb.py` (query/add), `postmortem.py` (a run is finished when this has run), `health.py` |
 | [`.claude/`](.claude/) | L1 agent layer | 6 skills — 3 mutually-exclusive orchestrators (`bd-pipeline`, `bd-diagnose`, `bd-knowledge`) and 3 domain references the pipeline reads at a stage (`bd-intake`, `bd-physics`, `bd-hoomd`) · 9 subagents, model-tiered by whether the task needs judgment or is mechanical · 4 rules, each born from a dated accident |
 | [`knowledge/`](knowledge/) | L3 | ⚠️ **two unmerged schemas** — `wiki/` Markdown and `entries/` JSON, read by different tools |
@@ -638,7 +638,7 @@ python -m bdbot.cli status
 |---|---|
 | 6 hand sketches (the actual inputs) | in [`intake/`](intake/), downscaled |
 | HOOMD-blue 7.1.0, CPU, no MPI, no GPU | installed; capability matrix measured |
-| 42 paper distillations | in-repo. ⚠️ **38** of them are the group's own published work, so *"the literature says…"* is narrower here than it looks. The criterion is `lab_authored: true` in the distillation frontmatter — written down in [NOTICE](NOTICE.md) and five other places, and it reproduces: 38 `true`, 0 `false`, 41 with no field, totalling the 42. ⚠️ **The note that stood here was wrong on three counts** and is kept as a correction rather than deleted: the count never drifted (the directory has held 43 `.md` files at every commit — 42 distillations plus the generated `INDEX.md`, and counting the index is what made it "43" on 2026-09-15); the 38 was not unreproduced; and the "grep finds 22" it cited is the `raw_file` count, i.e. whether the original PDF was obtained, which `INDEX.md` tabulates separately as 22 / 40. All of these are now re-measured by [`verify/verify_counts.py`](verify/verify_counts.py) |
+| 43 paper distillations | in-repo. ⚠️ **38** of them are the group's own published work, so *"the literature says…"* is narrower here than it looks. The criterion is `lab_authored: true` in the distillation frontmatter — written down in [NOTICE](NOTICE.md) and five other places, and it reproduces: 38 `true`, 0 `false`, 42 with no field, totalling the 43. ⚠️ **The note that stood here was wrong on three counts** and is kept as a correction rather than deleted: the count never drifted (the directory has held 43 `.md` files at every commit — 42 distillations plus the generated `INDEX.md`, and counting the index is what made it "43" on 2026-09-15); the 38 was not unreproduced; and the "grep finds 22" it cited is the `raw_file` count, i.e. whether the original PDF was obtained, which `INDEX.md` tabulates separately as 22 / 40. All of these are now re-measured by [`verify/verify_counts.py`](verify/verify_counts.py) |
 | 2 book distillations (Leal 2026; Welty 5th ed.) | in-repo, 64/64 claims re-derived numerically |
 | Copyrighted PDFs | **not published** — see [NOTICE](NOTICE.md) |
 | Trajectories (542 MB of `.gsd`/`.npz`) | **not published** — regenerate from `spec + seed` |

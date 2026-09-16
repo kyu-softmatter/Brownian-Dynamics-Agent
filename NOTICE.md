@@ -22,11 +22,11 @@ This repository has no licence to redistribute them.
 | `kb/file_…pdf` | Welty et al., *Momentum, Heat and Mass Transfer*, 5th ed. | [`knowledge/source/books/welty_transport.md`](knowledge/source/books/welty_transport.md) — our distillation |
 | `intake/chain-bend-*/PhysRevLett.94.138301.pdf` | Pantina & Furst, *PRL* **94**, 138301 (2005) | [`knowledge/source/papers/2005-pantina-furst-bending-coefficient.md`](knowledge/source/papers/2005-pantina-furst-bending-coefficient.md) |
 | `intake/chain-bend-*/la7023617.pdf` | Pantina & Furst, *Langmuir* **24**, 1141 (2008) | distilled in the same file |
-| `knowledge/raw/lab/**` (32 PDFs + SI) | Group and reference papers collected for literature scan | 42 distillations in [`knowledge/source/papers/`](knowledge/source/papers/) |
+| `knowledge/raw/lab/**` (32 PDFs + SI) | Group and reference papers collected for literature scan | 43 distillations in [`knowledge/source/papers/`](knowledge/source/papers/) |
 
 The distillations are our own summaries: what the paper gives us in one line,
 its equations **converted into this project's non-dimensional conventions**, the
-values we reproduced, and what we could not reproduce. 35 of the 42
+values we reproduced, and what we could not reproduce. 36 of the 43
 carry a DOI in their frontmatter, so a reader can fetch the original; 7
 carry no DOI field and have to be found by title. 64 claims taken out
 of the two books are re-derived numerically by
@@ -45,12 +45,12 @@ had written "passed 56/56". They are numerals now so that
 
 **Bibliographic data in these distillations is largely unchecked.** 0
 carries an explicit `verified: false` — meaning its citation was written from
-memory — and the other 41 carry no `verified` field at all, which operationally
+memory — and the other 42 carry no `verified` field at all, which operationally
 means the same thing. The physics in a distillation was checked (that is what
 the `[BOOK]`/`[DERIV]`/`[OURS]` labels are for); the volume-and-page line
 mostly was not. Confirm the citation before it goes into a manuscript.
 
-**38** of the 42 are marked `lab_authored: true` — the literature base is
+**38** of the 43 are marked `lab_authored: true` — the literature base is
 mostly the group's own published work, which is why it grew fast and why it is
 narrow. That is a real limitation on any claim of the form *"the literature
 says…"* in this repository.

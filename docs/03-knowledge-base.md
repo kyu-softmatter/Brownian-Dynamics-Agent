@@ -35,7 +35,7 @@ knowledge stores with different shapes, different writers and different readers.
 | Form | Markdown + YAML frontmatter | flat JSON, one file per claim |
 | Written by | a human or an agent, deliberately | `tools/kb.py add` |
 | Read by | skill `bd-knowledge`, and by reading | `tools/kb.py query` |
-| Size | 49 wiki pages · 42 paper + 2 book distillations | 148 entries |
+| Size | 50 wiki pages · 43 paper + 2 book distillations | 148 entries |
 | Keyed on | kind (systems / findings / …) | `origin` × `kind` |
 | Strength | contracts, cross-links, human-legible rationale | cheap to append, so it actually gets appended |
 

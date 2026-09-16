@@ -36,6 +36,13 @@ CARD_SCALE_RULES: dict[str, str] = {
     "passive-sphere--harmonic-trap": "harmonic_trap",
     "passive-sphere--transport": "brownian",
     "passive-sphere--equilibrium-structure": "brownian",
+    # sedimentation shares the equilibrium-structure clock on purpose: the length
+    # unit is the diameter and the time unit is tau_d = d^2/D_0, so the two cards
+    # are directly comparable. The gravitational length becomes a dimensionless
+    # group (l_g/d), not a unit -- it spans orders of magnitude across the
+    # source's three solvent mixtures while d does not.
+    # knowledge/wiki/systems/passive-sphere--sedimentation.md section 3
+    "passive-sphere--sedimentation": "brownian",
     "interfacial-colloid--transport": "brownian",
     "interfacial-colloid--equilibrium-structure": "brownian",
     "abp--dense-collective": "active_run_length",

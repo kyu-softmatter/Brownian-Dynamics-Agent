@@ -362,6 +362,73 @@ structural properties (dissipative, exempt under rolling, zero outside the
 cutoff) are in
 [docs/hoomd_capabilities.md](../../../docs/hoomd_capabilities.md)
 
+### ★★ 21. `wall.Plane` does **not** apply the minimum image — the opposite of trap 1
+
+Trap 1 says an external force plus periodic boundaries needs the minimum image
+applied **by hand**, and not doing it cost +1856 % on a harmonic trap. A wall is
+also an external, position-dependent force, so the same reflex says to wrap the
+distance. **Do not.** `hoomd.wall.Plane` documents its signed distance as
+
+    d = n̂ · (r − r_o)
+
+with no wrapping, and that is what it does. Measured on a box of `Lz = 400 d`
+with the wall at the bottom and a `Gaussian` wall potential
+(`r_cut = 2 d`), reading `wall.forces` directly with no integration:
+
+| height above the wall | `U` [kT] | `F_z` [kT/d] |
+|---|---|---|
+| 0.05 | 1.972e+01 | 1.096e+01 |
+| 0.30 (`= σ_w`) | 1.213e+01 | 4.044e+01 |
+| 1.00 | 7.732e-02 | 8.591e-01 |
+| 2.02 (just past `r_cut`) | 0.000000 | **0.000000** |
+| **398.0 (the far top)** | 0.000000 | **0.000000** ✓ |
+
+A particle at the far top is `Lz − ε` above the wall and only `ε` below its
+periodic image, and it feels **exactly zero**. So a wall confines one side of a
+periodic box and nothing else — which is what makes sedimentation buildable.
+
+★ The lesson is not "walls are safe". It is that **one external force needs the
+minimum image and another must not have it**, so neither can be inferred from the
+other. Read the force's own definition of distance.
+
+Reproduce: `verify/verify_sedimentation_wall.py` stage 2.
+
+### ★★ 22. A Lennard-Jones **wall** makes the wall the constraint that binds `dt` — and the symptom is a silent pass-through
+
+`md.external.wall.LJ` cut at the LJ minimum is the obvious way to build a
+hard-ish wall. Its core is `r⁻¹²`, so under overdamped dynamics it is the
+`.claude/rules/overdamped-stability.md` failure waiting to happen. Measured with
+`σ_w = 0.5 d`, `ε_w = 1 kT`:
+
+| `h/d` | `U` [kT] | `F` [kT/d] | `dt_max_force` (δ = 0.03) |
+|---|---|---|---|
+| 0.40 | 43.9 | **1517** | 2.0e-5 |
+| 0.47 | 3.6 | 141 | 2.1e-4 |
+| 0.50 | 1.0 | 48 | 6.3e-4 |
+
+At `dt = 1e-3` a particle that reaches `h = 0.40` moves `F·dt/γ = 1.5 d` in a
+single step — **through** the wall — and then piles up against the periodic lid.
+Measured `min(h) = −1.98 d`, with **no NaN, no warning and no error**. The
+density profile came out with a fitted decay length of `48.4 d` against an
+imposed `13.4 d` (+262 %), which looks like a physics result and is not one.
+
+**Use a bounded wall.** `md.external.wall.Gaussian` has
+`F_max = ε_w/(σ_w √e)` at `h = σ_w`, so the escape mode closes by construction
+rather than by picking `dt` small enough to survive the tail of a divergence.
+`ε_w = 20 kT`, `σ_w = 0.3 d` gives `F_max = 40.4 kT/d` (`dt_max_force = 7.4e-4`),
+`U(0) = 20 kT` so penetration is `~e⁻²⁰`, and `U(2 d) = 4.5e-9 kT` so the profile
+is unperturbed two diameters out. Measured: **0 of 500 particles below the wall**
+under gravity, lowest height ever seen `+0.457 d`.
+
+⚠ And a third number from the same file, for the record: with gravity present,
+equilibration is set by the **drift across the box**, `L_z·l_g/D₀`, not by
+`l_g²/D₀`. Running `8 l_g²/D₀` in a box of height `15 l_g` fitted `l_g = 11.5 d`
+against an imposed `4.0` — **+187 %**, purely from stopping before the particles
+had fallen. The two halves of that run read 32.5 and 11.5, which is how it was
+caught.
+
+Reproduce: `verify/verify_sedimentation_wall.py` stages 2 and 3.
+
 ### Moving to 3D (measured and confirmed) ✓
 
 `network` is this project's first 3D case. What was confirmed:
