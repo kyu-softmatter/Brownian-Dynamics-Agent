@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "process",
+    "unwired-checker",
+    "coverage",
+    "verification",
+    "gates"
+  ],
+  "dimensionless": {
+    "unfired_fraction": 0.57
+  },
+  "source": "verify/verify_error_paths_fire.py; verify/verify_gates_actually_fire.py",
+  "lessons": [
+    {
+      "claim": "Applied the coverage form of the unwired-checker procedure to this repository: 154 error sites in bdbot/, 88 (57 %) never executed under the 1440-test suite, 38 of them in gate modules whose failure refuses a run. Worst: health.Guard's [NUM_NONFINITE] and [NUM_DIVERGE] runtime aborts -- the guards that stop a diverging run -- had never fired in any test, in the same module CLAUDE.md already names for health.gate() having no caller. Also unfired: metrics' rule-7' refusal of composite+implementation_check without a derivation, scales.declare_absent's rule-3 reason requirement, and 9 of intake's L0 schema errors. All 12 load-bearing ones tripped deliberately afterwards fire correctly, so none was dead -- the defect is that nobody had watched them. SECOND-ORDER LESSON, worth more than the list: the first version of the tripping harness counted ANY exception as the gate firing, so 7 of 12 'FIRES' were TypeError from wrong call signatures -- a checker passing for the wrong reason, inside the script written to find checkers that pass for the wrong reason. A negative test must assert the exception TYPE and a distinctive MESSAGE fragment, or it tests nothing.",
+      "kind": "pitfall",
+      "coords": {
+        "unfired_fraction": 0.57
+      }
+    }
+  ],
+  "not_verified": []
+}

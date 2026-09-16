@@ -1,0 +1,446 @@
+{
+ "total": 154,
+ "unfired": 88,
+ "rows": [
+  {
+   "module": "analysisplan",
+   "line": 136,
+   "src": "out.append(Issue(\"error\", k, \"required field missing\"))"
+  },
+  {
+   "module": "analysisplan",
+   "line": 145,
+   "src": "out.append(Issue(\"error\", \"planned\", \"must be a list\"))"
+  },
+  {
+   "module": "analysisplan",
+   "line": 155,
+   "src": "out.append(Issue(\"error\", at, \"must be a mapping\"))"
+  },
+  {
+   "module": "analysisplan",
+   "line": 167,
+   "src": "out.append(Issue(\"error\", at, f\"duplicate id {iid!r}\"))"
+  },
+  {
+   "module": "analysisplan",
+   "line": 179,
+   "src": "out.append(Issue(\"error\", \"not_planned\", \"must be a list\"))"
+  },
+  {
+   "module": "analysisplan",
+   "line": 184,
+   "src": "out.append(Issue(\"error\", at, \"must be a mapping {figure, reason}\"))"
+  },
+  {
+   "module": "analysisplan",
+   "line": 194,
+   "src": "out.append(Issue(\"error\", \"post_hoc\", \"must be a list\"))"
+  },
+  {
+   "module": "cli",
+   "line": 70,
+   "src": "raise SystemExit(EXIT_USAGE)"
+  },
+  {
+   "module": "constants",
+   "line": 198,
+   "src": "raise AssertionError(\"unreachable\")"
+  },
+  {
+   "module": "constants",
+   "line": 231,
+   "src": "raise KeyError("
+  },
+  {
+   "module": "cost",
+   "line": 82,
+   "src": "raise ValueError(\"steps_per_second must be > 0\")"
+  },
+  {
+   "module": "cost",
+   "line": 172,
+   "src": "raise ValueError(\"smoke_steps and smoke_wall_s must both be > 0\")"
+  },
+  {
+   "module": "goal",
+   "line": 162,
+   "src": "out.append(Issue(\"error\", \"answering_quantity\", \"must be a mapping\"))"
+  },
+  {
+   "module": "goal",
+   "line": 181,
+   "src": "out.append(Issue(\"error\", \"decisive_precision\", \"must be a mapping\"))"
+  },
+  {
+   "module": "goal",
+   "line": 199,
+   "src": "out.append(Issue(\"error\", \"physics_that_matters\", \"must be a list\"))"
+  },
+  {
+   "module": "goal",
+   "line": 208,
+   "src": "out.append(Issue(\"error\", at, \"must be a mapping {symbol, why}\"))"
+  },
+  {
+   "module": "goal",
+   "line": 219,
+   "src": "out.append(Issue(\"error\", \"analysis_implied\", \"must be a list\"))"
+  },
+  {
+   "module": "goal",
+   "line": 230,
+   "src": "out.append(Issue(\"error\", \"provenance\", \"must be a mapping\"))"
+  },
+  {
+   "module": "groups",
+   "line": 280,
+   "src": "raise ValueError(f\"D_t must be > 0, got {D_t}\")"
+  },
+  {
+   "module": "groups",
+   "line": 308,
+   "src": "raise ValueError(f\"t_obs must be > 0, got {t_obs}\")"
+  },
+  {
+   "module": "health",
+   "line": 210,
+   "src": "raise ValueError(\"need >= 2 samples\")"
+  },
+  {
+   "module": "health",
+   "line": 247,
+   "src": "raise RuntimeError(f\"[NUM_NONFINITE] step {timestep}: {n} non-finite position(s)\")"
+  },
+  {
+   "module": "health",
+   "line": 250,
+   "src": "raise RuntimeError("
+  },
+  {
+   "module": "health",
+   "line": 255,
+   "src": "raise RuntimeError(f\"[NUM_NONFINITE] step {timestep}: PE={pe}\")"
+  },
+  {
+   "module": "health",
+   "line": 260,
+   "src": "raise RuntimeError("
+  },
+  {
+   "module": "health",
+   "line": 609,
+   "src": "raise ValueError(f\"msd and t must be 1-D and the same length, got \""
+  },
+  {
+   "module": "health",
+   "line": 612,
+   "src": "raise ValueError(f\"need >= 4 points for an FDT residual, got {msd.size}\")"
+  },
+  {
+   "module": "health",
+   "line": 614,
+   "src": "raise ValueError(\"t must be > 0\")"
+  },
+  {
+   "module": "health",
+   "line": 616,
+   "src": "raise ValueError(f\"D_expected must be > 0, got {D_expected}\")"
+  },
+  {
+   "module": "health",
+   "line": 655,
+   "src": "raise ValueError(\"need >= 4 matching (t, msd) points\")"
+  },
+  {
+   "module": "health",
+   "line": 658,
+   "src": "raise ValueError(\"need >= 4 strictly positive (t, msd) points for a \""
+  },
+  {
+   "module": "intake",
+   "line": 208,
+   "src": "obs.issues.append(Issue(\"error\", str(p), \"observation.yaml is missing. \""
+  },
+  {
+   "module": "intake",
+   "line": 233,
+   "src": "out.append(Issue(\"error\", \"raw_transcription\","
+  },
+  {
+   "module": "intake",
+   "line": 248,
+   "src": "out.append(Issue(\"error\", key, f\"must be a list (got {type(items).__name__})\"))"
+  },
+  {
+   "module": "intake",
+   "line": 257,
+   "src": "out.append(Issue(\"error\", at, \"must be a mapping\"))"
+  },
+  {
+   "module": "intake",
+   "line": 261,
+   "src": "out.append(Issue(\"error\", at, f\"required key '{r}' missing \""
+  },
+  {
+   "module": "intake",
+   "line": 268,
+   "src": "out.append(Issue(\"error\", at, f\"duplicate id: {it['id']}\"))"
+  },
+  {
+   "module": "intake",
+   "line": 279,
+   "src": "out.append(Issue(\"error\", at,"
+  },
+  {
+   "module": "intake",
+   "line": 285,
+   "src": "out.append(Issue(\"error\", at, f\"kind must be one of {MISSING_KINDS}.\"))"
+  },
+  {
+   "module": "intake",
+   "line": 298,
+   "src": "out.append(Issue(\"error\", at, \"source is empty (rule 3: every number carries a sourc"
+  },
+  {
+   "module": "materials",
+   "line": 99,
+   "src": "raise ValueError("
+  },
+  {
+   "module": "materials",
+   "line": 110,
+   "src": "raise ValueError(f\"T = {T} is outside {_const.WATER_TABLE_RANGE_K} K \""
+  },
+  {
+   "module": "metrics",
+   "line": 91,
+   "src": "raise ValueError(f\"role must be one of {ROLES} (got: {role!r})\")"
+  },
+  {
+   "module": "metrics",
+   "line": 93,
+   "src": "raise ValueError(f\"scope must be one of {SCOPES} (got: {scope!r})\")"
+  },
+  {
+   "module": "metrics",
+   "line": 95,
+   "src": "raise ValueError("
+  },
+  {
+   "module": "microrheo",
+   "line": 228,
+   "src": "raise ValueError(f\"radius must be > 0, got {radius}\")"
+  },
+  {
+   "module": "microrheo",
+   "line": 247,
+   "src": "raise ValueError(f\"msd_dim must be 2 or 3, got {msd_dim}\")"
+  },
+  {
+   "module": "microrheo",
+   "line": 281,
+   "src": "raise ValueError(f\"alpha_policy must be 'mask' or 'clip', got {alpha_policy!r}\")"
+  },
+  {
+   "module": "nondim",
+   "line": 457,
+   "src": "raise KeyError(f\"{cat}.{symbol} is not in the spec ledger\")"
+  },
+  {
+   "module": "nondim",
+   "line": 463,
+   "src": "raise KeyError(f\"{cat}.{symbol} is not in the spec ledger\")"
+  },
+  {
+   "module": "nondim",
+   "line": 469,
+   "src": "raise KeyError(f\"dimensionless group '{name}' is not in the spec\")"
+  },
+  {
+   "module": "nondim",
+   "line": 579,
+   "src": "raise ValueError(f\"schema differs: {got!r} (expected {SCHEMA!r})\")"
+  },
+  {
+   "module": "params",
+   "line": 125,
+   "src": "raise ValueError(\"a parameter needs a name\")"
+  },
+  {
+   "module": "params",
+   "line": 164,
+   "src": "raise ValueError(f\"category must be one of {CATEGORIES}, got {category!r}\")"
+  },
+  {
+   "module": "params",
+   "line": 180,
+   "src": "raise ValueError(f\"category must be one of {CATEGORIES}, got {category!r}\")"
+  },
+  {
+   "module": "physical",
+   "line": 285,
+   "src": "raise KeyError(f\"{'.'.join(map(str, path))} not found ({self.path})\")"
+  },
+  {
+   "module": "planrun",
+   "line": 59,
+   "src": "raise ValueError("
+  },
+  {
+   "module": "planrun",
+   "line": 131,
+   "src": "raise CaptionRequired("
+  },
+  {
+   "module": "planrun",
+   "line": 161,
+   "src": "raise ValueError("
+  },
+  {
+   "module": "refbd",
+   "line": 70,
+   "src": "raise ValueError(f\"dt_star must be > 0, got {dt_star}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 72,
+   "src": "raise ValueError(f\"D_star must be > 0, got {D_star}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 102,
+   "src": "raise ValueError("
+  },
+  {
+   "module": "refbd",
+   "line": 109,
+   "src": "raise ValueError(\"n_particles and n_steps must be >= 1\")"
+  },
+  {
+   "module": "refbd",
+   "line": 111,
+   "src": "raise ValueError(f\"dim must be 1, 2 or 3, got {dim}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 120,
+   "src": "raise MemoryError("
+  },
+  {
+   "module": "refbd",
+   "line": 142,
+   "src": "raise ValueError(f\"noise must be 'uniform' or 'gaussian', got {noise!r}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 160,
+   "src": "raise ValueError(f\"need >= 5 samples, got {n_samples}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 178,
+   "src": "raise ValueError(f\"traj must be (n_samples, n_particles, dim), got {a.shape}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 208,
+   "src": "raise ValueError(\"no lag had enough time origins -- run longer\")"
+  },
+  {
+   "module": "refbd",
+   "line": 240,
+   "src": "raise ValueError(f\"traj must be (n_samples, n_particles, dim), got {a.shape}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 245,
+   "src": "raise ValueError(f\"need >= 5 samples, got {ns}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 279,
+   "src": "raise ValueError(\"trust band has fewer than 2 lags\")"
+  },
+  {
+   "module": "refbd",
+   "line": 296,
+   "src": "raise ValueError(f\"traj must be (n_samples, n_particles, dim), got {a.shape}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 301,
+   "src": "raise ValueError(f\"need >= 4 samples, got {ns}\")"
+  },
+  {
+   "module": "refbd",
+   "line": 339,
+   "src": "raise ValueError(\"need >= 2 positive lags\")"
+  },
+  {
+   "module": "refbd",
+   "line": 356,
+   "src": "raise ValueError(\"t and msd must match and have >= 2 points\")"
+  },
+  {
+   "module": "run",
+   "line": 133,
+   "src": "raise KeyError(f\"no L4 builder is registered for '{case}'. \""
+  },
+  {
+   "module": "run",
+   "line": 193,
+   "src": "raise Diverged(NAN, step, f\"PE/N is non-finite ({pe_per_n!r})\")"
+  },
+  {
+   "module": "run",
+   "line": 195,
+   "src": "raise Diverged(DIVERGED, step,"
+  },
+  {
+   "module": "run",
+   "line": 203,
+   "src": "raise Diverged(NAN, step, f\"non-finite value in {type(f).__name__}'s force array\")"
+  },
+  {
+   "module": "run",
+   "line": 209,
+   "src": "raise Diverged(DIVERGED, step,"
+  },
+  {
+   "module": "run",
+   "line": 336,
+   "src": "raise ValueError("
+  },
+  {
+   "module": "scales",
+   "line": 134,
+   "src": "raise ValueError(f\"emptying role '{role}' requires a reason (rule 3)\")"
+  },
+  {
+   "module": "sim",
+   "line": 99,
+   "src": "raise ValueError(f\"3D positions must be (N,3), got {p.shape}\")"
+  },
+  {
+   "module": "sim",
+   "line": 102,
+   "src": "raise ValueError(f\"L must give three positive lengths, got {L}\")"
+  },
+  {
+   "module": "sim",
+   "line": 142,
+   "src": "raise ValueError(f\"positions {p.shape} and images {im.shape} must match\")"
+  },
+  {
+   "module": "smoke",
+   "line": 117,
+   "src": "raise KeyError(f\"no smoke profile for case {case!r}. Known: \""
+  },
+  {
+   "module": "smoke",
+   "line": 123,
+   "src": "raise AttributeError("
+  }
+ ]
+}
