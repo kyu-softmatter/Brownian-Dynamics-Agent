@@ -1,0 +1,47 @@
+==============================================================================
+PARAMETER MANIFEST — trap-drag-ladder-1d
+rule 10: every number, before the run
+==============================================================================
+
+GEOMETRY
+  d              = 4.95 um              [tier 0] am:r3 primitives, lot mean (measur
+  L              = 32                   [tier 3] simulation choice -- box/d from tr
+  dim            = 2                    [tier 1] x_eq and var(x) are per-component
+  N              = 1000                 [tier 3] 4 drive velocities x 250 independe
+
+ENERGY
+  T              = 293.15 K             [tier 3] am:r3 -- ASSUMED there, their P3 b
+  kT             = 0.00404737 pN*um     [tier 1] k_B T from bdbot.constants
+
+MEDIUM
+  eta            = 0.0010016 Pa*s       [tier 3] am:r3 -- computed from the assumed
+  rho_p          = 1.05 g/cm^3          [tier 0] am:r3 polystyrene handbook; tau_p 
+
+INTERACTION
+  k_t            = 3.5054 pN/um         [tier 2] am:r3 -- MODEL value from trapping
+  v_max          = 23 um/s              [tier 2] am:r1 reference_only; 4 velocities
+
+NUMERICS
+  dt             = 9.42443e-08          [tier 1] dt/tau_k = 0.002 vs the 0.01 hard 
+  n_eq           = 10000                [tier 1] 20 tau_k
+  n_prod         = 161436               [tier 1] T_obs/tau_k = 323, the longest run
+  sample_every   = 50                   [tier 1] 10 samples per tau_k
+  seed           = 11                   [tier 0] small integer -- bd-hoomd trap 12 
+
+DERIVED
+  gamma          = 0.0467273 pN*s/um    [tier 1] 6 pi eta a -- BULK. No Faxen: BD h
+  D_t            = 0.0866169 um^2/s     [tier 1] kT/gamma
+  tau_B          = 282.884 s            [tier 1] d^2/D_t
+  tau_gov        = 13.3301 ms           [tier 1] tau_k = gamma/k_t -- GOVERNING
+
+TIER DISTRIBUTION
+  tier 0    3   given / handbook
+  tier 1   10   literature, verified
+  tier 2    2   literature, unverified
+  tier 3    4   arbitrary assumption
+  ⚠ 4 value(s) at tier 3 are arbitrary choices, not measurements
+
+==============================================================================
+VERDICT: NOT READY
+  ✗ approved_by is unset. Rule 10: lay out every number and ASK before running. No code sets this field.
+==============================================================================

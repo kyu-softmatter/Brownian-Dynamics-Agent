@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "hoomd",
+    "trap",
+    "drag",
+    "ou",
+    "cross-check"
+  ],
+  "dimensionless": {
+    "k_star": 21221.0
+  },
+  "source": "verify/verify_drag_hoomd_crosscheck.py",
+  "lessons": [
+    {
+      "claim": "The exact-OU reduction of a trapped bead under constant-velocity drive is confirmed against HOOMD Brownian at k* = 21221, dt/tau_k = 0.002, T_obs/tau_k = 322.9, N = 1000: measured <x>/d against -v*/k* is within -0.36 to +0.14 %, var(x)/d^2 against 1/k* within -1.31 to +0.03 %, and the slope d<x>/dv against -1/k* is +0.032 %. Wall time 0.5 min, 17x cheaper than the 8.6 min estimated from trap-2d-5um's 332.5 steps/s -- a trap-only system has no neighbour list, so that rate does not transfer.",
+      "kind": "method_note",
+      "coords": {
+        "k_star": 21221.0
+      }
+    }
+  ],
+  "not_verified": []
+}
