@@ -110,7 +110,7 @@ $PY tools/kb.py add --origin tooling --kind pitfall \
     --source "bdbot/metrics.py#build" --claim "…"
 ```
 
-Plus **239 `record.json`** post-mortems under `runs/`, written by
+Plus **247 `record.json`** post-mortems under `runs/`, written by
 `tools/postmortem.py`. A run is not finished when it exits; it is finished when
 its post-mortem exists.
 

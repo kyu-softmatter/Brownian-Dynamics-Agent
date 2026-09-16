@@ -165,7 +165,7 @@ produces *some* number, and not diverging is not the same as being right.
                     ║  source/papers/     43 distillations              ║
                     ║  source/books/      2 book distillations          ║
                     ║  entries/           164 tool-written JSON          ║
-                    ║  runs/**/record.json  239 post-mortems            ║
+                    ║  runs/**/record.json  247 post-mortems            ║
                     ╚═══════════════════════════════════════════════════╝
                                │
                                └──▶ R  feeds the next S1 and S3
