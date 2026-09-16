@@ -109,9 +109,23 @@ def test_report_survives_missing_pieces(rundir):
 # =============================================================================
 # 봉인 — 깨졌으면 대조표를 싣지 않는다
 # =============================================================================
-def test_intact_seal_shows_external_verification_command(rundir, full_inputs):
+def test_intact_seal_shows_a_verification_command_that_runs(rundir, full_inputs):
+    """⚠ The previous revision was `"shasum -a 256 -c SEALED.sha256" in text`,
+    and that exact string is the command that works in **no** working directory.
+    The test was pinning the broken command in place -- a substring match says
+    nothing about whether a command runs. It now extracts the command from the
+    report and executes it."""
+    import re
+    import subprocess
+
     text = R.render(rundir, full_inputs)
-    assert "shasum -a 256 -c SEALED.sha256" in text
+    assert "검증 명령" in text
+    cmd = re.search(r"```bash\n(shasum[^`]*?|cd [^`]*?)\n```", text, re.S)
+    assert cmd, text[:600]
+    r = subprocess.run(["bash", "-c", cmd.group(1)], capture_output=True, text=True)
+    assert r.returncode == 0, (cmd.group(1), r.stdout, r.stderr)
+    out = r.stdout + r.stderr
+    assert ": OK" in out and "FAILED" not in out, (cmd.group(1), out)
 
 
 def test_broken_seal_suppresses_the_comparison_table(rundir, full_inputs):
@@ -294,3 +308,59 @@ def test_existing_agent_documents_are_linked(rundir, full_inputs):
 def test_report_states_the_division_of_labour(rundir, full_inputs):
     text = R.render(rundir, full_inputs)
     assert "대신 쓰지 않는다" in text
+
+
+# =============================================================================
+# the advertised verification command -- checked by running it, not by asserting
+# ==============================================================================
+def test_the_advertised_seal_command_actually_verifies_every_archived_seal():
+    """★★ The report prints a command under "verified without this code". If
+    that command fails, the sentence is false and the seal's **only** independent
+    verification path does not exist.
+
+    ⚠ Measured 2026-09-15: the previous revision printed only
+      `shasum -a 256 -c SEALED.sha256`, which works in **no** working directory.
+      From the run directory the recorded entries are repo-relative, so it looks
+      for `runs/<id>/runs/<id>/...`; from the repo root the seal file is not
+      there. Two committed reports carried it beside "✅ 봉인 검증 통과" anyway.
+      So this test does not check a string -- it **runs the command**.
+    """
+    import subprocess
+    from simbot import io
+
+    seals = sorted(io.REPO_ROOT.glob("runs*/*/SEALED.sha256"))
+    assert len(seals) >= 21, len(seals)          # zero would pass silently
+
+    for s in seals:
+        rd = RunDir(s.parent)
+        cmd = R.seal_check_command(rd)
+        r = subprocess.run(["bash", "-c", cmd], cwd=io.REPO_ROOT,
+                           capture_output=True, text=True)
+        out = r.stdout + r.stderr
+        assert r.returncode == 0, f"{s.parent.name}: rc={r.returncode}\n{cmd}\n{out}"
+        assert "FAILED" not in out, f"{s.parent.name}:\n{cmd}\n{out}"
+        assert "could not be read" not in out, f"{s.parent.name}:\n{cmd}\n{out}"
+        assert ": OK" in out, f"{s.parent.name} verified nothing:\n{cmd}\n{out}"
+
+
+def test_the_advertised_command_fails_when_a_sealed_document_is_edited(tmp_path):
+    """Guard on the gate -- for the test above to prove anything, this command
+    must also be shown to **reject** a tamper. A command only ever checked for
+    passing is indistinguishable from `true`."""
+    import shutil
+    import subprocess
+    from simbot import io
+
+    src = next(p.parent for p in sorted(io.REPO_ROOT.glob("runs*/*/SEALED.sha256"))
+               if io.verify_seal(RunDir(p.parent)).drifted)
+    dst = tmp_path / src.name
+    shutil.copytree(src, dst)
+    rd = RunDir(dst)
+
+    target = dst / Path(next(iter(io.read_seal(rd)))).name
+    target.write_bytes(target.read_bytes() + b"\n# tampered\n")
+
+    cmd = R.seal_check_command(rd)
+    r = subprocess.run(["bash", "-c", cmd], cwd=io.REPO_ROOT,
+                       capture_output=True, text=True)
+    assert "FAILED" in (r.stdout + r.stderr), (cmd, r.stdout, r.stderr)

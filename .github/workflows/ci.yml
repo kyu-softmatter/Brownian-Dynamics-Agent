@@ -54,10 +54,19 @@ jobs:
       # a line of this repository's code -- which is the point. A seal verified
       # by the same codebase that wrote it is not verified.
       #
-      # Recorded paths are repo-relative. Where a run directory was renamed after
-      # sealing, the recorded path no longer resolves; that is reported as a
-      # warning and the document is then verified next to its own seal. Content
-      # integrity gates this job. A stale path does not.
+      # A seal only ever covers documents in its OWN directory (`write_seal`
+      # cannot reach outside it), so the document verified is the seal's sibling
+      # and the recorded path is a provenance record, not a resolution strategy.
+      # Where a run directory was renamed after sealing the recorded path no
+      # longer matches; that is reported as a warning. Content integrity gates
+      # this job. A stale path does not.
+      #
+      # ⚠ Following the recorded path FIRST was the earlier rule, and it is
+      # unsafe: a copied run directory carries the original's paths, so its seal
+      # would verify the original's documents and pass while its own went
+      # unchecked. `simbot.io.verify_seal` was brought to this same rule on
+      # 2026-09-15 -- the two checkers disagreeing on the same 18 documents was
+      # the defect that made this comment necessary.
       - name: Every sealed document still hashes to its seal
         shell: bash
         run: |
@@ -72,15 +81,14 @@ jobs:
               if [ -z "${want:-}" ]; then continue; fi
               checked=$((checked + 1))
 
-              target="$rel"
-              if [ ! -f "$target" ]; then
-                target="$dir/$(basename "$rel")"
+              target="$dir/$(basename "$rel")"
+              if [ "$rel" != "$target" ]; then
                 drifted=$((drifted + 1))
-                echo "::warning file=${seal}::recorded path '${rel}' does not resolve; verifying '${target}' instead"
+                echo "::warning file=${seal}::recorded path '${rel}' is not where the document lives now; verified '${target}'"
               fi
 
               if [ ! -f "$target" ]; then
-                echo "::error file=${seal}::sealed document is missing: ${rel}"
+                echo "::error file=${seal}::sealed document is missing: ${target}"
                 fail=1
                 continue
               fi

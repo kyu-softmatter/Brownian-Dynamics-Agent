@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1424 passed, 7 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
+**1434 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **42 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -78,8 +78,8 @@ judges where there is no closed form, and originates no physical value.
 | **296 specifications · 275 run directories** | 271 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **79 verification scripts** | every physics claim in the docs traces to one |
-| **1424 tests** | 7 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
-| **Knowledge base** | 48 wiki pages — 11 system cards · 25 findings · 5 concepts — plus 43 paper and 2 book distillations and 145 tool-written entries |
+| **1434 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **Knowledge base** | 49 wiki pages — 11 system cards · 26 findings · 5 concepts — plus 43 paper and 2 book distillations and 146 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
@@ -414,8 +414,8 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **296** specs · 275 run directories · **271** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 79 verification scripts |
-| Tests | **1424 pass**, 7 skipped (wall time not quoted — see the badge note) |
-| Knowledge | 48 wiki pages · 43 paper + 2 book distillations · 145 entries |
+| Tests | **1434 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Knowledge | 49 wiki pages · 43 paper + 2 book distillations · 146 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is

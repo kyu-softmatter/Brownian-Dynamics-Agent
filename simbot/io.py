@@ -307,18 +307,37 @@ class SealEntry:
 
 @dataclass
 class SealVerdict:
-    """봉인 검증 결과. **`ok=False` 면 S7 은 중단해야 한다.**"""
+    """봉인 검증 결과. **`ok=False` 면 S7 은 중단해야 한다.**
+
+    ⚠ Why `verified` is a separate field (measured 2026-09-15): the previous
+      revision reported `len(entries)` as "documents verified", but `entries` is
+      **the number of lines in the seal file**, not the number of documents
+      hashed. On all 21 archived seal directories this function hashed **zero
+      bytes**, and 12 of them returned `ok=True` while printing "2 documents
+      unchanged after the run". A pass indistinguishable from a failure -- the
+      shape this repository keeps recording. `ok` now requires `verified` to be
+      non-empty.
+
+      The strings `summary()` returns stay Korean on purpose: `cli.py`,
+      `simbot/validate.py` and `simbot/session.py` embed them in Korean
+      sentences, so translating them here alone would mix languages mid-sentence.
+    """
 
     ok: bool
     changed: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
     unsealed: list[str] = field(default_factory=list)   # 봉인 대상인데 목록에 없음
+    verified: list[str] = field(default_factory=list)   # hashed AND matched
+    drifted: list[str] = field(default_factory=list)    # recorded path != where it is now
     entries: dict[str, str] = field(default_factory=dict)
 
     def summary(self) -> str:
         if self.ok:
-            n = len(self.entries)
-            return f"봉인 검증 통과 — {n}개 문서 실행 후 미변경"
+            s = f"봉인 검증 통과 — {len(self.verified)}개 문서 해시 일치"
+            if self.drifted:
+                s += (f" (기록된 경로가 지금 위치와 다른 문서 {len(self.drifted)}개 — "
+                      f"내용은 일치. run 디렉터리가 봉인 후 이름이 바뀌었다)")
+            return s
         parts = []
         if self.changed:
             parts.append(f"변경됨 {self.changed}")
@@ -326,6 +345,8 @@ class SealVerdict:
             parts.append(f"사라짐 {self.missing}")
         if self.unsealed:
             parts.append(f"봉인 안 됨 {self.unsealed}")
+        if not (self.verified or parts):
+            parts.append("해시한 문서가 0개 — 이 봉인은 아무것도 검증하지 않았다")
         return "봉인 위반 — " + " · ".join(parts)
 
 
@@ -376,30 +397,58 @@ def read_seal(rundir: RunDir) -> dict[str, str]:
 def verify_seal(rundir: RunDir, stages: tuple[str, ...] = SEALED_STAGES) -> SealVerdict:
     """봉인된 문서가 실행 후 바뀌지 않았는지 확인한다.
 
-    `stages` 중 봉인 목록에 아예 없는 문서는 `unsealed` 로 보고한다 —
-    "봉인 파일이 통과했다"가 "예측이 봉인됐다"를 뜻하지 않게 하려면 이것이 필요하다.
+    **Iterate the seal's own lines -- NOT `stages`.** What a seal covers is the
+    documents written in it, not the filename list this module happens to know.
+    `stages` is used only in the opposite direction: to report a document that
+    exists but is absent from the seal as `unsealed`, which is what keeps "the
+    seal file passed" from being read as "the prediction was sealed".
+
+    ★ **While this function iterated `stages` it never verified the archive
+      once** (measured 2026-09-15). `SEALED_STAGES` holds simbot-era filenames
+      (`02_prediction.md` / `01_intake.md` / `03_spec.yaml`), while the 12 runs
+      sealed by `bdbot.runcard` carry `prediction.yaml` and `analysis_plan.yaml`.
+      So for every stage neither the file nor the seal key existed, every branch
+      `continue`d, the three problem lists stayed empty and `ok=True` came out.
+      The 9 renamed `runs_s1s8/` directories failed the other way -- `unsealed`,
+      i.e. "never sealed", on byte-intact content. Both hashed nothing. The unit
+      tests passed because only in `tmp_path` do the stage path and the seal key
+      coincide, and the one test that touched the archive pointed at a path
+      absent from every commit, so it never ran (`tests/test_s8_io.py`).
+
+    ⚠ **What is verified is the seal file's sibling.** `write_seal` can only ever
+      seal documents inside `rundir`, so the document a seal speaks about is by
+      construction in the seal's own directory. The recorded path is a
+      **provenance record**, not a resolution strategy: follow it first and a
+      copied run directory's seal verifies the *original's* documents and passes.
+      A recorded path that no longer matches is reported as `drifted` and does
+      not affect `ok`. The bash check in `.github/workflows/ci.yml` follows the
+      same rule -- the two checkers giving different verdicts on the same
+      documents was the original defect.
     """
     if not rundir.exists("seal"):
         return SealVerdict(ok=False, missing=[RUN_LAYOUT["seal"]])
 
     sealed = read_seal(rundir)
-    changed, missing, unsealed = [], [], []
-    for stage in stages:
-        p = rundir.file(stage)
-        rel = _seal_relpath(p)
-        if rel not in sealed:
-            if p.exists():
-                unsealed.append(RUN_LAYOUT[stage])
-            continue
-        if not p.exists():
-            missing.append(RUN_LAYOUT[stage])
-            continue
-        if sha256_file(p) != sealed[rel]:
-            changed.append(RUN_LAYOUT[stage])
+    changed, missing, verified, drifted = [], [], [], []
 
-    return SealVerdict(ok=not (changed or missing or unsealed),
+    for rel, want in sealed.items():
+        name = Path(rel).name
+        here = rundir.path / name
+        recorded = Path(rel) if Path(rel).is_absolute() else REPO_ROOT / rel
+        if not here.exists():
+            missing.append(name)
+            continue
+        if here.resolve() != recorded.resolve():
+            drifted.append(name)
+        (verified if sha256_file(here) == want else changed).append(name)
+
+    covered = {Path(rel).name for rel in sealed}
+    unsealed = [RUN_LAYOUT[s] for s in stages
+                if rundir.exists(s) and RUN_LAYOUT[s] not in covered]
+
+    return SealVerdict(ok=bool(verified) and not (changed or missing or unsealed),
                        changed=changed, missing=missing, unsealed=unsealed,
-                       entries=sealed)
+                       verified=verified, drifted=drifted, entries=sealed)
 
 
 # =============================================================================

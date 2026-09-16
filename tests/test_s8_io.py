@@ -259,13 +259,158 @@ def test_seal_file_is_shasum_compatible(sealed_run):
         assert rel and not rel.startswith(" ")
 
 
-def test_verify_seal_on_real_first_run():
-    """실제 첫 완주 런의 봉인이 지금도 유효한가 (회귀)."""
-    p = io.REPO_ROOT / "runs" / "2026-07-28_trap-2d-5um_2dfb9d"
-    if not p.exists():
-        pytest.skip("runs/ 는 gitignore 대상 — 이 체크아웃에 없다")
-    v = io.verify_seal(io.RunDir(p))
-    assert v.ok, v.summary()
+# ── the archive: this section never ran ───────────────────────────────────
+#
+# ★ The previous revision was a single test, and that test pointed at a path
+#   **absent from every commit in the history**: `runs/2026-07-28_trap-2d-5um_2dfb9d`
+#   has been under `runs_s1s8/` since the initial commit. So it always skipped,
+#   and its skip reason ("runs/ is gitignored") was **false** too --
+#   `git check-ignore runs` exits 1 and 1311 files under `runs/` are tracked.
+#   Pointed at the real path, the assertion failed. A silent skip, on a false
+#   premise, sitting at the centre of the seal machinery -- and the consequence
+#   was that `verify_seal` went 18 days without hashing the archive once.
+#   So this section **names no individual path**: it globs every tracked seal,
+#   and finding zero of them is itself a failure.
+
+def _archived_seal_dirs() -> list[io.RunDir]:
+    """Every run directory holding a tracked `SEALED.sha256`."""
+    return [io.RunDir(p.parent)
+            for p in sorted(io.REPO_ROOT.glob("runs*/*/SEALED.sha256"))]
+
+
+def test_there_is_at_least_one_archived_seal_to_check():
+    """Guard on the gate. The tests below iterate a list, so an empty list makes
+    all of them pass silently -- the same reason CI's bash check treats
+    `checked -eq 0` as an error."""
+    dirs = _archived_seal_dirs()
+    assert len(dirs) >= 21, [d.run_id for d in dirs]
+
+
+def test_every_archived_seal_verifies_and_none_passes_on_nothing(monkeypatch):
+    """★ A pass has to say **how many documents it hashed**.
+
+    The previous revision's `ok=True` hashed nothing on all 21 archived
+    directories, and 12 of them printed "2 documents unchanged after the run"
+    alongside it. `entries` is the number of lines in the seal file, not the
+    number of documents hashed.
+    """
+    hashed = []
+    real = io.sha256_file
+    monkeypatch.setattr(io, "sha256_file",
+                        lambda q: (hashed.append(str(q)), real(q))[1])
+    total = 0
+    for rd in _archived_seal_dirs():
+        hashed.clear()
+        v = io.verify_seal(rd)
+        assert v.ok, f"{rd.run_id}: {v.summary()}"
+        assert len(hashed) == len(v.verified) == len(v.entries), (
+            f"{rd.run_id}: the seal has {len(v.entries)} lines but "
+            f"{len(hashed)} files were hashed and {len(v.verified)} verified")
+        assert len(hashed) > 0, f"{rd.run_id}: passed having hashed 0 documents"
+        total += len(hashed)
+    assert total == 42, total          # CI's independent bash check counts 42 too
+
+
+def test_a_relocated_run_is_reported_drifted_and_not_unsealed():
+    """The 9 runs whose recorded paths stopped resolving at the `runs/` →
+    `runs_s1s8/` rename.
+
+    The content is intact, so they must pass, and the fact that the path moved
+    must be reported. The previous revision called these 9 `unsealed` -- "never
+    sealed" -- which makes "we never sealed it" and "we sealed it and then
+    renamed the directory" the same output. Those are exactly the two states this
+    mechanism exists to distinguish.
+    """
+    drifted = [rd for rd in _archived_seal_dirs() if io.verify_seal(rd).drifted]
+    assert len(drifted) == 9, [rd.run_id for rd in drifted]
+    for rd in drifted:
+        v = io.verify_seal(rd)
+        assert v.ok and not v.unsealed and not v.changed, v.summary()
+        assert len(v.drifted) == len(v.entries)
+        assert "기록된 경로" in v.summary()      # summary() is Korean by design
+
+
+def test_a_tampered_archived_document_is_caught(tmp_path):
+    """★★ The absence of this test is why nobody noticed for 18 days.
+
+    Appending a line to a document of a renamed run left the previous revision's
+    verdict **bit-identical**: the recorded path was not a seal key, so the
+    content was never hashed at all, and the result was
+    `ok=False unsealed=[...]` both before and after the tamper.
+    """
+    import shutil
+    src = next(rd for rd in _archived_seal_dirs() if io.verify_seal(rd).drifted)
+    dst = tmp_path / src.path.name
+    shutil.copytree(src.path, dst)
+    rd = io.RunDir(dst)
+    assert io.verify_seal(rd).ok, "the copy must pass first, or the comparison is void"
+
+    target = dst / Path(next(iter(io.read_seal(rd)))).name
+    target.write_bytes(target.read_bytes()
+                       + "\n# edited after seeing the result\n".encode("utf-8"))
+    v = io.verify_seal(rd)
+    assert not v.ok, v.summary()
+    assert target.name in v.changed, v
+    assert target.name not in v.verified
+
+
+def test_the_two_seal_implementations_agree_on_every_archived_seal():
+    """★ The original defect was that two checkers gave different verdicts on the
+    same documents.
+
+    `bdbot.runcard.verify_seal` iterates the seal's lines and carries a fallback
+    for a renamed directory, so it was right on all 21. `simbot.io.verify_seal`
+    iterated the stage list and was wrong on all 21 -- 12 false passes and 9
+    false violations. The two are deliberately not unified, and the reason is in
+    `bdbot.runcard`'s module docstring (`bdbot` cannot import `simbot`). If they
+    may not be unified, they must at least fail when they diverge.
+    """
+    from bdbot import runcard as RC
+    for rd in _archived_seal_dirs():
+        mine = io.verify_seal(rd)
+        theirs_ok, problems = RC.verify_seal(rd.path, root=io.REPO_ROOT)
+        assert mine.ok == theirs_ok, (rd.run_id, mine.summary(), problems)
+        hard = [q for q in problems if not q.startswith("[warn]")]
+        assert bool(mine.changed or mine.missing or mine.unsealed) == bool(hard), (
+            rd.run_id, mine, problems)
+
+
+def test_a_seal_naming_documents_that_are_not_there_cannot_pass(tmp_path):
+    """A seal that exists while none of its documents do is not a pass -- hashing
+    zero documents and passing was the core of the original defect."""
+    rd = io.RunDir.create(tmp_path, "r1")
+    rd.file("seal").write_text(
+        "0" * 64 + "  runs/gone/02_prediction.md\n", encoding="utf-8")
+    v = io.verify_seal(rd)
+    assert not v.ok
+    assert v.missing == ["02_prediction.md"] and not v.verified
+
+
+def test_an_empty_seal_file_cannot_pass(tmp_path):
+    """`write_seal` refuses to write an empty seal, but a truncated file must not
+    pass either.
+
+    With a document present, `unsealed` is the accurate word -- a prediction
+    sitting beside an empty seal really is "not sealed".
+    """
+    rd = io.RunDir.create(tmp_path, "r1")
+    rd.write("prediction", "# p\n")
+    rd.file("seal").write_text("", encoding="utf-8")
+    v = io.verify_seal(rd)
+    assert not v.ok and not v.verified
+    assert v.unsealed == ["02_prediction.md"], v
+
+
+def test_a_seal_that_covers_nothing_at_all_says_so(tmp_path):
+    """★ Having nothing to say is where the original defect lived: an empty seal
+    and no sealable document either. The previous revision left all three problem
+    lists empty and returned `ok=True`."""
+    rd = io.RunDir.create(tmp_path, "r1")
+    rd.file("seal").write_text("\n# a seal with only a comment\n", encoding="utf-8")
+    v = io.verify_seal(rd)
+    assert not v.ok, v
+    assert not (v.changed or v.missing or v.unsealed or v.verified), v
+    assert "0개" in v.summary(), v.summary()
 
 
 # =============================================================================

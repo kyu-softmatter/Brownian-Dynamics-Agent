@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .io import RUN_LAYOUT, RunDir, verify_seal
+from .io import REPO_ROOT, RUN_LAYOUT, RunDir, verify_seal
 from .nondim import ReducedSpec, nondim_table, reduce_spec, roundtrip_errors
 from .spec import SpecReport, SystemSpec, validate as validate_spec
 from .validate import ValidationReport
@@ -46,12 +46,48 @@ def _fmt(x: float | None, spec: str = ".6g") -> str:
 # =============================================================================
 # 절 단위 렌더러 — 각각 독립적으로 테스트된다
 # =============================================================================
+def seal_check_command(rundir: RunDir) -> str:
+    """The command to verify a seal without this code. **Run it from the repo root.**
+
+    ⚠ The previous revision printed only `shasum -a 256 -c SEALED.sha256`, and
+      that resolves in **no working directory**: run from the run directory, the
+      recorded entries are repo-relative so it looks for
+      `runs/<id>/runs/<id>/...`; run from the repo root, the seal file is not
+      there. The report was advertising a verification path that failed. This
+      function's output is **actually executed** by two tests
+      (`tests/test_s8_report.py`) -- one asserting it passes, one asserting it
+      reports FAILED on an edited document, because a command that only ever
+      passes is indistinguishable from `true`.
+    """
+    try:
+        d = rundir.path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        d = rundir.path.as_posix()
+    if verify_seal(rundir).drifted:
+        return (f"cd {d} \\\n"
+                f"  && sed 's#  .*/#  #' {RUN_LAYOUT['seal']} | shasum -a 256 -c")
+    return f"shasum -a 256 -c {d}/{RUN_LAYOUT['seal']}"
+
+
 def seal_section(rundir: RunDir) -> str:
+    """The seal section. **The command it advertises has to actually pass.**
+
+    ⚠ 2026-09-15: the `runs/` → `runs_s1s8/` rename left 9 runs whose recorded
+      paths no longer resolve, so `shasum -a 256 -c SEALED.sha256` fails with
+      "could not be read". Two committed reports carried that command directly
+      beside "✅ 봉인 검증 통과" -- the report asserting a pass while the
+      verification path it advertised failed. It was true before the rename and
+      the rename broke it. The command now comes from `seal_check_command`, which
+      handles the drifted case, and the rendered command is executed by a test.
+    """
     v = verify_seal(rundir)
     if v.ok:
         return (f"**봉인 검증** ✅ {v.summary()}\n\n"
-                f"검증 명령 (이 코드 없이도 확인된다):\n\n"
-                f"```bash\nshasum -a 256 -c {RUN_LAYOUT['seal']}\n```")
+                f"검증 명령 (이 코드 없이도 확인된다 — 저장소 루트에서):\n\n"
+                f"```bash\n{seal_check_command(rundir)}\n```"
+                + ("\n\n> 기록된 경로는 봉인 당시의 것이고 run 디렉터리가 그 뒤에 "
+                   "개명됐다. 위 `sed` 는 봉인 파일을 고치지 않고 경로만 파일명으로 "
+                   "바꿔 읽는다 — 다이제스트는 그대로다." if v.drifted else ""))
     return ("> ## ⛔ 봉인 위반\n>\n"
             f"> {v.summary()}\n>\n"
             "> **예측이 실행 후 수정됐을 수 있다.** 아래 대조표는 검증으로 읽으면 안 된다.\n"
