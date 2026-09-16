@@ -15,8 +15,13 @@
 # and rationale documents are LLM judgments that do not regenerate, and the
 # prediction is the thing being sealed. So: track text, exclude binaries and
 # per-run figures.
-runs/**/figs/**
-runs/**/observables.png
+runs*/**/figs/**
+runs*/**/observables.png
+# ⚠ `runs/` only until 2026-09-15, so the policy did not reach `runs_s1s8/` --
+#   where six predecessor-era reports link to 24 figures that were never carried
+#   into this repository. The figures are absent either way; making the pattern
+#   uniform is what lets `verify/verify_links.py` tell "deliberately unpublished"
+#   from "broken".
 
 # Per-replica manifests of a seed-sweep. Measured on a k=1536 sweep: 3,534
 # files / 14 MB whose provenance fields (code_hash, git_rev, env, env_hash)

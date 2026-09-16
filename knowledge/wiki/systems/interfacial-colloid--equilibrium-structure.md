@@ -169,7 +169,11 @@ r/d = a_ij^(1/3)
 > ✅ **`g(r)` 기대값은 곡선 판독으로 정량화했다** (2026-07-27).
 > 원 논문의 "excellent agreement"는 게이트가 아니었으므로(원칙 7) Figure 4B를 색분리로
 > 디지타이즈했다. 축 보정 검증은 `exp` 꼬리가 `1.008 ± 0.114`로 `g(r)→1`에 수렴한 것.
-> 판독 스크립트 [`docs/tools/digitize_fig4b.py`](../../../docs/tools/digitize_fig4b.py)로 재현 가능.
+> ⚠️ **Not reproducible**: the reading script this line cited,
+> `docs/tools/digitize_fig4b.py`, is not in the repository and never was
+> (measured 2026-09-15). The readings survive in
+> `knowledge/wiki/benchmarks/choi2020-rdf-readings.json`; the digitization
+> behind them cannot be re-run. See that benchmark page.
 >
 > **판별력이 크다.** 1차 피크 하나로 세 조건이 갈린다 — `Ω_hetero` +0%, `Ω_min` +83%,
 > `Ω_max` +135%. 불균질을 안 넣으면 피크가 2배 이상 솟는다.

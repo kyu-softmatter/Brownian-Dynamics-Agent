@@ -18,7 +18,7 @@ cites:
 > 2D 육방 콜로이드 결정에서 **입자 하나를 광집게로 잡아 등속으로 끌 때** 무엇이 일어나는가.
 > 능동 미세유변학(active microrheology)의 비선형 영역.
 
-원자료: [`inputs/trap-drag-2d-hex300/sketch_01.jpeg`](../../../inputs/trap-drag-2d-hex300/sketch_01.jpeg)
+원자료: [`inputs/trap-drag-2d-hex300/sketch_01.jpeg`](../../../intake/trap-drag-2d-hex300/sketch_01.jpeg)
 (sha256 추적됨) · **`status: draft` — 아직 한 번도 돌리지 않았다.**
 
 ---
@@ -168,7 +168,7 @@ cites:
 육방 결정이 존재하려면 반발 상호작용이 필요하다.
 
 **가설 (medium 신뢰도):** 동시에 들어온
-[`soft-r3-2d-A-sweep`](../../../inputs/soft-r3-2d-A-sweep/sketch_01.jpeg) 의
+[`soft-r3-2d-A-sweep`](../../../intake/soft-r3-2d-A-sweep/sketch_01.jpeg) 의
 **`U_ij/kT = A/r³`** 이 이 계의 상호작용이다. 근거:
 
 1. 같은 날 같은 묶음으로 들어왔다

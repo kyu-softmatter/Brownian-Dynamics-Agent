@@ -1,6 +1,6 @@
 # REPORT — `soft-r3` 2D `A` 스윕, **시간분해** (2026-07-29_soft-r3-time-resolved)
 
-손그림 [`sketch_01.jpeg`](../../inputs/soft-r3-2d-A-sweep/sketch_01.jpeg) → `U/kT = A/r³` 2D 계 · `N = 100` · 정사각 주기 상자
+손그림 [`sketch_01.jpeg`](../../intake/soft-r3-2d-A-sweep/sketch_01.jpeg) → `U/kT = A/r³` 2D 계 · `N = 100` · 정사각 주기 상자
 
 **묻는 질문** — `A` 마다 최종 배치가 무엇이고, **그 배치가 언제 만들어지는가.**
 

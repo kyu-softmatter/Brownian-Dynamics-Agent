@@ -1,6 +1,6 @@
 # S1 — 판독: 그림 대비 **델타**
 
-원자료 [`inputs/soft-r3-2d-A-sweep/sketch_01.jpeg`](../../inputs/soft-r3-2d-A-sweep/sketch_01.jpeg)
+원자료 [`inputs/soft-r3-2d-A-sweep/sketch_01.jpeg`](../../intake/soft-r3-2d-A-sweep/sketch_01.jpeg)
 · 카드 [`soft-repulsive-2d--equilibrium-structure`](../../knowledge/wiki/systems/soft-repulsive-2d--equilibrium-structure.md)
 
 > 그림 자체의 판독은 카드 §1 에 이미 있다. **이 문서는 사용자 지시가 그림을 어디서

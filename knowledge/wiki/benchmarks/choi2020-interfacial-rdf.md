@@ -22,8 +22,18 @@ cites:
 
 ## 1. 판독값 — Figure 4B
 
-`r/d ∈ [0,30]`, `rdf ∈ [0,10]`. 판독 스크립트: [`docs/tools/digitize_fig4b.py`](../../../docs/tools/digitize_fig4b.py)
-· 원시 출력: [`choi2020-rdf-readings.json`](choi2020-rdf-readings.json)
+`r/d ∈ [0,30]`, `rdf ∈ [0,10]`. 원시 출력: [`choi2020-rdf-readings.json`](choi2020-rdf-readings.json)
+
+> ⚠️ **The digitization is recorded, not reproducible** (measured 2026-09-15).
+> This line cited `docs/tools/digitize_fig4b.py` as the reading script. That
+> file — and the whole `docs/tools/` directory — **is not in this repository and
+> never has been**; the same directory is named as the generator of
+> `knowledge/source/papers/INDEX.md`, which is also absent. The readings
+> themselves survive in `choi2020-rdf-readings.json`, so the numbers below are a
+> preserved artefact, but the axis calibration and colour separation that
+> produced them cannot be re-run or checked. Treat the tolerances derived here as
+> `reproduced: no` in the sense of `.claude/rules/verify-against-literature.md`:
+> a record of what was read, not a basis for a verification claim.
 
 | 특징 | `exp` | `Ω_hetero` | `Ω_max` | `Ω_min` |
 |---|---|---|---|---|

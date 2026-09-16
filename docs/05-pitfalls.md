@@ -347,6 +347,56 @@ deliberately excluded — it records the three predecessor repositories as they
 stood at the merge, and re-measuring those would destroy the record. A test
 asserts that exclusion so nobody "fixes" them.
 
+### A citation to a file nobody committed
+
+39 of 501 repo-relative links in the documentation were broken (measured
+2026-09-15). Most were navigation. Two were **evidence**:
+
+> `knowledge/wiki/benchmarks/choi2020-interfacial-rdf.md` and its system card both
+> cited `docs/tools/digitize_fig4b.py` as the script that digitized Figure 4B into
+> the quantitative `g(r)` tolerance — the whole reason that benchmark exists, since
+> the paper said only *"excellent agreement"* — and the system card added
+> *"재현 가능"*, reproducible with it.
+
+**`docs/tools/` has never existed in this repository.** Neither has the other
+script named from it, `wiki_index.py`, which `INDEX.md`'s header calls its
+generator. The readings survive in `choi2020-rdf-readings.json`, so the numbers
+are a preserved artefact — but the axis calibration and colour separation behind
+them cannot be re-run or checked, which makes the tolerance a **record of what
+was read, not a basis for a verification claim**
+([verify-against-literature](../.claude/rules/verify-against-literature.md): a
+`reproduced: no` parameter is a fact, not evidence). Both pages say so now.
+
+Seven more still pointed at `inputs/`, renamed to `intake/` at the 2026-08-28
+merge — and one of them was **live report-generating code**, so every report it
+wrote carried the dead path forward.
+
+★ [`verify/verify_links.py`](../verify/verify_links.py) + `tests/test_links.py`
+resolve every one of them now. The design problem was that three kinds of
+unresolvable link are legitimate, and lumping them with the rest makes the gate
+either useless or unpassable:
+
+| category | why it is allowed | count |
+|---|---|---|
+| `unpublished` | the target matches a `.gitignore` rule — `NOTICE.md` says per-run figures and trajectories are not published | 26 |
+| `frozen` | **the containing file is under seal.** The rename cannot be applied to two archived `01_intake.md` without breaking their seals, and `.claude/settings.json` denies the edit. That is sealing working | 2 |
+| `historical` | `docs/history/` holds copies of the predecessor repositories' own documents, whose references point into repositories that no longer exist | 4 |
+
+`frozen` is derived from the seal files, never from a list, because a list is
+what drifted everywhere else here.
+
+⚠ **A size cap on an exemption is not an exemption check.** The first version
+asserted only that each category stayed under a bound, and a mutation that
+classified *every* unresolvable link as `unpublished` satisfied all three bounds
+and passed. Membership is now re-derived independently — each `unpublished`
+target must actually be matched by `git check-ignore`, and must be a figure or a
+trajectory rather than any ignored path at all. 5 of 5 mutations CAUGHT.
+
+⚠ And the `.gitignore` policy itself had only reached half the repository: it
+excluded `runs/**/figs/**` while six predecessor-era reports under `runs_s1s8/`
+link to 24 figures that were never carried in. The pattern is `runs*/` now, which
+is what lets the gate tell *deliberately unpublished* from *broken*.
+
 ### Output that looks like a finding
 
 The unwired-checker failure above has a family. Each member produces something
@@ -634,7 +684,7 @@ a real crash bug precisely because it was written to break things.
    without an error?*
 3. File a KB entry with `origin: tooling` and a **cause, not a symptom**.
 
-There are **59** `tooling` entries of 147 (measured 2026-09-15: 59 tooling · 50
+There are **60** `tooling` entries of 148 (measured 2026-09-15: 60 tooling · 50
 method · 25 handbook · 10 intake · 3 paper). That number is the honest measure of
 how much of this work is fighting the instruments rather than the physics — and
 it had drifted from 48, which is the same class of defect as the counts in the

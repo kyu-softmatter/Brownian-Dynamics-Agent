@@ -21,7 +21,7 @@ cites:
 > `η₆` 로 hexatic 이 기각되고 (§8.5), `A = 100` 은 결정이다 (§8.1).
 > hexatic 창은 `Γ = 55.87–59.88` → `A = 10.03–10.75` 로 **`7 %` 폭**이다.
 
-원자료: [`inputs/soft-r3-2d-A-sweep/sketch_01.jpeg`](../../../inputs/soft-r3-2d-A-sweep/sketch_01.jpeg)
+원자료: [`inputs/soft-r3-2d-A-sweep/sketch_01.jpeg`](../../../intake/soft-r3-2d-A-sweep/sketch_01.jpeg)
 (`A = 0.1, 1, 10, 100` · `N = 100` · `L_x = L_y` · 질문 "final configuration?" →
 `rdf`, `voronoi plot`, other structure analysis)
 

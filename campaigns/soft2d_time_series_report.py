@@ -336,7 +336,7 @@ def report_md(rd: RunDir, metrics: dict, spec: dict, figures_md: str) -> str:
     man = json.loads(rd.file("manifest").read_text()) if rd.exists("manifest") else {}
     wall = man.get("batch_wall_s")
     out = [f"# REPORT — `soft-r3` 2D `A` 스윕, **시간분해** ({rd.run_id})", "",
-           f"손그림 [`sketch_01.jpeg`](../../inputs/soft-r3-2d-A-sweep/sketch_01.jpeg) "
+           f"손그림 [`sketch_01.jpeg`](../../intake/soft-r3-2d-A-sweep/sketch_01.jpeg) "
            f"→ `U/kT = A/r³` 2D 계 · `N = 100` · 정사각 주기 상자", "",
            "**묻는 질문** — `A` 마다 최종 배치가 무엇이고, **그 배치가 언제 "
            "만들어지는가.**", "",

@@ -1,0 +1,25 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "links",
+    "documentation",
+    "provenance",
+    "benchmark",
+    "digitization",
+    "gate"
+  ],
+  "dimensionless": {},
+  "source": "verify/verify_links.py",
+  "lessons": [
+    {
+      "claim": "39 of 501 repo-relative documentation links were broken (measured 2026-09-15), and two were evidence rather than navigation: knowledge/wiki/benchmarks/choi2020-interfacial-rdf.md and knowledge/wiki/systems/interfacial-colloid--equilibrium-structure.md both cited docs/tools/digitize_fig4b.py as the script that digitized Figure 4B into the quantitative g(r) tolerance -- the whole reason that benchmark exists, since the paper said only 'excellent agreement' -- and the system card called the reading reproducible with it. docs/tools/ has NEVER existed in this repository, nor has wiki_index.py which INDEX.md names as its generator. The readings survive in choi2020-rdf-readings.json so the numbers are preserved, but the digitization cannot be re-run, making the tolerance a record rather than evidence (verify-against-literature: reproduced:no is a fact, not a basis). Seven more links pointed at inputs/, renamed to intake/ at the merge, one inside live report-generating code. Fixed by verify/verify_links.py + tests/test_links.py with three legitimate categories: unpublished (gitignored -- NOTICE says figures and trajectories are not published), frozen (the CONTAINING FILE is under seal so the rename cannot be applied without breaking it -- derived from the seal files, not a list), and historical (docs/history/ copies of predecessor documents). KEY LESSON: a size cap on an exemption is not an exemption check -- the first version asserted only that each category stayed under a bound, and a mutation classifying EVERY unresolvable link as unpublished satisfied all three and passed; membership is now re-derived independently. 5/5 mutations CAUGHT. Also .gitignore excluded runs/**/figs/** but not runs_s1s8/**, so the policy reached only half the repository.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
