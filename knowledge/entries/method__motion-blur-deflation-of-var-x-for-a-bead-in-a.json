@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "trap",
+    "camera",
+    "motion-blur",
+    "exposure",
+    "microscopy",
+    "bridge"
+  ],
+  "dimensionless": {
+    "t_exp_over_tau": 0.0279
+  },
+  "source": "verify/verify_detector_model.py",
+  "lessons": [
+    {
+      "claim": "Motion-blur deflation of var(x) for a bead in a HARMONIC TRAP is 1 - 2(u-1+e^-u)/u^2 with u = t_exp/tau_k, i.e. u/3 as u->0 -- NOT the free-particle MSD coefficient 2*D*t_exp/3 = 2u/3, which is 2x too large. Measured at 5 values of u from 0.028 to 3 against exact-OU boxcar averaging: the exact formula agrees within 3.3 sigma everywhere, 2u/3 is rejected at 16 to 358 sigma. At the trap-stiffness-recovery thread's numbers (t_exp = 0.45 ms, tau_k = 16.14 ms) the deflation is 0.92 % and not the 1.86 % quoted in AM's r1 camera_model assumption.",
+      "kind": "method_note",
+      "coords": {
+        "t_exp_over_tau": 0.0279
+      }
+    }
+  ],
+  "not_verified": []
+}

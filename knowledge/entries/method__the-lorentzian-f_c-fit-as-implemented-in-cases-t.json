@@ -1,0 +1,29 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "trap",
+    "psd",
+    "lorentzian",
+    "estimator",
+    "bias",
+    "bridge"
+  ],
+  "dimensionless": {
+    "samples_per_tau": 10.0
+  },
+  "source": "verify/verify_fc_estimator_bias.py",
+  "lessons": [
+    {
+      "claim": "The Lorentzian f_c fit as implemented in cases/trap_2d_5um.py (unweighted curve_fit of S0/(1+(f/fc)^2) over the WHOLE one-sided Welch PSD) carries a +0.8 to +1.2 % bias at 10 samples per tau_k, measured on exact-OU data whose f_c is known in closed form. runs/trap-2d-5um__a5ef4f45d589 reports f_c +1.17 % -- 0.1 sigma from the estimator's own bias, so that number is method, not physics. It is a BIAS: T_obs x 26 (310 -> 8000 tau_k) does not remove it. Sweeping the sampling rate is non-monotonic (+7.9 % at 2 samples/tau_k, +0.8 % at 10, +3.8 % at 50) because an unweighted least squares over the whole band is dominated by points far above the corner, which carry no information about f_c.",
+      "kind": "pitfall",
+      "coords": {
+        "samples_per_tau": 10.0
+      }
+    }
+  ],
+  "not_verified": []
+}
