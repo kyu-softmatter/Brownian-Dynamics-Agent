@@ -35,7 +35,7 @@ knowledge stores with different shapes, different writers and different readers.
 | Form | Markdown + YAML frontmatter | flat JSON, one file per claim |
 | Written by | a human or an agent, deliberately | `tools/kb.py add` |
 | Read by | skill `bd-knowledge`, and by reading | `tools/kb.py query` |
-| Size | 50 wiki pages · 43 paper + 2 book distillations | 148 entries |
+| Size | 50 wiki pages · 43 paper + 2 book distillations | 157 entries |
 | Keyed on | kind (systems / findings / …) | `origin` × `kind` |
 | Strength | contracts, cross-links, human-legible rationale | cheap to append, so it actually gets appended |
 
@@ -84,17 +84,17 @@ Recording it is worth as much as recording a success, and it must state a
 
 ## 3 · The `entries/` store — what actually gets written
 
-148 entries, by origin. The distribution is itself a finding:
+157 entries, by origin. The distribution is itself a finding:
 
 | `origin` | Count | What it means |
 |---|---:|---|
-| **`tooling`** | **60** | **a tool bit us** |
+| **`tooling`** | **62** | **a tool bit us** |
 | `method` | 45 | how to do something, learned by doing it |
 | `handbook` | 25 | a number or a formula from a reference work |
 | `intake` | 10 | how to read a sketch |
 | `paper` | 3 | a claim from a paper |
 
-⚠️ **60 tooling entries against 3 paper entries is not a good sign about the
+⚠️ **62 tooling entries against 3 paper entries is not a good sign about the
 tools.** This table read 44 against 3 when it was written, with `tooling` tied
 with `method`; the store has grown by 9 since and `tooling` accounts for 8 of
 that difference, so it is now ahead on its own. **The gap is widening.** More time went into "our own machinery silently misled us" than into
