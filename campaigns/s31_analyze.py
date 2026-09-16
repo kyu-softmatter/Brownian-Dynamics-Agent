@@ -428,6 +428,48 @@ def make_figures(rows) -> list[Path]:
     fig.tight_layout(); f = FIGDIR / "F7_which_arm_moved.png"
     fig.savefig(f, dpi=150); plt.close(fig); out.append(f)
 
+    # ── F4: the two cross-sections, with the ratio panel ─────────────────
+    #
+    #  ★ Promised by the sealed plan and missing until
+    #    `verify/verify_plan_is_implemented.py` was written and run -- the third
+    #    plan-versus-code gap found in this campaign, and the first found by a
+    #    gate rather than by reading.
+    small = [r for r in live if r["arm"] == "cs_eff" and r["lxy"] < 20]
+    big = [r for r in live if r["arm"] == "finite_size"]
+    if small and big:
+        fig, axes = plt.subplots(2, 1, figsize=(8, 7), sharex=True,
+                                 gridspec_kw={"height_ratios": [2, 1]})
+        ax, axr = axes
+        h = small[0]["arr"]["profile_h"]
+        ps = np.mean([r["arr"]["profile_phi"] for r in small], axis=0)
+        pb = np.mean([r["arr"]["profile_phi"] for r in big], axis=0)
+        #  Poisson error on the pooled counts of each group
+        cs_ = sum(r["arr"]["profile_counts"] for r in small)
+        cb_ = sum(r["arr"]["profile_counts"] for r in big)
+        ax.plot(h, ps, "-", color=COL["cs_eff"], lw=1.2,
+                label=f"L_xy = 12 d, {len(small)} seed(s) pooled")
+        ax.plot(h, pb, "-", color=COL["finite_size"], lw=1.2,
+                label=f"L_xy = 24 d, {len(big)} seed(s) pooled")
+        ax.plot(*cands["cs_eff"], ls="--", color="grey", lw=1.2,
+                label="their common CS(phi_eff) start")
+        ax.set_yscale("log"); ax.set_ylim(1e-6, 0.3)
+        ax.set_ylabel(r"$\phi(h)$"); ax.legend(fontsize=8)
+        ax.set_title("F4  the two cross-sections -- a one-body profile must not "
+                     "depend on L_xy")
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio = pb / ps
+            band = np.sqrt(1.0 / np.maximum(cs_, 1) + 1.0 / np.maximum(cb_, 1))
+        m = (cs_ >= 20) & (cb_ >= 20)
+        axr.errorbar(h[m], ratio[m], yerr=band[m], fmt=".", ms=3, lw=0.6,
+                     color="k", alpha=0.7)
+        axr.axhline(1.0, color="k", lw=0.8)
+        axr.set_ylim(0.7, 1.3); axr.set_xlim(0, 100)
+        axr.set_xlabel("h / d"); axr.set_ylabel("24 d / 12 d")
+        axr.set_title("flat at 1 within the Poisson band = no finite-size effect",
+                      fontsize=9)
+        fig.tight_layout(); f = FIGDIR / "F4_cross_sections.png"
+        fig.savefig(f, dpi=150); plt.close(fig); out.append(f)
+
     # ── F6: <U>/N against time ───────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(8, 4.5))
     for r in live:
