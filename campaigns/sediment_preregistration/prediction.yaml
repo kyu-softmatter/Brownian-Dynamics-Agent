@@ -2,8 +2,40 @@ schema: bdbot.prediction/0.1
 campaign: sedimentation-eos-S31
 case: sediment-pmma-3d
 written: 2026-09-16
-revision: 4
+revision: 5
 sealable: true
+
+# ══════════════════════════════════════════════════════════════════════════
+# ⚠⚠ THE RUNNING CAMPAIGN IS SEALED AGAINST REVISION 4, NOT THIS FILE.
+#
+# `runs/<run_id>/prediction.yaml` in all eight run directories carries revision
+# 4 and its seals verify. This file diverged from them AFTER they were sealed,
+# and the divergence is exactly two fields:
+#
+#     P2 `Z_dilute_tail`         role: implementation_check -> measurement
+#     P5 `profile_halves_chi2_nu` role: implementation_check -> measurement
+#
+# Nothing else. No prediction, threshold, window, seed, arm or cost differs.
+#
+# ★ Which reading governs, and why this is a documentation defect rather than a
+#   change of the registered plan: revision 4 ALREADY pre-registers both
+#   demotions, in three places that are inside the sealed copies --
+#   `design_power.gates_as_revised` (twice, each with its rule 7' argument) and
+#   the revision-4 disclosure, which says in terms that "the two statistics whose
+#   thresholds would have failed had their ROLE corrected instead". What revision
+#   4 failed to do was update these two vestigial `role:` fields to match, so the
+#   sealed document contradicts itself and the favourable reading happens to be
+#   the correct one. That is stated here rather than resolved quietly.
+#
+# ⚠ The argument for both demotions does not depend on any measured value: Z -> 1
+#   in the dilute tail holds only at equilibrium, and drift is the expected
+#   signature of the losing hypothesis. Both would be true had nothing been run.
+#
+# Caught by `tests/test_plan_is_implemented.py`, which compares every sealed role
+# against the role the case sets. DO NOT run `--prepare` while the campaign is
+# running: it would re-copy this file over the sealed revision-4 copies and split
+# the campaign across two documents.
+# ══════════════════════════════════════════════════════════════════════════
 
 question: >-
   Does free-draining Brownian dynamics with a soft (WCA) core reproduce the
@@ -479,9 +511,20 @@ predictions:
   - id: P2
     quantity: Z_dilute_tail
     predicted: 1.0
-    tolerance: "10 %"
-    role: implementation_check
-    ★_this_is_THE_gravity_gate: >-
+    tolerance: "none in revision 4 -- reported as an equilibration diagnostic"
+    role: measurement
+    ★_demoted_in_revision_4_and_this_field_was_missed_once: >-
+      A rule 7' correction, and the same field-level miss as P5: revision 4
+      changed this role in the gate table and in the case and left THIS field
+      saying `implementation_check`, so the analyzer went on gating it and
+      reported IMPLEMENTATION FAILURE on A1. Caught by
+      `tests/test_plan_is_implemented.py`.
+      Why it is a measurement: Z -> 1 in the dilute tail is exact AT EQUILIBRIUM
+      and not on a relaxing run, and equilibrium is what this campaign measures.
+      Measured: 0.874 on A1 and 1.051 on B4 -- an 18 % spread between two seeds,
+      with a within-run block SEM of 0.036, which is the tail being
+      statistically thin rather than the gravity being wrong.
+    ★_what_it_WAS_going_to_gate: >-
       With P1 demoted, this is the statistic that says the imposed gravity, the
       profile accumulation and the hydrostatic integral agree with each other. It
       is directly sensitive to the failure that matters: if the force used one
@@ -547,8 +590,18 @@ predictions:
   - id: P5
     quantity: profile_halves_chi2_nu
     predicted: 1.0
-    tolerance: "100 %, i.e. the band [0, 2]"
-    role: implementation_check
+    tolerance: "none in revision 4 -- reported against the band [0, 2] as a guide"
+    role: measurement
+    ★_demoted_in_revision_4_and_this_field_was_missed_once: >-
+      A rule 7' correction: drift is the EXPECTED signature of the losing
+      hypothesis, since the verdict is which arm does NOT move. Measured 2.746 on
+      B4 (the CS(phi_nominal) arm) against 1.516 on A1 -- exactly the intended
+      signal, and an implementation_check would have called it a bug.
+      ⚠ Revision 4 changed this role in the gate table and in the case and left
+      THIS field saying `implementation_check`. Caught by
+      `tests/test_plan_is_implemented.py`, which compares every sealed role
+      against the role the case sets. Two copies of one declaration is two things
+      to forget, and the document had both.
     ★_the_stationarity_test_and_the_whole_basis_of_the_verdict: >-
       chi^2 per degree of freedom between the profile over the first half of the
       production window and the second half, Poisson error on each. 1.0 if
@@ -727,7 +780,11 @@ revision_history:
   2: "sealed into 8 run directories on 2026-09-16, and superseded the same day
       without any production run completing. Its defects are listed in the
       revision-3 disclosure above."
-  4: "this document. Two rule 7' role corrections (`Z_dilute_tail` and
+  5: "THIS FILE. Identical to revision 4 except that P2's and P5's vestigial
+      `role:` fields now say `measurement`, matching the demotions revision 4
+      already pre-registered in its gate table and its disclosure. The eight
+      running runs are sealed against REVISION 4 -- see the banner at the top."
+  4: "sealed into the 8 running run directories. Two rule 7' role corrections (`Z_dilute_tail` and
       `profile_halves_chi2_nu` from implementation_check to measurement), the
       primary statistic's sigma replaced by the run's own block SEM, and the
       block accumulation that makes that possible. Same arms, same seeds, same

@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "knowledge/wiki/findings/a-correlation-time-does-not-transfer-between-observables.md",
+  "lessons": [
+    {
+      "claim": "An integrated autocorrelation time measured on one observable must not be used to inflate another's error bar. Measured: tau_int of the mean particle height was 86-132 of 478 frames (N_eff 3.6-5.5), implying a 10x inflation, but the primary EOS statistic's own block SEM was 1.04x the independent-frame Monte Carlo -- h_mean tracks the slow drift on tau_fall = 9.35 tau_sed while the dense-region statistic decorrelates fast. Applying the 10x would have turned 15.6 sigma into 1.7 and killed an affordable campaign. The block SEM is itself a lower bound when tau_int exceeds the block length; the seed-to-seed spread is the error bar that matters.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

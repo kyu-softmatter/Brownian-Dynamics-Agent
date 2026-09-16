@@ -35,7 +35,7 @@ knowledge stores with different shapes, different writers and different readers.
 | Form | Markdown + YAML frontmatter | flat JSON, one file per claim |
 | Written by | a human or an agent, deliberately | `tools/kb.py add` |
 | Read by | skill `bd-knowledge`, and by reading | `tools/kb.py query` |
-| Size | 53 wiki pages · 43 paper + 2 book distillations | 161 entries |
+| Size | 54 wiki pages · 43 paper + 2 book distillations | 162 entries |
 | Keyed on | kind (systems / findings / …) | `origin` × `kind` |
 | Strength | contracts, cross-links, human-legible rationale | cheap to append, so it actually gets appended |
 
@@ -52,7 +52,7 @@ verified by tests, knowledge by citation, rules by an accident report.**
 | Kind | Count | What | Contract |
 |---|---:|---|---|
 | **`systems/`** | 11 | ★ **(system × target dynamics)** cards | **the card owns the non-dimensionalization and the gates.** Not the pipeline, not the case script |
-| **`findings/`** | 29 | Q→A, and **dead-ends** | summary · basis · scope/limits · references |
+| **`findings/`** | 30 | Q→A, and **dead-ends** | summary · basis · scope/limits · references |
 | **`benchmarks/`** | 5 | systems whose answer is known, run as regression tests | input · observable · expected · tolerance · `evidence_layer` · source |
 | **`concepts/`** | 3 | a physical concept in this project's conventions | — |
 | **`techniques/`** | 2 | method notes, e.g. the environment log | — |
@@ -84,7 +84,7 @@ Recording it is worth as much as recording a success, and it must state a
 
 ## 3 · The `entries/` store — what actually gets written
 
-161 entries, by origin. The distribution is itself a finding:
+162 entries, by origin. The distribution is itself a finding:
 
 | `origin` | Count | What it means |
 |---|---:|---|

@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1633 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
+**1637 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -78,8 +78,8 @@ judges where there is no closed form, and originates no physical value.
 | **306 specifications · 283 run directories** | 273 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **95 verification scripts** | every physics claim in the docs traces to one |
-| **1633 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
-| **Knowledge base** | 53 wiki pages — 12 system cards · 29 findings · 5 concepts — plus 43 paper and 2 book distillations and 161 tool-written entries |
+| **1637 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **Knowledge base** | 54 wiki pages — 12 system cards · 30 findings · 5 concepts — plus 43 paper and 2 book distillations and 162 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
 > The number that matters is not how much code exists. It is how many times the
@@ -283,7 +283,7 @@ evidence back into it. `R` marks a read, `W` marks a write.
   |                                                                    |
   |  wiki/findings/     Q->A, and dead-ends. A dead end is worth as    |
   |                     much as a success, and must state a CAUSE      |
-  |                     rather than a symptom. 29                      |
+  |                     rather than a symptom. 30                      |
   |                                                                    |
   |  wiki/benchmarks/   systems with known answers, run AS REGRESSION  |
   |                     TESTS. Literature is the grader we don't have. |
@@ -295,7 +295,7 @@ evidence back into it. `R` marks a read, `W` marks a write.
   |                      could NOT reproduce. 2 books, 64/64 claims    |
   |                      re-derived numerically                        |
   |                                                                    |
-  |  entries/           161 tool-written entries. 62 of them are       |
+  |  entries/           162 tool-written entries. 62 of them are       |
   |                     `tooling` -- which is the honest measure of    |
   |                     how much of this is fighting instruments       |
   |                     rather than physics.                           |
@@ -414,8 +414,8 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **306** specs · 283 run directories · **273** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 36 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 9 case scripts · 95 verification scripts |
-| Tests | **1633 pass**, 6 skipped (wall time not quoted — see the badge note) |
-| Knowledge | 53 wiki pages · 43 paper + 2 book distillations · 161 entries |
+| Tests | **1637 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Knowledge | 54 wiki pages · 43 paper + 2 book distillations · 162 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
 The headline scientific result is

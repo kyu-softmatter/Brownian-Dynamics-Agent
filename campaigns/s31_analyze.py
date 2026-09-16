@@ -169,7 +169,32 @@ def step1_seal(rows):
 
 
 # ── step 2: the correctness gates ─────────────────────────────────────────
-GATES = (("Z_dilute_tail", 1.0, 10.0), ("D_xy", 1.0, 20.0))
+def gates_for(row) -> list[tuple]:
+    """Every observable the RUN ITSELF declares `implementation_check`, with the
+    prediction and tolerance it carries.
+
+    ★ DERIVED, not listed. The first version hardcoded
+    `(("Z_dilute_tail", 1.0, 10.0), ("D_xy", 1.0, 20.0))`, and when revision 4
+    demoted `Z_dilute_tail` to a measurement -- a rule 7' correction, because
+    Z -> 1 in the tail holds only at equilibrium and equilibrium is the
+    measurement -- the analyzer went on gating it and reported IMPLEMENTATION
+    FAILURE on a run that was behaving exactly as the physics requires.
+    A second copy of a role declaration is a second thing to forget.
+    """
+    out = []
+    for name, ob in row.get("obs", {}).items():
+        if ob.get("role") != "implementation_check":
+            continue
+        pred = ob.get("predicted")
+        if pred is None:
+            continue
+        #  the case carries the band as err_pct against the prediction, or as
+        #  sigma/tol_sigma. Both are read from the observable rather than retyped.
+        tol_pct = ob.get("tol_pct")
+        if tol_pct is None and ob.get("sigma") and ob.get("tol_sigma"):
+            tol_pct = 100.0 * ob["tol_sigma"] * ob["sigma"] / abs(pred) if pred else None
+        out.append((name, float(pred), tol_pct))
+    return out
 
 
 def step2_gates(rows):
@@ -177,19 +202,31 @@ def step2_gates(rows):
     for r in rows:
         if not r["ok"]:
             continue
-        for name, target, tol in GATES:
+        gl = gates_for(r)
+        if not gl:
+            bad.append(f"{r['id']}: the run declares NO implementation_check "
+                       f"observable -- there is nothing to gate on, which is not "
+                       f"the same as passing")
+            continue
+        for name, target, tol in gl:
+            if tol is None:
+                notes.append(f"{r['id']:3s} {name:16s} declares no tolerance "
+                             f"-- reported, not gated")
+                continue
             v = o(r, name)
             if v is None or not np.isfinite(v):
                 bad.append(f"{r['id']}/{name} is not finite")
                 continue
-            dev = 100.0 * (v / target - 1.0)
+            dev = 100.0 * (v / target - 1.0) if target else v
             flag = "" if abs(dev) <= tol else "  <-- OUT"
             notes.append(f"{r['id']:3s} {name:16s} {v:9.4f} vs {target:g} "
                          f"({dev:+6.2f} %, band {tol:g} %){flag}")
             if abs(dev) > tol:
                 bad.append(f"{r['id']}/{name}")
-    #  P1 is a measurement in revision 3 -- reported, never a gate
+    #  the demoted statistics are REPORTED here, so that demoting them did not
+    #  make them invisible -- which would be the other way to get this wrong
     notes.append("")
+    notes.append("demoted to `measurement` in revision 4 -- reported, never gated:")
     for r in rows:
         if not r["ok"]:
             continue
@@ -575,7 +612,7 @@ def main() -> int:
     an = Analysis(rows)
     an.gate("1. verify the seal on every run directory",
             lambda: step1_seal(rows))
-    an.gate("2. the correctness gates -- Z_dilute_tail, D_xy",
+    an.gate("2. the correctness gates -- whatever the runs declare as such",
             lambda: step2_gates(rows))
     an.note("3. stationarity -- which arm did not move",
             lambda: step3_stationarity(rows))
