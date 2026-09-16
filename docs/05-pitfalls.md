@@ -684,7 +684,7 @@ a real crash bug precisely because it was written to break things.
    without an error?*
 3. File a KB entry with `origin: tooling` and a **cause, not a symptom**.
 
-There are **60** `tooling` entries of 148 (measured 2026-09-15: 60 tooling · 50
+There are **62** `tooling` entries of 157 (measured 2026-09-15: 62 tooling · 57
 method · 25 handbook · 10 intake · 3 paper). That number is the honest measure of
 how much of this work is fighting the instruments rather than the physics — and
 it had drifted from 48, which is the same class of defect as the counts in the
