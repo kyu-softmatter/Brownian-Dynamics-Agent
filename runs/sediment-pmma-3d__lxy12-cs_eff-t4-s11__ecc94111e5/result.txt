@@ -1,0 +1,21 @@
+
+==============================================================================
+RESULT -- sediment-pmma-3d  lxy12-cs_eff-t4-s11
+==============================================================================
+  l_g_fitted_tail                  11.724  vs 13.375      [measurement] 
+  l_g_fitted_dense                 16.946  vs 16.45       [hypothesis] 
+  Z_dilute_tail                   0.87433  vs 1           [measurement] 
+  Z_dev_wmean_vs_CS_eff            1.6677  vs 0           [hypothesis] 
+  Z_dev_wmean_vs_CS_nominal        -4.699                 [measurement] 
+  Z_dev_max_vs_CS_eff              20.129                 [measurement] 
+  Z_at_densest_slab                1.3989  vs 1.3786      [hypothesis] 
+  profile_halves_chi2_nu           1.5162  vs 1           [measurement] 
+  profile_half_shift_pct           2.0082                 [measurement] 
+  D_xy                            0.89799  vs 1           [implementation_check] 
+  phi_wall_measured_vs_cs_eff      0.11678  vs 0.1118      [hypothesis] 
+  phi_wall_measured               0.11678                 [measurement] 
+  Z_dev_wmean_block_sem           0.84585                 [measurement] 
+  l_g_dense_block_sem             0.17515                 [measurement] 
+  phi_wall_block_sem            0.0013044                 [measurement] 
+  Z_dilute_tail_block_sem        0.036349                 [measurement] 
+  min_sep_placed                   1.0019                 [measurement] 

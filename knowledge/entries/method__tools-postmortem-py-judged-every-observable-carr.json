@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "tools/postmortem.py",
+  "lessons": [
+    {
+      "claim": "tools/postmortem.py judged every observable carrying a prediction against a flat 5 %, ignoring both the  and the declared tol_pct/tol_sigma that bdbot/metrics.py writes beside it -- so a hypothesis mismatch (a RESULT under rule 7') and a measurement with a reference value both became WRONG_REGIME, and an implementation_check inside its own 20 % band was called a mismatch at -10 %. Measured on 8 sedimentation runs: 4 recorded OUTCOME: FAILURE while the only real gate passed on all 8, written into record.json which is the permanent record. It had been this way for every case.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

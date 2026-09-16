@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "campaigns/sediment_preregistration/CONCLUSION.md#2",
+  "lessons": [
+    {
+      "claim": "A pre-registered decision rule that rests a verdict on STATIONARITY is weaker than one that rests it on CONVERGENCE, and the difference is not visible until the data exists. Measured: two arms started at competing candidate profiles, 1/3 seeds stationary in each (0.6 sigma apart, no signal), so the sealed rule returned INCONCLUSIVE -- while the same data showed four different starting conditions converging to one state, agreeing with one candidate at 1.8 sigma and rejecting the other at 4.5-18 sigma. Stationarity can only say 'nothing moved us'; convergence says 'four starting points arrive here'. Register the convergence branch as a route to a verdict, not as a failure mode.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

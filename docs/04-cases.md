@@ -14,6 +14,7 @@ Measured in the merged tree, 2026-08-28:
 | [`network`](#network--3d-colloidal-network) | end-to-end | 3 | 4 | 1 | 1 |
 | [`soft-r3-2d-A-sweep`](#soft-r3-2d-a-sweep) | end-to-end | 2 | 10 | 9 | 9 |
 | [`trap-2d-5um`](#trap-2d-5um) | end-to-end | 3 | 4 | 4 | 4 |
+| [`sediment-pmma-3d`](#sediment-pmma-3d--the-first-paper-with-no-codebase) | end-to-end, sealed | 10 | 10 | 10 | 10 |
 | [`trap-drag-2d-hex300`](#trap-drag-2d-hex300--single-run-error-bars-were-wrong-in-both-directions) | L3 only | 84 | 82 | 80 | 0 |
 | | | **278** | **261** | **254** | **167** |
 
@@ -520,3 +521,55 @@ in experiment, 30 by convention** → when it goes into a check it must be a
 **warning (⚠), not a hard failure (❌)**. A dilute sphere suspension is
 **exactly** Newtonian, and the `φ²` term reaches 10 % of the Einstein term at
 **φ≈4 %**.
+
+---
+
+## `sediment-pmma-3d` — the first paper with no codebase
+
+**The deliverable is not the physics.** It is that this repository took a 2014
+experimental paper with **no repository, no supplementary, and the PDF never
+obtained** ([arXiv:1412.3190](https://arxiv.org/abs/1412.3190)) and produced a
+sealed, pre-registered, defended answer from the text alone. Gravity and a wall
+did not exist here before 2026-09-16.
+
+Full conclusion:
+[`campaigns/sediment_preregistration/CONCLUSION.md`](../campaigns/sediment_preregistration/CONCLUSION.md).
+
+### The answer
+
+The Barker–Henderson mapping **is** required. Three discriminators, agreeing:
+
+| discriminator | measured (6 permitted runs) | vs CS(φ_eff) | vs CS(φ_nominal) |
+|---|---|---|---|
+| `Z_dev_wmean_vs_CS_eff` | **+1.55 ± 0.89 %** | 1.8σ | **5.6σ** |
+| `l_g_fitted_dense` | **16.789 ± 0.169 d** | 1.8σ | **4.5σ** |
+| `phi_wall_measured` | **0.11629 ± 0.00074** | 6.2σ | **18.4σ** |
+
+★ The strongest run started furthest away: the ideal-gas arm travelled 89 % of the
+way to CS(φ_eff) in 8 τ_sed and returned `Z_dev = +0.099 %`. 12 d against 24 d
+agree to 0.7–1.6σ, so no finite-size effect.
+
+⚠ **The pre-registered verdict is nonetheless `INCONCLUSIVE`, and it stands.** The
+sealed rule rested the verdict on *stationarity* — 1/3 seeds in each arm, 0.6σ
+apart, no signal — and treated "neither arm stationary" as a failure mode. The
+same data shows four starting conditions converging to one state, which is
+stronger evidence, and the rule could not use it. **That is the finding about the
+method**, and it is why the two verdicts differ without either being wrong.
+
+### What it cost in defects
+
+Five revisions of the pre-registration, three stopped launches, eight defects.
+None was found by inspecting the thing itself — every one by execution, or by
+reading one artefact against another. The two worth carrying elsewhere:
+
+- **Two of three sealed gates had a tolerance narrower than their own 1σ**, one of
+  them 82 % likely *per seed* to declare IMPLEMENTATION FAILURE on working code.
+  Had revisions 1–3 run as sealed: `l_g_fitted_tail` 8/8 FAIL, `Z_dilute_tail`
+  7/8, `D_xy` 5/8 — no physics at all.
+  → [`verify/verify_sediment_design_power.py`](../verify/verify_sediment_design_power.py)
+- **`tools/postmortem.py` ignored `role` and every declared tolerance**, judging
+  everything with a prediction at a flat 5 %. It recorded 4 of 8 runs as
+  `FAILURE` while the only real gate passed on all 8, and wrote that into
+  `record.json` — the permanent record. It contradicted CLAUDE.md's own sentence
+  about rule 7′, inside the tool the working practice makes mandatory, **for every
+  case before this one**.

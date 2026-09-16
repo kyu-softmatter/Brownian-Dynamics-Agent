@@ -223,38 +223,91 @@ def diagnose(run: Path) -> dict:
         findings.append(f"all hard checks passed OK of {len(m['checks'])} separation checks"
                         + (f" ({len(tight)} thin margin(s))" if tight else ""))
 
-    # 3. targets met -- judge only observables that have a prediction
-    #    (err_pct=None means no prediction)
-    predicted = [o for o in m["observables"] if o.get("err_pct") is not None]
-    # An observable with predicted=0 has no defined percentage error -- judge it
-    # separately by err_sigma (a z-score), see bdbot/metrics.py
-    # `observable(sigma=...)`. With neither, it is genuinely undecidable.
-    sigma_judged = [o for o in m["observables"]
-                    if o.get("err_sigma") is not None and o.get("err_pct") is None]
-    n_nopred = len(m["observables"]) - len(predicted) - len(sigma_judged)
-    if predicted:
-        worst = max(predicted, key=lambda o: abs(o["err_pct"]))
-        if all(abs(o["err_pct"]) < 5 for o in predicted):
-            findings.append(f"{len(predicted)} observable(s) agree with prediction OK "
-                            f"(worst error {worst['err_pct']:+.2f}% @ {worst['name']})")
-        else:
-            failure_modes.append("WRONG_REGIME")
-            findings.append(f"observable MISMATCH worst {worst['err_pct']:+.2f}% @ {worst['name']}")
-    if sigma_judged:
-        worst_s = max(sigma_judged, key=lambda o: abs(o["err_sigma"]))
-        tol_s = worst_s.get("tol_sigma") or 3.0
-        if all(abs(o["err_sigma"]) < (o.get("tol_sigma") or 3.0) for o in sigma_judged):
-            findings.append(f"{len(sigma_judged)} observable(s) statistically agree with a "
-                            f"zero prediction OK (worst {worst_s['err_sigma']:+.2f} sigma @ "
-                            f"{worst_s['name']}, limit {tol_s:g} sigma)")
-        else:
-            failure_modes.append("WRONG_REGIME")
-            findings.append(f"observable MISMATCH against a zero prediction, worst "
-                            f"{worst_s['err_sigma']:+.2f} sigma "
-                            f"@ {worst_s['name']}")
-    if n_nopred:
-        not_verified.append(f"{n_nopred} observable(s) with no prediction (recorded as "
-                            f"measurements, not judged)")
+    # 3. targets met -- BY ROLE, and against each observable's OWN tolerance.
+    #
+    # ★★ This function used to judge every observable carrying a prediction
+    #    against a flat 5 %, ignoring `role` and ignoring the declared
+    #    `tol_pct`/`tol_sigma` that `bdbot/metrics.py` writes beside it. Both are
+    #    in `metrics.json`; neither was read.
+    #
+    #    That contradicts CLAUDE.md's own contract -- *"Only
+    #    `implementation_check` mismatches are FAIL; `hypothesis` mismatches are
+    #    reported as results"* -- which is rule 7', the rule this repository
+    #    states most often. Measured on the sedimentation campaign 2026-09-16,
+    #    where it produced `OUTCOME: FAILURE` on 4 of 8 runs:
+    #
+    #      D_xy                   implementation_check, tol 20 %, at -10.2 %
+    #                             -> called a MISMATCH while PASSING its own band
+    #      l_g_fitted_tail        measurement, no tolerance, at -12.3 %
+    #                             -> judged at all, when it carries no verdict
+    #      profile_halves_chi2_nu measurement, at +51.6 %  -> same
+    #      l_g_fitted_dense       hypothesis, tol 3 %, at +3.0 %
+    #                             -> a RESULT reported as a failure mode
+    #
+    #    So a campaign whose only real gate passed on all eight runs was recorded
+    #    as half failed, in `record.json`, which is the permanent record every
+    #    later query reads. This is the fourth consumer found this session that
+    #    kept its own idea of which observables gate; the others were the
+    #    analyzer's hardcoded gate list and two stale `role:` fields in a sealed
+    #    document.
+    def _tol_pct(o):
+        return o["tol_pct"] if o.get("tol_pct") is not None else 5.0
+
+    def _tol_sig(o):
+        return o["tol_sigma"] if o.get("tol_sigma") is not None else 3.0
+
+    obs = m["observables"]
+    #  only an implementation_check can be a FAULT (rule 7')
+    checks = [o for o in obs if o.get("role") == "implementation_check"]
+    hypos = [o for o in obs if o.get("role") == "hypothesis"]
+    #  a `measurement` is never judged, even when it carries a reference value
+    measured_only = [o for o in obs if o.get("role") not in
+                     ("implementation_check", "hypothesis")]
+
+    def _off(o):
+        if o.get("err_pct") is not None:
+            return abs(o["err_pct"]) >= _tol_pct(o)
+        if o.get("err_sigma") is not None:
+            return abs(o["err_sigma"]) >= _tol_sig(o)
+        return None                      # undecidable, not passing
+
+    judged_checks = [o for o in checks if _off(o) is not None]
+    bad_checks = [o for o in judged_checks if _off(o)]
+    if bad_checks:
+        failure_modes.append("WRONG_REGIME")
+        for o in bad_checks:
+            findings.append(
+                f"implementation_check FAILED @ {o['name']}: "
+                + (f"{o['err_pct']:+.2f}% vs band {_tol_pct(o):g}%"
+                   if o.get("err_pct") is not None else
+                   f"{o['err_sigma']:+.2f} sigma vs {_tol_sig(o):g}"))
+    elif judged_checks:
+        findings.append(f"{len(judged_checks)} implementation_check(s) inside "
+                        f"their own band OK")
+    if len(judged_checks) < len(checks):
+        not_verified.append(f"{len(checks) - len(judged_checks)} "
+                            f"implementation_check(s) undecidable (no error "
+                            f"computed) -- NOT the same as passing")
+    if not checks:
+        not_verified.append("no implementation_check at all -- nothing here "
+                            "could have failed, which is not the same as passing")
+
+    #  ★ hypotheses are REPORTED, never a failure mode. A mismatch is the result.
+    judged_h = [o for o in hypos if _off(o) is not None]
+    off_h = [o for o in judged_h if _off(o)]
+    for o in off_h:
+        findings.append(
+            f"hypothesis DIFFERS @ {o['name']}: "
+            + (f"{o['err_pct']:+.2f}% vs band {_tol_pct(o):g}%"
+               if o.get("err_pct") is not None else
+               f"{o['err_sigma']:+.2f} sigma vs {_tol_sig(o):g}")
+            + " -- this is a RESULT, not a fault (rule 7')")
+    if judged_h and not off_h:
+        findings.append(f"{len(judged_h)} hypothesis/es agree with their "
+                        f"prediction OK")
+    if measured_only:
+        not_verified.append(f"{len(measured_only)} observable(s) with role "
+                            f"`measurement` (reported, never judged)")
 
     # 4. statistics plus bias consistency
     sem = num.get("x2_sem_pct") or num.get("primary_sem_pct")

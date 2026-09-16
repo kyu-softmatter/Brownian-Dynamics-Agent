@@ -1,0 +1,31 @@
+{
+  "status": "ok",
+  "n_samples": 478,
+  "warnings": [],
+  "pe_mean": 1.2917982494598954,
+  "pe_std": 0.017916642516234437,
+  "phases": {
+    "production": {
+      "status": "ok",
+      "n_samples": 478,
+      "warnings": [],
+      "pe_mean": 1.2917982494598954,
+      "pe_std": 0.017916642516234437,
+      "drift": 0.0021522442087789084,
+      "drift_sem": 0.003112268841989727,
+      "drift_sigma": 0.6915354418427881,
+      "steps": 4770400,
+      "expect_steady": true
+    }
+  },
+  "run_id": "sediment-pmma-3d__lxy12-cs-t4-s22__23e8c6b88b",
+  "wall_seconds": 616.8913760185242,
+  "steps_done": 4770400,
+  "steps_planned": 4770400,
+  "trip": null,
+  "guard_samples": 478,
+  "f_max_last": 37.3415609178986,
+  "step_disp_last": 0.005601234137684789,
+  "f_max_seen": 149.95299040895517,
+  "step_disp_seen": 0.022492948561343273
+}

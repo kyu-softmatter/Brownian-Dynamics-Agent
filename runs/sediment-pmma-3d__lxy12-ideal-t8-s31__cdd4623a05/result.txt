@@ -1,0 +1,21 @@
+
+==============================================================================
+RESULT -- sediment-pmma-3d  lxy12-ideal-t8-s31
+==============================================================================
+  l_g_fitted_tail                  15.022  vs 13.375      [measurement] 
+  l_g_fitted_dense                 16.511  vs 16.45       [hypothesis] 
+  Z_dilute_tail                   0.93387  vs 1           [measurement] 
+  Z_dev_wmean_vs_CS_eff          0.098455  vs 0           [hypothesis] 
+  Z_dev_wmean_vs_CS_nominal       -6.1895                 [measurement] 
+  Z_dev_max_vs_CS_eff              19.511                 [measurement] 
+  Z_at_densest_slab                1.3855  vs 1.3827      [hypothesis] 
+  profile_halves_chi2_nu            4.226  vs 1           [measurement] 
+  profile_half_shift_pct           3.2586                 [measurement] 
+  D_xy                            0.96298  vs 1           [implementation_check] 
+  phi_wall_measured_vs_cs_eff      0.11728  vs 0.1118      [hypothesis] 
+  phi_wall_measured               0.11728                 [measurement] 
+  Z_dev_wmean_block_sem            2.0234                 [measurement] 
+  l_g_dense_block_sem             0.35451                 [measurement] 
+  phi_wall_block_sem            0.0018751                 [measurement] 
+  Z_dilute_tail_block_sem        0.064971                 [measurement] 
+  min_sep_placed                        1                 [measurement] 
