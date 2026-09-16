@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "knowledge/wiki/findings/a-tolerance-narrower-than-its-own-sigma-is-not-a-gate.md",
+  "lessons": [
+    {
+      "claim": "A pre-registered tolerance is only a gate if tol/sigma > 3, and that has to be computed by running the REAL estimator on synthetic data from the matching hypothesis. Measured: 2 of 3 sealed gates had a tolerance inside their own 1 sigma, the worst at 82 % chance per seed of failing on a correct run, and a hypothesis prediction was 31 sigma wrong because it was computed for the continuous profile rather than for what the estimator's count floor leaves. Report tol/sigma AND the separation between hypotheses for every observable.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

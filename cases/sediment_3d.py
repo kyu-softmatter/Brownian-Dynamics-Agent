@@ -68,6 +68,14 @@ CASE = "sediment-pmma-3d"
 SIGMA_LJ = 2.0 ** (-1.0 / 6.0)      # so the WCA minimum sits at r = d  ★
 R_CUT = 1.0
 DISPLACEMENT_GATE = 0.03            # overdamped-stability.md
+#: ★ How many equal slices of the production window the profile is accumulated
+#: into, so that every profile-derived statistic carries a block-averaged error
+#: bar measured from THIS run rather than from a prior. 16 gives nu = 15 on the
+#: SEM, and at the measured tau_int of 86-132 frames out of 478 the blocks are
+#: correlated -- which is exactly what the block SEM is designed to expose, and
+#: why the number of blocks is recorded beside every error it produces.
+N_BLOCKS = 16
+
 FIT_LO = 2.0                        # the wall's Gaussian tail is 4.5e-9 kT here
 BIN_D = 0.5                         # profile bin width, in diameters
 #  ★ the TAIL window, where the fluid is ideal enough that l_g carries an
@@ -563,9 +571,34 @@ def build(spec, outdir=None) -> RUN.Build:
     #      Splitting on the clock removes the coupling to a cadence this case does
     #      not control.
     split_step = int(Nm["n_eq"]) + int(Nm["n_prod"]) // 2
+
+    #  ★★ BLOCK ACCUMULATION. The profile is accumulated into `N_BLOCKS` equal
+    #     slices of the production window as well as in total, so every
+    #     profile-derived statistic gets its OWN error bar from this run.
+    #
+    #     ⚠ This is the fix for the largest error in the campaign's design. The
+    #       design-power Monte Carlo drew each frame as an INDEPENDENT Poisson
+    #       realisation and reported sigma = 0.38 % on the primary statistic.
+    #       Measured on the first two production runs: the integrated
+    #       autocorrelation time of the mean particle height is 86-132 FRAMES out
+    #       of 478, so a 4 tau_sed window carries N_eff = 3.6-5.5 independent
+    #       samples, not 478 -- an inflation of 9-12x in sigma. And N_eff is 3-6
+    #       whatever the window length, because tau_int grows with it: the
+    #       profile's slowest mode is the DRIFT time tau_fall = 9.35 tau_sed,
+    #       which this card's own gate table states and which was applied to the
+    #       initial condition and not to the error bar.
+    #
+    #       No Monte Carlo on a static profile can produce that number. A block
+    #       average can, and `A2` asks for an error bar rather than for a prior.
+    n_blocks = N_BLOCKS
+    block_len = max(1, int(Nm["n_prod"]) // n_blocks)
     acc = {"hist": np.zeros(nbins), "frames": 0, "ref_xy": None, "ref_t": None,
            "hist_h1": np.zeros(nbins), "hist_h2": np.zeros(nbins),
-           "frames_h1": 0, "frames_h2": 0, "split_step": split_step}
+           "frames_h1": 0, "frames_h2": 0, "split_step": split_step,
+           "blocks": np.zeros((n_blocks, nbins)),
+           "block_frames": np.zeros(n_blocks, dtype=int),
+           "block_len": block_len, "n_blocks": n_blocks,
+           "t0": int(Nm["n_eq"])}
 
     def _snap():
         s = sim.state.get_snapshot()
@@ -581,6 +614,10 @@ def build(spec, outdir=None) -> RUN.Build:
             counts_now = np.histogram(h, bins=edges)[0]
             acc["hist"] += counts_now
             acc["frames"] += 1
+            b = min(acc["n_blocks"] - 1,
+                    max(0, (int(timestep) - acc["t0"] - 1) // acc["block_len"]))
+            acc["blocks"][b] += counts_now
+            acc["block_frames"][b] += 1
             if timestep <= acc["split_step"]:
                 acc["hist_h1"] += counts_now
                 acc["frames_h1"] += 1
@@ -737,6 +774,84 @@ def build(spec, outdir=None) -> RUN.Build:
         z_tail = float(np.nanmean(z_eos[dilute])) if dilute.any() else float("nan")
         n_tail = int(dilute.sum())
 
+        # ── ★★ the block averages: every statistic's own error bar ─────────
+        #
+        #  The SAME reductions, applied to each block, so the spread across
+        #  blocks IS the error. This is the only estimate here that sees temporal
+        #  correlation; the Monte Carlo in
+        #  `verify/verify_sediment_design_power.py` cannot, and understated sigma
+        #  by about 10x as a result.
+        def reduce_profile(counts, frames_b):
+            """Every profile statistic, from raw counts, over the POOLED windows.
+
+            ★ The masks `ok` and `dilute` come from the FULL accumulation and are
+            held fixed across blocks. Letting each block re-derive its own window
+            from its own counts is not a block average of one estimator -- it is
+            sixteen different estimators, and at 1/16 of the frames the `>= 200`
+            count floor left the window empty and the SEM came back NaN.
+            """
+            if frames_b <= 0 or counts.sum() <= 0:
+                return None
+            pz = counts / frames_b * (math.pi / 6.0) / (lxy * lxy * BIN_D)
+            ze = eos_from_profile(pz, BIN_D, l_g)
+            out = {}
+            f = fit_decay_length(mid, counts, FIT_LO, hi)
+            out["l_g_fitted_dense"] = f["l_g"] if f else float("nan")
+            f = fit_decay_length(mid, counts, TAIL_LO, min(TAIL_HI, lz - 2.0))
+            out["l_g_fitted_tail"] = f["l_g"] if f else float("nan")
+            dil = dilute & np.isfinite(ze) & (counts > 0)
+            out["Z_dilute_tail"] = (float(np.mean(ze[dil])) if dil.sum() >= 3
+                                    else float("nan"))
+            #  ⚠ The weighted mean is taken over the bins of the pooled window
+            #    that this block can actually reduce, and the number DROPPED is
+            #    recorded. A single empty bin inside the window makes
+            #    `eos_from_profile` NaN there, and a plain `.sum()` propagates
+            #    that to the whole block -- measured on a short test run where
+            #    one seed's block 0 came back NaN while its neighbours were fine.
+            #    Dropping the bin is the same estimator on the bins that have
+            #    data; voiding the block is not.
+            okb = ok & np.isfinite(ze) & (counts > 0)
+            if okb.sum() >= 5:
+                w = counts[okb].astype(float)
+                ce = z_carnahan_starling(pz[okb] * d_bh ** 3)
+                cn = z_carnahan_starling(pz[okb])
+                de = 100.0 * (ze[okb] - ce) / ce
+                dn = 100.0 * (ze[okb] - cn) / cn
+                fe, fn = np.isfinite(de), np.isfinite(dn)
+                out["Z_dev_wmean_vs_CS_eff"] = (
+                    float((w[fe] * de[fe]).sum() / w[fe].sum()) if fe.any()
+                    else float("nan"))
+                out["Z_dev_wmean_vs_CS_nominal"] = (
+                    float((w[fn] * dn[fn]).sum() / w[fn].sum()) if fn.any()
+                    else float("nan"))
+                out["eos_bins_used"] = int(fe.sum())
+                out["eos_bins_dropped"] = int(ok.sum() - fe.sum())
+            else:
+                out["Z_dev_wmean_vs_CS_eff"] = float("nan")
+                out["Z_dev_wmean_vs_CS_nominal"] = float("nan")
+                out["eos_bins_used"] = int(okb.sum())
+                out["eos_bins_dropped"] = int(ok.sum() - okb.sum())
+            wall = mid < 1.5
+            out["phi_wall"] = float(pz[wall].max()) if wall.any() else float("nan")
+            return out
+
+        block_stats = [reduce_profile(acc["blocks"][b], int(acc["block_frames"][b]))
+                       for b in range(acc["n_blocks"])]
+        block_stats = [b for b in block_stats if b is not None]
+
+        def block_err(name):
+            """(sem, n_used). ⚠ Returns NaN rather than 0 when there is nothing to
+            average -- a zero error bar is worse than no error bar."""
+            v = np.array([b[name] for b in block_stats if np.isfinite(b.get(name, np.nan))])
+            if len(v) < 3:
+                return float("nan"), len(v)
+            return float(v.std(ddof=1) / math.sqrt(len(v))), len(v)
+
+        #  the block SEM of the primary statistic, which is the number the whole
+        #  campaign's power rests on and which no prior could supply
+        sem_primary, n_blk = block_err("Z_dev_wmean_vs_CS_eff")
+
+
         #  lateral diffusion, from the linear part of the MSD
         t = np.asarray(cols.get("t", []), dtype=float)
         msd = np.asarray(cols.get("msd_xy", []), dtype=float)
@@ -785,13 +900,27 @@ def build(spec, outdir=None) -> RUN.Build:
                            "is 13.4 % away, so the two are separable."),
             MET.observable(
                 "Z_dilute_tail", z_tail, predicted=1.0,
-                #  ⚠ 10 %, not the 5 % of revisions 1-2. The Monte Carlo puts
-                #     this statistic's bias at -2.0 % and 3 sigma at 8.6 % at the
-                #     primary arm, so a 5 % band was 1.7 sigma -- it would have
-                #     failed on a correct run about 7 % of the time per seed.
-                #     `verify/verify_sediment_design_power.py`.
-                role="implementation_check", tol_pct=10.0,
-                source="ideal gas",
+                #  ★★ MEASUREMENT, not a check -- a rule 7' correction, and the
+                #     third of this shape in this case.
+                #
+                #     Z -> 1 in the dilute tail is exact AT EQUILIBRIUM. It is not
+                #     exact on a relaxing run, and equilibrium is precisely what
+                #     this campaign measures. Measured on a 4 tau_sed cs_eff
+                #     pilot: Z_dilute_tail = 0.831 while phi(wall) rose 8.9 %
+                #     above its starting value -- one coherent story, mass moving
+                #     DOWN, the tail thinning, and its apparent decay length
+                #     falling to 10.8 d. Every part of that is the physics the run
+                #     is for, and an `implementation_check` here would have
+                #     reported it as IMPLEMENTATION FAILURE and stopped the
+                #     analysis before any of it was read.
+                #
+                #     What verifies the gravity implementation instead is
+                #     `verify/verify_sedimentation_wall.py` stage 3, which fitted
+                #     l_g = 13.3731 +- 0.1125 against an imposed 13.3750 (0.02
+                #     sigma) on NON-INTERACTING particles -- no equilibrium
+                #     assumption, and already on record.
+                role="measurement",
+                source="ideal gas, AT EQUILIBRIUM",
                 note="Z -> 1 as phi -> 0. Costs nothing and catches a wrong "
                      "hydrostatic read",
                 derivation="With n = n0 exp(-z/l_g), the integral of rho above z "
@@ -800,7 +929,14 @@ def build(spec, outdir=None) -> RUN.Build:
                            "l_g used shows up here before it reaches the EOS."),
             MET.observable(
                 "Z_dev_wmean_vs_CS_eff", wdev_eff, predicted=0.0, unit="percent",
-                role="hypothesis", sigma=2.0, tol_sigma=1.0,
+                role="hypothesis",
+                #  ★★ sigma is the run's OWN block SEM, not the 2.0 of revisions
+                #     1-3. That 2.0 was the inherited threshold used as if it
+                #     were an uncertainty; this is an uncertainty. If the block
+                #     average cannot be formed the check is INCONCLUSIVE rather
+                #     than passed on a fabricated sigma.
+                sigma=(sem_primary if np.isfinite(sem_primary) else None),
+                tol_sigma=(3.0 if np.isfinite(sem_primary) else None),
                 source="knowledge/wiki/findings/wca-reproduces-carnahan-starling.md",
                 note="Poisson-weighted mean of (Z - CS(phi_eff))/CS over the "
                      "window, in percent. ★ THE answering quantity of "
@@ -848,7 +984,14 @@ def build(spec, outdir=None) -> RUN.Build:
                            "sharpest."),
             MET.observable(
                 "profile_halves_chi2_nu", chi2_nu, predicted=1.0, unit="1",
-                role="implementation_check", tol_pct=100.0,
+                #  ★★ MEASUREMENT, not a check -- the same rule 7' correction.
+                #     Drift is the EXPECTED signature of the losing hypothesis:
+                #     the verdict is which arm does not move, so an arm that
+                #     moves is the informative one. Calling that an
+                #     implementation failure would call the result a bug.
+                #     Measured 2.686 on the cs_eff pilot, i.e. that candidate is
+                #     not the equilibrium -- which is a finding.
+                role="measurement",
                 source="Poisson counting error on each half-window profile",
                 note=f"★ THE STATIONARITY TEST, over {n_st_bins} bins. The "
                      f"primary arm starts FROM the Carnahan-Starling profile, so "
@@ -904,6 +1047,38 @@ def build(spec, outdir=None) -> RUN.Build:
                            role="measurement",
                            note="the highest local volume fraction the profile "
                                 "reached -- how far up the CS curve this run got"),
+            MET.observable(
+                "Z_dev_wmean_block_sem", sem_primary, unit="percent",
+                role="measurement",
+                note=f"★ THE ERROR BAR THE CAMPAIGN'S POWER RESTS ON, from "
+                     f"{n_blk} of {acc['n_blocks']} blocks of this run's own "
+                     f"production window. ⚠ The design-power Monte Carlo said "
+                     f"0.38 % by drawing every frame as an independent Poisson "
+                     f"realisation; the measured integrated autocorrelation time "
+                     f"of the mean height is 86-132 frames out of 478, so a "
+                     f"4 tau_sed window carries N_eff = 3.6-5.5 independent "
+                     f"samples. Whatever this number is, it is the one with "
+                     f"correlation in it",
+                derivation="std(ddof=1)/sqrt(n) over the per-block values of the "
+                           "same weighted mean. NaN when fewer than 3 blocks "
+                           "reduce -- a zero error bar is worse than none."),
+            MET.observable(
+                "l_g_dense_block_sem", block_err("l_g_fitted_dense")[0], unit="d",
+                role="measurement",
+                note="the second discriminator's own error bar, same method. The "
+                     "two hypotheses are 1.069 d apart, so this is what says "
+                     "whether that gap is resolvable"),
+            MET.observable(
+                "phi_wall_block_sem", block_err("phi_wall")[0], unit="1",
+                role="measurement",
+                note="the third discriminator's own error bar. The two hypotheses "
+                     "are 0.0089 apart"),
+            MET.observable(
+                "Z_dilute_tail_block_sem", block_err("Z_dilute_tail")[0], unit="1",
+                role="measurement",
+                note="⚠ the GRAVITY GATE's own error bar, and the number that "
+                     "says whether its sealed 10 % band was ever a gate. The "
+                     "Monte Carlo said 2.9 %"),
             MET.observable("min_sep_placed", placed_min_sep, unit="d",
                            role="measurement",
                            note="closest pair at t=0. Below ~0.8 d the WCA core "
@@ -925,6 +1100,10 @@ def build(spec, outdir=None) -> RUN.Build:
                 "frames_h1": int(acc["frames_h1"]),
                 "frames_h2": int(acc["frames_h2"]),
                 "split_step": int(acc["split_step"]),
+                "n_blocks": int(acc["n_blocks"]),
+                "n_blocks_reduced": len(block_stats),
+                "block_frames": [int(x) for x in acc["block_frames"]],
+                "block_stats": block_stats,
                 "stationarity_bins": n_st_bins,
             },
             "arrays": {
@@ -937,6 +1116,8 @@ def build(spec, outdir=None) -> RUN.Build:
                 "profile_counts_h1": acc["hist_h1"],
                 "profile_counts_h2": acc["hist_h2"],
                 "stationarity_window": st.astype(float),
+                "profile_counts_blocks": acc["blocks"],
+                "block_frames_arr": acc["block_frames"].astype(float),
             },
         }
 

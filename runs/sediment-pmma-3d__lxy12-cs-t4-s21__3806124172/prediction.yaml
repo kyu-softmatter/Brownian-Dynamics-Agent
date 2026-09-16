@@ -2,7 +2,7 @@ schema: bdbot.prediction/0.1
 campaign: sedimentation-eos-S31
 case: sediment-pmma-3d
 written: 2026-09-16
-revision: 3
+revision: 4
 sealable: true
 
 question: >-
@@ -302,8 +302,33 @@ design_power:
     +3.4 % with sigma = 1.9 %. So `l_g_fitted_tail` is a `measurement`, reported
     with its own standard error -- which the Monte Carlo confirms is honest
     (reported/actual = 0.96 to 1.04 across the arms).
+  ★_MEASURED_BLOCK_SEMS_revision_4: >-
+    Revision 4 replaces the Monte Carlo's sigma with the RUN'S OWN block SEM,
+    measured on a production-length pilot (seed 91, cs_eff, 4 tau_sed, 16 blocks
+    of ~29 frames). The profile is now accumulated per block, so every
+    profile-derived statistic carries an error bar that has temporal correlation
+    in it -- which no Monte Carlo on a static profile can supply.
+  measured_block_sem_vs_monte_carlo:
+    Z_dev_wmean_vs_CS_eff: {block_sem_pct: 0.399, mc_sigma_pct: 0.384, ratio: 1.04}
+    l_g_fitted_dense:      {block_sem_d: 0.167, mc_sigma_d: 0.064, ratio: 2.6}
+    phi_wall_measured:     {block_sem: 0.00151, mc_sigma: 0.0019, ratio: 0.8}
+    Z_dilute_tail:         {block_sem: 0.0417, mc_sigma: 0.0287, ratio: 1.45}
+  ⚠_and_the_detour_that_produced_those_numbers: >-
+    Between revision 3 and revision 4 the integrated autocorrelation time of the
+    MEAN PARTICLE HEIGHT was measured at 86-132 frames out of 478, giving
+    N_eff = 3.6-5.5 and an apparent 10x inflation of every sigma. Applied to the
+    primary statistic that would have made the campaign 1.7 sigma rather than
+    15.6 sigma and unaffordable. It was WRONG to apply it there: `h_mean` tracks
+    the slow global drift on tau_fall = 9.35 tau_sed, while the dense-region
+    statistics that carry the verdict decorrelate far faster -- the measured block
+    SEM of the primary statistic is 1.04x the Monte Carlo's sigma, not 10x.
+    Recorded because the wrong inference was nearly acted on, and because the
+    lesson is that a correlation time measured on ONE observable does not
+    transfer to another.
   gates_as_revised:
-    Z_dilute_tail:      {predicted: 1.0,   tolerance: "10 %",  why: "3 sigma = 8.6 % plus the -2.0 % bias"}
+    Z_dilute_tail:      {role_in_revision_4: measurement, why: "★★ RULE 7' CORRECTION. Z -> 1 in the dilute tail is exact AT EQUILIBRIUM and not on a relaxing run, and equilibrium is what this campaign measures. Measured on the cs_eff pilot: 0.831, while phi(wall) rose 8.9 % above its start and the tail's apparent decay length fell to 10.8 d -- one coherent story of mass moving down, and every part of it is the physics the run is for. As an implementation_check it would have reported IMPLEMENTATION FAILURE and stopped the analysis before any of that was read. What verifies gravity instead is verify/verify_sedimentation_wall.py stage 3, which fitted l_g = 13.3731 +- 0.1125 against an imposed 13.3750 on NON-INTERACTING particles -- no equilibrium assumption, and already on record"}
+    profile_halves_chi2_nu_role: {role_in_revision_4: measurement, why: "★★ THE SAME RULE 7' CORRECTION. Drift is the EXPECTED signature of the losing hypothesis -- the verdict is which arm does NOT move, so a moving arm is the informative one. Measured 2.686 on the cs_eff pilot, i.e. that candidate is not the equilibrium, which is a finding and not a bug"}
+    ⚠_what_is_left_to_gate_on: "D_xy (the clock, 20 %) and min_sep_placed. THIS IS A STRUCTURAL WEAKNESS OF THE SYSTEM, not an oversight: every profile statistic in a sedimentation cell presupposes equilibrium, and equilibrium is the measurement. So the per-run correctness gates are weak and the implementation is verified OUT OF BAND, by the non-interacting capability check. Stated here so a reader does not mistake a short gate list for a thorough one"
     D_xy:               {predicted: 1.0,   tolerance: "20 %",  why: "a CLOCK check, not a precision measurement of collective diffusion -- it catches factors, which is what a wrong dt or D_0 produces. Two observations gave 0.966 and 1.061, so 10 % was ~1.7 sigma. Widened deliberately and the reason stated rather than left as a tight-looking number that would fail for the wrong reason"}
     profile_halves_chi2_nu: {predicted: 1.0, tolerance: "100 %, i.e. the band [0,2]", why: "chi^2 per degree of freedom between the two half-window profiles; 2 is twice the Poisson variance"}
   not_calibrated_by_this_calculation:
@@ -607,6 +632,27 @@ disclosures:
   - "The primary statistic changed from the maximum to the weighted mean between
      `goal.yaml` being written and this document being sealed. The reason is a
      noise calculation that does not involve the measured values."
+  - "★ REVISION 4 WAS WRITTEN AFTER TWO PRODUCTION RUNS HAD COMPLETED, and that
+     is a weaker position than revision 3's. What was seen: A1 (cs_eff, seed 11)
+     and B4 (cs_nominal, seed 21) finished before the campaign was stopped, plus a
+     deliberate production-length pilot (seed 91, cs_eff). Their values are on
+     record -- Z_dilute_tail = 0.874, 1.051 and 0.831 respectively. So the
+     following must be read knowing that:
+       (a) the two role demotions are rule 7' corrections whose ARGUMENT does not
+           depend on the values: Z -> 1 in the tail holds at equilibrium and the
+           runs are relaxing, and drift is the losing hypothesis's expected
+           signature. Both would be true had nothing been run.
+       (b) the block SEMs ARE measured from the pilot, deliberately, and that is
+           the point of measuring them -- an error bar from the data is what A2
+           asks for. No THRESHOLD was moved to accommodate a measured value; the
+           two statistics whose thresholds would have failed had their ROLE
+           corrected instead, which removes their verdict rather than widening it.
+       (c) the pilot's scientific signal was seen: phi(wall) rose 8.9 % above the
+           CS(phi_eff) start, to 6.6 sigma above BOTH candidates, with Z 3.7 %
+           below CS(phi_eff) and 10.0 % below CS(phi_nominal). That points at the
+           decision rule's pre-registered 'neither stationary' branch. It is
+           disclosed rather than used: no prediction below was changed to match
+           it, and P3's 2 % threshold and P1b's 16.45 are untouched."
   - "★ REVISION 3 CHANGED THE DESIGN AFTER REVISION 2 WAS SEALED, and the
      legitimacy of that rests on one fact: NO PRODUCTION RUN HAD COMPLETED. The
      first run was stopped at 20 % of its production window and no run directory
@@ -681,7 +727,14 @@ revision_history:
   2: "sealed into 8 run directories on 2026-09-16, and superseded the same day
       without any production run completing. Its defects are listed in the
       revision-3 disclosure above."
-  3: "this document. Adds `design_power`, splits the production seeds across the
+  4: "this document. Two rule 7' role corrections (`Z_dilute_tail` and
+      `profile_halves_chi2_nu` from implementation_check to measurement), the
+      primary statistic's sigma replaced by the run's own block SEM, and the
+      block accumulation that makes that possible. Same arms, same seeds, same
+      1.671 core-hours -- so the approval of revision 3 covers it, and the
+      changes are disclosed above. Written after two production runs and one
+      production-length pilot had been seen."
+  3: "superseded the same day. Added `design_power`, splits the production seeds across the
       two candidate initial conditions, demotes P1, recalibrates P1b, P2 and P4
       from the Monte Carlo, adds P3b and P5, and costs 0.31 h less."
 

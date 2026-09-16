@@ -1,7 +1,7 @@
 schema: bdbot.analysis_plan/0.1
 campaign: sedimentation-eos-S31
 written: 2026-09-16
-revision: 3
+revision: 4
 sealed_with: prediction.yaml
 
 why_this_is_sealed_too: >-
@@ -207,9 +207,9 @@ computations:
 order_of_operations:
   steps:
     - "1. Verify the seal on all 8 run directories (bdbot.runcard.verify_seal) BEFORE reading any number. A broken seal ends the analysis."
-    - "2. Evaluate P1 (tail), P2 and P4 -- the correctness gates. If any fails, report IMPLEMENTATION FAILURE and stop. No physics. ⚠ P1b is NOT a gate: it is the dense-window hypothesis, and 13.375 is the wrong prediction for that window."
+    - "2. Evaluate P4 (D_xy) and min_sep_placed -- the only correctness gates left. If either fails, report IMPLEMENTATION FAILURE and stop. No physics. ⚠ REVISION 4 REMOVED P1, P2 and P5 FROM THIS STEP, as rule 7' corrections: every profile statistic in a sedimentation cell presupposes equilibrium, and equilibrium is the measurement, so they cannot gate it. The implementation is verified OUT OF BAND instead -- verify/verify_sedimentation_wall.py stage 3 fitted l_g to 0.02 sigma on NON-INTERACTING particles. A short gate list here is a property of the system, not a thin review."
     - "3. Check the L4 drift verdict per run, AND the first-half/second-half profile agreement for the primary arm. A run still drifting is reported as not stationary and its profile is excluded; if more than one of the 5 primary seeds is excluded, the campaign reports UNDEREQUILIBRATED and stops."
-    - "3b. Read P5 (profile_halves_chi2_nu) and profile_half_shift_pct for EVERY seed in arms A and B, and tabulate them BEFORE reading any Z. This is the verdict's evidence and it must not be read after the EOS numbers are known."
+    - "3b. Read profile_halves_chi2_nu and profile_half_shift_pct for EVERY seed in arms A and B, and tabulate them BEFORE reading any Z. This is the verdict's evidence and it must not be read after the EOS numbers are known. ⚠ They are `measurement` in revision 4, so they carry no verdict of their own -- a drifting arm is the expected signature of a losing hypothesis, not a fault."
     - "3c. Read the CONVERGENCE arm's phi(wall) against 0.1589, 0.1118 and 0.1029. It is not required to arrive; the direction and the remaining gap are reported. If it has moved less than half way, say so and do not use it as evidence for either arm."
     - "4. Read P3, P1b and P3b -- the three discriminators -- over the seeds of BOTH arms: weighted mean and seed-to-seed sd for each. A2 forbids a number without an error bar."
     - "5. Apply decision_rule steps 5 and 5b. The verdict is the contrast between the arms, and the three discriminators must agree."
@@ -263,6 +263,19 @@ failure_modes_this_plan_accepts:
   - >-
     One cell height. A taller cell would reach lower phi and a shorter one higher,
     so the phi range is not independent of the geometry the paper happens to have.
+  - >-
+    ★ THE PER-RUN CORRECTNESS GATES ARE WEAK, and revision 4 makes that explicit
+    rather than hiding it behind three checks that would have fired for physical
+    reasons. In a sedimentation cell every profile statistic -- the decay length,
+    the dilute-tail Z, the half-window chi^2 -- is exact only AT equilibrium, and
+    equilibrium is what is being measured. So there is no cheap per-run statistic
+    that separates "the code is wrong" from "the run has not arrived".
+    What stands in its place: the non-interacting capability check
+    (`verify/verify_sedimentation_wall.py`, l_g to 0.02 sigma with no equilibrium
+    assumption), the 25 estimator tests in `tests/test_sediment_eos.py` against
+    exact answers, and `D_xy` as a clock check. That is verification OUT OF BAND,
+    and it is weaker than a per-run gate because it cannot catch a fault that
+    appears only in the production configuration.
   - >-
     ★ EVERY PRODUCTION SEED STARTS FROM A PROFILE COMPUTED FROM A THEORY, and the
     alternative -- 25 tau_sed x 6 seeds from an ideal-gas start -- is 5.6 h and was

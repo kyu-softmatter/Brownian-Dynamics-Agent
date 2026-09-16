@@ -86,6 +86,7 @@ identity: tau_settle / tau_d == (L_z/d)(l_g/d)
 | `F_g*` | `1 / l_g*` | the gravity force, in `kT/d` | 0.0748 |
 | `L_z*` | `L_z / d` | box height | must satisfy `exp(−L_z*/l_g*)` ≪ the smallest `Φ` resolved |
 | `ε_w*`, `σ_w*` | wall depth and range, in `kT` and `d` | bottom wall | this repo: 20, 0.3 |
+| `(d_BH/d)³` | `barker_henderson_diameter(ε_wca, σ_LJ)³` | the excluded-volume mapping, and the **quantity the EOS question is about** | 0.74073 at `ε_wca = 1 kT` |
 
 > **Convention traps — where this goes quietly wrong:**
 >
@@ -139,9 +140,36 @@ reproduced]` in any report until a run of ours reproduces them.
 | ★ **box height** | ✅ **required** | `exp(−L_z*/l_g*)` is the weight at the periodic lid. At `L_z = 15 l_g` it is 3e-7; at `6 l_g` it is 2.5e-3 and contaminates the third decade of the profile |
 | ★ **settling time** | ✅ **required** | equilibration is `L_z l_g / D₀`, **not** `l_g²/D₀`. Measured: a uniform start run for `8 l_g²/D₀` in a box of height `15 l_g` fitted `l_g = 11.5 d` against an imposed 4.0 — **+187 %**, purely from stopping before the particles had fallen |
 
-⚠ The last three did not exist before this card. They came out of
-`verify/verify_sedimentation_wall.py` failing twice, and each one is a number
-that was measured rather than reasoned.
+| ★ **a tolerance needs `tol/σ > 3`** | ✅ **required** | measured: of three sealed correctness gates, **two had a tolerance inside their own 1 σ** — the worst at 82 % chance per seed of failing on a correct run. `verify/verify_sediment_design_power.py` computes it by running the real estimators on synthetic Poisson counts. [[a-tolerance-narrower-than-its-own-sigma-is-not-a-gate]] |
+| ★ **the fit window belongs to the observable** | ✅ **required** | the same decay-length estimator returns 13.50 d on the tail and 15.44 d on the dense window of the *same* profile, and 17.55 d once the `≥ 20 count` floor truncates it. An `l_g` without its window is not a measurement of `l_g`. [[an-observable-without-its-window-is-not-an-observable]] |
+| ★ **integrate the profile with the trapezoid rule** | ✅ **required** | a `cumsum` over bins is high by `bin/(2 l_g)` = **+1.65 %** at production settings — the size of the whole 2 % decision band — and the same error in a CDF left an initial-condition sampler's mean 0.44 % low. [[half-interval-errors-are-the-size-of-the-answer]] |
+
+⚠ The last six did not exist before this card. Three came out of
+`verify/verify_sedimentation_wall.py` failing twice and three out of
+`verify/verify_sediment_design_power.py`, and every one is a number that was
+measured rather than reasoned.
+
+## 7b. ★ The two candidate profiles are the experiment
+
+The card's own EOS question has a form that is worth reusing: **a stationary
+profile is an equilibrium profile.** Write each competing equation of state as the
+hydrostatic profile it implies —
+
+```
+cs_hydrostatic_profile(l_g, L_z, phi, scale=1.0)               -> phi(0) = 0.10306
+cs_hydrostatic_profile(l_g, L_z, phi, scale=(d_BH/d)**3)       -> phi(0) = 0.11237
+```
+
+— start seeds at each, and ask which one does not move. At most one can be
+stationary, because they differ by **17.05 % in `Z` at the wall** of this cell.
+That converts "compare a measurement against two curves" into "compare two runs",
+which removes the circularity of initialising from the theory under test.
+
+⚠ It does **not** remove the cost of starting from a theory at all: if both arms
+hold their profiles, `T_obs` was too short and the answer is INCONCLUSIVE. The
+signature of the losing arm at 4 `τ_sed` is expected to be *moving, in this
+direction* rather than *arrived*, so the **direction** of the half-window shift is
+the evidence and its magnitude only supports it.
 
 ## 8. Benchmarks
 
