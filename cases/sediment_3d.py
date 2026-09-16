@@ -290,7 +290,8 @@ def report_blocks(sys_, lg, n_prod, lxy_d, gates, binding):
 # ════════════════════════════════════════════════════════════════════════
 # 5. the analytic solution -- the ground truth this case is built on
 # ════════════════════════════════════════════════════════════════════════
-def cs_hydrostatic_profile(l_g: float, lz: float, phi_mean: float, n: int = 4001):
+def cs_hydrostatic_profile(l_g: float, lz: float, phi_mean: float, n: int = 4001,
+                           *, scale: float = 1.0):
     """The equilibrium profile a Carnahan-Starling fluid would have in this cell.
 
     Hydrostatic balance `dP/dz = -rho kT/l_g` with `P = rho kT Z(phi)` gives
@@ -299,6 +300,18 @@ def cs_hydrostatic_profile(l_g: float, lz: float, phi_mean: float, n: int = 4001
 
     integrated down from `phi(0)`, with `phi(0)` solved so the mean over the cell
     is `phi_mean`. Returns `(z, phi)`.
+
+    ★ `scale` evaluates the equation of state at `scale * phi` instead of `phi`,
+    so `scale = (d_BH/d)**3 = 0.7407` gives the profile a fluid whose EFFECTIVE
+    hard-sphere diameter is `d_BH` would have. The substitution is exact rather
+    than approximate: with `q = scale*phi`,
+
+        d(phi Z(q))/dz = -phi/l_g   ->   (Z(q) + q Z'(q)) dphi/dz = -phi/l_g
+
+    which is the same bracket, read at `q`. **The two profiles are the campaign's
+    two competing hypotheses made concrete**: they differ by 17.05 % in `Z` at the
+    wall of this cell, so at most one of them can be the stationary state of the
+    run.
 
     ★ Why this exists, and why using it as an INITIAL CONDITION is not circular.
     The ideal-gas profile is a long way from this one -- `phi(0) = 0.1589` against
@@ -317,12 +330,18 @@ def cs_hydrostatic_profile(l_g: float, lz: float, phi_mean: float, n: int = 4001
     from scipy.integrate import solve_ivp
     from scipy.optimize import brentq
 
+    if not (0.0 < scale <= 1.0):
+        raise ValueError(f"scale must be in (0, 1], got {scale}")
+
     def dz_dphi(p):
         p = max(p, 1e-14)
-        num = 1.0 + p + p * p - p ** 3
-        den = (1.0 - p) ** 3
-        dzdp = ((1.0 + 2.0 * p - 3.0 * p * p) * den + num * 3.0 * (1.0 - p) ** 2) / den ** 2
-        return -(p / l_g) / (z_carnahan_starling(np.array([p]))[0] + p * dzdp)
+        q = scale * p                      # the volume fraction the EOS sees
+        num = 1.0 + q + q * q - q ** 3
+        den = (1.0 - q) ** 3
+        dzdq = ((1.0 + 2.0 * q - 3.0 * q * q) * den
+                + num * 3.0 * (1.0 - q) ** 2) / den ** 2
+        bracket = z_carnahan_starling(np.array([q]))[0] + q * dzdq
+        return -(p / l_g) / bracket
 
     zz = np.linspace(0.0, lz, n)
 
@@ -336,10 +355,11 @@ def cs_hydrostatic_profile(l_g: float, lz: float, phi_mean: float, n: int = 4001
     return zz, solve(phi0)
 
 
-def cs_height_sampler(l_g: float, lz: float, phi_mean: float, *, margin: float):
+def cs_height_sampler(l_g: float, lz: float, phi_mean: float, *, margin: float,
+                      scale: float = 1.0):
     """A `placement.rsa_slab` height sampler drawing from `cs_hydrostatic_profile`
-    by inverse CDF, truncated to the margins."""
-    zz, phi = cs_hydrostatic_profile(l_g, lz, phi_mean)
+    by inverse CDF, truncated to the margins. `scale` is passed straight through."""
+    zz, phi = cs_hydrostatic_profile(l_g, lz, phi_mean, scale=scale)
     keep = (zz >= margin) & (zz <= lz - margin)
     z, w = zz[keep], np.maximum(phi[keep], 0.0)
     #  ⚠ TRAPEZOID, not cumsum. A `cumsum` CDF left the sampled mean 0.44 % below
@@ -451,13 +471,32 @@ def build(spec, outdir=None) -> RUN.Build:
     dt = float(Nm["dt_star"])
     seed = int(Nm["seed"])
 
+    #  ★ THREE initial conditions, and two of them are the campaign's competing
+    #    hypotheses made concrete. A stationary profile IS an equilibrium profile,
+    #    so starting at each candidate and asking which one does not move is a
+    #    DISCRIMINATING measurement -- at most one can be stationary, because they
+    #    differ by 17.05 % in Z at the wall of this cell.
+    #
+    #      ideal   phi(0) = 0.15889   no interactions at all; the convergence arm
+    #      cs      phi(0) = 0.10306   CS at the NOMINAL phi -- "no mapping needed"
+    #      cs_eff  phi(0) = 0.11237   CS at phi_eff = phi (d_BH/d)^3 -- "mapping
+    #                                 required", which is the prior finding
     init = str(P.get("init", "ideal"))
+    d_bh_scale = float(P.get("init_eos_scale", 1.0))
     if init == "ideal":
         sampler = PL.exponential_height(l_g, lz, margin=margin)
     elif init == "cs":
         sampler = cs_height_sampler(l_g, lz, float(P["phi"]), margin=margin)
+    elif init == "cs_eff":
+        if not (0.0 < d_bh_scale < 1.0):
+            raise ValueError(
+                f"init='cs_eff' needs params['init_eos_scale'] = (d_BH/d)**3 in "
+                f"(0,1); got {d_bh_scale!r}. It is a spec parameter rather than a "
+                f"recomputation here so that it is hashed into the run_id")
+        sampler = cs_height_sampler(l_g, lz, float(P["phi"]), margin=margin,
+                                    scale=d_bh_scale)
     else:
-        raise ValueError(f"init must be 'ideal' or 'cs', got {init!r}")
+        raise ValueError(f"init must be 'ideal', 'cs' or 'cs_eff', got {init!r}")
     rng = np.random.default_rng(seed)
     pos = PL.rsa_slab(n, lxy=lxy, lz=lz, min_sep=min_sep, rng=rng, margin=margin,
                       height_sampler=sampler)
@@ -499,7 +538,23 @@ def build(spec, outdir=None) -> RUN.Build:
     #     (docs/05-pitfalls.md).
     nbins = int(round(lz / BIN_D))
     edges = np.linspace(0.0, lz, nbins + 1)
-    acc = {"hist": np.zeros(nbins), "frames": 0, "ref_xy": None, "ref_t": None}
+    #  ★ TWO HALF-WINDOW HISTOGRAMS as well as the pooled one. The sealed
+    #    analysis plan's step 3 requires the profile over the first half of the
+    #    production window to agree with the second half within Poisson error --
+    #    that is the primary arm's entire equilibrium claim, because it starts
+    #    FROM the Carnahan-Starling profile and so cannot demonstrate
+    #    equilibrium by arriving anywhere.
+    #
+    #    ⚠ This has to be accumulated DURING the run. `Build.gsd_path` is
+    #      declared in `bdbot/run.py` and never read by it, so no trajectory is
+    #      written and the split cannot be recovered afterwards -- which is how
+    #      this was found: the sealed plan promised a comparison the output could
+    #      not support. The campaign was stopped 12 minutes into P1 and
+    #      relaunched rather than the plan being edited to match the code.
+    n_prod_frames = max(1, int(Nm["n_prod"]) // max(1, int(Nm["sample_every"])))
+    acc = {"hist": np.zeros(nbins), "frames": 0, "ref_xy": None, "ref_t": None,
+           "hist_h1": np.zeros(nbins), "hist_h2": np.zeros(nbins),
+           "frames_h1": 0, "frames_h2": 0, "n_prod_frames": n_prod_frames}
 
     def _snap():
         s = sim.state.get_snapshot()
@@ -512,8 +567,17 @@ def build(spec, outdir=None) -> RUN.Build:
         h = p[:, 2] + lz / 2
         t = timestep * dt
         if phase == "production":
-            acc["hist"] += np.histogram(h, bins=edges)[0]
+            counts_now = np.histogram(h, bins=edges)[0]
+            acc["hist"] += counts_now
             acc["frames"] += 1
+            #  the halves are indexed by the frame's own position in the window,
+            #  not by wall time, so a stopped-and-resumed run splits the same way
+            if acc["frames"] <= (acc["n_prod_frames"] + 1) // 2:
+                acc["hist_h1"] += counts_now
+                acc["frames_h1"] += 1
+            else:
+                acc["hist_h2"] += counts_now
+                acc["frames_h2"] += 1
             unwrapped = p[:, :2] + img[:, :2] * lxy
             if acc["ref_xy"] is None:
                 acc["ref_xy"], acc["ref_t"] = unwrapped, t
@@ -619,6 +683,31 @@ def build(spec, outdir=None) -> RUN.Build:
         #     Poisson on one slab, and Z is a ratio whose numerator is a
         #     cumulative sum over everything above, so the denominator dominates;
         #     averaging several slabs brings it down again.
+        # ── stationarity: the two halves of the production window ──────────
+        #  ★ chi^2 per degree of freedom between the two half-window profiles,
+        #    over the SAME comparison window the EOS uses. Poisson counting
+        #    error on each half, so the expected value is 1.0 if the profile is
+        #    stationary and > 1 if it drifted. This is a ratio, not a p-value,
+        #    because the plan's threshold is stated as "within Poisson error".
+        f1, f2 = max(acc["frames_h1"], 1), max(acc["frames_h2"], 1)
+        r1 = acc["hist_h1"] / f1                           # counts per frame
+        r2 = acc["hist_h2"] / f2
+        #  variance of (r1 - r2) for Poisson counts: N/f^2 summed
+        var = acc["hist_h1"] / f1 ** 2 + acc["hist_h2"] / f2 ** 2
+        st = (mid >= FIT_LO) & (acc["hist_h1"] >= 20) & (acc["hist_h2"] >= 20) \
+            & (var > 0)
+        if st.sum() >= 5:
+            chi2_nu = float((((r1[st] - r2[st]) ** 2) / var[st]).sum() / st.sum())
+            #  and the signed version, which says WHICH WAY it moved -- a drift
+            #  toward the wall and a drift away from it are different diagnoses
+            half_shift_pct = float(100.0 * (np.sum(r2[st] * mid[st])
+                                            / np.sum(r2[st])
+                                            / (np.sum(r1[st] * mid[st])
+                                               / np.sum(r1[st])) - 1.0))
+        else:
+            chi2_nu, half_shift_pct = float("nan"), float("nan")
+        n_st_bins = int(st.sum())
+
         dilute = (mid >= FIT_LO) & (acc["hist"] >= 50) & np.isfinite(z_eos) \
             & (phi_eff < 0.01)
         z_tail = float(np.nanmean(z_eos[dilute])) if dilute.any() else float("nan")
@@ -639,7 +728,7 @@ def build(spec, outdir=None) -> RUN.Build:
         obs = [
             MET.observable(
                 "l_g_fitted_tail", fit_tail["l_g"] if fit_tail else float("nan"),
-                predicted=l_g, unit="d", role="implementation_check", tol_pct=5.0,
+                predicted=l_g, unit="d", role="measurement",
                 sigma=fit_tail["se"] if fit_tail else None,
                 source="paper Table 1, l_g = 10.7 um / d = 0.8 um",
                 note=f"the decay length over the DILUTE TAIL, h in "
@@ -657,7 +746,7 @@ def build(spec, outdir=None) -> RUN.Build:
                            "bug; that fit is reported separately as a hypothesis."),
             MET.observable(
                 "l_g_fitted_dense", fit["l_g"] if fit else float("nan"),
-                predicted=15.442, unit="d", role="hypothesis", tol_pct=8.0,
+                predicted=16.45, unit="d", role="hypothesis", tol_pct=3.0,
                 sigma=fit["se"] if fit else None,
                 source="cs_hydrostatic_profile, integrated for this cell",
                 note=f"the apparent decay length over the dense window h in "
@@ -671,8 +760,14 @@ def build(spec, outdir=None) -> RUN.Build:
                            "profile instead of the EOS. The ideal-gas value 13.375 "
                            "is 13.4 % away, so the two are separable."),
             MET.observable(
-                "Z_dilute_tail", z_tail, predicted=1.0, role="implementation_check",
-                tol_pct=5.0, source="ideal gas",
+                "Z_dilute_tail", z_tail, predicted=1.0,
+                #  ⚠ 10 %, not the 5 % of revisions 1-2. The Monte Carlo puts
+                #     this statistic's bias at -2.0 % and 3 sigma at 8.6 % at the
+                #     primary arm, so a 5 % band was 1.7 sigma -- it would have
+                #     failed on a correct run about 7 % of the time per seed.
+                #     `verify/verify_sediment_design_power.py`.
+                role="implementation_check", tol_pct=10.0,
+                source="ideal gas",
                 note="Z -> 1 as phi -> 0. Costs nothing and catches a wrong "
                      "hydrostatic read",
                 derivation="With n = n0 exp(-z/l_g), the integral of rho above z "
@@ -728,8 +823,34 @@ def build(spec, outdir=None) -> RUN.Build:
                            "here, so it is where the mapping question is "
                            "sharpest."),
             MET.observable(
+                "profile_halves_chi2_nu", chi2_nu, predicted=1.0, unit="1",
+                role="implementation_check", tol_pct=100.0,
+                source="Poisson counting error on each half-window profile",
+                note=f"★ THE STATIONARITY TEST, over {n_st_bins} bins. The "
+                     f"primary arm starts FROM the Carnahan-Starling profile, so "
+                     f"it cannot demonstrate equilibrium by arriving anywhere -- "
+                     f"only by NOT MOVING. chi^2/nu between the first and second "
+                     f"halves of the production window is 1.0 for a stationary "
+                     f"profile and larger if it drifted. The mean height shifted "
+                     f"{half_shift_pct:+.3f} % between halves, which says which "
+                     f"way",
+                derivation="chi^2/nu = mean over bins of (r1-r2)^2/(var1+var2) "
+                           "with r = counts/frame and var = counts/frames^2. "
+                           "The 100 % tolerance means the band is [0, 2]: a "
+                           "value of 2 is twice the Poisson variance, which is a "
+                           "real drift rather than a marginal one. Required by "
+                           "the sealed analysis plan's step 3, which the run "
+                           "output could NOT support before this was added."),
+            MET.observable(
+                "profile_half_shift_pct", half_shift_pct, unit="percent",
+                role="measurement",
+                note="the mean height of the profile in the second half against "
+                     "the first, in percent. Signed on purpose: the convergence "
+                     "arm must move DOWNWARD (negative) and the primary arm must "
+                     "not move at all"),
+            MET.observable(
                 "D_xy", d_xy, predicted=1.0, unit="d^2/tau_d",
-                role="implementation_check", tol_pct=10.0,
+                role="implementation_check", tol_pct=20.0,
                 source="D = kT/gamma, the input",
                 note="lateral self-diffusion in reduced units -- the clock, "
                      "checked against itself",
@@ -739,6 +860,21 @@ def build(spec, outdir=None) -> RUN.Build:
                            "(the card's gate table). Excluded volume at "
                            "phi <~ 0.16 lowers the long-time D by a few percent, "
                            "hence 10 % rather than 5 %."),
+            MET.observable("phi_wall_measured_vs_cs_eff",
+                           float(phi_z[mid < 1.5].max()), predicted=0.1118,
+                           role="hypothesis", tol_pct=5.0,
+                           source="verify/verify_sediment_design_power.py",
+                           note="★ A THIRD DISCRIMINATOR, and the cheapest to "
+                                "read. The Monte Carlo puts CS(phi_eff) at "
+                                "0.1118 +- 0.0019 and CS(phi_nominal) at "
+                                "0.1029 +- 0.0018 -- 4.7 sigma apart at the "
+                                "primary arm and 7.5 at L_xy = 24. The "
+                                "ideal-gas start is 0.1589, far above both",
+                           derivation="the highest-density bin below h = 1.5 d. "
+                                      "Independent of the EOS estimator and of "
+                                      "the hydrostatic integral, so it is a "
+                                      "different KIND of evidence (A1) from "
+                                      "Z_dev_wmean rather than a restatement"),
             MET.observable("phi_wall_measured", float(phi_z[mid < 1.5].max())
                            if (mid < 1.5).any() else float("nan"),
                            role="measurement",
@@ -762,12 +898,20 @@ def build(spec, outdir=None) -> RUN.Build:
                 "dilute_tail_bins": n_tail,
                 "densest_slab": dense,
                 "phi_mean_measured": float(phi_z.mean()),
+                "frames_h1": int(acc["frames_h1"]),
+                "frames_h2": int(acc["frames_h2"]),
+                "stationarity_bins": n_st_bins,
             },
             "arrays": {
                 "profile_h": mid, "profile_phi": phi_z, "profile_phi_se": phi_se,
                 "profile_counts": acc["hist"], "eos_Z": z_eos,
                 "eos_phi_eff": phi_eff, "eos_CS_eff": cs_eff,
                 "eos_CS_nominal": cs_nom, "eos_window": ok.astype(float),
+                #  the two halves, per frame, so the plan's F1/F7 ratio panels
+                #  are drawn from the file rather than recomputed from a verdict
+                "profile_counts_h1": acc["hist_h1"],
+                "profile_counts_h2": acc["hist_h2"],
+                "stationarity_window": st.astype(float),
             },
         }
 
@@ -794,9 +938,12 @@ def main():
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--tau-sed", type=float, default=None,
                     help="observation window in multiples of tau_sed")
-    ap.add_argument("--init", choices=("ideal", "cs"), default="ideal",
-                    help="initial profile: the ideal-gas exponential, or the "
-                         "Carnahan-Starling hydrostatic equilibrium for this cell")
+    ap.add_argument("--init", choices=("ideal", "cs", "cs_eff"), default="ideal",
+                    help="initial profile: the ideal-gas exponential, the "
+                         "Carnahan-Starling hydrostatic equilibrium at the "
+                         "nominal phi, or the same at the Barker-Henderson "
+                         "effective phi. The last two are the campaign's two "
+                         "competing hypotheses, and at most one can be stationary")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--spec", action="store_true",
@@ -856,6 +1003,9 @@ def main():
             #    (`soft_r3_2d` records what happens when an initial condition is
             #    left out of the hash -- two physically different runs collide.)
             "init": args.init,
+            #  and so is the mapping the `cs_eff` start uses. Recomputing it in
+            #  the builder would leave the run_id blind to a change in d_BH.
+            "init_eos_scale": (float(d_bh) ** 3 if args.init == "cs_eff" else 1.0),
         },
         numerics={"dt_star": float((dt / lg.derived["tau_d"]).to("")),
                   "n_eq": 0, "n_prod": n_prod, "sample_every": sample_every,

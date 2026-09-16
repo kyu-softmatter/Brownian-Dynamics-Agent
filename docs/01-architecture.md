@@ -158,13 +158,13 @@ produces *some* number, and not diverging is not the same as being right.
                     ║                     cards. THE CARD OWNS the      ║
                     ║                     non-dimensionalization and    ║
                     ║                     the gates — 11 cards          ║
-                    ║  wiki/findings/     Q→A, and dead-ends — 26       ║
+                    ║  wiki/findings/     Q→A, and dead-ends — 28       ║
                     ║  wiki/benchmarks/   systems with known answers,    ║
                     ║                     run as regression tests — 5   ║
                     ║  wiki/concepts/ techniques/ questions/            ║
                     ║  source/papers/     42 distillations              ║
                     ║  source/books/      2 book distillations          ║
-                    ║  entries/           158 tool-written JSON          ║
+                    ║  entries/           160 tool-written JSON          ║
                     ║  runs/**/record.json  239 post-mortems            ║
                     ╚═══════════════════════════════════════════════════╝
                                │

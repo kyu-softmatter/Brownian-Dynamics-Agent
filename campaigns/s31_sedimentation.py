@@ -56,7 +56,8 @@ def _prereg() -> dict:
 
 #: `arm` -> the letter the run ids use. Keyed so a new arm has to be named here
 #: rather than silently falling into the else-branch of a conditional.
-ARM_TAG = {"primary": "P", "convergence": "C", "finite_size": "F"}
+ARM_TAG = {"cs_eff": "A", "cs_nominal": "B", "convergence": "C",
+           "finite_size": "D"}
 
 #: HOOMD truncates `Simulation(seed=...)` to 16 bits — measured 2026-09-16, see
 #: `prediction.yaml: runs.⚠_the_seeds_must_stay_distinct_INSIDE_hoomd`.
@@ -85,8 +86,17 @@ def runs() -> list[dict]:
             "init": str(e.get("init", common["init"])),
         })
     #  primary first -- the analysis plan reads it first, so a failure is cheap
-    order = {"primary": 0, "convergence": 1, "finite_size": 2}
-    return sorted(out, key=lambda r: (order[r["arm"]], r["id"]))
+    #  ★ The two competing arms run FIRST and INTERLEAVED (A1 B4 A2 B5 ...), so
+    #    that if the campaign is interrupted the comparison is still balanced.
+    #    Running all of arm A and then all of arm B would leave an interruption
+    #    with three seeds of one hypothesis and none of the other.
+    order = {"cs_eff": 0, "cs_nominal": 0, "convergence": 1, "finite_size": 2}
+    def key(r):
+        #  within the first group, alternate the two arms by their index in it
+        peers = [q for q in out if order[q["arm"]] == order[r["arm"]]
+                 and q["arm"] == r["arm"]]
+        return (order[r["arm"]], peers.index(r), r["arm"], r["id"])
+    return sorted(out, key=key)
 
 
 def seed_collisions() -> list[str]:
@@ -266,8 +276,17 @@ def manifest_for(r: dict, run_id: str) -> PRM.Manifest:
           "reason the run starts from the analytic profile", tier=1)
     m.add("derived", "tau_gov", float(ledt["tau_sed"]["value"]), "s",
           "the governing timescale is tau_sed: it is what T_obs is measured in", tier=1)
-    m.approved_by = ("user, 2026-09-16 — the cross-section and the two-arm "
-                     "finite-size scope were approved against a cost table")
+    #  ⚠ The approval string names WHAT was approved and WHEN, because the
+    #     approved scope changed once already. Revision 2's string said "the
+    #     cross-section and the two-arm finite-size scope", and revision 3 split
+    #     the production seeds across two candidate initial conditions -- which
+    #     that sentence did not cover. It was re-approved rather than reused.
+    m.approved_by = (
+        "user, 2026-09-16 — revision 3 approved against the design-power table: "
+        "3 seeds from CS(phi_eff) and 3 from CS(phi_nominal) interleaved at "
+        "L_xy = 12 d, 1 ideal-gas seed at 8 tau_sed, 1 seed at L_xy = 24 d; "
+        "1.671 core-hours, below the 1.979 h approved for revision 2. The "
+        "cross-sections 12 d and 24 d are unchanged from the earlier approval")
     return m
 
 

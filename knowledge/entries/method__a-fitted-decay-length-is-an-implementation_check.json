@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "knowledge/wiki/findings/an-observable-without-its-window-is-not-an-observable.md",
+  "lessons": [
+    {
+      "claim": "A fitted decay length is an implementation_check only in the window where the imposed law actually holds. At l_g = 13.375 d the CS hydrostatic profile fits 15.442 d over the dense window (+15.5 %) and 13.50 d over the tail (+0.9 %), so a 5 % check against the imposed value FAILS on a correct run in the first window -- a rule 7' error. Write the window beside the role; if the imposed value is not right over the whole range, the observable splits.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

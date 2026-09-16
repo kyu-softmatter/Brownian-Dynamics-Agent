@@ -125,9 +125,19 @@ def test_the_sealed_sediment_seeds_survive_truncation():
         trunc = [s & SEED_BITS for s in seeds]
         assert len(set(trunc)) == len(set(seeds)), (
             f"{key}: seeds {seeds} collapse to {sorted(set(trunc))} inside HOOMD")
-    #  and the primary arm must still have 5 independent streams
-    prim = per_arm[("primary", 12, "cs")]
-    assert len(prim) == 5 and len({s & SEED_BITS for s in prim}) == 5
+    #  and the two COMPETING arms must each have 3 independent streams, with no
+    #  seed shared between them -- the verdict is a comparison between the arms,
+    #  so a shared RNG stream would correlate them in a way the seed-to-seed sd
+    #  could not see
+    a = per_arm[("cs_eff", 12, "cs_eff")]
+    b = per_arm[("cs_nominal", 12, "cs")]
+    assert len(a) == 3 and len({s & SEED_BITS for s in a}) == 3, a
+    assert len(b) == 3 and len({s & SEED_BITS for s in b}) == 3, b
+    assert not (set(a) & set(b)), f"arms A and B share seeds {set(a) & set(b)}"
+    assert not ({s & SEED_BITS for s in a} & {s & SEED_BITS for s in b}), (
+        "arms A and B share a seed INSIDE hoomd even though their spec seeds differ")
+    #  no production seed may be 1 -- that is the disclosed pilots' seed
+    assert all(s != 1 for seeds in per_arm.values() for s in seeds)
 
 
 def test_the_campaign_driver_refuses_a_colliding_seed_list():

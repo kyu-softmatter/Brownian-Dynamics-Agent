@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "knowledge/wiki/findings/half-interval-errors-are-the-size-of-the-answer.md",
+  "lessons": [
+    {
+      "claim": "Integrating a binned profile with np.cumsum takes the WHOLE bin containing the lower limit instead of half of it, a +bin/(2 L) bias -- measured +1.65 % at bin/l_g = 0.0374 against a 2 % decision band, and the same error in a CDF left a sampler's mean 0.44 % low with KS at 96 % of the 95 % critical value. Use the trapezoid rule and assert the residual as the law (bin/L)^2/8.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
