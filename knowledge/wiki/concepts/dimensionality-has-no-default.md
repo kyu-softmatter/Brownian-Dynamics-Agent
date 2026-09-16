@@ -152,7 +152,7 @@ ABP-related distillations in [`source/papers/`](../../source/papers/):
 
 So: 3 state it directly, 1 inherits it, **3 do not record it at all.** The claim
 is supported, but by four papers rather than by a field-wide convention — and
-⚠️ 38 of this repository's 42 distillations are the group's own published work,
+⚠️ 38 of this repository's 43 distillations are the group's own published work,
 so layer ③ is narrower here than it looks.
 
 **`2022-modica` noticed this exact contradiction and wrote it down:**

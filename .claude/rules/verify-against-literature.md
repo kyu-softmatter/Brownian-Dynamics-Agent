@@ -37,7 +37,7 @@ differs from the literature." What separated them is that **the analytic solutio
   too.** The next run cites it
 - Do not call a system "verified" when it is in no benchmark. No threshold, no
   verdict
-- ⚠️ 38 of the 42 distillations here are the group's own published work, so the
+- ⚠️ 38 of the 43 distillations here are the group's own published work, so the
   literature layer (③) is narrower than it looks. Weight it accordingly
 
 **Anti-patterns explicitly forbidden:**

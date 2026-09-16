@@ -162,7 +162,7 @@ produces *some* number, and not diverging is not the same as being right.
                     ║  wiki/benchmarks/   systems with known answers,    ║
                     ║                     run as regression tests — 5   ║
                     ║  wiki/concepts/ techniques/ questions/            ║
-                    ║  source/papers/     42 distillations              ║
+                    ║  source/papers/     43 distillations              ║
                     ║  source/books/      2 book distillations          ║
                     ║  entries/           164 tool-written JSON          ║
                     ║  runs/**/record.json  239 post-mortems            ║

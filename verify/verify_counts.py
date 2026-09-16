@@ -78,10 +78,14 @@ def _tracked_run_dirs() -> int:
 
 
 def _papers() -> int:
-    """`INDEX.md` is generated -- its own header says so, and counts 40 of the 42
+    """`INDEX.md` is generated -- its own header says so, and counts 40 of the 43
     files beside it. `bd-knowledge/SKILL.md` writes the basis down as
-    "42 per-paper distillations + INDEX.md", i.e. the index sits alongside the
-    count, not inside it. Counting it is what turned 42 into 43."""
+    "per-paper distillations + INDEX.md", i.e. the index sits alongside the
+    count, not inside it. Counting it is what once turned 42 into 43.
+
+    The literal was 42 here and in eight other places until 2026-09-16, when a
+    43rd distillation landed. The headline `papers` claim tracked it; these
+    explanations did not, because `CLAIMS` did not cover them. It does now."""
     return _files("knowledge/source/papers/*.md") - 1
 
 
@@ -204,6 +208,8 @@ COUNTERS: dict[str, callable] = {
     "papers_with_doi":  _papers_with_doi,
     "papers_no_doi":    lambda: _papers() - _papers_with_doi(),
     "lab_authored":     _lab_authored,
+    "lab_authored_false": lambda: _papers_field("lab_authored", value="false"),
+    "lab_authored_absent": lambda: _papers_field("lab_authored", absent=True),
     "papers_raw_file":  lambda: _papers_field("raw_file"),
     "papers_unverified": lambda: _papers_field("verified", value="false"),
     "papers_no_verified": lambda: _papers_field("verified", absent=True),
@@ -299,6 +305,36 @@ CLAIMS: list[Claim] = [
     C("README.md", r"\| (\d+) book distillations \(Leal 2026; Welty 5th ed\.\) \| in-repo, "
                    r"(\d+)/(\d+) claims re-derived",
       ("books", "book_claims", "book_claims")),
+
+    # ── the "38 of 43" ratio, wherever it is restated ─────────────────────
+    #
+    # The literal `42` sat in nine places while `papers` said 43, because the
+    # headline claim was covered and these explanations were not. `CLAIMS`'s own
+    # rule -- *if you add a count to the docs, add it here* -- is what this
+    # closes; the ratio is now re-measured everywhere it is asserted.
+    C("docs/05-pitfalls.md", r"`lab_authored: true` → (\d+) of (\d+)\)",
+      ("lab_authored", "papers")),
+    C("docs/02-verification.md", r"is narrow\*\*: (\d+) of (\d+) distillations",
+      ("lab_authored", "papers")),
+    C("docs/06-roadmap.md", r"(\d+) of (\d+) distillations are the group's own",
+      ("lab_authored", "papers")),
+    C("docs/01-architecture.md", r"source/papers/     (\d+) distillations", "papers"),
+    C(".claude/rules/verify-against-literature.md",
+      r"(\d+) of the (\d+) distillations here", ("lab_authored", "papers")),
+    C(".claude/skills/bd-knowledge/SKILL.md",
+      r"source/papers/   (\d+) per-paper distillations", "papers"),
+    C(".claude/skills/bd-knowledge/SKILL.md",
+      r"(\d+) of the (\d+) distillations are the group's own",
+      ("lab_authored", "papers")),
+    C("knowledge/wiki/concepts/dimensionality-has-no-default.md",
+      r"(\d+) of this repository's (\d+) distillations", ("lab_authored", "papers")),
+
+    # The three-way split behind that ratio. It was asserted as
+    # "38 true, 0 false, 42 with no field, totalling the 43" -- which does not
+    # add up, and whose second and third numbers were never measured.
+    C("README.md",
+      r"\*\*(\d+) `true`, (\d+) `false`, (\d+) with no field\*\*, totalling the (\d+)",
+      ("lab_authored", "lab_authored_false", "lab_authored_absent", "papers")),
 
     # ── NOTICE.md ─────────────────────────────────────────────────────────
     C("NOTICE.md", r"(\d+) distillations in \[", "papers"),
