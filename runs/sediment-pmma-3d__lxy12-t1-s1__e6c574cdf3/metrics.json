@@ -1,0 +1,281 @@
+{
+  "schema": "bdbot.metrics/0.3",
+  "run_id": "sediment-pmma-3d__lxy12-t1-s1__e6c574cdf3",
+  "case": "sediment-pmma-3d",
+  "system_tags": [
+    "3d",
+    "sedimentation",
+    "gravity",
+    "wall",
+    "wca",
+    "hard-sphere-eos"
+  ],
+  "reference_scales": {
+    "length": "d",
+    "energy": "kT",
+    "time": "tau_d"
+  },
+  "physical": {
+    "l_g_star": 13.375,
+    "L_z_star": 125.0,
+    "L_xy_star": 11.999999999999998,
+    "phi": 0.017,
+    "eps_wca_kT": 1.0
+  },
+  "dimensionless": {
+    "phi": 0.017,
+    "l_g/d": 13.375,
+    "L_z/l_g": 9.345794392523365,
+    "L_xy/d": 11.999999999999998,
+    "phi_wall": 0.15889238105146286,
+    "d_BH/d": 0.9048015670150265,
+    "eps_wall/kT": 20.0
+  },
+  "checks": [
+    {
+      "kind": "geometry",
+      "name": "r_c/(L_xy/2)",
+      "value": 0.16666666666666669,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 5.999999999999999,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "geometry",
+      "name": "exp(-L_z/l_g)",
+      "value": 8.733193167496665e-05,
+      "limit": 0.001,
+      "op": "<=",
+      "ok": true,
+      "margin": 11.45056545550619,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "geometry",
+      "name": "l_g/d",
+      "value": 0.07476635514018691,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 13.375000000000002,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "integration",
+      "name": "dt/dt_max[wca]",
+      "value": 0.8126184763267255,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.2305897898363007,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "model",
+      "name": "tau_p/dt",
+      "value": 0.00016664174871538383,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 6000.897180381564,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "statistics",
+      "name": "tau_sed/T_obs",
+      "value": 1.0,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.0,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "observables": [
+    {
+      "name": "l_g_fitted",
+      "measured": 14.320941172907188,
+      "predicted": 13.375,
+      "unit": "d",
+      "err_pct": 7.072457367530382,
+      "err_sigma": 4.669015186139311,
+      "sigma": 0.20259972075382413,
+      "prediction_source": "paper Table 1, l_g = 10.7 um / d = 0.8 um",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "For POINT particles the profile is exactly n(z) = n0 exp(-z/l_g) -- a Boltzmann distribution in U = kT z/l_g -- so this is a correctness check, not a physical prediction. Excluded volume perturbs it only where phi is not small, which is why the fit window starts at 2 d and the tolerance is 5 % rather than the 0.014 % the non-interacting capability check reached (verify/verify_sedimentation_wall.py).",
+      "tol_pct": 5.0,
+      "tol_sigma": null,
+      "note": "the decay length of the profile, fitted from the slope of ln n(h)"
+    },
+    {
+      "name": "Z_dilute_tail",
+      "measured": 1.0463762952321582,
+      "predicted": 1.0,
+      "unit": "1",
+      "err_pct": 4.637629523215825,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "ideal gas",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "With n = n0 exp(-z/l_g), the integral of rho above z is exactly l_g rho(z), so Z = 1 identically. Any error in the cumulative sum, the bin width or the l_g used shows up here before it reaches the EOS.",
+      "tol_pct": 5.0,
+      "tol_sigma": null,
+      "note": "Z -> 1 as phi -> 0. Costs nothing and catches a wrong hydrostatic read"
+    },
+    {
+      "name": "Z_dev_max_vs_CS_eff",
+      "measured": 28.09146232934254,
+      "predicted": 0.0,
+      "unit": "percent",
+      "err_pct": null,
+      "err_sigma": 14.04573116467127,
+      "sigma": 2.0,
+      "prediction_source": "knowledge/wiki/findings/wca-reproduces-carnahan-starling.md",
+      "role": "hypothesis",
+      "scope": "composite",
+      "derivation": "HYPOTHESIS, not a check: the simulation imposes a WCA core and imposes no equation of state at all, so a mismatch is a result about how well a soft core stands in for a hard sphere. The 2 % band is INHERITED from this repository's own prior measurement of the same substitution (-0.32 % at phi ~ 0.10, -0.51 % at phi ~ 0.21 at eps = 1 kT), not invented. phi_eff = phi (d_BH/d)^3 with d_BH/d = 0.9048.",
+      "tol_pct": null,
+      "tol_sigma": 1.0,
+      "note": "largest |Z - CS(phi_eff)| over the window, in percent. The answering quantity of intake/sediment-pmma-3d/goal.yaml"
+    },
+    {
+      "name": "Z_dev_max_vs_CS_nominal",
+      "measured": 30.225834450530083,
+      "predicted": null,
+      "unit": "percent",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "CS(phi_eff) and CS(phi_nominal) differ by -17.05 % at the wall of this cell, so the two are separable by this measurement. No prediction is attached: this number IS the discriminator.",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "the same comparison WITHOUT the Barker-Henderson mapping. Reported because the gap between this and the line above is what says whether the mapping is required"
+    },
+    {
+      "name": "D_xy",
+      "measured": 0.9087036175417492,
+      "predicted": 1.0,
+      "unit": "d^2/tau_d",
+      "err_pct": -9.129638245825078,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "D = kT/gamma, the input",
+      "role": "implementation_check",
+      "scope": "composite",
+      "derivation": "x and y are unconfined and periodic, so the lateral MSD is 4 D t with D = D_0 = 1 in these units. \u26a0 the VERTICAL MSD saturates at ~l_g^2 and must not be fit (the card's gate table). Excluded volume at phi <~ 0.16 lowers the long-time D by a few percent, hence 10 % rather than 5 %.",
+      "tol_pct": 10.0,
+      "tol_sigma": null,
+      "note": "lateral self-diffusion in reduced units -- the clock, checked against itself"
+    },
+    {
+      "name": "phi_wall_measured",
+      "measured": 0.125930353668202,
+      "predicted": null,
+      "unit": "1",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "the highest local volume fraction the profile reached -- how far up the CS curve this run got"
+    },
+    {
+      "name": "min_sep_placed",
+      "measured": 1.0005360080304002,
+      "predicted": null,
+      "unit": "d",
+      "err_pct": null,
+      "err_sigma": null,
+      "sigma": null,
+      "prediction_source": "none",
+      "role": "measurement",
+      "scope": "composite",
+      "derivation": "",
+      "tol_pct": null,
+      "tol_sigma": null,
+      "note": "closest pair at t=0. Below ~0.8 d the WCA core starts to set dt"
+    }
+  ],
+  "equilibration": {
+    "source": "observables.npz",
+    "series_key": "pe",
+    "label": "\u27e8U\u27e9/N [kT]"
+  },
+  "numerics": {
+    "dt_star": 0.00015,
+    "n_eq": 0,
+    "n_prod": 1192600,
+    "sample_every": 29815,
+    "seed": 1,
+    "steps_done": 1192600,
+    "step_drift_max_sigma": 0.018728474578093617,
+    "f_max_kT_per_sigma": 124.8564971872908
+  },
+  "wall_seconds": 140.61136388778687,
+  "steps_per_second": 8481.533547684947,
+  "l4": {
+    "status": "ok",
+    "n_samples": 120,
+    "warnings": [
+      "[production] <U>/N is drifting: second half - first half = +0.05479 kT = 7.1 * block SEM (limit 3). Equilibration is insufficient"
+    ],
+    "pe_mean": 1.1479080242082547,
+    "pe_std": 0.0348536546917349,
+    "phases": {
+      "production": {
+        "status": "ok",
+        "n_samples": 120,
+        "warnings": [
+          "[production] <U>/N is drifting: second half - first half = +0.05479 kT = 7.1 * block SEM (limit 3). Equilibration is insufficient"
+        ],
+        "pe_mean": 1.1479080242082547,
+        "pe_std": 0.0348536546917349,
+        "drift": 0.05479437814187316,
+        "drift_sem": 0.007764452323963309,
+        "drift_sigma": 7.057082181155535,
+        "steps": 1192600,
+        "expect_steady": true
+      }
+    },
+    "run_id": "sediment-pmma-3d__lxy12-t1-s1__e6c574cdf3",
+    "wall_seconds": 140.61136388778687,
+    "steps_done": 1192600,
+    "steps_planned": 1192600,
+    "trip": null,
+    "guard_samples": 120,
+    "f_max_last": 35.420543469810845,
+    "step_disp_last": 0.005313081520471627,
+    "f_max_seen": 124.8564971872908,
+    "step_disp_seen": 0.018728474578093617
+  },
+  "result": {
+    "l_g_star": 13.375,
+    "d_BH_over_d": 0.9048015670150265,
+    "frames": 120,
+    "n_bins_fitted": 133,
+    "fit_window_d": [
+      2.0,
+      80.25
+    ],
+    "eos_window_bins": 67,
+    "dilute_tail_bins": 34,
+    "phi_mean_measured": 0.016987871386078143
+  }
+}

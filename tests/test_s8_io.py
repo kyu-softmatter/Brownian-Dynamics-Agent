@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -308,7 +309,18 @@ def test_every_archived_seal_verifies_and_none_passes_on_nothing(monkeypatch):
             f"{len(hashed)} files were hashed and {len(v.verified)} verified")
         assert len(hashed) > 0, f"{rd.run_id}: passed having hashed 0 documents"
         total += len(hashed)
-    assert total == 42, total          # CI's independent bash check counts 42 too
+    #  ⚠ This was the literal `42` until 2026-09-16, and it broke the moment the
+    #     sedimentation campaign sealed 8 more directories -- a hand-maintained
+    #     count inside the very suite whose counts gate exists because 48 of 102
+    #     documented counts had drifted. It now reads the SAME counter the gate
+    #     and the README read, so the three cannot disagree.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "verify"))
+    import verify_counts
+    expected = verify_counts.COUNTERS["sealed_documents"]()
+    assert total == expected, (total, expected)
+    #  CI re-counts the same thing with `shasum -a 256 -c`, importing none of
+    #  this repository's code -- that independence is the point of the seal
+    #  format, and it is why this assertion is allowed to import the counter.
 
 
 def test_a_relocated_run_is_reported_drifted_and_not_unsealed():

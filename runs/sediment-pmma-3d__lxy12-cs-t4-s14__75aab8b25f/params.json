@@ -1,0 +1,286 @@
+{
+ "schema": "bdbot.params/0.1",
+ "case": "sediment-pmma-3d",
+ "params": {
+  "geometry": {
+   "d": {
+    "value": 0.8,
+    "unit": "um",
+    "provenance": "paper, text and Table 1: 2a = 0.8 um (1.0 um also studied)",
+    "tier": 0,
+    "note": ""
+   },
+   "dim": {
+    "value": 3,
+    "unit": "1",
+    "provenance": "3D: the profile IS the third dimension, and Carnahan-Starling is the 3D hard-sphere EOS",
+    "tier": 0,
+    "note": ""
+   },
+   "N": {
+    "value": 584,
+    "unit": "1",
+    "provenance": "fixed by phi and the box, not chosen",
+    "tier": 1,
+    "note": ""
+   },
+   "L_z": {
+    "value": 9.999999999999999e-05,
+    "unit": "m",
+    "provenance": "the paper's stated cell thickness",
+    "tier": 0,
+    "note": ""
+   },
+   "L": {
+    "value": 9.999999999999999e-05,
+    "unit": "m",
+    "provenance": "= L_z. The confined axis, which is the box length every gate uses: exp(-L_z/l_g) is the lid weight and L_z l_g/D_0 is the settling time",
+    "tier": 0,
+    "note": ""
+   },
+   "L_xy": {
+    "value": 9.6e-06,
+    "unit": "m",
+    "provenance": "OURS, tier 3, approved by the user 2026-09-16",
+    "tier": 3,
+    "note": ""
+   },
+   "phi": {
+    "value": 0.017,
+    "unit": "1",
+    "provenance": "the paper's mean volume fraction",
+    "tier": 0,
+    "note": ""
+   },
+   "l_g": {
+    "value": 1.07e-05,
+    "unit": "m",
+    "provenance": "the paper's measured gravitational length, Table 1",
+    "tier": 0,
+    "note": ""
+   }
+  },
+  "energy": {
+   "T": {
+    "value": 295.84,
+    "unit": "K",
+    "provenance": "★ DERIVED, not assumed. The paper states no temperature. It states l_g",
+    "tier": 1,
+    "note": ""
+   },
+   "kT": {
+    "value": 1.0,
+    "unit": "1",
+    "provenance": "reduced units: kT is the energy scale",
+    "tier": 0,
+    "note": ""
+   },
+   "eps_wca": {
+    "value": 1.0,
+    "unit": "kT",
+    "provenance": "WCA amplitude. eps=10 is 3x more accurate at phi=0.3 for 1.5x the cost; 1 is inside 2 % over THIS phi range",
+    "tier": 1,
+    "note": ""
+   },
+   "eps_wall": {
+    "value": 20.0,
+    "unit": "kT",
+    "provenance": "bounded wall. U(0)=20 kT -> penetration ~e^-20",
+    "tier": 1,
+    "note": ""
+   }
+  },
+  "medium": {
+   "eta": {
+    "value": 1.2312,
+    "unit": "mPa*s",
+    "provenance": "★ DERIVED from the paper's MEASURED D_0 = 0.44 um^2/s by Stokes-Einste",
+    "tier": 1,
+    "note": ""
+   },
+   "rho_fluid": {
+    "value": 1113.8,
+    "unit": "kg/m^3",
+    "provenance": "paper, Table 1, the 70:30 decalin/TCE row. Used ONLY to make the tempe",
+    "tier": 0,
+    "note": ""
+   },
+   "rho_p": {
+    "value": 1259,
+    "unit": "kg/m^3",
+    "provenance": "paper, Table 1: PMMA. Load-bearing here -- it sets Delta-rho and there",
+    "tier": 0,
+    "note": ""
+   }
+  },
+  "interaction": {
+   "sigma_wall": {
+    "value": 0.3,
+    "unit": "d",
+    "provenance": "Gaussian wall width. F_max = eps/(sigma sqrt(e)) is BOUNDED, which is the point -- an LJ wall reaches 1517 kT/d (bd-hoomd trap 22)",
+    "tier": 1,
+    "note": ""
+   },
+   "r_cut_wall": {
+    "value": 2.0,
+    "unit": "d",
+    "provenance": "U(2 d) = 4.5e-9 kT, so the analysis windows start clean",
+    "tier": 1,
+    "note": ""
+   },
+   "sigma_lj": {
+    "value": 0.8908987181403393,
+    "unit": "d",
+    "provenance": "so the WCA minimum sits at r = d. sigma_LJ = 1 would make the effective diameter 1.1225 d and phi 1.414x too large",
+    "tier": 0,
+    "note": ""
+   },
+   "k_trap": {
+    "value": 0.0,
+    "unit": "kT/d^2",
+    "provenance": "NO TRAP. Nothing is held: the only external force is uniform gravity and the only confinement is the two walls",
+    "tier": 0,
+    "note": ""
+   },
+   "n_bonds": {
+    "value": 0,
+    "unit": "1",
+    "provenance": "NO BONDS and no angles. 584 independent spheres; the only pair interaction is the WCA core above",
+    "tier": 0,
+    "note": ""
+   }
+  },
+  "numerics": {
+   "dt": {
+    "value": 0.00015,
+    "unit": "tau_d",
+    "provenance": "the step in the run's own reference time, which is the number the integrator actually receives",
+    "tier": 1,
+    "note": ""
+   },
+   "dt_seconds": {
+    "value": 0.00021818293408708072,
+    "unit": "s",
+    "provenance": "the same step dimensionally, so it can be read against gamma and D_t. ⚠ NOT compared against the spec -- see the unit note in bdbot.params.diff_against_spec",
+    "tier": 1,
+    "note": ""
+   },
+   "dt_star": {
+    "value": 0.00015,
+    "unit": "tau_d",
+    "provenance": "set BY the WCA gate at U = 8 kT, not fitted to it: 2.0e-4 was refused by the hard check at 1.08x",
+    "tier": 1,
+    "note": ""
+   },
+   "n_eq": {
+    "value": 0,
+    "unit": "1",
+    "provenance": "ZERO by design: the approach to equilibrium IS part of the measurement (stationarity in the primary arm, convergence in the ideal arm), so it is sampled rather than discarded blind",
+    "tier": 1,
+    "note": ""
+   },
+   "init": {
+    "value": 1,
+    "unit": "1",
+    "provenance": "init='cs' encoded 0=ideal-gas exponential, 1=CS hydrostatic profile. It is in `params`, so it is hashed into the run_id",
+    "tier": 1,
+    "note": ""
+   },
+   "seed_hoomd": {
+    "value": 14,
+    "unit": "1",
+    "provenance": "★ what HOOMD ACTUALLY uses: Simulation(seed=) truncates to 16 bits. Recorded because the spec hashes the untruncated value, so two runs could differ in name and share a noise stream",
+    "tier": 1,
+    "note": ""
+   },
+   "n_prod": {
+    "value": 4770400,
+    "unit": "1",
+    "provenance": "production_tau_sed x tau_sed / dt, from the sealed document",
+    "tier": 1,
+    "note": ""
+   },
+   "sample_every": {
+    "value": 29815,
+    "unit": "1",
+    "provenance": "samples_per_tau_sed from the sealed document",
+    "tier": 1,
+    "note": ""
+   },
+   "seed": {
+    "value": 14,
+    "unit": "1",
+    "provenance": "one of the sealed seed list",
+    "tier": 0,
+    "note": ""
+   },
+   "min_sep": {
+    "value": 1.0,
+    "unit": "d",
+    "provenance": "RSA rejection radius. Uniform random placement threw a particle 39 d out of the box on the first thousand steps",
+    "tier": 1,
+    "note": ""
+   }
+  },
+  "derived": {
+   "gamma": {
+    "value": 9.283029300239408e-09,
+    "unit": "kg/s",
+    "provenance": "3 pi eta d, bdbot.materials.sphere_drag",
+    "tier": 1,
+    "note": ""
+   },
+   "D_t": {
+    "value": 4.3999774960256355e-13,
+    "unit": "m^2/s",
+    "provenance": "kT/gamma, bdbot.materials.diffusion. The paper's measured D_0 is 0.44 um^2/s and eta was DERIVED from it, so this is a round trip and not independent evidence -- see the disclosure in prediction.yaml",
+    "tier": 1,
+    "note": ""
+   },
+   "tau_B": {
+    "value": 1.4545528939138717,
+    "unit": "s",
+    "provenance": "d^2/D_t. ⚠ NOT the governing timescale here -- tau_sed is",
+    "tier": 1,
+    "note": ""
+   },
+   "tau_d": {
+    "value": 1.4545528939138717,
+    "unit": "s",
+    "provenance": "d^2/D_0, the clock",
+    "tier": 1,
+    "note": ""
+   },
+   "tau_sed": {
+    "value": 260.2058762878112,
+    "unit": "s",
+    "provenance": "l_g^2/D_0, the slowest equilibrium mode",
+    "tier": 1,
+    "note": ""
+   },
+   "tau_fall": {
+    "value": 2431.830619512254,
+    "unit": "s",
+    "provenance": "L_z l_g/D_0, the DRIFT time across the cell -- 9x tau_sed, and the reason the run starts from the analytic profile",
+    "tier": 1,
+    "note": ""
+   },
+   "tau_gov": {
+    "value": 260.2058762878112,
+    "unit": "s",
+    "provenance": "the governing timescale is tau_sed: it is what T_obs is measured in",
+    "tier": 1,
+    "note": ""
+   }
+  }
+ },
+ "not_applicable": {},
+ "unknown": {},
+ "approved_by": "user, 2026-09-16 — the cross-section and the two-arm finite-size scope were approved against a cost table",
+ "tier_counts": {
+  "0": 13,
+  "1": 23,
+  "3": 1
+ },
+ "blockers": []
+}

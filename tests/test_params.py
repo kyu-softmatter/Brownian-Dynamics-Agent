@@ -221,6 +221,61 @@ def test_star_suffixed_spec_keys_are_matched():
     assert PRM.diff_against_spec(m, {"dt_star": 3.0e-4})
 
 
+def test_an_SI_manifest_entry_is_not_compared_against_a_reduced_spec_key():
+    """★★ A `*_star` spec key is a REDUCED number. Comparing it against a
+    manifest entry carried in SI compares two different quantities.
+
+    Measured 2026-09-16: the sedimentation manifest recorded `dt = 2.182e-4 s`
+    while the spec carried `dt_star = 1.5e-4 tau_d`, and `run.execute` refused the
+    run with "the approved numbers are not the numbers about to run" — which
+    sends the reader hunting for a changed `dt` that does not exist.
+
+    ⚠ The dangerous direction is the third case below. At `tau_d = 1.455 s` the
+      two numbers differ by only 45 %, so a system whose reference time happened
+      to sit near 1 would have let an SI/reduced mix-up pass INSIDE `rtol`: the
+      manifest and the spec would agree on a number and disagree on what it
+      meant, and nothing would have said so.
+    """
+    def one(value, unit):
+        m = PRM.Manifest(case="x")
+        m.add("numerics", "dt", value, unit, "provenance")
+        return PRM.diff_against_spec(m, {"dt_star": 1.5e-4})
+
+    #  the real case: SI against reduced, values genuinely different
+    d = one(2.1818e-4, "s")
+    assert d and "REDUCED" in d[0] and "'s'" in d[0], d
+
+    #  ★ the silent case: SI against reduced, values numerically indistinguishable
+    d = one(1.5000000001e-4, "s")
+    assert d and "REDUCED" in d[0], (
+        "an SI value that happens to match the reduced one numerically is the "
+        "case that used to pass, and it is the reason for the unit check")
+
+    #  the correct form still compares on value alone
+    assert one(1.5e-4, "tau_d") == []
+    assert one(3.0e-4, "tau_d"), "a real value disagreement must still be caught"
+
+
+def test_the_unit_rule_only_applies_to_star_keys():
+    """A manifest name that matches the spec key EXACTLY carries no reduction, so
+    its unit is the case's business and must not be second-guessed here."""
+    m = PRM.Manifest(case="x")
+    m.add("numerics", "dt", 1.5e-4, "s", "SI, and the spec key is SI too")
+    assert PRM.diff_against_spec(m, {"dt": 1.5e-4}) == []
+    #  and `n_`-prefixed matching is likewise untouched
+    m2 = PRM.Manifest(case="x")
+    m2.add("numerics", "prod", 60_000, "1", "steps")
+    assert PRM.diff_against_spec(m2, {"n_prod": 60_000}) == []
+
+
+def test_tau_d_counts_as_a_reduced_unit():
+    """`tau_d` was added to `REDUCED_UNITS` for the sedimentation card, whose
+    clock is `tau_d = d^2/D_0`. Pinned so the vocabulary cannot shrink back and
+    start rejecting a correct manifest."""
+    assert "tau_d" in PRM.REDUCED_UNITS
+    assert "tau_sed" in PRM.REDUCED_UNITS
+
+
 # ── 6. round trip and tier accounting ─────────────────────────────────────
 
 def test_round_trip_through_json(tmp_path):

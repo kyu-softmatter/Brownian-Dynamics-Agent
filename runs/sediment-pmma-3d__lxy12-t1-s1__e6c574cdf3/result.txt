@@ -1,0 +1,11 @@
+
+==============================================================================
+RESULT -- sediment-pmma-3d  lxy12-t1-s1
+==============================================================================
+  l_g_fitted                       14.321  vs 13.375      [implementation_check] 
+  Z_dilute_tail                    1.0464  vs 1           [implementation_check] 
+  Z_dev_max_vs_CS_eff              28.091  vs 0           [hypothesis] 
+  Z_dev_max_vs_CS_nominal          30.226                 [measurement] 
+  D_xy                             0.9087  vs 1           [implementation_check] 
+  phi_wall_measured               0.12593                 [measurement] 
+  min_sep_placed                   1.0005                 [measurement] 

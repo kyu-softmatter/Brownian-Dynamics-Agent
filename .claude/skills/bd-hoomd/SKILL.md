@@ -151,6 +151,26 @@ Measured (free BD, N=40, 2000 steps, max coordinate difference):
 
 → Use **small consecutive integers** (1, 2, 3, …) for repeated runs.
 
+⚠️ **This trap was documented here and enforced nowhere for a month, and then
+walked past.** The sedimentation campaign (2026-09-16) was designed with 8-digit
+date seeds `20260916..20260920`, which truncate to `10292..10296` — distinct, so
+it happened to be safe, but safe by luck. Two of those seeds spaced by 65536
+would have produced **two different `run_id`s and one noise stream**, because the
+spec hashes the untruncated value, and the seed-to-seed sd would have been
+silently too small rather than wrong-looking.
+
+What was added, because the written advice by itself had already failed once:
+
+| device | what it covers |
+|---|---|
+| `tests/test_seed_truncation.py` | asserts the truncation against the installed HOOMD, then audits **every** archived spec: group by everything except the seed, and flag two *distinct* seeds that collide. Measured: 35 replicate groups, 10 of them using seeds > 65535, **0 collisions** |
+| `campaigns/s31_sedimentation.py::seed_collisions` | refuses `--prepare` when two seeds collide *within an arm* |
+
+⚠️ Two specs in **different** groups sharing a truncated seed is **not** a defect
+— a sweep that reuses one noise stream across its points is correlated sampling.
+The first version of the audit flagged 6 of those in `soft-r3-2d-A-sweep` and was
+wrong to. Only replicates matter.
+
 ---
 
 ### ★ 13. With `active_force = 0`, `ActiveRotationalDiffusion` **does not run**

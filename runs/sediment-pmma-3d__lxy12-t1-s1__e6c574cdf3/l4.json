@@ -1,0 +1,35 @@
+{
+  "status": "ok",
+  "n_samples": 120,
+  "warnings": [
+    "[production] <U>/N is drifting: second half - first half = +0.05479 kT = 7.1 * block SEM (limit 3). Equilibration is insufficient"
+  ],
+  "pe_mean": 1.1479080242082547,
+  "pe_std": 0.0348536546917349,
+  "phases": {
+    "production": {
+      "status": "ok",
+      "n_samples": 120,
+      "warnings": [
+        "[production] <U>/N is drifting: second half - first half = +0.05479 kT = 7.1 * block SEM (limit 3). Equilibration is insufficient"
+      ],
+      "pe_mean": 1.1479080242082547,
+      "pe_std": 0.0348536546917349,
+      "drift": 0.05479437814187316,
+      "drift_sem": 0.007764452323963309,
+      "drift_sigma": 7.057082181155535,
+      "steps": 1192600,
+      "expect_steady": true
+    }
+  },
+  "run_id": "sediment-pmma-3d__lxy12-t1-s1__e6c574cdf3",
+  "wall_seconds": 140.61136388778687,
+  "steps_done": 1192600,
+  "steps_planned": 1192600,
+  "trip": null,
+  "guard_samples": 120,
+  "f_max_last": 35.420543469810845,
+  "step_disp_last": 0.005313081520471627,
+  "f_max_seen": 124.8564971872908,
+  "step_disp_seen": 0.018728474578093617
+}

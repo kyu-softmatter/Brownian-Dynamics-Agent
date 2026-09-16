@@ -580,6 +580,65 @@ def test_a_copied_run_is_verified_against_its_own_documents(tmp_path):
     assert RC.verify_seal(orig, root=root)[0]
 
 
+def test_a_document_dropped_from_the_seal_is_reported_as_unsealed(tmp_path):
+    """★★ Agreement is not coverage. Every entry in the seal matching its file
+    says nothing about a file the seal does not mention.
+
+    Measured 2026-09-16 on the previous revision: delete the `analysis_plan.yaml`
+    LINE from `SEALED.sha256`, leave the file on disk, and `verify_seal` returned
+    `ok=True`. The plan is then present, unsealed and editable — and
+    `analysis_plan.yaml` is sealed precisely because sealing the prediction alone
+    leaves the choice of figure open. So the single-line edit that unseals it was
+    the one edit this checker could not see. `simbot.io.verify_seal` already had
+    the check, under the name `unsealed`; the two implementations had diverged and
+    this is the one wired into `bdbot.run.execute`.
+    """
+    root = tmp_path
+    orig, _ = _sealed_pair(root)
+    assert RC.verify_seal(orig, root=root)[0]
+
+    seal = (orig / RC.SEAL_NAME).read_text()
+    kept = [ln for ln in seal.splitlines() if "analysis_plan" not in ln]
+    assert len(kept) == len(seal.strip().splitlines()) - 1, "nothing was dropped"
+    (orig / RC.SEAL_NAME).write_text("\n".join(kept) + "\n")
+
+    ok, problems = RC.verify_seal(orig, root=root)
+    assert not ok, problems
+    assert any("NOT sealed" in q and "analysis_plan.yaml" in q for q in problems), problems
+    with pytest.raises(RC.SealBroken):
+        RC.verify_or_raise(orig, root=root, require=True)
+
+    #  ⚠ and the converse must NOT fire: a sealable document that is simply
+    #     ABSENT is a different state, already covered by `write_seal` refusing
+    #     to seal without it. Removing the file as well as the line leaves a
+    #     single-document seal, which verifies.
+    (orig / "analysis_plan.yaml").unlink()
+    ok, problems = RC.verify_seal(orig, root=root)
+    assert ok, problems
+    assert not any("NOT sealed" in q for q in problems), problems
+
+
+def test_the_coverage_check_uses_the_seal_and_not_a_hardcoded_pair(tmp_path):
+    """The check iterates `SEALED_DOCS`, so adding a third sealed document must
+    extend it automatically. Pinned because the failure mode of a hand-listed
+    pair is that a new sealable document arrives unobserved — which has already
+    happened once in this repository, to the deny rules in `.claude/settings.json`.
+    """
+    root = tmp_path
+    orig, _ = _sealed_pair(root)
+    saved = RC.SEALED_DOCS
+    try:
+        RC.SEALED_DOCS = saved + ("third_doc.yaml",)
+        (orig / "third_doc.yaml").write_text("added later\n")
+        ok, problems = RC.verify_seal(orig, root=root)
+        assert not ok, problems
+        assert any("third_doc.yaml" in q for q in problems), problems
+    finally:
+        RC.SEALED_DOCS = saved
+    #  with the vocabulary restored, the extra file is not in it and is ignored
+    assert RC.verify_seal(orig, root=root)[0]
+
+
 def test_both_seal_implementations_resolve_the_same_way_on_that_case(tmp_path):
     """★ The cross-implementation agreement test in `tests/test_s8_io.py` iterates
     the archive, where the two rules coincide. This pins them on the input that

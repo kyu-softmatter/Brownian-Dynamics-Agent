@@ -102,6 +102,7 @@ REQUIRED_KEYS = {
 #: recomputation. `"1"` is included because rule 10 requires a dimensionless
 #: quantity to say so rather than leave the field blank.
 REDUCED_UNITS = ("1", "tau_B", "tau_trap", "tau_int", "tau_bond", "tau_v",
+                 "tau_d", "tau_sed",          # added 2026-09-16 (sedimentation)
                  "d", "sigma", "kT")
 
 #: Provenance tiers, same scale as `provenance.py`.
@@ -454,15 +455,38 @@ def diff_against_spec(manifest: Manifest, spec_numerics: dict,
     have = manifest.params.get("numerics") or {}
     for name, p in have.items():
         for key in (name, f"{name}_star", f"n_{name}"):
-            if key in spec_numerics:
-                a, b = float(p.value), float(spec_numerics[key])
-                if a == 0.0 and b == 0.0:
-                    break
-                if abs(a - b) > rtol * max(abs(a), abs(b), 1e-300):
-                    out.append(f"{name}: manifest says {a:.6g}, the spec says "
-                               f"{b:.6g} ({key}) -- the approved numbers are not "
-                               f"the numbers about to run")
+            if key not in spec_numerics:
+                continue
+            # ★ A `*_star` key in the spec is a REDUCED number. Comparing it
+            #   against a manifest entry carried in SI is comparing two different
+            #   quantities, and this function used to do it silently.
+            #
+            #   ⚠ Measured 2026-09-16: the sedimentation manifest recorded
+            #     `dt = 2.182e-4 s` and the spec carries `dt_star = 1.5e-4 tau_d`.
+            #     The mismatch was reported as a VALUE disagreement -- "the
+            #     approved numbers are not the numbers about to run" -- which sent
+            #     the reader looking for a changed dt that did not exist. Worse is
+            #     the other direction: at tau_d = 1.455 s the two differ by only
+            #     45 %, and a system whose reference time happened to be near 1
+            #     would have made an SI/reduced mix-up pass inside `rtol`. The
+            #     unit is the thing that distinguishes them, so it is checked.
+            unit = str(p.unit).strip()
+            if key.endswith("_star") and unit not in REDUCED_UNITS and unit != "tau_d":
+                out.append(
+                    f"{name}: the manifest carries it in {unit!r} but the spec's "
+                    f"{key!r} is a REDUCED number -- these are different "
+                    f"quantities, not different values. Record {name!r} in the "
+                    f"run's own reference units (or rename the SI entry so it "
+                    f"does not collide with {key!r})")
                 break
+            a, b = float(p.value), float(spec_numerics[key])
+            if a == 0.0 and b == 0.0:
+                break
+            if abs(a - b) > rtol * max(abs(a), abs(b), 1e-300):
+                out.append(f"{name}: manifest says {a:.6g}, the spec says "
+                           f"{b:.6g} ({key}) -- the approved numbers are not "
+                           f"the numbers about to run")
+            break
     return out
 
 

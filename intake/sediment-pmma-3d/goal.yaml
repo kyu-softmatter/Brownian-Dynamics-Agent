@@ -18,17 +18,27 @@ question: >-
 
 # -- which single measured number answers it? ---------------------------------
 answering_quantity:
-  symbol: Z_dev_max
+  symbol: Z_dev_wmean_vs_CS_eff
   unit: percent
   why: >-
-    The largest deviation of the measured compressibility factor Z = P/(rho kT)
-    from Carnahan-Starling over the local volume fractions the profile spans.
-    One run sweeps phi from ~0.16 at the wall down to ~1e-4 at the top, so a
-    single number covers the whole range. Z is read from the profile by the
-    hydrostatic relation dP/dz = -rho kT/l_g, never from HOOMD's pressure --
+    The Poisson-WEIGHTED MEAN deviation of the measured compressibility factor
+    Z = P/(rho kT) from Carnahan-Starling over the local volume fractions the
+    profile spans. One run sweeps phi from ~0.10 at the wall down to ~1e-4 at the
+    top, so a single number covers the whole range. Z is read from the profile by
+    the hydrostatic relation dP/dz = -rho kT/l_g, never from HOOMD's pressure --
     which matters, because HOOMD's pressure carries a kinetic term built from
     velocities and overdamped BD velocities are not physical
     (knowledge/wiki/findings/wca-reproduces-carnahan-starling.md, trap 2).
+  ⚠_this_was_Z_dev_max_until_2026-09-16: >-
+    ★ CHANGED, BEFORE SEALING, and the reason is a noise calculation rather than
+    an observed value. A 0.5 d slab at phi = 0.05 collects 6.9 particles per
+    frame, so ~200 frames give ~1370 counts = 2.7 % Poisson error on that slab's
+    Z alone, and the MAXIMUM over ~40 such slabs is about 2.5 sigma x 2.7 % = 7 %
+    from noise by itself. The max would therefore have broken a 2 % band whatever
+    the physics did -- a statistic whose failure is indistinguishable from its
+    success, which is the defect class this repository keeps recording. The max
+    is still reported, as a `measurement` with no verdict, so the noise floor
+    stays visible next to the statistic that carries one.
 
 # -- how well would you have to measure it to decide? -------------------------
 decisive_precision:
@@ -82,11 +92,26 @@ physics_that_matters:
       free consistency check.
   - symbol: T_obs
     why: >-
-      Does not follow from the paper -- it follows from THIS goal. The slowest
-      mode of the equilibrium state is tau_sed = l_g^2/D_0 = 179 tau_d, and the
-      run is 5 tau_sed with the first half discarded. Starting from the analytic
-      profile is what makes that enough: from a uniform start the system must
-      fall the height of the cell, L_z l_g/D_0 = 1672 tau_d.
+      Does not follow from the paper -- it follows from THIS goal, and it was
+      MEASURED on two pilots rather than chosen. The slowest mode of the
+      equilibrium state is tau_sed = l_g^2/D_0 = 178.9 tau_d, but the time to
+      FALL the height of the cell is tau_fall = L_z l_g/D_0 = 1672 tau_d, nine
+      times longer -- and it is the second one that governs an ideal-gas start.
+      An 8 tau_sed pilot from that start got 77 % of the way to the interacting
+      profile and still read 6.3 sigma on the drift check. So the design is two
+      arms: 4 tau_sed from the CS hydrostatic profile x 5 seeds (stationarity),
+      and 8 tau_sed from the ideal-gas profile x 1 seed (convergence). Total
+      1.98 core-hours, measured.
+  - symbol: init
+    why: >-
+      ★ The initial condition is load-bearing here in a way it is not in a
+      periodic bulk run, because gravity makes the relaxation time nine times the
+      slowest equilibrium mode. It is in `params`, so it is hashed into the
+      run_id -- two runs differing only in where they started are two different
+      runs, and `soft_r3_2d` records what happens when that is left out of the
+      hash. ⚠ Starting the primary arm from the CS profile means Carnahan-Starling
+      enters the run twice, as the thing tested and as the starting point, which
+      is exactly why the convergence arm is not optional.
   - symbol: L_xy
     why: >-
       Ours, not the paper's, and the only free parameter. It sets the per-slab
@@ -101,6 +126,9 @@ analysis_implied:
   - "Z -> 1 in the dilute tail, as a built-in check that the hydrostatic read is right"
   - "lateral MSD against 2 D_0 t, so the clock is self-consistent"
   - "the 12 d and 24 d profiles on the same axes -- the finite-size check"
+  - "the CS-start and ideal-start profiles on the same axes, with the ideal-gas
+     and CS-hydrostatic curves both overlaid -- the convergence check, and the
+     figure that says whether the primary arm's answer depends on where it began"
 
 out_of_scope:
   - "the applied-field dipolar cluster physics, which is most of the paper. Zero field only."

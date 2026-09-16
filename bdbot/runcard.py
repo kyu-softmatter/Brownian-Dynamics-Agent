@@ -153,6 +153,27 @@ def verify_seal(rundir, *, root=None) -> tuple:
     if drifted:
         problems.append(f"[warn] {drifted} recorded path(s) are not where the "
                         f"document lives now; verified the seal's sibling")
+
+    # ★ COVERAGE, not just agreement. Every entry in the seal matching its file
+    #   says nothing about a file the seal does not mention.
+    #
+    #   ⚠ Measured 2026-09-16: delete the `analysis_plan.yaml` LINE from
+    #     SEALED.sha256 and leave the file on disk, and this function returned
+    #     `ok=True` with only the `[warn]`. The analysis plan is then present,
+    #     unsealed and editable -- and `analysis_plan.yaml` itself explains that
+    #     sealing the prediction alone leaves the choice of figure open, which is
+    #     where a null result becomes a finding. So the one-line edit that
+    #     unseals it was exactly the one this checker could not see.
+    #     `simbot.io.verify_seal` already had this check under the name
+    #     `unsealed`; the two implementations had diverged, and this one is the
+    #     one wired into `bdbot.run.execute`.
+    covered = {Path(rel).name for _, rel in entries}
+    uncovered = sorted(n for n in SEALED_DOCS
+                       if (rundir / n).exists() and n not in covered)
+    if uncovered:
+        problems.append(f"present but NOT sealed: {uncovered} -- a sealable "
+                        f"document the seal does not cover is editable, which is "
+                        f"the state sealing exists to prevent")
     hard = [p for p in problems if not p.startswith("[warn]")]
     return (not hard), problems
 

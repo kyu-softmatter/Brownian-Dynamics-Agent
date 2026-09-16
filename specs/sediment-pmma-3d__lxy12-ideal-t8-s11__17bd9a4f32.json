@@ -1,0 +1,507 @@
+{
+  "schema": "bdbot.nondim/0.1",
+  "case": "sediment-pmma-3d",
+  "label": "sediment-pmma-3d",
+  "tag": "lxy12-ideal-t8-s11",
+  "run_id": "sediment-pmma-3d__lxy12-ideal-t8-s11__17bd9a4f32",
+  "system": {
+    "label": "sediment-pmma-3d",
+    "derived_from": "observation.yaml",
+    "description": "Sedimentation equilibrium of a dilute hard-sphere colloid in a walled cell. PMMA spheres in a decalin/tetrachloroethylene mixture under gravity, imaged by confocal microscopy. The target is the equilibrium density profile Phi(z) and the local equation of state read out of it.",
+    "dimensions": 3,
+    "particle": {
+      "diameter": {
+        "value": 0.8,
+        "unit": "um",
+        "source": "paper, text and Table 1: 2a = 0.8 um (1.0 um also studied)",
+        "tier": 0
+      },
+      "density": {
+        "value": 1259,
+        "unit": "kg/m^3",
+        "source": "paper, Table 1: PMMA. Load-bearing here -- it sets Delta-rho and therefore l_g",
+        "tier": 0
+      },
+      "count": {
+        "value": 584,
+        "unit": "dimensionless",
+        "source": "Not chosen. Follows from the paper's mean volume fraction 0.017 and the box: N = phi * V / (pi/6) with V = 12 x 12 x 125 d^3. See structure.size.",
+        "tier": 1
+      }
+    },
+    "medium": {
+      "kind": "newtonian",
+      "name": "cis-trans-decalin + tetrachloroethylene (70:30 by volume)",
+      "temperature": {
+        "value": 295.84,
+        "unit": "K",
+        "source": "★ DERIVED, not assumed. The paper states no temperature. It states l_g = 10.7 um, 2a = 0.8 um, rho_PMMA = 1259 and rho_solvent = 1113.8, and l_g = kT/((4/3) pi a^3 Delta-rho g) closes on T = 295.84 K = 22.69 C. The bracket: 20 C would need rho_f = 1115.1 and 25 C rho_f = 1112.7, and the stated 1113.8 lies between them, so T = 296 +- 2 K. Written without the pi the same inputs give 94 K, which is not a temperature -- that is how the form of the formula was settled too.",
+        "tier": 1
+      },
+      "density": {
+        "value": 1113.8,
+        "unit": "kg/m^3",
+        "source": "paper, Table 1, the 70:30 decalin/TCE row. Used ONLY to make the temperature derivation auditable (see temperature above); it is not an independent input, because T was solved FROM it.",
+        "tier": 0
+      },
+      "viscosity": {
+        "value": 1.2312,
+        "unit": "mPa*s",
+        "source": "★ DERIVED from the paper's MEASURED D_0 = 0.44 um^2/s by Stokes-Einstein, eta = kT/(6 pi a D_0), at the T above. Right order for decalin/TCE and slightly low, which is what a D_0 measured in a finite cell would give. ⚠ Not independent of D_0: it is D_0 re-expressed, so do NOT then treat a recovered D_0 as a check on eta. The reduced system needs neither.",
+        "tier": 1
+      }
+    },
+    "geometry": {
+      "volume_fraction": {
+        "value": 0.017,
+        "unit": "dimensionless",
+        "source": "paper, text: 'mean volume fraction Phi = 0.017'",
+        "tier": 0
+      },
+      "cell_height": {
+        "value": 100,
+        "unit": "um",
+        "source": "paper, text: 'sample thickness of 100 um'. The paper images a 77 x 77 x 108 um z-stack, so the 108 exceeds the stated thickness; the thickness is the physical cell and is what is modelled. Recorded as an ambiguity in the distillation rather than resolved.",
+        "tier": 0
+      },
+      "box_length_x": {
+        "value": 9.6,
+        "unit": "um",
+        "source": "12 d -- ours, not the paper's 77 um. APPROVED by the user 2026-09-16 as the primary arm, together with a 24 d second arm for the finite-size check (rule 10 tier-3 approval; the cost table was 0.71 h vs 2.85 h vs 45.6 h for 12 / 24 / 96 d at 5 seeds).",
+        "tier": 3
+      },
+      "box_length_y": {
+        "value": 9.6,
+        "unit": "um",
+        "source": "12 d -- ours, square cross-section. Approved with box_length_x.",
+        "tier": 3
+      },
+      "box_length_z": {
+        "value": 100,
+        "unit": "um",
+        "source": "the paper's stated cell thickness",
+        "tier": 0
+      },
+      "cross_section": {
+        "value": 9.6,
+        "unit": "um",
+        "source": "Ours, not the paper's (which is 77 um). 12 d, chosen as the smallest that leaves the minimum image comfortable (r_c = 1.1225 d needs > 2.245 d) while keeping N affordable. The paper's 77 um would be N = 37,500.",
+        "tier": 3
+      }
+    },
+    "external": {
+      "kind": "gravity",
+      "form": "U(z) = (m - m_fluid) g z = kT z / l_g, uniform force F_z = -kT/l_g",
+      "gravitational_length": {
+        "value": 10.7,
+        "unit": "um",
+        "source": "paper, Table 1, l_g column (0.8 um particles in 70:30). ★ This is a MEASURED INPUT, not a derived quantity -- the arrow runs l_g -> T, not the other way. See the note in `numerics.independent_inputs`.",
+        "tier": 0
+      },
+      "g": {
+        "value": 9.80665,
+        "unit": "m/s^2",
+        "source": "standard gravity. Handbook constant.",
+        "tier": 0
+      },
+      "source": "paper: gravity is the whole point of the system. Implemented as md.force.Constant; md.external.field has no gravity class (bd-hoomd line 421).",
+      "boundary": {
+        "kind": "two_walls",
+        "form": "Gaussian repulsion at z = 0 and z = L_z",
+        "epsilon_kT": 20,
+        "sigma_d": 0.3,
+        "rcut_d": 2.0,
+        "source": "Ours. The paper's cell has real glass walls top and bottom. Gaussian rather than LJ on purpose: an LJ wall reaches F = 1517 kT/d at h = 0.4 d and a particle passes straight through at dt = 1e-3 with no NaN (bd-hoomd trap 22, measured). Gaussian's force is bounded at eps/(sigma sqrt(e)) = 40.4 kT/d."
+      }
+    },
+    "interactions": {
+      "kind": "wca",
+      "form": "U(r) = 4 eps [(d/r)^12 - (d/r)^6] + eps for r < 2^(1/6) d, else 0",
+      "epsilon_kT": 1,
+      "source": "Ours, a stand-in for the hard sphere the paper reports. ⚠ This is the substitution the Carnahan-Starling comparison is ABOUT: the simulation imposes a soft core, not a hard one, so a deviation from CS is a result and not a bug (rule 7'). knowledge/wiki/findings/wca-reproduces-carnahan-starling.md is this repository's own prior measurement of the same substitution."
+    },
+    "targets": [
+      {
+        "name": "density_profile"
+      },
+      {
+        "name": "gravitational_length"
+      },
+      {
+        "name": "local_equation_of_state"
+      },
+      {
+        "name": "lateral_diffusion"
+      }
+    ],
+    "numerics": {
+      "independent_inputs": [
+        "d",
+        "l_g",
+        "D_0",
+        "phi"
+      ],
+      "dt_star": 0.00015,
+      "production_tau_sed": 5,
+      "discard_fraction": 0.5,
+      "samples_per_tau_sed": 40,
+      "seed_base": 20260916,
+      "wall_margin_d": 0.5,
+      "n_seeds": 5,
+      "n_seeds_fs": 2,
+      "lxy_fs_d": 24,
+      "min_sep_d": 1.0
+    },
+    "structure": {
+      "dim": {
+        "value": 3,
+        "basis": "given",
+        "source_kind": "artefact",
+        "source_file": "../../knowledge/source/papers/2014-newman-yethiraj-sedimentation-equilibrium.md",
+        "source": "The distillation records confocal z-stacks of 77 x 77 x 108 um and a density profile along z. A sedimentation profile is a statement about the third dimension, so the source states the dimensionality by construction.",
+        "alternatives": [
+          2
+        ],
+        "why_not": "2D is not available: gravity acts along z and the observable IS the z profile, so removing z removes the question. `required` would also hold for that reason, but `given` takes precedence when the source states it.",
+        "what_would_change": "Everything. The barometric law's decay length is dimension-independent, but the equation of state is not: Carnahan-Starling is the 3D hard-sphere EOS and the 2D analogue is a different function. A 2D run compared against CS would be wrong with no symptom."
+      },
+      "size": {
+        "role": "system",
+        "n": 584,
+        "phi": 0.017,
+        "pins": "L",
+        "fixed_by": "cost",
+        "stated_in_source": null,
+        "finite_size": "PARTIAL — two cross-sections, 12 d (5 seeds, the primary) and 24 d (2 seeds), which is a 4x change in N at fixed density and fixed cell height. That tests the lateral axis, which is the only one not pinned by physics: the z extent IS pinned (125 d = 9.35 l_g, walls at both ends, so no periodic lid contaminates the tail) and phi is the paper's. ⚠ Still NOT a scaling study — two points can show that the profile does not move, and cannot fit an exponent. The paper's own cross-section is 96 d, 8x wider than the primary arm and 45.6 h of compute, so the third point is out of budget (A3) rather than forgotten.",
+        "finite_size_status": "partial",
+        "what_would_change": "L is pinned and N follows from phi, so N is not free. The cell height is the paper's 100 um and the volume fraction is the paper's 0.017; the only choice is the cross-section, and it enters through cost alone (N scales as L_xy^2, and the measured rate is 8724 steps/s at N = 584). A wider cross-section would narrow the per-slab Poisson error and change nothing else in the one-body profile -- which is the claim the not_done above leaves open."
+      }
+    }
+  },
+  "reference": {
+    "strategy": "thermal",
+    "rationale": "thermal convention, fixed (sigma=d, E=kT, tau=tau_B). The unit system is not changed per system, so that literature comparison stays possible (bd-physics 1.1). The governing timescale may differ per system, and dt is set from that one. The length unit is the DIAMETER and the clock is tau_d = d^2/D_0, shared with passive-sphere--equilibrium-structure so the two cards are comparable. The gravitational length is the OTHER length and becomes a dimensionless group (l_g/d), not a unit -- it spans orders of magnitude across the source's three solvent mixtures while d does not.",
+    "length": {
+      "symbol": "d",
+      "value": 8e-07,
+      "unit": "meter"
+    },
+    "time": {
+      "symbol": "tau_d",
+      "value": 1.4545528939138717,
+      "unit": "second"
+    },
+    "energy": {
+      "symbol": "kT",
+      "value": 4.0845120016e-21,
+      "unit": "kilogram * meter ** 2 / second ** 2"
+    }
+  },
+  "back_transform": {
+    "sigma_SI": 8e-07,
+    "sigma_SI_unit": "meter",
+    "tau_SI": 1.4545528939138717,
+    "tau_SI_unit": "second",
+    "energy_SI": 4.0845120016e-21,
+    "energy_SI_unit": "kilogram * meter ** 2 / second ** 2"
+  },
+  "ledger": {
+    "lengths": [
+      {
+        "symbol": "d",
+        "value": 8e-07,
+        "unit": "meter",
+        "note": "particle diameter (reference)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "l_g",
+        "value": 1.07e-05,
+        "unit": "meter",
+        "note": "kT/(buoyant weight) -- MEASURED, Table 1",
+        "role": "",
+        "star": true,
+        "reduced": 13.375
+      },
+      {
+        "symbol": "L_xy",
+        "value": 9.6e-06,
+        "unit": "meter",
+        "note": "lateral box (periodic)",
+        "role": "",
+        "star": false,
+        "reduced": 12.0
+      },
+      {
+        "symbol": "L_z",
+        "value": 9.999999999999999e-05,
+        "unit": "meter",
+        "note": "cell height (walls at both ends)",
+        "role": "box",
+        "star": false,
+        "reduced": 125.0
+      }
+    ],
+    "times": [
+      {
+        "symbol": "tau_p",
+        "value": 3.6358385676124457e-08,
+        "unit": "second",
+        "note": "m/gamma momentum relaxation",
+        "role": "inertia",
+        "star": false,
+        "reduced": 2.499626230730757e-08
+      },
+      {
+        "symbol": "dt",
+        "value": 0.00021818293408708072,
+        "unit": "second",
+        "note": "integration step",
+        "role": "dt",
+        "star": false,
+        "reduced": 0.00015
+      },
+      {
+        "symbol": "tau_d",
+        "value": 1.4545528939138717,
+        "unit": "second",
+        "note": "d^2/D_0 diffusion (reference)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "tau_sed",
+        "value": 260.2058762878112,
+        "unit": "second",
+        "note": "l_g^2/D_0 -- the slowest equilibrium mode",
+        "role": "",
+        "star": true,
+        "reduced": 178.890625
+      },
+      {
+        "symbol": "tau_fall",
+        "value": 2431.830619512254,
+        "unit": "second",
+        "note": "L_z l_g/D_0 -- drift across the cell ★",
+        "role": "",
+        "star": false,
+        "reduced": 1671.875
+      },
+      {
+        "symbol": "T_obs",
+        "value": 2081.6470103024894,
+        "unit": "second",
+        "note": "observation window",
+        "role": "observation",
+        "star": false,
+        "reduced": 1431.125
+      }
+    ],
+    "energies": [
+      {
+        "symbol": "kT",
+        "value": 4.0845120016e-21,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "thermal energy (reference)",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      },
+      {
+        "symbol": "eps_wall",
+        "value": 8.1690240032e-20,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "wall depth at contact",
+        "role": "",
+        "star": false,
+        "reduced": 20.0
+      },
+      {
+        "symbol": "eps_wca",
+        "value": 4.0845120016e-21,
+        "unit": "kilogram * meter ** 2 / second ** 2",
+        "note": "WCA amplitude",
+        "role": "",
+        "star": false,
+        "reduced": 1.0
+      }
+    ]
+  },
+  "ledger_absent": {},
+  "groups": [
+    {
+      "name": "phi",
+      "value": 0.017,
+      "expr": "N(pi/6)/(L_xy^2 L_z)",
+      "meaning": "mean volume fraction (the paper's 0.017)",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "l_g/d",
+      "value": 13.375,
+      "expr": "",
+      "meaning": "gravitational length in diameters *",
+      "num": [
+        "lengths",
+        "l_g"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "L_z/l_g",
+      "value": 9.345794392523365,
+      "expr": "",
+      "meaning": "how many gravitational lengths the cell is",
+      "num": [
+        "lengths",
+        "L_z"
+      ],
+      "den": [
+        "lengths",
+        "l_g"
+      ]
+    },
+    {
+      "name": "L_xy/d",
+      "value": 12.0,
+      "expr": "",
+      "meaning": "lateral box in diameters (ours, not the paper's 96)",
+      "num": [
+        "lengths",
+        "L_xy"
+      ],
+      "den": [
+        "lengths",
+        "d"
+      ]
+    },
+    {
+      "name": "phi_wall",
+      "value": 0.15889238105146286,
+      "expr": "phi(L_z/l_g)/(1-e^-Lz/lg)",
+      "meaning": "predicted local phi at the wall -- how far up CS this reaches",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "d_BH/d",
+      "value": 0.9048015670150265,
+      "expr": "Barker-Hend.",
+      "meaning": "effective hard-sphere diameter at this eps_WCA ★",
+      "num": null,
+      "den": null
+    },
+    {
+      "name": "eps_wall/kT",
+      "value": 20.0,
+      "expr": "",
+      "meaning": "wall depth -- penetration ~ e^-eps",
+      "num": [
+        "energies",
+        "eps_wall"
+      ],
+      "den": [
+        "energies",
+        "kT"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "kind": "geometry",
+      "name": "r_c/(L_xy/2)",
+      "value": 0.16666666666666666,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 6.0,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "geometry",
+      "name": "exp(-L_z/l_g)",
+      "value": 8.733193167496665e-05,
+      "limit": 0.001,
+      "op": "<=",
+      "ok": true,
+      "margin": 11.45056545550619,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "geometry",
+      "name": "l_g/d",
+      "value": 0.07476635514018691,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 13.375000000000002,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "integration",
+      "name": "dt/dt_max[wca]",
+      "value": 0.8126184763267255,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 1.2305897898363007,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "model",
+      "name": "tau_p/dt",
+      "value": 0.00016664174871538383,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 6000.897180381564,
+      "hard": true,
+      "phase": "design"
+    },
+    {
+      "kind": "statistics",
+      "name": "tau_sed/T_obs",
+      "value": 0.125,
+      "limit": 1.0,
+      "op": "<=",
+      "ok": true,
+      "margin": 8.0,
+      "hard": false,
+      "phase": "design"
+    }
+  ],
+  "verdict": "PASS",
+  "params": {
+    "N": 584,
+    "phi": 0.017,
+    "L_xy_star": 12.0,
+    "L_z_star": 125.0,
+    "l_g_star": 13.375,
+    "eps_wca_kT": 1.0,
+    "eps_wall_kT": 20.0,
+    "sig_wall_d": 0.3,
+    "rcut_wall_d": 2.0,
+    "wall_margin_d": 0.5,
+    "min_sep_d": 1.0,
+    "init": "ideal"
+  },
+  "numerics": {
+    "dt_star": 0.00015,
+    "n_eq": 0,
+    "n_prod": 9540800,
+    "sample_every": 29815,
+    "seed": 11
+  },
+  "l3_issues": []
+}

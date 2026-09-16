@@ -47,6 +47,14 @@ medium:
       the same inputs give 94 K, which is not a temperature -- that is how the
       form of the formula was settled too.
     tier: 1
+  density:
+    value: 1113.8
+    unit: kg/m^3
+    source: >-
+      paper, Table 1, the 70:30 decalin/TCE row. Used ONLY to make the
+      temperature derivation auditable (see temperature above); it is not an
+      independent input, because T was solved FROM it.
+    tier: 0
   viscosity:
     value: 1.2312
     unit: mPa*s
@@ -104,6 +112,19 @@ geometry:
 external:
   kind: gravity
   form: "U(z) = (m - m_fluid) g z = kT z / l_g, uniform force F_z = -kT/l_g"
+  gravitational_length:
+    value: 10.7
+    unit: um
+    source: >-
+      paper, Table 1, l_g column (0.8 um particles in 70:30). ★ This is a
+      MEASURED INPUT, not a derived quantity -- the arrow runs l_g -> T, not the
+      other way. See the note in `numerics.independent_inputs`.
+    tier: 0
+  g:
+    value: 9.80665
+    unit: m/s^2
+    source: "standard gravity. Handbook constant."
+    tier: 0
   source: >-
     paper: gravity is the whole point of the system. Implemented as
     md.force.Constant; md.external.field has no gravity class (bd-hoomd line 421).
@@ -112,6 +133,7 @@ external:
     form: "Gaussian repulsion at z = 0 and z = L_z"
     epsilon_kT: 20
     sigma_d: 0.3
+    rcut_d: 2.0
     source: >-
       Ours. The paper's cell has real glass walls top and bottom. Gaussian rather
       than LJ on purpose: an LJ wall reaches F = 1517 kT/d at h = 0.4 d and a
@@ -135,11 +157,34 @@ targets:
   - name: local_equation_of_state  # Z(Phi) from the hydrostatic relation, vs Carnahan-Starling
   - name: lateral_diffusion        # D in x,y -- self-consistency against kT/gamma
 
+# ★ WHICH NUMBERS ARE INDEPENDENT -- read this before adding a "check"
+#
+#   Exactly FOUR measured quantities fix this system:
+#       d = 0.8 um . l_g = 10.7 um . D_0 = 0.44 um^2/s . phi = 0.017
+#   Everything else is derived FROM them:
+#       T    <- l_g, a, (rho_p - rho_f), g        (the paper states no T)
+#       eta  <- D_0, T, a   by Stokes-Einstein    (the paper states no eta)
+#
+#   ⚠ So recomputing l_g from T, or D_0 from eta, is CIRCULAR and is not a check.
+#     Both would agree to machine precision and prove nothing. This is written
+#     here because adding exactly those two "checks" is the obvious next move and
+#     it would be a check whose success is indistinguishable from its failure
+#     (docs/05-pitfalls.md section 2).
+#
+#   What IS checkable: the separation gates below, and the run's observables
+#   against the analytic profile, against Carnahan-Starling, and against
+#   D_xy = kT/gamma.
 numerics:
-  dt_star: 2.0e-4            # bound by the WCA core at r = 0.90 d (F = 139 kT/d)
+  independent_inputs: [d, l_g, D_0, phi]
+  dt_star: 1.5e-4            # ★ set BY the gate, not fitted to it: the WCA core
+                             #   at U = 8 kT (r = 0.800 d, F = 161 kT/d) allows
+                             #   1.85e-4, and 2.0e-4 was REFUSED by the hard
+                             #   separation check at 1.08x. 1.5e-4 leaves 0.81x.
   production_tau_sed: 5      # multiples of tau_sed = l_g^2/D_0 = 178.9 tau_d
   discard_fraction: 0.5      # the first half is discarded, the second half measured
   samples_per_tau_sed: 40
+  seed_base: 20260916        # the default seed; --seed overrides it
+  wall_margin_d: 0.5         # keep the initial placement one radius off each wall
   n_seeds: 5                 # the 12 d primary arm
   n_seeds_fs: 2              # the 24 d finite-size arm
   lxy_fs_d: 24               # the second cross-section, in diameters

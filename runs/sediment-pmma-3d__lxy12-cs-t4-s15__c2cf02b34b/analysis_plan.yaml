@@ -1,0 +1,257 @@
+schema: bdbot.analysis_plan/0.1
+campaign: sedimentation-eos-S31
+written: 2026-09-16
+revision: 2
+sealed_with: prediction.yaml
+
+why_this_is_sealed_too: >-
+  `bdbot.runcard.write_seal` refuses to seal a prediction without an analysis
+  plan, and the reason is that sealing the prediction alone leaves the choice of
+  figure open -- and the choice of figure is where a null result becomes a
+  finding. Every figure and every comparison this campaign will produce is named
+  below, before the data exists. Anything not named here is exploratory and will
+  be labelled so.
+
+# ═══════════════════════════════════════════════════════════════════════
+figures:
+  - id: F1
+    title: "Phi(h), every seed, log axis, with the ideal-gas profile overlaid"
+    x: "h/d, height above the bottom wall, 0 to 125"
+    y: "local volume fraction Phi(h), log scale"
+    series:
+      - "the 5 primary-arm seeds, one line each, with Poisson error bars"
+      - "exp(-h/l_g) at the paper's l_g = 13.375 d, DOTTED -- the ideal-gas
+         reference and the CONVERGENCE arm's initial condition"
+      - "★ the CS hydrostatic profile, DASHED -- the PRIMARY arm's initial
+         condition. Both curves are drawn because the primary arm starts on one
+         of them, and a reader has to be able to see which."
+      - "a vertical line at h = 2 d, the lower edge of every window"
+      - "vertical lines at h = 55 and 100 d, the tail fit window (P1)"
+    decides: "P1, P1b, and the qualitative reading of P3"
+    what_is_wrong_should_be_visible: >-
+      Two different failures, and the two overlaid curves separate them. If the
+      CONVERGENCE arm has not equilibrated its profile still lies on the DOTTED
+      line near the wall. If the PRIMARY arm is not stationary its profile has
+      moved off the DASHED line -- and which way it moved is the sign of the EOS
+      deviation, read straight off the figure.
+
+  - id: F2
+    title: "Z against phi_eff, with BOTH Carnahan-Starling mappings"
+    content: >-
+      Z read from the profile, plotted against phi_eff = phi (d_BH/d)^3, with
+      Carnahan-Starling(phi_eff) as a solid line and Carnahan-Starling(phi) --
+      the unmapped alternative -- as a dotted line. The 5 seeds pooled, with the
+      seed-to-seed spread as the error bar. A horizontal line at Z = 1.
+    decides: P3
+    ★_this_figure_IS_the_answer: >-
+      The two curves are 17 % apart at the wall. Which one the points lie on is
+      the question, and putting both on one axes is what makes the answer legible
+      rather than a number in a table.
+
+  - id: F3
+    title: "the deviation, against the pre-registered band"
+    content: >-
+      100*(Z - CS)/CS against phi_eff, for BOTH mappings, with the +-2 % band
+      drawn. The weighted mean of each is marked as a horizontal line, and the
+      single-slab scatter is left visible so the noise floor is not hidden.
+    decides: P3
+    ⚠_why_the_scatter_stays: >-
+      The per-slab points will scatter by ~2.7 % at 200 frames. Smoothing them
+      away would make a 2 % band look decisive when a single slab cannot resolve
+      it; the WEIGHTED MEAN is what the band applies to, and the figure has to
+      show both or it misrepresents the test.
+
+  - id: F4
+    title: "the two cross-sections on one axes"
+    content: >-
+      Phi(h) for 12 d (5 seeds) and 24 d (2 seeds), same axes as F1, with the
+      ratio in a lower panel.
+    decides: "the finite-size consistency check, decision_rule step 6"
+    why: >-
+      The lateral width is the only free parameter. For a one-body profile the
+      two must agree inside their Poisson errors, and the ratio panel is where a
+      systematic offset would show.
+
+  - id: F5
+    title: "sealed prediction against measurement"
+    content: >-
+      One table: P1, P1b, P2 through P5 -- the sealed rule, the measurement with its error
+      bar, the deviation, the role, and the verdict. Plus the verdict on the
+      QUESTION from decision_rule step 5.
+    generated_by: >-
+      `campaigns/s31_analyze.py`, reading `observables.npz` and
+      `metrics.json["observables"]` for each of the 8 run directories, plus
+      `bdbot.runcard.verify_seal` for the seal column.
+    also: "`tools/postmortem.py runs/<run_id>` for each, per the working practice"
+
+  - id: F6
+    title: "<U>/N against time, every seed -- the stationarity evidence"
+    content: >-
+      The L4 indicator per seed over the whole window, with the first half shaded
+      as discarded and the drift statistic printed. The CONVERGENCE arm is drawn
+      on the same axes, in a distinct colour, over its full 8 tau_sed.
+    decides: "decision_rule step 3"
+    why: >-
+      The two arms make opposite demands of this figure and both are visible on
+      it. The primary arm must be FLAT from the first sample -- it starts at the
+      CS profile, so any systematic trend means that profile is not the
+      equilibrium one. The convergence arm must be DESCENDING and flattening
+      toward the primary arm's level. A 1 tau_sed ideal-start pilot read 7.1 sigma
+      and an 8 tau_sed one 6.3 sigma, so this figure is also the record of why
+      the design changed.
+
+  - id: F7
+    title: "★ the convergence check -- does the answer depend on where it started?"
+    content: >-
+      Phi(h) for the primary arm (pooled, 5 seeds, init=cs) and the convergence
+      arm (1 seed, init=ideal, 8 tau_sed) on one log axes, with BOTH initial
+      profiles overlaid, and a lower panel of the ratio
+      phi_ideal-start(h) / phi_cs-start(h) with the Poisson band drawn. The
+      measured phi(wall) of each is annotated against the two starting values
+      0.1589 (ideal) and 0.1031 (CS).
+    decides: "decision_rule step 3b"
+    ★_why_this_figure_is_not_optional: >-
+      The primary arm starts from a profile computed WITH Carnahan-Starling, so
+      on its own it cannot distinguish "CS is right" from "we started at CS and
+      nothing moved it". This figure is the only place that circularity is
+      addressed, and it is pre-registered so that a convergence arm that lands
+      somewhere else cannot be quietly dropped. If the ratio panel is not flat
+      within its band, the campaign verdict is INCONCLUSIVE and P3 is reported as
+      conditional on the initial condition.
+    what_is_wrong_should_be_visible: >-
+      A convergence arm that has stalled shows as a ratio panel with a systematic
+      slope near the wall and an annotated phi(wall) still close to 0.1589.
+
+# ═══════════════════════════════════════════════════════════════════════
+computations:
+  profile:
+    from: "runs/<run_id>/observables.npz, arrays profile_h / profile_phi / profile_counts"
+    accumulation: >-
+      the z histogram is accumulated in a closure across production samples and
+      divided by the frame count -- `sample()` does NOT return the N-particle
+      array, which took observables.npz from 448 KB to 148 MB in an earlier case
+      (docs/05-pitfalls.md).
+    bin_width_d: 0.5
+    error: "Poisson on the ACCUMULATED counts, propagated to phi"
+  l_g_fitted:
+    definition: "-1/slope of a Poisson-weighted least squares fit of ln n(h)"
+    two_windows_two_roles: >-
+      ★ The SAME estimator on two windows, with two different roles, and this is
+      the rule 7' correction of revision 2.
+        TAIL, h in [55, 100] d -> `l_g_fitted_tail`, implementation_check vs
+          13.375. Here phi < 1e-3 and the fluid is effectively ideal, so the
+          profile really is exp(-h/l_g) and 13.375 is the right prediction.
+          Integrating the CS hydrostatic ODE and fitting this window gives
+          13.50 d, +0.9 %, inside the 5 % band.
+        DENSE, h in [2, min(6 l_g, L_z - 2)] d -> `l_g_fitted_dense`, hypothesis
+          vs 15.442. Z > 1 extends the column, so the apparent decay length here
+          is NOT l_g and a check against 13.375 would fail on a correct run.
+      In revision 1 there was one window and one check against 13.375. That was
+      the error.
+    window: "see above -- two of them"
+    why_the_slope: >-
+      the slope is fitted, so neither the origin nor the wall's structure layer
+      can shift it -- only the window has to avoid them.
+    ⚠_the_estimator_is_biased_at_small_counts: >-
+      measured +1.93 % with 11 usable bins and +9.17 % with 5, on data drawn from
+      an EXACT exponential (`tests/test_placement.py`). The window above is chosen
+      to keep the bin count high, and the standard error is reported so the
+      comparison is not made on the point value alone.
+  Z:
+    definition: "Z = (1/(l_g phi(z))) * integral_z^Lz phi dz'"
+    implementation: "`cases/sediment_3d.eos_from_profile`"
+    ⚠_half_bin: >-
+      the integral takes HALF of the bin containing z plus the whole bins above
+      it. A plain cumsum integrates from the bin's lower edge and is high by
+      bin/(2 l_g) = +1.65 % at these settings -- the size of the whole threshold.
+    validated: >-
+      `tests/test_sediment_eos.py`: against the exact finite-cell ideal gas
+      Z = 1 - exp(-(L_z - z)/l_g), with a maximum error of (bin/l_g)^2/8 over
+      three decades of bin/l_g. 1.7e-4 at the production bin.
+    NOT_from_hoomd_pressure: >-
+      ★ deliberately. HOOMD's pressure carries a kinetic term from velocities and
+      overdamped BD velocities are not physical.
+  phi_eff:
+    definition: "phi * (d_BH/d)^3"
+    d_BH: "`simbot.cutoff.barker_henderson_diameter(1.0, sigma_lj=2^(-1/6))` = 0.9048"
+    why: >-
+      `findings/wca-reproduces-carnahan-starling.md`: putting the nominal phi into
+      a hard-sphere theory is wrong by 16 % at phi = 0.45. Whether it is wrong
+      ENOUGH to matter here is the question, so both are computed.
+  Z_dev_wmean:
+    definition: "see prediction.yaml primary_statistic -- NOT restated here"
+    computed_as: >-
+      per-slab 100*(Z - CS)/CS over the window, averaged with the slab's
+      accumulated counts as weights. Reported for BOTH mappings.
+    also_report: >-
+      the unweighted median, the single-slab maximum (as a noise floor, no
+      verdict), the densest usable slab on its own, and the seed-to-seed sd of the
+      weighted mean over the 5 primary seeds.
+  D_xy:
+    definition: "slope/4 of the lateral MSD against lag, over the late half"
+    unwrapping: "position + image * L_xy, x and y only"
+    ⚠: "the VERTICAL MSD saturates at ~l_g^2 and is not fitted. The card's gate
+        table says so."
+
+# ═══════════════════════════════════════════════════════════════════════
+order_of_operations:
+  steps:
+    - "1. Verify the seal on all 8 run directories (bdbot.runcard.verify_seal) BEFORE reading any number. A broken seal ends the analysis."
+    - "2. Evaluate P1 (tail), P2 and P4 -- the correctness gates. If any fails, report IMPLEMENTATION FAILURE and stop. No physics. ⚠ P1b is NOT a gate: it is the dense-window hypothesis, and 13.375 is the wrong prediction for that window."
+    - "3. Check the L4 drift verdict per run, AND the first-half/second-half profile agreement for the primary arm. A run still drifting is reported as not stationary and its profile is excluded; if more than one of the 5 primary seeds is excluded, the campaign reports UNDEREQUILIBRATED and stops."
+    - "3b. Read the CONVERGENCE arm against the primary arm (F7). If its phi(h) ratio is not flat within the Poisson band, P3 is reported as conditional on the initial condition and the campaign verdict is INCONCLUSIVE. This step runs BEFORE P3 is read, so the conditionality cannot be decided after the number is known."
+    - "4. Read P3 over the surviving primary seeds: weighted mean, and the seed-to-seed sd."
+    - "5. Read the secondary and apply decision_rule step 5 to get the verdict on the QUESTION."
+    - "6. Read the finite-size arm last, as a consistency check only."
+    - "7. Report P1b, P5 and every `measurement` whatever P3 said."
+  why: >-
+    Fixed in advance so the correctness gates cannot be re-read once the primary
+    is known. Steps 1, 2 and 3 can each end the analysis.
+  the_runs_execute_in_this_order_too: >-
+    the 5 primary seeds first (9 min each), then the convergence seed (18 min),
+    then the 2 finite-size seeds (28 min each). The arm the plan reads first is
+    the arm that finishes first, so an implementation failure costs 9 minutes
+    rather than the full 1.98 h -- `--run` stops on the first non-zero exit.
+
+# ═══════════════════════════════════════════════════════════════════════
+not_in_this_plan:
+  - "any fit of g(r) -- the structure is not the question here"
+  - "any claim that the CONVERGENCE arm reached equilibrium. 8 tau_sed from an
+     ideal-gas start is not enough and the pilot measured that it is not enough;
+     the arm exists to show DIRECTION and to bound the remaining gap. Saying so
+     here is what stops '8 tau_sed and it had nearly arrived' from becoming
+     'converged' in the conclusion."
+  - "any finite-size EXPONENT. Two cross-sections cannot fit one."
+  - "any hydrodynamic correction, including K_L. Free-draining BD cannot produce it."
+  - "any comparison against the paper's FIGURES. They were not digitized, and
+     docs/05-pitfalls.md records what happened last time a digitization was cited
+     as evidence without the script being committed."
+  - "any claim that the paper's 'excellent agreement' is reproduced. It carries no
+     percentage."
+  - "any dt/2 replicate -- named in the cost block as a choice."
+
+failure_modes_this_plan_accepts:
+  - >-
+    5 seeds is few. The seed-to-seed sd carries nu = 4 and UNDEREQUILIBRATED or
+    INCONCLUSIVE are pre-registered verdicts rather than fallbacks.
+  - >-
+    The threshold is inherited from a `status: proposed` finding measured in a
+    DIFFERENT geometry (bulk, no gradient, EOS from the virial). If the two
+    disagree, that disagreement is the result and must not be averaged away.
+  - >-
+    The comparison window excludes the densest 2 d of the cell, which is where
+    the discrimination would be strongest. That is the wall's doing and the cost
+    of having a wall at all.
+  - >-
+    One cell height. A taller cell would reach lower phi and a shorter one higher,
+    so the phi range is not independent of the geometry the paper happens to have.
+  - >-
+    ★ THE INITIAL CONDITION OF THE PRIMARY ARM IS COMPUTED FROM THE THEORY BEING
+    TESTED. This is the plan's largest structural weakness and it is accepted
+    knowingly, because the alternative -- 25 tau_sed x 5 seeds from an ideal-gas
+    start -- is 4.7 h and was refused under A3. What it costs is that the primary
+    arm alone proves only stationarity; the convergence arm (1 seed) is the ONLY
+    evidence that the stationary state does not depend on the start, and one seed
+    is thin evidence. If the campaign concludes MAPPING REQUIRED, this is the
+    first thing a reader should attack, and the next experiment is a second
+    convergence seed rather than a sixth primary one.
