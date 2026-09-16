@@ -320,3 +320,64 @@ def test_the_balance_guard_raises_on_a_lopsided_split():
     #  a short run below the guard's floor is not rejected -- it has no halves
     #  worth testing and the statistic reports NaN from the 5-bin minimum instead
     assert guard(2, 5)
+
+
+# ── the block accumulation, which is where every error bar now comes from ──
+
+def test_block_reduction_holds_the_window_fixed_across_blocks():
+    """★ A block average is ONE estimator applied to subsets. Letting each block
+    re-derive its own window from its own counts makes it sixteen estimators.
+
+    Measured: with the `>= 200` count floor applied per block, at 1/16 of the
+    frames the EOS window came out empty and `Z_dev_wmean_block_sem` returned NaN
+    on a short run. The masks now come from the pooled accumulation.
+    """
+    src = (ROOT / "cases" / "sediment_3d.py").read_text()
+    body = src[src.index("def reduce_profile"):src.index("block_stats = [reduce_profile")]
+    #  the pooled masks are used, and no per-block count floor is re-derived
+    assert "okb = ok & np.isfinite(ze)" in body
+    assert "dil = dilute & np.isfinite(ze)" in body
+    assert "counts >= 200" not in body, "a per-block count floor is back"
+    assert "counts >= 50" not in body, "a per-block dilute floor is back"
+
+
+def test_a_single_empty_bin_does_not_void_a_whole_block():
+    """⚠ One zero-count bin inside the pooled window makes `eos_from_profile` NaN
+    there, and a plain `.sum()` propagates it to the entire weighted mean.
+    Measured: one seed's block 0 came back NaN while its neighbours were fine, so
+    the SEM was NaN from a single bin. Dropping the bin is the same estimator on
+    the bins that have data; voiding the block is not."""
+    src = (ROOT / "cases" / "sediment_3d.py").read_text()
+    body = src[src.index("def reduce_profile"):src.index("block_stats = [reduce_profile")]
+    assert "fe, fn = np.isfinite(de), np.isfinite(dn)" in body
+    assert "eos_bins_dropped" in body, "the drop count must be recorded, not silent"
+
+    #  and the arithmetic itself, on a window with one hole
+    w = np.array([100.0, 200.0, 50.0, 300.0])
+    dev = np.array([1.0, 2.0, np.nan, 4.0])
+    fe = np.isfinite(dev)
+    got = float((w[fe] * dev[fe]).sum() / w[fe].sum())
+    assert got == pytest.approx((100 * 1 + 200 * 2 + 300 * 4) / 600.0)
+    #  the naive version is the bug
+    assert not np.isfinite(float((w * dev).sum() / w.sum()))
+
+
+def test_the_block_sem_is_NaN_rather_than_zero_when_it_cannot_be_formed():
+    """★ A zero error bar is worse than no error bar: it passes every sigma-based
+    check. With fewer than 3 finite blocks the SEM must be NaN, and the primary
+    statistic's check must then be INCONCLUSIVE rather than passed."""
+    src = (ROOT / "cases" / "sediment_3d.py").read_text()
+    assert 'if len(v) < 3:\n                return float("nan"), len(v)' in src
+    #  and the observable refuses to invent a sigma
+    assert "sigma=(sem_primary if np.isfinite(sem_primary) else None)" in src
+    assert "tol_sigma=(3.0 if np.isfinite(sem_primary) else None)" in src
+
+
+def test_sixteen_blocks_and_the_reason_is_recorded():
+    assert SED.N_BLOCKS == 16
+    doc = (ROOT / "cases" / "sediment_3d.py").read_text()
+    i = doc.index("N_BLOCKS = 16")
+    preamble = doc[max(0, i - 900):i]
+    #  the number of blocks must carry its own justification, because the blocks
+    #  are correlated at the measured tau_int and that has to be visible
+    assert "nu = 15" in preamble and "correlated" in preamble

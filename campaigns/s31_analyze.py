@@ -418,7 +418,7 @@ def make_figures(rows) -> list[Path]:
         bot.axhline(1.0, color="k", lw=0.6)
     top.set_yscale("log"); top.set_ylim(1e-6, 0.3)
     top.set_ylabel(r"$\phi(h)$"); top.legend(fontsize=7.5, ncol=2)
-    top.set_title("F7  which arm did not move  ★ this is the verdict")
+    top.set_title("F7  which arm did not move  -- this is the verdict")
     mid.set_ylabel("2nd half / 1st half"); mid.set_ylim(0.8, 1.2)
     mid.legend(fontsize=8)
     mid.set_title("flat at 1 = stationary", fontsize=9)

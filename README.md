@@ -4,7 +4,7 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 **What the badge covers**, because a green shield states nothing on its own:
-**1622 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
+**1626 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
 while the wall time is not quoted here because it is not stable: the same suite
 took 84.66 s and 165.36 s on two consecutive CI runs of adjacent commits, which
@@ -78,7 +78,7 @@ judges where there is no closed form, and originates no physical value.
 | **306 specifications · 283 run directories** | 273 carrying `metrics.json` |
 | **239 post-mortems** | a run is not finished when it exits; it is finished when its post-mortem exists |
 | **94 verification scripts** | every physics claim in the docs traces to one |
-| **1622 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
+| **1626 tests** | 6 skipped, 85-165 s on CI with the engine → [above](#brownian-dynamics-agent) |
 | **Knowledge base** | 53 wiki pages — 12 system cards · 29 findings · 5 concepts — plus 43 paper and 2 book distillations and 161 tool-written entries |
 | **Agent layer** | 6 skills · 9 model-tiered subagents · 4 rules |
 
@@ -414,7 +414,7 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **306** specs · 283 run directories · **273** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 36 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 9 case scripts · 94 verification scripts |
-| Tests | **1622 pass**, 6 skipped (wall time not quoted — see the badge note) |
+| Tests | **1626 pass**, 6 skipped (wall time not quoted — see the badge note) |
 | Knowledge | 53 wiki pages · 43 paper + 2 book distillations · 161 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 
