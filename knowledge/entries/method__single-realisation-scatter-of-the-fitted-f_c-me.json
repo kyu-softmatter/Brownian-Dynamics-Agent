@@ -1,0 +1,28 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [
+    "trap",
+    "ensemble",
+    "error-bar",
+    "single-particle",
+    "bridge"
+  ],
+  "dimensionless": {
+    "T_obs_over_tau": 310.0
+  },
+  "source": "verify/verify_fc_estimator_bias.py",
+  "lessons": [
+    {
+      "claim": "Single-realisation scatter of the fitted f_c, measured on exact OU at the archived trap run's estimator configuration: 9.12 % sd per bead at T_obs/tau_k = 2000, and 28.10 % sd at T_obs/tau_k = 310 (AM's 5 s per rung). The ensemble of 250 traces gives 0.43 % and 1.81 % respectively, so the ratio is 21.1x and 15.5x -- NOT sqrt(1000) = 31.6x as r2 finding[3] stated, because f_c is fitted to the PSD of the n_trace = min(250, N) subset and averaging PSDs before a non-linear fit is not averaging fits.",
+      "kind": "method_note",
+      "coords": {
+        "T_obs_over_tau": 310.0
+      }
+    }
+  ],
+  "not_verified": []
+}
