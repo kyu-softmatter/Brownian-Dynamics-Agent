@@ -133,9 +133,19 @@ platform test. It now asserts the payload:
 - `pow`'s freedom is asserted portably: `a**3` and `a*a*a` must agree to 15
   significant figures and differ by at most one ULP — true on both platforms.
 
+⚠ **The neighbourhood was two ULP wide for one commit.** `radius` defaulted to
+2, so the accepted set held 121 digests rather than 61 while every name,
+docstring and failure message said "one ULP". That is slack in the worst
+possible place: `pow`'s permitted error is ±1 ULP around the correctly rounded
+result and this archive sits at one edge of that band, so a third libm at the
+*opposite* edge is exactly two ULP from the archive — the divergence this page
+promises will "fail, which is news rather than noise" is the one radius=2
+absorbed. Both measured digests lie at distance 0 and 1. It is 1 now, and a
+two-ULP shift is asserted refused.
+
 ★ **Guard on the guard.** A tolerance that accepts everything is not a
-tolerance, so its discriminating power is measured. Four mutations must land
-outside the neighbourhood and all four do:
+tolerance, so its discriminating power is measured. Six mutations must land
+outside the neighbourhood and all six do:
 
 ```
 CAUGHT   init written on the default path        (survived this file's v1)
@@ -159,9 +169,25 @@ say which. A content hash advertises "same content, same name"; ours advertises
 "same content, same machine, same name", and that had not been written down.
 
 If the archive is ever re-identified — which can only happen at a campaign
-boundary, where re-sealing is legitimate — normalise the hashed payload to 15
-significant figures at the same time. Both platforms' `Gamma` collapse to the
-same 15-digit string, so 15 digits would have been portable from the start.
+boundary, where re-sealing is legitimate — normalise **per field**, at a
+precision each field's conditioning justifies.
+
+⚠ **Correction, measured the same day.** The first revision of this page ended
+"normalise the hashed payload to 15 significant figures … so 15 digits would
+have been portable from the start". The 15 was measured on `params.Gamma` and
+restated about the payload, which is the same over-generalisation this page is
+about. 15 significant figures unifies `Gamma` (0 of 104 specs disagree) and does
+**not** unify `params.k_bond_star`, hashed in **186** specs:
+`cases/chain_bend_dlvo_2d.py`'s `find_well` takes a central second difference
+with `dh = h_min*1e-4`, so about eight digits are lost to cancellation and one
+ULP in a single `U_star` evaluation becomes **2.96e-9 relative** —
+`1042362.8817700658` against `1042362.8848514813`, agreeing at 9 significant
+figures and disagreeing at 12 and at 15. `params.h_min_star` (171 specs) is
+worse in kind rather than degree: `np.geomspace` reaches `numpy.logspace`'s
+`_nx.power`, so the non-portable `pow` feeds a directly hashed float.
+
+So the honest statement is narrower than the first one: **`soft-r3`'s spread is
+one ULP; `chain-bend`'s is 2.96e-9, and no single digit count covers both.**
 
 ## See also
 

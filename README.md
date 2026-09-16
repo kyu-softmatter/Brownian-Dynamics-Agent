@@ -414,7 +414,7 @@ wired to the engine.**
 | Cases | **8**, all `READY` at L0 · L2 · L3. Six have produced runs |
 | Runs | **296** specs · 275 run directories · **271** with `metrics.json` · 239 post-mortems |
 | Code | `bdbot/` 35 modules (L0→L7) · `simbot/` 19 modules (S2/S6/S7/S8) · 8 case scripts · 79 verification scripts |
-| Tests | **1424 pass**, 7 skipped, ~79 s locally · 85-165 s on CI |
+| Tests | **1424 pass**, 7 skipped (wall time not quoted — see the badge note) |
 | Knowledge | 48 wiki pages · 43 paper + 2 book distillations · 145 entries |
 | Agent layer | 6 skills · 9 model-tiered subagents · 4 rules |
 

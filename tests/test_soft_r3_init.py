@@ -116,7 +116,7 @@ def _float_leaves(node, path=()):
         yield path
 
 
-def _ulp_neighbourhood(payload: dict, nhex: int, radius: int = 2) -> set:
+def _ulp_neighbourhood(payload: dict, nhex: int, radius: int = 1) -> set:
     """Every digest the archived payload yields when ONE float leaf lands on an
     adjacent double -- i.e. the set of run_ids meaning *the same physics,
     computed against a different libm*.
@@ -124,6 +124,16 @@ def _ulp_neighbourhood(payload: dict, nhex: int, radius: int = 2) -> set:
     One leaf at a time, because that is what was measured. Two leaves diverging
     together would fail the test that uses this, and that is the intended
     behaviour: it would be a new fact and should be measured, not absorbed.
+
+    ⚠ `radius` is 1, and it was 2 for one commit. At 2 the accepted set is 121
+      digests rather than 61 while every name, docstring and failure message in
+      this file said "one ULP" -- undocumented slack, and slack in exactly the
+      wrong place: `pow`'s permitted error is +-1 ULP around the correctly
+      rounded result and this archive sits at one edge of that band (Apple libm
+      = glibc + 1 ULP), so a third libm at the *opposite* edge is two ULP from
+      the archive. That is precisely the divergence this file promises will
+      "fail, which is news rather than noise", and radius=2 absorbed it
+      silently. Both measured digests lie at distance 0 and 1, so 1 is enough.
     """
     payload = copy.deepcopy(payload)
     leaves = list(_float_leaves(payload))
@@ -202,23 +212,49 @@ def test_the_ulp_tolerance_still_refuses_what_it_exists_to_catch():
     Each mutation below is a real change to the hashed payload -- the first two
     are exactly the two that survived this file's first version -- and each must
     land OUTSIDE the one-ULP neighbourhood.
+
+    ⚠ The last two were measured by hand when this fix was written, quoted as
+      CAUGHT in `docs/05-pitfalls.md` and in the wiki finding, and then not
+      wired here: the mutation list held four entries while three documents
+      cited six, and one document named *this test* as where the `Gamma`
+      rounding was caught. The word `Gamma` did not appear in this function.
+      That is presence-not-validity committed in the prose rather than the code,
+      which is worse than the original defect because the prose is the part a
+      reader trusts. A mutation takes a callable now, because "drop the key"
+      cannot be expressed by `dict.update`.
     """
     payload = _archived_payload()
     ok = _ulp_neighbourhood(payload, 10)
-    mutations = [
-        ("init written on the default path", {"init": "rsa"}),
-        ("lattice written on the default path", {"n_x": 20, "n_y": 20}),
-        ("phi moved in the 10th digit", {"phi": 0.3500000001}),
-        ("A moved in the 12th digit", {"A": 100.00000000001}),
-    ]
-    for why, mutation in mutations:
-        m = copy.deepcopy(payload)
-        m["params"].update(mutation)
-        assert RID.spec_hash(m, 10) not in ok, f"accepted: {why} ({mutation})"
 
-    # ...and the size of what IS accepted, stated rather than assumed.
+    def _set(**kw):
+        return lambda params: params.update(kw)
+
+    mutations = [
+        ("init written on the default path", _set(init="rsa")),
+        ("lattice written on the default path", _set(n_x=20, n_y=20)),
+        ("phi moved in the 10th digit", _set(phi=0.3500000001)),
+        ("A moved in the 12th digit", _set(A=100.00000000001)),
+        ("Gamma dropped from params", lambda params: params.pop("Gamma")),
+        ("Gamma rounded to 12 significant figures",
+         lambda params: params.__setitem__("Gamma", float(f"{params['Gamma']:.12g}"))),
+    ]
+    for why, mutate in mutations:
+        m = copy.deepcopy(payload)
+        mutate(m["params"])
+        assert RID.spec_hash(m, 10) not in ok, f"accepted: {why}"
+
+    # ...and the boundary, which must be a measurement and not decoration.
+    # `len(ok) <= 2*n_leaves + 1` is the construction's arithmetic maximum and
+    # can therefore never fail; assert the exact size instead, and that the
+    # first shift OUTSIDE the radius is refused.
     n_leaves = len(list(_float_leaves(payload)))
-    assert len(ok) <= 4 * n_leaves + 1, (len(ok), n_leaves)
+    assert len(ok) == 2 * n_leaves + 1, (len(ok), n_leaves)
+    beyond = copy.deepcopy(payload)
+    g = beyond["params"]["Gamma"]
+    for _ in range(2):
+        g = math.nextafter(g, math.inf)
+    beyond["params"]["Gamma"] = g
+    assert RID.spec_hash(beyond, 10) not in ok, "a two-ULP shift is accepted"
 
 
 def test_pow_is_what_moves_and_it_moves_by_one_ulp():
@@ -228,8 +264,18 @@ def test_pow_is_what_moves_and_it_moves_by_one_ulp():
     everywhere. `pow` carries no such guarantee, so `a**3` and `a*a*a` are
     *allowed* to differ -- they do on osx-arm64 and do not on linux-64. What is
     true on both is that they agree to 15 significant figures and differ by at
-    most one ULP. That is also why a payload serialised at 15 significant
-    figures would have been portable while a full-`repr` one is not.
+    most one ULP.
+
+    ⚠ **Do not generalise the 15 from here.** This file's first version said a
+      payload serialised at 15 significant figures "would have been portable",
+      which is true for `params.Gamma` (0 of 104 specs disagree at 15 digits)
+      and false for `params.k_bond_star`, hashed in 186 specs:
+      `cases/chain_bend_dlvo_2d.py`'s `find_well` takes a central second
+      difference with `dh = h_min*1e-4`, so one ULP in a single `U_star`
+      evaluation becomes 2.96e-9 *relative* in `k_bond_star` -- measured
+      1042362.8817700658 against 1042362.8848514813, which agree at 9
+      significant figures and disagree at 12 and at 15. The portable digit count
+      is set by each field's conditioning, not by the payload.
     """
     a = a_mean_star(0.35)
     assert a == math.sqrt(math.pi / (4 * 0.35))       # exact, everywhere

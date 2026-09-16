@@ -344,9 +344,9 @@ a spec that omits the physical system entirely will keep the same `run_id`
 across a 16× change in `τ_B` — see [03
 §4](03-knowledge-base.md#4--provenance-and-tiers--a-number-without-a-source-is-not-a-number).
 
-### A content hash over a `pow` result is not portable ★
+### A content hash over a `pow` result is not portable
 
-`run_id` is the sha256 of the spec's JSON, which serialises floats at full
+★ `run_id` is the sha256 of the spec's JSON, which serialises floats at full
 `repr` precision. That makes the identity of a run depend on **every bit** of
 every derived float — including bits that IEEE-754 does not pin down.
 
@@ -390,8 +390,18 @@ and refuses everything else — which still catches the two mutations that
 originally survived this file (`init`, `n_x`/`n_y` written on the default path)
 plus a 10th-digit change in `phi`. If the archive is ever re-identified — which
 can only happen at a campaign boundary, where re-sealing is legitimate —
-normalise the payload to 15 significant figures at the same time. At 15 digits
-both platforms' `Gamma` collapse to the same string.
+normalise **per field**, at a precision each field's conditioning justifies —
+not "the payload at 15 digits", which is what this section said for one commit.
+
+⚠ **That number does not generalise, measured.** 15 significant figures unifies
+`params.Gamma` (0 of 104 specs disagree) and does **not** unify
+`params.k_bond_star`, hashed in 186 specs. `cases/chain_bend_dlvo_2d.py`'s
+`find_well` takes a central second difference with `dh = h_min*1e-4`, so the
+numerator loses about eight digits to cancellation and one ULP in a single
+`U_star` evaluation becomes **2.96e-9 relative** in the hashed value:
+`1042362.8817700658` against `1042362.8848514813`, which agree at 9 significant
+figures and disagree at 12 and at 15. Same defect class as the one this section
+is about — a number measured on one field, restated about "the archive".
 
 **The general form:** a content address is only as portable as the least
 portable operation upstream of it. Hash rounded values, or accept that the

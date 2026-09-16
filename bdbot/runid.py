@@ -137,8 +137,17 @@ def spec_hash(spec: dict, nhex: int = 12) -> str:
       `tests/test_soft_r3_init.py` (four tests), and written up in
       `docs/05-pitfalls.md` and
       `knowledge/wiki/findings/a-content-hash-is-only-as-portable-as-its-least-portable-operation.md`.
-      If the archive is ever re-identified at a campaign boundary, normalise to
-      15 significant figures then -- both platforms agree at 15 digits.
+      ⚠ **And there is no single safe digit count.** An earlier revision of this
+      note said "normalise to 15 significant figures at a campaign boundary --
+      both platforms agree at 15 digits", generalising a number measured on
+      `params.Gamma` alone. Measured 2026-09-15: 0 of 104 `Gamma` specs disagree
+      at 15 digits, but `params.k_bond_star` is hashed in 186 specs and
+      `cases/chain_bend_dlvo_2d.py`'s `find_well` derives it as a central second
+      difference with `dh = h_min*1e-4`, so one ULP in a single `U_star`
+      evaluation is 2.96e-9 *relative* -- 1042362.8817700658 against
+      1042362.8848514813, agreeing at 9 significant figures and disagreeing at
+      12 and 15. A normalisation would have to be per-field, at a precision
+      justified by that field's conditioning. Do not copy the 15.
     """
     blob = json.dumps(spec, sort_keys=True, default=str).encode()
     return hashlib.sha256(blob).hexdigest()[:nhex]
