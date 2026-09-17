@@ -135,6 +135,17 @@ double-counted with the instantaneous random force; check against a `kT=0` run.
 
 ## 6 · Future work — joining this agent to the microscope agent
 
+> **Status, 2026-09-16 — partly no longer future.** The thin coupling this
+> section argued for exists: `sim-exp-bridge` holds the protocol (a question
+> card crosses; neither plan does), and one thread has run eight rounds against
+> this repository's `runs/trap-2d-5um__a5ef4f45d589` and six `verify/` scripts
+> at pinned revisions. What this section describes as *not yet done* is still
+> not done, and the list below is the accurate one: no `knowledge/external/am/`,
+> no adapter in either direction, and the rounds assembled by hand. The order
+> of preconditions it states was kept.
+> → [README · what now exists](../README.md#what-now-exists-2026-09-16)
+> · [08 · the survey that measured the gap](08-microscope-link-survey.md)
+
 The longer-term goal is not a better simulator. It is to close the loop between
 **what to compute** and **what to measure**, which today are two separate agents
 built by the same person for the same systems. The other half is

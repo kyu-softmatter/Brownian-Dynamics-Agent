@@ -55,6 +55,9 @@ judges where there is no closed form, and originates no physical value.
 > [`librarian-agent`](https://github.com/kyu-softmatter/librarian-agent) keeps
 > the knowledge findable across all of them and reports when it has gone stale;
 > it currently indexes the microscope only, and no knowledge has moved yet.
+> [`sim-exp-bridge`](https://github.com/kyu-softmatter/sim-exp-bridge) is the
+> seam between the first two: a question card crosses, a plan never does.
+> One thread has run on it.
 > **No working repository depends on either of the two.**
 > → [below](#toward-a-model-to-experiment-loop)
 >
@@ -483,10 +486,62 @@ answer the second alone**, and today it is answered by consulting them separatel
 and trusting that the two `d` mean the same thing in the same units.
 
 **Neither is finished, and coupling two moving targets would be a mistake** — so
-it is future work, with a stated order of preconditions: sealing first, then a
-shared quantity vocabulary, and never letting a simulated number set
-`evidence: measured`.
+the coupling that exists is deliberately thin, and it is no longer only a plan.
+
+### What now exists (2026-09-16)
+
+[**`sim-exp-bridge`**](https://github.com/kyu-softmatter/sim-exp-bridge) is a
+third repository holding the protocol: JSON schemas for a **question card**, a
+validator that refuses a card breaking any of its rules, and CI. The rule that
+made it thin is that **neither plan crosses** — each side keeps its own plan as
+a local artefact and only the question card moves, so each repository
+re-derives its answer through its own gates instead of importing the other's
+numbers. `confirmed_by` stays human-only on both sides, so a fully autonomous
+loop is not on the table.
+
+One thread has run: **eight rounds** on whether a six-rung height ladder
+recovers `h0`, citing this repository's `runs/trap-2d-5um__a5ef4f45d589`,
+`intake/trap-2d-5um/` and six `verify/` scripts at pinned revisions — **20
+registered `bd:` artefacts**, each with a content hash the validator checks.
+Four results came out of it that neither side would have produced alone, and
+three are about *this* repository:
+
+- the two sides' sampling conventions differ by exactly **2π** (`f_s ≥ 10 f_c`
+  against `10/τ_k`);
+- **`T_obs/τ_k = 310`** against the 2000 the quoted precision was measured at —
+  6.4× short;
+- every error bar here is an **ensemble** bar over 1000 replicas, so comparing
+  it against a single-bead measurement is invalid as stated. That one is this
+  repository reporting against its own result;
+- the wall the experiment wanted is **not buildable here** rather than not yet
+  built: at fixed `h` its only effect is a scalar `γ`, which enters no
+  dimensionless group the trap case carries, so all six rungs are the same
+  dimensionless run and Faxén lives entirely in the back-transform. Five rounds
+  had framed it as a missing capability.
+  → [08 · the survey](docs/08-microscope-link-survey.md)
+
+**The citation apparatus was the part that broke.** The bridge's `--resolve`
+check opens the file every citation names instead of comparing two recorded
+strings, and it found **four citations that resolved to nothing** — a `rev`
+copied from a note, one predating the file it named, one pairing a
+working-tree hash with `HEAD`'s sha, and a literal `rev: HEAD`, which answers
+differently in every clone. All four carried a **correct content hash
+throughout**, which is why nothing else saw them. Corrected, each by the side
+that owns the document.
+
+**What does not exist yet, on this side:** no `knowledge/external/am/`
+namespace, no adapter from a question card to `observation.yaml` +
+`system.yaml`, and no reverse adapter from `metrics.json` to a reply card —
+the eight rounds were assembled by hand. The thread's own next step is blocked
+on a human precondition (tracked positions that live on the instrument PC),
+not on either agent.
+
+The preconditions that section named still hold and are being kept: sealing
+first, a shared quantity vocabulary, and **never letting a simulated number set
+`evidence: measured`** — that last one is now a rule with a negative fixture in
+the protocol repository rather than a promise.
 → [06 §6](docs/06-roadmap.md#6--future-work--joining-this-agent-to-the-microscope-agent)
+· [the protocol, and what each round cost](https://github.com/kyu-softmatter/sim-exp-bridge)
 · [the mirror of it, from the instrument's side](https://github.com/kyu-softmatter/agentic-microscope#toward-a-model-to-experiment-loop)
 
 Read [the pitfalls](docs/05-pitfalls.md) before implementing anything.
@@ -544,6 +599,7 @@ failures, which is the part that gets skipped.**
 | **Topic** | [`research-topic`](https://github.com/kyu-softmatter/research-topic) | which question is worth asking | sketch only. **Nothing built** |
 | **Simulation** | **this repository** | what the physical system should do | running |
 | **Experiment** | [`agentic-microscope`](https://github.com/kyu-softmatter/agentic-microscope) | what the instrument can actually record | running |
+| **The seam** | [`sim-exp-bridge`](https://github.com/kyu-softmatter/sim-exp-bridge) | what one side may ask the other, and what may not cross | one thread, eight rounds. Hand-assembled — no adapter on either side |
 | **Knowledge** | [`librarian-agent`](https://github.com/kyu-softmatter/librarian-agent) | where the answer already is, and whether it has gone stale | read tools running; indexes the microscope. **Nothing migrated** |
 
 The intended shape is a loop rather than a pipeline, and **that is exactly why it
