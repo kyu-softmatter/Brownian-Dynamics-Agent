@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/verify_dual_trap.py#design-window",
+  "lessons": [
+    {
+      "claim": "In a dual optical trap the particle can escape to infinity as well as hop between wells, and the two barriers pull opposite ways: the inter-well barrier is a fixed FRACTION of the trap depth set by the separation (0.156 of U0 at d/w=1.8, 0.284 at 2.0, 0.789 at 3.0). At d/w=3 no depth satisfies both observable hopping and negligible escape. The traps must sit about two beam waists apart, which for w=0.5 um means d~0.9 um -- near the limit at which two traps are resolvable, so it is a constraint on the optics. Measured: a 3 kT Gaussian well does not confine at all (escape barrier = U0, ~20 tau_w to leave).",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

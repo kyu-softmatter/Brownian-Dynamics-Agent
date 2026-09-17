@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/verify_dual_trap.py",
+  "lessons": [
+    {
+      "claim": "An occupancy ratio read from a trajectory with exponentially distributed residence times has an error 2.8x larger than the within-run visit-count estimate, because the total time in a well is carried by a few long visits. Measured over 10 seeds of a dual optical trap: within-run 0.232 (7.8 percent) against a seed-to-seed sd of 0.654 (22.2 percent). Two single runs read 3.29 and 3.39 against an exact answer of 2.9515 and the gap was reported as a 12 percent discrepancy in the simulation; with 10 seeds the mean is 2.9535 +- 0.2070, i.e. 0.0 sigma. Measuring such a ratio to 5 percent needs 16x the observation time a naive hop-count estimate suggests.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
