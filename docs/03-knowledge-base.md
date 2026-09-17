@@ -35,7 +35,7 @@ knowledge stores with different shapes, different writers and different readers.
 | Form | Markdown + YAML frontmatter | flat JSON, one file per claim |
 | Written by | a human or an agent, deliberately | `tools/kb.py add` |
 | Read by | skill `bd-knowledge`, and by reading | `tools/kb.py query` |
-| Size | 54 wiki pages · 43 paper + 2 book distillations | 166 entries |
+| Size | 54 wiki pages · 43 paper + 2 book distillations | 167 entries |
 | Keyed on | kind (systems / findings / …) | `origin` × `kind` |
 | Strength | contracts, cross-links, human-legible rationale | cheap to append, so it actually gets appended |
 
@@ -84,7 +84,7 @@ Recording it is worth as much as recording a success, and it must state a
 
 ## 3 · The `entries/` store — what actually gets written
 
-166 entries, by origin. The distribution is itself a finding:
+167 entries, by origin. The distribution is itself a finding:
 
 | `origin` | Count | What it means |
 |---|---:|---|

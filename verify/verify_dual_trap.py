@@ -80,6 +80,42 @@ particle occupies is not set by depth alone. 400 tau_w is 3.9 minutes of real
 time for these parameters, so ~40 minutes of recording rejects it, and ~1 hour
 separates the harmonic approximation too.
 
+## ★ WHAT THE r-SCAN MEASURED (stage 4)
+
+20 runs, 4 values of r, 5 seeds each, 300 tau_w -- 6000 tau_w total, which is
+**58 minutes of real recording** at these parameters:
+
+    r      measured p1/p2      exact     agrees      n from this r alone
+    0.80   8.7416 +- 0.3918    8.7350    0.02 sigma  2.832 +- 0.201
+    0.85   5.1678 +- 0.1803    5.0893    0.44 sigma  2.815 +- 0.215
+    0.90   3.1518 +- 0.1820    2.9518    1.10 sigma  2.392 +- 0.548
+    0.95   1.7715 +- 0.0900    1.7190    0.58 sigma  2.499 +- 0.990
+
+    FITTED  n = 2.789 +- 0.140     chi2/nu = 0.22 over 4 points
+
+    depth-only Boltzmann      n = 0        19.9 sigma   REJECTED
+    harmonic + entropy, 3D    n = 1.5       9.2 sigma   REJECTED
+    exact integral            n = 2.887    -0.7 sigma   agrees
+
+chi2/nu = 0.22 says one exponent describes the scan, and every point agrees with
+the exact value on its own.
+
+⚠ **The +- 0.140 is derived from 5-seed SEMs, nu = 4, and is probably
+optimistic.** The 10-seed measurement at r = 0.90 put the per-seed spread at
+22.2 %, while these 5 seeds showed 12.9 % -- and with nu = 4 the sd estimate
+itself carries ~35 %, so the 10-seed number is the more reliable one. Scaling by
+it gives dn ~ 0.24. Both values reject the two candidates decisively (11.6 and
+6.2 sigma at the pessimistic dn), so the conclusion does not move -- but the
+error bar is quoted as a RANGE because this system has already produced two
+under-estimated ones, and a third would be a pattern rather than an accident.
+
+⚠ **And one prediction of mine was wrong in the useful direction.** I expected
+the statistics to degrade as 1-r grew, because trap 2 is visited less. They
+improve: the per-seed error at r = 0.80 is 10 % against 13 % at r = 0.90, because
+the shorter residence in the shallow trap means MORE visits and a better-sampled
+total. So sensitivity and statistics move the same way here and there is no
+trade-off to optimise -- take 1-r as large as the double well survives.
+
 ## Stages, in the isolation order rule 7 demands
 
   1 · ONE Gaussian trap        -> recover kappa from <x^2>, against the EXACT
@@ -479,7 +515,7 @@ def stage3(u1=None, ratio=POWER_RATIO, n_tau=400,
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", type=int, choices=(1, 2, 3), default=None)
+    ap.add_argument("--stage", type=int, choices=(1, 2, 3, 4), default=None)
     ap.add_argument("--tau", type=float, default=400.0)
     a = ap.parse_args()
 
@@ -516,8 +552,94 @@ def main() -> int:
                   "first.")
             return 1
         stage3(n_tau=a.tau)
+    if a.stage == 4:
+        stage4()
     return 0 if ok else 1
 
+
+
+# ── stage 4: scan r, fit the exponent ─────────────────────────────────────
+#
+# ★ The production design, and the reason it beats measuring one ratio.
+#
+#       log(p1/p2) = U1 (1 - r)  -  n * ln(1/r)
+#
+#   n = 0    depth-only Boltzmann
+#   n = 3/2  harmonic + entropy in 3D
+#   n ~ 3    what the EXACT integral for a Gaussian well gives at U1 = 14 kT
+#
+# ⚠ n is NOT universal. Computed exactly over r in [0.75, 0.98] it is constant to
+#   5-8 % at fixed depth but drifts with depth: 2.49 at U1 = 10 kT, 2.99 at 14,
+#   3.54 at 20. So a measured n must be quoted with the depth it was measured at,
+#   and the depth's own calibration (equipartition, ~13 % low for a Gaussian
+#   well) couples into it. Stated because "fit one exponent" sounds more
+#   universal than it is.
+#
+# ⚠ AND THE INFORMATION IS ALL AT LARGE 1-r. Sensitivity is
+#   dn = d(log ratio) / ln(1/r), so at r = 0.98 a 22 %/seed error gives
+#   dn = 10.9/sqrt(N) -- useless -- against 0.99/sqrt(N) at r = 0.80. But large
+#   1-r is exactly where trap 2 is rarely visited and the statistics are worst.
+#   The scan below sits at the compromise, and the achieved dn is REPORTED rather
+#   than assumed.
+R_SCAN = (0.80, 0.85, 0.90, 0.95)
+N_SEEDS = 5
+
+
+def stage4(u1=None, rs=R_SCAN, n_seeds=N_SEEDS, n_tau=300.0, seed0=201):
+    u1 = U1_KT if u1 is None else u1
+    print(f"\n{'=' * 74}\n4 · SCAN r, FIT n — one exponent against three "
+          f"candidates\n{'=' * 74}")
+    print(f"   U1 = {u1} kT, d/w = {SEP:g}, dt = {DT:.0e}, "
+          f"{n_seeds} seeds x {n_tau:g} tau_w per r\n")
+    print(f"{'r':>6s} {'dU/kT':>7s} {'p1/p2 measured':>18s} {'exact':>8s} "
+          f"{'n from this r':>16s}")
+    pts = []
+    for r in rs:
+        depths = (u1, r * u1)
+        xs, _, _ = saddle_x(depths, SEP, AX)
+        vals = []
+        for k in range(n_seeds):
+            traj, _ = build(depths, SEP, AX, box=20.0, dt=DT, seed=seed0 + k,
+                            steps=int(n_tau / DT), sample_every=40)
+            vals.append(occupancy_and_rates(traj[:, 0], xs, 40 * DT)["ratio"])
+        v = np.array(vals)
+        m = v.mean()
+        sem = v.std(ddof=1) / math.sqrt(len(v))
+        ex = exact_ratio_grid(depths, SEP, AX, n=400)
+        dU = u1 * (1.0 - r)
+        n_here = (dU - math.log(m)) / math.log(1.0 / r)
+        dn_here = (sem / m) / math.log(1.0 / r)
+        pts.append((r, dU, m, sem, ex))
+        print(f"{r:6.2f} {dU:7.3f} {m:10.4f} +- {sem:5.4f} {ex:8.4f} "
+              f"{n_here:9.3f} +- {dn_here:.3f}", flush=True)
+
+    #  ── the global weighted fit of one parameter ──────────────────────────
+    r_ = np.array([q[0] for q in pts])
+    dU = np.array([q[1] for q in pts])
+    m_ = np.array([q[2] for q in pts])
+    se = np.array([q[3] for q in pts])
+    y = dU - np.log(m_)                      # = n * ln(1/r)
+    sy = se / m_                             # error on log(ratio)
+    xb = np.log(1.0 / r_)
+    w = 1.0 / sy ** 2
+    n_fit = float((w * xb * y).sum() / (w * xb * xb).sum())
+    dn_fit = float(1.0 / math.sqrt((w * xb * xb).sum()))
+    chi2 = float((w * (y - n_fit * xb) ** 2).sum() / max(len(pts) - 1, 1))
+    print(f"\n   FITTED  n = {n_fit:.3f} +- {dn_fit:.3f}   "
+          f"chi2/nu = {chi2:.2f} over {len(pts)} points")
+    if chi2 > 4.0:
+        print(f"   ⚠ chi2/nu > 4: a single exponent does NOT describe this scan, "
+              f"so n\n     is a summary of nothing and must not be quoted.")
+
+    #  the exact answer, reduced the same way, is the reference
+    y_ex = dU - np.log(np.array([q[4] for q in pts]))
+    n_ex = float((y_ex * xb).sum() / (xb * xb).sum())
+    print(f"\n   {'candidate':32s} {'n':>7s} {'measured - candidate':>21s}")
+    for lbl, val in (("depth-only Boltzmann", 0.0),
+                     ("harmonic + entropy, 3D", 1.5),
+                     ("exact integral, same reduction", n_ex)):
+        print(f"   {lbl:32s} {val:7.3f} {(n_fit-val)/dn_fit:17.1f} sigma")
+    return True
 
 if __name__ == "__main__":
     raise SystemExit(main())

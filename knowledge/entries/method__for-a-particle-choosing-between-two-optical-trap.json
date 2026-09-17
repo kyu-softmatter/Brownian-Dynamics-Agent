@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/verify_dual_trap.py#stage4",
+  "lessons": [
+    {
+      "claim": "For a particle choosing between two optical traps of different power, the occupancy ratio obeys log(p1/p2) = U1(1-r) - n ln(1/r) with a single exponent n, and n is NOT the harmonic 3/2. Measured by BD over r in 0.80-0.95 at U1 = 14 kT: n = 2.789 +- 0.140 with chi2/nu = 0.22, rejecting depth-only Boltzmann (n=0) at 19.9 sigma and harmonic-plus-entropy (n=3/2) at 9.2 sigma, and agreeing with the exact Gaussian-well integral (n=2.887) at -0.7 sigma. n drifts with depth (2.49 at 10 kT, 2.99 at 14, 3.54 at 20) so it must be quoted with its depth. Sensitivity is dn = d(log ratio)/ln(1/r), and contrary to expectation the per-seed error also IMPROVES with 1-r (10 percent at r=0.80 against 13 at 0.90) because the shallow trap's shorter residence gives more visits -- so take 1-r as large as the double well survives.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
