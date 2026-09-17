@@ -164,7 +164,7 @@ produces *some* number, and not diverging is not the same as being right.
                     ║  wiki/concepts/ techniques/ questions/            ║
                     ║  source/papers/     43 distillations              ║
                     ║  source/books/      2 book distillations          ║
-                    ║  entries/           164 tool-written JSON          ║
+                    ║  entries/           166 tool-written JSON          ║
                     ║  runs/**/record.json  247 post-mortems            ║
                     ╚═══════════════════════════════════════════════════╝
                                │
