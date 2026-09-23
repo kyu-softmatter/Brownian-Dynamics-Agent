@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/dual_trap_fast.py#one-mistake-four-times",
+  "lessons": [
+    {
+      "claim": "A recurring failure shape across two systems: verify a condition for ONE PART of a system, then apply the conclusion to the whole. Four instances. Sedimentation l_g: predicted for an idealised fit window rather than the one the estimator's count floor leaves. Optical trap kappa: compared against 2*U0 rather than against the same parabolic fit applied to the exact p(x). Correlation time: tau_int measured on the mean height applied to a dense-region observable that decorrelates far faster, nearly killing an affordable campaign. Escape: the operating window was sized on the DEEPER trap's escape barrier while the SHALLOW trap limits the run (11.2 kT vs 14, 13x the rate). The check is cheap: name which part of the system each condition was verified on, and whether any other part is more limiting.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

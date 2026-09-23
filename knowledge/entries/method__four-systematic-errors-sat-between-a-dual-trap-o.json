@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "method",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/dual_trap_fast.py#four-systematics",
+  "lessons": [
+    {
+      "claim": "Four systematic errors sat between a dual-trap occupancy simulation and the exact Boltzmann answer, each larger than the statistical error, and seed count was never the limit. (1) mean(n1/n2) is Jensen-biased HIGH by +5 to +8.5 percent because 1/x is convex -- exposed by burn=0.5 making the excess WORSE, which equilibration cannot do but a 1/N bias must. (2) initial condition biases BOTH ways: all-in-the-deep-trap high, 50/50 LOW, because equilibrium is 90/10. (3) escape from the pair drifts the ratio down 6 percent and growing, invisible until the all-frames and bound-only ratios are compared. (4) the bound-cut definition leaves a constant 1.8 percent that is not an error and cancels if experiment and simulation classify frames alike. Final: n = 2.9558 +- 0.0188 stat, rejecting depth-only at 157 sigma and harmonic-plus-entropy at 77.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}

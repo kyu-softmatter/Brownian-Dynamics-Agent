@@ -1,0 +1,18 @@
+{
+  "schema": "bdbot.kb_entry/0.1",
+  "run_id": null,
+  "origin": "tooling",
+  "case": null,
+  "outcome": null,
+  "system_tags": [],
+  "dimensionless": {},
+  "source": "verify/dual_trap_fast.py",
+  "lessons": [
+    {
+      "claim": "For ONE particle in an analytic external potential, HOOMD's md.force.Custom costs a Python callback every step and delivers ~3000 steps/s, so a 140-run sweep projected to 8 hours. The same dynamics carried as M independent replicas in an (M,3) numpy array costs the same per STEP regardless of M: 200 replicas x 300 tau_w in 190 s, about 1000x the throughput. Validated against the HOOMD runs at four parameter values before use (agreement 1.12, 0.82, -0.21, 0.25 sigma). The sharper error bar then exposed a +5 percent dt bias at dt=1e-4 that the noisier HOOMD runs could not resolve -- speed bought accuracy, not just time.",
+      "kind": "pitfall",
+      "coords": {}
+    }
+  ],
+  "not_verified": []
+}
