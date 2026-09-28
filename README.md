@@ -3,6 +3,8 @@
 [![CI](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kyu-softmatter/Brownian-Dynamics-Agent/actions/workflows/ci.yml)
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
+> **Rebuild:** this agent is being rebuilt as [`simulation_agent/`](https://github.com/kyu-softmatter/soft-matter-agents/tree/main/simulation_agent) in [soft-matter-agents](https://github.com/kyu-softmatter/soft-matter-agents), the four-agent system (microscope, simulation, librarian, bridge).
+
 **What the badge covers**, because a green shield states nothing on its own:
 **1650 passed, 6 skipped** on HOOMD-blue 7.1.0, plus **58 sealed
 documents verified** — the count is identical on `linux-64` and `osx-arm64`,
